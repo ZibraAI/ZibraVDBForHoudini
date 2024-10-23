@@ -26,19 +26,11 @@ namespace Zibra::ZibraVDBCompressor
         static PRM_Range theQualityRange(PRM_RANGE_RESTRICTED, 0.0f, PRM_RANGE_RESTRICTED, 1.0f);
 
         static PRM_Name theDownloadLibraryButtonName(DOWNLOAD_LIBRARY_BUTTON_NAME, "Download Library");
-        static PRM_Conditional theDownloadLibraryButtonCondition("{ library_version != \"\" }", PRM_CONDTYPE_DISABLE);
-
-        static PRM_Name theLibraryVersionName(LIBRARY_VERSION_NAME, "Current Library Version");
-        static PRM_Default theLibraryVersionDefault(0.0f, "");
-        static PRM_Conditional theLibraryVersionCondition("{ 2 != 2 }", PRM_CONDTYPE_DISABLE);
 
         static PRM_Template templateList[] = {PRM_Template(PRM_FILE, 1, &theFileName, &theFileDefault),
                                               PRM_Template(PRM_FLT, 1, &theQualityName, &theQualityDefault, nullptr, &theQualityRange),
                                               PRM_Template(PRM_CALLBACK, 1, &theDownloadLibraryButtonName, nullptr, nullptr, nullptr,
-                                                           &ROP_ZibraVDBCompressor::DownloadLibrary, nullptr, 1, nullptr,
-                                                           &theDownloadLibraryButtonCondition),
-                                              PRM_Template(PRM_STRING_E, 1, &theLibraryVersionName, &theLibraryVersionDefault, nullptr,
-                                                           nullptr, nullptr, nullptr, 1, nullptr, &theLibraryVersionCondition),
+                                                           &ROP_ZibraVDBCompressor::DownloadLibrary),
                                               theRopTemplates[ROP_TPRERENDER_TPLATE],
                                               theRopTemplates[ROP_PRERENDER_TPLATE],
                                               theRopTemplates[ROP_LPRERENDER_TPLATE],
@@ -75,15 +67,12 @@ namespace Zibra::ZibraVDBCompressor
     ROP_ZibraVDBCompressor::ROP_ZibraVDBCompressor(OP_Network* net, const char* name, OP_Operator* entry) noexcept
         : ROP_Node{net, name, entry}
     {
-        UpdateCompressionLibraryVersion();
     }
 
     ROP_ZibraVDBCompressor::~ROP_ZibraVDBCompressor() noexcept = default;
 
     int ROP_ZibraVDBCompressor::startRender(const int nFrames, const fpreal tStart, const fpreal tEnd)
     {
-        UpdateCompressionLibraryVersion();
-
         if (!CompressionEngine::IsPlatformSupported())
         {
             addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_PLATFORM_NOT_SUPPORTED);
@@ -97,8 +86,6 @@ namespace Zibra::ZibraVDBCompressor
             addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_COMPRESSION_ENGINE_MISSING);
             return ROP_ABORT_RENDER;
         }
-
-        UpdateCompressionLibraryVersion();
 
         if (!CompressionEngine::IsLicenseValid(CompressionEngine::ZCE_Product::Compression))
         {
@@ -349,7 +336,6 @@ namespace Zibra::ZibraVDBCompressor
 
         if (CompressionEngine::IsLibraryLoaded())
         {
-            node->UpdateCompressionLibraryVersion();
             MessageBox::Result result =
                 MessageBox::Show(MessageBox::Type::OK, "Library is already downloaded.", "ZibraVDB");
             return 0;
@@ -368,7 +354,7 @@ namespace Zibra::ZibraVDBCompressor
             node->addError(ROP_MESSAGE, "Failed to download ZibraVDB library.");
             return 0;
         }
-        node->UpdateCompressionLibraryVersion();
+        
         if (!CompressionEngine::IsLicenseValid(CompressionEngine::ZCE_Product::Compression))
         {
             node->addWarning(ROP_MESSAGE, "Library downloaded successfully, but no valid license found. Visit "
@@ -377,11 +363,6 @@ namespace Zibra::ZibraVDBCompressor
         }
         MessageBox::Show(MessageBox::Type::OK, "Library downloaded successfully.", "ZibraVDB");
         return 0;
-    }
-
-    void ROP_ZibraVDBCompressor::UpdateCompressionLibraryVersion()
-    {
-        setString(CompressionEngine::GetLoadedLibraryVersionString().c_str(), CH_STRING_LITERAL, LIBRARY_VERSION_NAME, 0, 0.0f);
     }
 
 } // namespace Zibra::ZibraVDBCompressor

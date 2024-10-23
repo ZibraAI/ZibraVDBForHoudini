@@ -55,20 +55,13 @@ namespace Zibra::ZibraVDBDecompressor
         }};
 
         static PRM_Name theDownloadLibraryButtonName(DOWNLOAD_LIBRARY_BUTTON_NAME, "Download Library");
-        static PRM_Conditional theDownloadLibraryButtonCondition("{ library_version != \"\" }", PRM_CONDTYPE_DISABLE);
-
-        static PRM_Name theLibraryVersionName(LIBRARY_VERSION_NAME, "Current Library Version");
-        static PRM_Default theLibraryVersionDefault(0.0f, "");
-        static PRM_Conditional theLibraryVersionCondition("{ 2 != 2 }", PRM_CONDTYPE_DISABLE);
 
         static PRM_Template templateList[] = {
             PRM_Template(PRM_FILE, 1, &theFileName, &theFileDefault),
             PRM_Template(PRM_INT, 1, &theFrameName, &theFrameDefault),
             PRM_Template(PRM_CALLBACK, 1, &theReloadCacheName, nullptr, nullptr, nullptr, theReloadCallback),
             PRM_Template(PRM_CALLBACK, 1, &theDownloadLibraryButtonName, nullptr, nullptr, nullptr,
-                         &SOP_ZibraVDBDecompressor::DownloadLibrary, nullptr, 1, nullptr, &theDownloadLibraryButtonCondition),
-            PRM_Template(PRM_STRING_E, 1, &theLibraryVersionName, &theLibraryVersionDefault, nullptr, nullptr, nullptr, nullptr, 1, nullptr,
-                         &theLibraryVersionCondition),
+                         &SOP_ZibraVDBDecompressor::DownloadLibrary),
             PRM_Template()};
         return templateList;
     }
@@ -76,15 +69,11 @@ namespace Zibra::ZibraVDBDecompressor
     SOP_ZibraVDBDecompressor::SOP_ZibraVDBDecompressor(OP_Network* net, const char* name, OP_Operator* entry) noexcept
         : SOP_Node(net, name, entry)
     {
-        UpdateCompressionLibraryVersion();
-
         CompressionEngine::LoadLibrary();
         if (!CompressionEngine::IsLibraryLoaded())
         {
             return;
         }
-
-        UpdateCompressionLibraryVersion();
 
         if (!CompressionEngine::IsLicenseValid(CompressionEngine::ZCE_Product::Render))
         {
@@ -114,8 +103,6 @@ namespace Zibra::ZibraVDBDecompressor
     {
         gdp->clearAndDestroy();
 
-        UpdateCompressionLibraryVersion();
-
         if (!CompressionEngine::IsPlatformSupported())
         {
             addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_PLATFORM_NOT_SUPPORTED);
@@ -128,8 +115,6 @@ namespace Zibra::ZibraVDBDecompressor
             addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_COMPRESSION_ENGINE_MISSING);
             return error(context);
         }
-
-        UpdateCompressionLibraryVersion();
 
         if (!CompressionEngine::IsLicenseValid(CompressionEngine::ZCE_Product::Render))
         {
@@ -252,7 +237,6 @@ namespace Zibra::ZibraVDBDecompressor
 
         if (CompressionEngine::IsLibraryLoaded())
         {
-            node->UpdateCompressionLibraryVersion();
             MessageBox::Result result = MessageBox::Show(MessageBox::Type::OK, "Library is already downloaded.", "ZibraVDB");
             return 0;
         }
@@ -270,7 +254,6 @@ namespace Zibra::ZibraVDBDecompressor
             node->addError(SOP_MESSAGE, "Failed to download ZibraVDB library.");
             return 0;
         }
-        node->UpdateCompressionLibraryVersion();
         if (!CompressionEngine::IsLicenseValid(CompressionEngine::ZCE_Product::Render))
         {
             node->addWarning(SOP_MESSAGE, "Library downloaded successfully, but no valid license found. Visit "
@@ -279,11 +262,6 @@ namespace Zibra::ZibraVDBDecompressor
         }
         MessageBox::Show(MessageBox::Type::OK, "Library downloaded successfully.", "ZibraVDB");
         return 0;
-    }
-
-    void SOP_ZibraVDBDecompressor::UpdateCompressionLibraryVersion()
-    {
-        setString(CompressionEngine::GetLoadedLibraryVersionString().c_str(), CH_STRING_LITERAL, LIBRARY_VERSION_NAME, 0, 0.0f);
     }
 
 } // namespace Zibra::ZibraVDBDecompressor

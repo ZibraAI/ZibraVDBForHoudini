@@ -12,7 +12,6 @@ namespace Zibra::ZibraVDBDecompressor
         static constexpr const char* FRAME_PARAM_NAME = "frame";
         static constexpr const char* REFRESH_CALLBACK_PARAM_NAME = "refresh";
         static constexpr const char* DOWNLOAD_LIBRARY_BUTTON_NAME = "download_library";
-        static constexpr const char* LIBRARY_VERSION_NAME = "library_version";
 
     public:
         static OP_Node* Constructor(OP_Network* net, const char* name, OP_Operator* op) noexcept;
@@ -27,7 +26,6 @@ namespace Zibra::ZibraVDBDecompressor
 
     private:
         static int DownloadLibrary(void* data, int index, fpreal32 time, const PRM_Template* tplate);
-        void UpdateCompressionLibraryVersion();
 
         uint32_t m_DecompressorInstanceID = uint32_t(-1);
     };
