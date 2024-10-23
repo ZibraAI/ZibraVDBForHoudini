@@ -153,7 +153,6 @@ namespace Zibra::CompressionEngine
 
         if (g_LibraryHandle == NULL)
         {
-            volatile auto res = ::GetLastError();
             return;
         }
 
