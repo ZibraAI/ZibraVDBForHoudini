@@ -11,7 +11,6 @@ namespace Zibra::ZibraVDBCompressor
         static constexpr const char* QUALITY_PARAM_NAME = "quality";
         static constexpr const char* FILENAME_PARAM_NAME = "filename";
         static constexpr const char* DOWNLOAD_LIBRARY_BUTTON_NAME = "download_library";
-        static constexpr const char* LIBRARY_VERSION_NAME = "library_version";
 
     public:
         static OP_Node* Constructor(OP_Network* net, const char* name, OP_Operator* op) noexcept;
@@ -32,7 +31,6 @@ namespace Zibra::ZibraVDBCompressor
     private:
         std::vector<std::pair<std::string, std::string>> DumpAttributes(const GU_Detail* gdp) noexcept;
         static int DownloadLibrary(void* data, int index, fpreal32 time, const PRM_Template* tplate);
-        void UpdateCompressionLibraryVersion();
 
     private:
         fpreal m_EndTime = 0;
