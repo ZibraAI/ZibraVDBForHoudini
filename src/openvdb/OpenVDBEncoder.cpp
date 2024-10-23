@@ -14,8 +14,16 @@ namespace Zibra::OpenVDBSupport
             return {};
         }
 
-        openvdb::math::Transform::Ptr transform =
-            openvdb::math::Transform::createLinearTransform(openvdb::Mat4d{frame.gridTransform.matrix});
+        openvdb::math::Transform::Ptr transform = nullptr;
+
+        if (IsTransformEmpty(frame.gridTransform))
+        {
+            transform = openvdb::math::Transform::createLinearTransform();
+        }
+        else
+        {
+            transform = openvdb::math::Transform::createLinearTransform(openvdb::Mat4d{frame.gridTransform.matrix});
+        }
 
         const uint32_t gridsCount = frame.channelCount;
 
@@ -89,6 +97,21 @@ namespace Zibra::OpenVDBSupport
         });
 
         return grids;
+    }
+
+    bool OpenVDBEncoder::IsTransformEmpty(const CompressionEngine::ZCE_Transform& gridTransform)
+    {
+        static_assert(sizeof(gridTransform.matrix) != sizeof(void*));
+        constexpr int arraySize = sizeof(gridTransform.matrix) / sizeof(gridTransform.matrix[0]);
+
+        for (int i = 0; i < arraySize; ++i)
+        {
+            if (gridTransform.matrix[i] != 0.f)
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
 } // namespace Zibra::OpenVDBSupport
