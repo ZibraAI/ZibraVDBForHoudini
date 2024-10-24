@@ -149,7 +149,7 @@ namespace Zibra::OpenVDBSupport
             }
         }
     }
-    
+
     openvdb::FloatGrid::Ptr OpenVDBGridTransform(const openvdb::FloatGrid::Ptr& grid, const openvdb::FloatGrid::ConstPtr& originGrid,
                                                  const openvdb::math::Transform& transform)
     {

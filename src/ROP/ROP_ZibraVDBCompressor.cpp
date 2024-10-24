@@ -336,8 +336,7 @@ namespace Zibra::ZibraVDBCompressor
 
         if (CompressionEngine::IsLibraryLoaded())
         {
-            MessageBox::Result result =
-                MessageBox::Show(MessageBox::Type::OK, "Library is already downloaded.", "ZibraVDB");
+            MessageBox::Result result = MessageBox::Show(MessageBox::Type::OK, "Library is already downloaded.", "ZibraVDB");
             return 0;
         }
         MessageBox::Result result = MessageBox::Show(MessageBox::Type::YesNo,
@@ -354,7 +353,7 @@ namespace Zibra::ZibraVDBCompressor
             node->addError(ROP_MESSAGE, "Failed to download ZibraVDB library.");
             return 0;
         }
-        
+
         if (!CompressionEngine::IsLicenseValid(CompressionEngine::ZCE_Product::Compression))
         {
             node->addWarning(ROP_MESSAGE, "Library downloaded successfully, but no valid license found. Visit "
