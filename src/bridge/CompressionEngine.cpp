@@ -23,8 +23,8 @@ namespace Zibra::CompressionEngine
 #error Unuspported platform
 #endif
 
-    static constexpr ZCE_VersionNumber g_MinimumSupportedVersion = {ZIB_COMPRESSION_ENGINE_BRIDGE_MAJOR_VERSION,
-                                                                    ZIB_COMPRESSION_ENGINE_BRIDGE_MINOR_VERSION};
+    static constexpr ZCE_VersionNumber g_SupportedVersion = {ZIB_COMPRESSION_ENGINE_BRIDGE_MAJOR_VERSION,
+                                                             ZIB_COMPRESSION_ENGINE_BRIDGE_MINOR_VERSION};
 
     static constexpr const char* g_BaseDirEnv = "HOUDINI_USER_PREF_DIR";
     static constexpr const char* g_LibraryPath =
@@ -48,21 +48,20 @@ namespace Zibra::CompressionEngine
         return g_LibraryDownloadURL;
     }
 
-    bool operator<(const ZCE_VersionNumber& lhs, const ZCE_VersionNumber& rhs)
+    bool IsLibrarySupported(const ZCE_VersionNumber& version)
     {
-        if (lhs.major != rhs.major)
+        // Major and minor numbers should match exactly
+        if (version.major != g_SupportedVersion.major || version.minor != g_SupportedVersion.minor)
         {
-            return lhs.major < rhs.major;
+            return false;
         }
-        if (lhs.minor != rhs.minor)
+        // Patch and build numbers need to be at greater or equal to the supported version
+        // If patch number is greater, build number doesn't matter
+        if (version.patch != g_SupportedVersion.patch)
         {
-            return lhs.minor < rhs.minor;
+            return version.patch >= g_SupportedVersion.patch;
         }
-        if (lhs.patch != rhs.patch)
-        {
-            return lhs.patch < rhs.patch;
-        }
-        return lhs.build < rhs.build;
+        return version.build >= g_SupportedVersion.build;
     }
 
 #define ZIB_DECLARE_FUNCTION_POINTER(functionName, returnType, ...) \
@@ -164,7 +163,7 @@ namespace Zibra::CompressionEngine
         }
 
         g_LoadedLibraryVersion = BridgeGetVersion();
-        if (g_LoadedLibraryVersion < g_MinimumSupportedVersion)
+        if (!IsLibrarySupported(g_LoadedLibraryVersion))
         {
             ::FreeLibrary(g_LibraryHandle);
             g_LibraryHandle = NULL;

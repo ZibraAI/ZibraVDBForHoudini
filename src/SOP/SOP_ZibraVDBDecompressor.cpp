@@ -57,8 +57,7 @@ namespace Zibra::ZibraVDBDecompressor
         static PRM_Name theDownloadLibraryButtonName(DOWNLOAD_LIBRARY_BUTTON_NAME, "Download Library");
 
         static PRM_Template templateList[] = {
-            PRM_Template(PRM_FILE, 1, &theFileName, &theFileDefault),
-            PRM_Template(PRM_INT, 1, &theFrameName, &theFrameDefault),
+            PRM_Template(PRM_FILE, 1, &theFileName, &theFileDefault), PRM_Template(PRM_INT, 1, &theFrameName, &theFrameDefault),
             PRM_Template(PRM_CALLBACK, 1, &theReloadCacheName, nullptr, nullptr, nullptr, theReloadCallback),
             PRM_Template(PRM_CALLBACK, 1, &theDownloadLibraryButtonName, nullptr, nullptr, nullptr,
                          &SOP_ZibraVDBDecompressor::DownloadLibrary),
