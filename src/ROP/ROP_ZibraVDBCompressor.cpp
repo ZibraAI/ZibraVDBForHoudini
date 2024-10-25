@@ -45,35 +45,28 @@ namespace Zibra::ZibraVDBCompressor
             PRM_Template()};
 
         static PRM_Name theDownloadLibraryButtonName(DOWNLOAD_LIBRARY_BUTTON_NAME, "Download Library");
-        static PRM_Conditional theDownloadLibraryButtonCondition("{ library_version != \"\" }", PRM_CONDTYPE_DISABLE);
 
-        static PRM_Name theLibraryVersionName(LIBRARY_VERSION_NAME, "Current Library Version");
-        static PRM_Default theLibraryVersionDefault(0.0f, "");
-        static PRM_Conditional theLibraryVersionCondition("{ 2 != 2 }", PRM_CONDTYPE_DISABLE);
-
-        static PRM_Template templateList[] = {
-            PRM_Template(PRM_FILE, 1, &theFileName, &theFileDefault),
-            PRM_Template(PRM_FLT, 1, &theQualityName, &theQualityDefault, nullptr, &theQualityRange),
-            PRM_Template(PRM_TOGGLE, 1, &theUsePerChannelCompressionSettingsName),
-            PRM_Template(PRM_MULTITYPE_LIST, thePerChannelCompressionSettingsTemplates, 2, &thePerChannelCompressionSettingsName[0],
-                         nullptr, nullptr, nullptr, nullptr, &thePerChannelCompressionSettingsNameCondition),
-            PRM_Template(PRM_CALLBACK, 1, &theDownloadLibraryButtonName, nullptr, nullptr, nullptr,
-                         &ROP_ZibraVDBCompressor::DownloadLibrary, nullptr, 1, nullptr, &theDownloadLibraryButtonCondition),
-            PRM_Template(PRM_STRING_E, 1, &theLibraryVersionName, &theLibraryVersionDefault, nullptr, nullptr, nullptr, nullptr, 1, nullptr,
-                         &theLibraryVersionCondition),
-            theRopTemplates[ROP_TPRERENDER_TPLATE],
-            theRopTemplates[ROP_PRERENDER_TPLATE],
-            theRopTemplates[ROP_LPRERENDER_TPLATE],
-            theRopTemplates[ROP_TPREFRAME_TPLATE],
-            theRopTemplates[ROP_PREFRAME_TPLATE],
-            theRopTemplates[ROP_LPREFRAME_TPLATE],
-            theRopTemplates[ROP_TPOSTFRAME_TPLATE],
-            theRopTemplates[ROP_POSTFRAME_TPLATE],
-            theRopTemplates[ROP_LPOSTFRAME_TPLATE],
-            theRopTemplates[ROP_TPOSTRENDER_TPLATE],
-            theRopTemplates[ROP_POSTRENDER_TPLATE],
-            theRopTemplates[ROP_LPOSTRENDER_TPLATE],
-            PRM_Template()};
+        static PRM_Template templateList[] = {PRM_Template(PRM_FILE, 1, &theFileName, &theFileDefault),
+                                              PRM_Template(PRM_FLT, 1, &theQualityName, &theQualityDefault, nullptr, &theQualityRange),
+                                              PRM_Template(PRM_TOGGLE, 1, &theUsePerChannelCompressionSettingsName),
+                                              PRM_Template(PRM_MULTITYPE_LIST, thePerChannelCompressionSettingsTemplates, 2,
+                                                           &thePerChannelCompressionSettingsName[0], nullptr, nullptr, nullptr, nullptr,
+                                                           &thePerChannelCompressionSettingsNameCondition),
+                                              PRM_Template(PRM_CALLBACK, 1, &theDownloadLibraryButtonName, nullptr, nullptr, nullptr,
+                                                           &ROP_ZibraVDBCompressor::DownloadLibrary),
+                                              theRopTemplates[ROP_TPRERENDER_TPLATE],
+                                              theRopTemplates[ROP_PRERENDER_TPLATE],
+                                              theRopTemplates[ROP_LPRERENDER_TPLATE],
+                                              theRopTemplates[ROP_TPREFRAME_TPLATE],
+                                              theRopTemplates[ROP_PREFRAME_TPLATE],
+                                              theRopTemplates[ROP_LPREFRAME_TPLATE],
+                                              theRopTemplates[ROP_TPOSTFRAME_TPLATE],
+                                              theRopTemplates[ROP_POSTFRAME_TPLATE],
+                                              theRopTemplates[ROP_LPOSTFRAME_TPLATE],
+                                              theRopTemplates[ROP_TPOSTRENDER_TPLATE],
+                                              theRopTemplates[ROP_POSTRENDER_TPLATE],
+                                              theRopTemplates[ROP_LPOSTRENDER_TPLATE],
+                                              PRM_Template()};
 
         return templateList;
     }
@@ -104,8 +97,6 @@ namespace Zibra::ZibraVDBCompressor
 
     int ROP_ZibraVDBCompressor::startRender(const int nFrames, const fpreal tStart, const fpreal tEnd)
     {
-        UpdateCompressionLibraryVersion();
-
         if (!CompressionEngine::IsPlatformSupported())
         {
             addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_PLATFORM_NOT_SUPPORTED);
@@ -119,8 +110,6 @@ namespace Zibra::ZibraVDBCompressor
             addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_COMPRESSION_ENGINE_MISSING);
             return ROP_ABORT_RENDER;
         }
-
-        UpdateCompressionLibraryVersion();
 
         if (!CompressionEngine::IsLicenseValid(CompressionEngine::ZCE_Product::Compression))
         {
@@ -428,7 +417,6 @@ namespace Zibra::ZibraVDBCompressor
 
         if (CompressionEngine::IsLibraryLoaded())
         {
-            node->UpdateCompressionLibraryVersion();
             MessageBox::Result result = MessageBox::Show(MessageBox::Type::OK, "Library is already downloaded.", "ZibraVDB");
             return 0;
         }
@@ -446,7 +434,7 @@ namespace Zibra::ZibraVDBCompressor
             node->addError(ROP_MESSAGE, "Failed to download ZibraVDB library.");
             return 0;
         }
-        node->UpdateCompressionLibraryVersion();
+
         if (!CompressionEngine::IsLicenseValid(CompressionEngine::ZCE_Product::Compression))
         {
             node->addWarning(ROP_MESSAGE, "Library downloaded successfully, but no valid license found. Visit "
@@ -455,11 +443,6 @@ namespace Zibra::ZibraVDBCompressor
         }
         MessageBox::Show(MessageBox::Type::OK, "Library downloaded successfully.", "ZibraVDB");
         return 0;
-    }
-
-    void ROP_ZibraVDBCompressor::UpdateCompressionLibraryVersion()
-    {
-        setString(CompressionEngine::GetLoadedLibraryVersionString().c_str(), CH_STRING_LITERAL, LIBRARY_VERSION_NAME, 0, 0.0f);
     }
 
 } // namespace Zibra::ZibraVDBCompressor

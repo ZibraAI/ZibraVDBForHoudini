@@ -23,12 +23,12 @@ namespace Zibra::CompressionEngine
 #error Unuspported platform
 #endif
 
-    static constexpr ZCE_VersionNumber g_MinimumSupportedVersion = {ZIB_COMPRESSION_ENGINE_BRIDGE_MAJOR_VERSION,
-                                                                    ZIB_COMPRESSION_ENGINE_BRIDGE_MINOR_VERSION};
+    static constexpr ZCE_VersionNumber g_SupportedVersion = {ZIB_COMPRESSION_ENGINE_BRIDGE_MAJOR_VERSION,
+                                                             ZIB_COMPRESSION_ENGINE_BRIDGE_MINOR_VERSION};
 
     static constexpr const char* g_BaseDirEnv = "HOUDINI_USER_PREF_DIR";
-    static constexpr const char* g_LibraryPath =
-        "zibra/" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING "/ZibraVDBHoudiniBridge" ZIB_DYNAMIC_LIB_EXTENSION;
+    static constexpr const char* g_LibraryDir = "zibra/" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING;
+    static constexpr const char* g_LibraryFileName = "ZibraVDBHoudiniBridge" ZIB_DYNAMIC_LIB_EXTENSION;
     static constexpr const char* g_LibraryDownloadURL =
         "https://storage.googleapis.com/zibra-storage/ZibraVDBHoudiniBridge_" ZIB_PLATFORM_NAME
         "_" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING ZIB_DYNAMIC_LIB_EXTENSION;
@@ -36,10 +36,17 @@ namespace Zibra::CompressionEngine
     bool g_IsLibraryLoaded = false;
     ZCE_VersionNumber g_LoadedLibraryVersion = {0, 0, 0, 0};
 
+    std::string GetLibraryDir()
+    {
+        std::string baseDir = std::getenv(g_BaseDirEnv);
+        std::filesystem::path libraryDir = std::filesystem::path(baseDir) / g_LibraryDir;
+        return libraryDir.string();
+    }
+
     std::string GetLibraryPath()
     {
         std::string baseDir = std::getenv(g_BaseDirEnv);
-        std::filesystem::path libraryPath = std::filesystem::path(baseDir) / g_LibraryPath;
+        std::filesystem::path libraryPath = std::filesystem::path(baseDir) / g_LibraryDir / g_LibraryFileName;
         return libraryPath.string();
     }
 
@@ -48,21 +55,20 @@ namespace Zibra::CompressionEngine
         return g_LibraryDownloadURL;
     }
 
-    bool operator<(const ZCE_VersionNumber& lhs, const ZCE_VersionNumber& rhs)
+    bool IsLibrarySupported(const ZCE_VersionNumber& version)
     {
-        if (lhs.major != rhs.major)
+        // Major and minor numbers should match exactly
+        if (version.major != g_SupportedVersion.major || version.minor != g_SupportedVersion.minor)
         {
-            return lhs.major < rhs.major;
+            return false;
         }
-        if (lhs.minor != rhs.minor)
+        // Patch and build numbers need to be at greater or equal to the supported version
+        // If patch number is greater, build number doesn't matter
+        if (version.patch != g_SupportedVersion.patch)
         {
-            return lhs.minor < rhs.minor;
+            return version.patch >= g_SupportedVersion.patch;
         }
-        if (lhs.patch != rhs.patch)
-        {
-            return lhs.patch < rhs.patch;
-        }
-        return lhs.build < rhs.build;
+        return version.build >= g_SupportedVersion.build;
     }
 
 #define ZIB_DECLARE_FUNCTION_POINTER(functionName, returnType, ...) \
@@ -148,12 +154,26 @@ namespace Zibra::CompressionEngine
             return;
         }
 
+        const std::string libraryDir = GetLibraryDir();
         const std::string libraryPath = GetLibraryPath();
+
+        BOOL res = ::SetDllDirectoryA(libraryDir.c_str());
+        if (!res)
+        {
+            assert(0);
+            return;
+        }
+
         g_LibraryHandle = ::LoadLibraryA(libraryPath.c_str());
+
+        res = ::SetDllDirectoryA(NULL);
+        if (!res)
+        {
+            assert(0);
+        }
 
         if (g_LibraryHandle == NULL)
         {
-            volatile auto res = ::GetLastError();
             return;
         }
 
@@ -165,7 +185,7 @@ namespace Zibra::CompressionEngine
         }
 
         g_LoadedLibraryVersion = BridgeGetVersion();
-        if (g_LoadedLibraryVersion < g_MinimumSupportedVersion)
+        if (!IsLibrarySupported(g_LoadedLibraryVersion))
         {
             ::FreeLibrary(g_LibraryHandle);
             g_LibraryHandle = NULL;
