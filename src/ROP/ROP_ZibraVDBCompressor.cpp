@@ -31,7 +31,8 @@ namespace Zibra::ZibraVDBCompressor
         static PRM_Name thePerChannelCompressionSettingsName[] = {
             PRM_Name(PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME, "Per channel compression settings"),
         };
-        static PRM_Conditional thePerChannelCompressionSettingsNameCondition("{ usePerChannelCompressionSettings == \"off\" }", PRM_CONDTYPE_HIDE);
+        static PRM_Conditional thePerChannelCompressionSettingsNameCondition("{ usePerChannelCompressionSettings == \"off\" }",
+                                                                             PRM_CONDTYPE_HIDE);
 
         static PRM_Name thePerChannelCompressionSettingsFieldsNames[] = {
             PRM_Name("perChannelCompressionSettings__ChannelName#", "Channel Name"),
@@ -54,7 +55,8 @@ namespace Zibra::ZibraVDBCompressor
             PRM_Template(PRM_FILE, 1, &theFileName, &theFileDefault),
             PRM_Template(PRM_FLT, 1, &theQualityName, &theQualityDefault, nullptr, &theQualityRange),
             PRM_Template(PRM_TOGGLE, 1, &theUsePerChannelCompressionSettingsName),
-            PRM_Template(PRM_MULTITYPE_LIST, thePerChannelCompressionSettingsTemplates, 2, &thePerChannelCompressionSettingsName[0], nullptr, nullptr, nullptr, nullptr, &thePerChannelCompressionSettingsNameCondition),
+            PRM_Template(PRM_MULTITYPE_LIST, thePerChannelCompressionSettingsTemplates, 2, &thePerChannelCompressionSettingsName[0],
+                         nullptr, nullptr, nullptr, nullptr, &thePerChannelCompressionSettingsNameCondition),
             PRM_Template(PRM_CALLBACK, 1, &theDownloadLibraryButtonName, nullptr, nullptr, nullptr,
                          &ROP_ZibraVDBCompressor::DownloadLibrary, nullptr, 1, nullptr, &theDownloadLibraryButtonCondition),
             PRM_Template(PRM_STRING_E, 1, &theLibraryVersionName, &theLibraryVersionDefault, nullptr, nullptr, nullptr, nullptr, 1, nullptr,
@@ -189,11 +191,7 @@ namespace Zibra::ZibraVDBCompressor
         evalString(filename, "filename", nullptr, 0, tStart);
         std::filesystem::create_directories(std::filesystem::path{filename.c_str()}.parent_path());
 
-        CompressionEngine::ZCE_CompressionSettings settings{};
-        settings.outputFilePath = filename.c_str();
-        settings.quality = static_cast<float>(evalFloat(QUALITY_PARAM_NAME, 0, tStart));
-
-        CompressorInstanceID = CompressionEngine::CreateCompressorInstance(&settings);
+        CompressorInstanceID = CreateCompressor(filename, tStart);
         CompressionEngine::StartSequence(CompressorInstanceID);
 
         if (error() < UT_ERROR_ABORT)
@@ -333,6 +331,67 @@ namespace Zibra::ZibraVDBCompressor
             executePostRenderScript(m_EndTime);
         }
         return error() < UT_ERROR_ABORT ? ROP_CONTINUE_RENDER : ROP_ABORT_RENDER;
+    }
+
+    uint32_t ROP_ZibraVDBCompressor::CreateCompressor(const UT_String& filename, const fpreal tStart)
+    {
+        CompressionEngine::ZCE_CompressionSettings settings{};
+        settings.outputFilePath = filename.c_str();
+        settings.quality = static_cast<float>(evalFloat(QUALITY_PARAM_NAME, 0, tStart));
+        settings.perChannelSettingsCount = 0;
+
+        UT_String usePerChannelCompressionSettingsString;
+        evalString(usePerChannelCompressionSettingsString, USE_PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME, 0, tStart);
+
+        if (usePerChannelCompressionSettingsString == "on")
+        {
+            // Just in case evalInt return invalid number.
+            constexpr int maxPerChannelSettingsCount = 64;
+            const int perChannelSettingsCount = std::max(
+                0, std::min(static_cast<int>(evalInt(PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME, 0, tStart)), maxPerChannelSettingsCount));
+
+            settings.perChannelSettings = new CompressionEngine::ZCE_CompressionSettingsPerChannel[perChannelSettingsCount];
+            for (int i = 1; i < perChannelSettingsCount + 1; ++i)
+            {
+                const std::string channelNameParamNameStr = PER_CHANNEL_COMPRESSION_SETTINGS_CHANNEL_NAME_PARAM_NAME + std::to_string(i);
+                const std::string qualityParamNameStr = PER_CHANNEL_COMPRESSION_SETTINGS_QUALITY_PARAM_NAME + std::to_string(i);
+
+                if (!hasParm(channelNameParamNameStr.c_str()))
+                {
+                    continue;
+                }
+
+                std::string channelName;
+                {
+                    UT_String channelNameStr;
+                    evalString(channelNameStr, channelNameParamNameStr.c_str(), 0, tStart);
+                    channelName = channelNameStr.toStdString();
+                }
+
+                if (std::find(m_OrderedChannelNames.begin(), m_OrderedChannelNames.end(), channelName) == m_OrderedChannelNames.end())
+                {
+                    continue;
+                }
+
+                CompressionEngine::ZCE_CompressionSettingsPerChannel& perChannelSettings =
+                    settings.perChannelSettings[settings.perChannelSettingsCount];
+                perChannelSettings.channelName = new char[channelName.size() + 1];
+                std::memcpy(const_cast<char*>(perChannelSettings.channelName), channelName.c_str(), channelName.size() + 1);
+                perChannelSettings.quality = static_cast<float>(evalFloat(qualityParamNameStr.c_str(), 0, tStart));
+
+                settings.perChannelSettingsCount++;
+            }
+        }
+
+        uint32_t id = CompressionEngine::CreateCompressorInstance(&settings);
+
+        for (int i = 0; i < settings.perChannelSettingsCount; ++i)
+        {
+            delete[] settings.perChannelSettings[i].channelName;
+        }
+        delete[] settings.perChannelSettings;
+
+        return id;
     }
 
     void ROP_ZibraVDBCompressor::getOutputFile(UT_String& filename)

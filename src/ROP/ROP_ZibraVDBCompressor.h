@@ -5,7 +5,7 @@ namespace Zibra::ZibraVDBCompressor
     constexpr const char* NODE_NAME = "labs::zibravdb_compress::0.1";
     constexpr const char* NODE_LABEL = "Labs ZibraVDB Compress (Alpha)";
 
-    class ROP_ZibraVDBCompressor : public ROP_Node
+    class ROP_ZibraVDBCompressor final: public ROP_Node
     {
     private:
         static constexpr const char* QUALITY_PARAM_NAME = "quality";
@@ -38,6 +38,7 @@ namespace Zibra::ZibraVDBCompressor
         std::vector<std::pair<std::string, std::string>> DumpAttributes(const GU_Detail* gdp) noexcept;
         static int DownloadLibrary(void* data, int index, fpreal32 time, const PRM_Template* tplate);
         void UpdateCompressionLibraryVersion();
+        uint32_t CreateCompressor(const UT_String& filename, fpreal tStart);
 
     private:
         fpreal m_EndTime = 0;
