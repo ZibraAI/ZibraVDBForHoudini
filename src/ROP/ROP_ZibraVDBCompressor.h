@@ -9,6 +9,11 @@ namespace Zibra::ZibraVDBCompressor
     {
     private:
         static constexpr const char* QUALITY_PARAM_NAME = "quality";
+        static constexpr const char* USE_PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME = "usePerChannelCompressionSettings";
+        static constexpr const char* PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME = "perChannelCompressionSettings";
+        static constexpr const char* PER_CHANNEL_COMPRESSION_SETTINGS_CHANNEL_NAME_PARAM_NAME =
+            "perChannelCompressionSettings__ChannelName";
+        static constexpr const char* PER_CHANNEL_COMPRESSION_SETTINGS_QUALITY_PARAM_NAME = "perChannelCompressionSettings__Quality";
         static constexpr const char* FILENAME_PARAM_NAME = "filename";
         static constexpr const char* DOWNLOAD_LIBRARY_BUTTON_NAME = "download_library";
         static constexpr const char* LIBRARY_VERSION_NAME = "library_version";
