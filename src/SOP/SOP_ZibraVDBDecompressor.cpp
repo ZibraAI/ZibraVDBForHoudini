@@ -169,19 +169,19 @@ namespace Zibra::ZibraVDBDecompressor
             return error(context);
         }
 
-        CompressionEngine::ZCE_FrameContainer* franeContainer = nullptr;
-        CompressionEngine::DecompressFrame(m_DecompressorInstanceID, frameIndex, &franeContainer);
+        CompressionEngine::ZCE_DecompressedFrameContainer* frameContainer = nullptr;
+        CompressionEngine::DecompressFrame(m_DecompressorInstanceID, frameIndex, &frameContainer);
 
-        if (franeContainer == nullptr)
+        if (frameContainer == nullptr)
         {
             addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_FRAME_INDEX_OUT_OF_RANGE);
             return error(context);
         }
 
-        auto vdbGrids = OpenVDBSupport::OpenVDBEncoder::EncodeFrame(franeContainer->frameData);
+        auto vdbGrids = OpenVDBSupport::OpenVDBEncoder::EncodeFrame(frameContainer->frameInfo, frameContainer->frameData);
 
-        auto metadataBegin = franeContainer->metadata;
-        auto metadataEnd = franeContainer->metadata + franeContainer->metadataCount;
+        auto metadataBegin = frameContainer->metadata;
+        auto metadataEnd = frameContainer->metadata + frameContainer->metadataCount;
 
         gdp->addStringTuple(GA_ATTRIB_PRIMITIVE, "name", 1);
         GA_RWHandleS nameAttr{gdp->findPrimitiveAttribute("name")};
@@ -190,7 +190,7 @@ namespace Zibra::ZibraVDBDecompressor
             const openvdb::GridBase::Ptr grid = vdbGrids[i];
             if (!grid)
             {
-                addError(SOP_MESSAGE, ("Failed to decompress channel: "s + franeContainer->frameData.channelNames[i]).c_str());
+                addError(SOP_MESSAGE, ("Failed to decompress channel: "s + frameContainer->frameInfo.channelNames[i]).c_str());
                 continue;
             }
 
@@ -239,7 +239,7 @@ namespace Zibra::ZibraVDBDecompressor
             }
         }
 
-        CompressionEngine::FreeFrameData(franeContainer);
+        CompressionEngine::FreeFrameData(frameContainer);
 
         return error(context);
     }

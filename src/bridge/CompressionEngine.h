@@ -38,10 +38,18 @@ namespace Zibra::CompressionEngine
         Count = 2
     };
 
+    struct ZCE_CompressionSettingsPerChannel
+    {
+        const char* channelName;
+        float quality;
+    };
+
     struct ZCE_CompressionSettings
     {
         const char* outputFilePath;
         float quality;
+        int perChannelSettingsCount;
+        ZCE_CompressionSettingsPerChannel* perChannelSettings;
     };
 
     struct ZCE_MetadataEntry
@@ -52,7 +60,7 @@ namespace Zibra::CompressionEngine
 
     struct ZCE_Transform
     {
-        float matrix[16];
+        float raw[16];
     };
 
     struct ZCE_AABB
@@ -78,7 +86,7 @@ namespace Zibra::CompressionEngine
         float voxels[ZIB_BLOCK_ELEMENT_COUNT] = {};
     };
 
-    struct ZCE_ChannelStatistics
+    struct ZCE_GridStatistics
     {
         float minValue = 0.f;
         float maxValue = 0.f;
@@ -87,9 +95,14 @@ namespace Zibra::CompressionEngine
         uint32_t voxelCount = 0;
     };
 
+    struct ZCE_PerChannelGridInfo
+    {
+        ZCE_Transform gridTransform = {};
+        ZCE_GridStatistics statistics = {};
+    };
+
     struct ZCE_SparseFrameData
     {
-        ZCE_Transform gridTransform;
         ZCE_AABB boundingBox;
         uint64_t originalSize;
         ZCE_SpatialBlock* spatialBlocks;
@@ -99,13 +112,44 @@ namespace Zibra::CompressionEngine
         uint32_t spatialBlockCount;
         uint32_t channelBlockCount;
         uint32_t channelCount;
-        ZCE_ChannelStatistics channelStatistics[ZIB_MAX_CHANNEL_COUNT];
+        ZCE_PerChannelGridInfo* perChannelGridInfo;
     };
 
     struct ZCE_FrameContainer
     {
         ZCE_SparseFrameData frameData;
         const ZCE_MetadataEntry* metadata;
+        uint32_t metadataCount;
+    };
+
+    struct ZCE_FramePerChannelInfo
+    {
+        ZCE_Transform gridTransform;
+        float minGridValue;
+        float maxGridValue;
+    };
+    struct ZCE_FrameInfo
+    {
+        size_t sparseBlockSize;
+        size_t channelCount;
+        char** channelNames;
+        ZCE_FramePerChannelInfo* perChannelInfo;
+        uint32_t AABBSize[3];
+        uint32_t spatialBlockCount;
+        uint32_t channelBlockCount;
+    };
+
+    struct ZCE_DecompressedFrameData
+    {
+        ZCE_SpatialBlock* spatialBlocks;
+        ZCE_ChannelBlock* channelBlocks;
+    };
+
+    struct ZCE_DecompressedFrameContainer
+    {
+        ZCE_FrameInfo frameInfo;
+        ZCE_DecompressedFrameData frameData;
+        ZCE_MetadataEntry* metadata;
         uint32_t metadataCount;
     };
 
@@ -165,7 +209,7 @@ namespace Zibra::CompressionEngine
     [[nodiscard]] uint32_t CreateDecompressorInstance() noexcept;
     bool SetInputFile(uint32_t instanceID, const char* inputFilePath) noexcept;
     void GetSequenceInfo(uint32_t instanceID, ZCE_SequenceInfo* sequenceInfo) noexcept;
-    void DecompressFrame(uint32_t instanceID, uint32_t frameIndex, ZCE_FrameContainer** frameData) noexcept;
-    void FreeFrameData(ZCE_FrameContainer* frameData) noexcept;
+    void DecompressFrame(uint32_t instanceID, uint32_t frameIndex, ZCE_DecompressedFrameContainer** frameContainer) noexcept;
+    void FreeFrameData(ZCE_DecompressedFrameContainer* frameContainer) noexcept;
     void ReleaseDecompressorInstance(uint32_t instanceID) noexcept;
 } // namespace Zibra::CompressionEngine

@@ -7,25 +7,26 @@
 namespace Zibra::OpenVDBSupport
 {
 
-    openvdb::GridPtrVec OpenVDBEncoder::EncodeFrame(const CompressionEngine::ZCE_SparseFrameData& frame) noexcept
+    openvdb::GridPtrVec OpenVDBEncoder::EncodeFrame(const CompressionEngine::ZCE_FrameInfo& frameInfo,
+                                                    const CompressionEngine::ZCE_DecompressedFrameData& frameData) noexcept
     {
-        if (frame.channelCount == 0 || frame.spatialBlockCount == 0 || frame.channelBlockCount == 0)
+        if (frameInfo.channelCount == 0 || frameInfo.spatialBlockCount == 0 || frameInfo.channelBlockCount == 0)
         {
             return {};
         }
 
         openvdb::math::Transform::Ptr transform =
-            openvdb::math::Transform::createLinearTransform(openvdb::Mat4d{frame.gridTransform.matrix});
+            openvdb::math::Transform::createLinearTransform(openvdb::Mat4d{frameInfo.perChannelInfo[0].gridTransform.raw});
 
-        const uint32_t gridsCount = frame.channelCount;
+        const uint32_t gridsCount = frameInfo.channelCount;
 
         // Create grids.
         openvdb::GridPtrVec grids{};
         grids.reserve(gridsCount);
-        for (uint32_t i = 0; i < frame.channelCount; ++i)
+        for (uint32_t i = 0; i < frameInfo.channelCount; ++i)
         {
             openvdb::FloatGrid::Ptr grid = openvdb::FloatGrid::create(0.f);
-            grid->setName(frame.channelNames[i]);
+            grid->setName(frameInfo.channelNames[i]);
             grid->setTransform(transform);
             grids.push_back(grid);
         }
@@ -45,14 +46,14 @@ namespace Zibra::OpenVDBSupport
             // Calculate leafs of tree.
             using TreeT = openvdb::FloatGrid::TreeType;
             using LeafT = typename TreeT::LeafNodeType;
-            std::vector<LeafT*> leafs(frame.spatialBlockCount);
+            std::vector<LeafT*> leafs(frameInfo.spatialBlockCount);
 
             const auto sparseBlockSizeLog2 = ZIB_BLOCK_SIZE_LOG_2;
             const auto totalSparseBlockSize = ZIB_BLOCK_ELEMENT_COUNT;
             const auto totalSparseBlockSizeLog2 = 3 * sparseBlockSizeLog2;
 
-            std::transform(std::execution::par_unseq, frame.spatialBlocks, frame.spatialBlocks + frame.spatialBlockCount, leafs.begin(),
-                           [&](const CompressionEngine::ZCE_SpatialBlock& blockInfo) -> LeafT* {
+            std::transform(std::execution::par_unseq, frameData.spatialBlocks, frameData.spatialBlocks + frameInfo.spatialBlockCount,
+                           leafs.begin(), [&](const CompressionEngine::ZCE_SpatialBlock& blockInfo) -> LeafT* {
                                const int activeChannelOffset = countActiveChannelOffset(blockInfo.channelMask);
                                if (activeChannelOffset == -1)
                                {
@@ -60,7 +61,7 @@ namespace Zibra::OpenVDBSupport
                                }
 
                                const CompressionEngine::ZCE_ChannelBlock& block =
-                                   frame.channelBlocks[blockInfo.channelBlocksOffset + activeChannelOffset];
+                                   frameData.channelBlocks[blockInfo.channelBlocksOffset + activeChannelOffset];
 
                                const auto x = blockInfo.coords[0];
                                const auto y = blockInfo.coords[1];
