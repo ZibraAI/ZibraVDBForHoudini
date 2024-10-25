@@ -90,7 +90,6 @@ namespace Zibra::ZibraVDBCompressor
     ROP_ZibraVDBCompressor::ROP_ZibraVDBCompressor(OP_Network* net, const char* name, OP_Operator* entry) noexcept
         : ROP_Node{net, name, entry}
     {
-        UpdateCompressionLibraryVersion();
     }
 
     ROP_ZibraVDBCompressor::~ROP_ZibraVDBCompressor() noexcept = default;
