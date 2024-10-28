@@ -27,8 +27,8 @@ namespace Zibra::CompressionEngine
                                                              ZIB_COMPRESSION_ENGINE_BRIDGE_MINOR_VERSION};
 
     static constexpr const char* g_BaseDirEnv = "HOUDINI_USER_PREF_DIR";
-    static constexpr const char* g_LibraryDir = "zibra/" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING;
-    static constexpr const char* g_LibraryFileName = "ZibraVDBHoudiniBridge" ZIB_DYNAMIC_LIB_EXTENSION;
+    static constexpr const char* g_LibraryPath =
+        "zibra/" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING "/ZibraVDBHoudiniBridge" ZIB_DYNAMIC_LIB_EXTENSION;
     static constexpr const char* g_LibraryDownloadURL =
         "https://storage.googleapis.com/zibra-storage/ZibraVDBHoudiniBridge_" ZIB_PLATFORM_NAME
         "_" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING ZIB_DYNAMIC_LIB_EXTENSION;
@@ -36,17 +36,10 @@ namespace Zibra::CompressionEngine
     bool g_IsLibraryLoaded = false;
     ZCE_VersionNumber g_LoadedLibraryVersion = {0, 0, 0, 0};
 
-    std::string GetLibraryDir()
-    {
-        std::string baseDir = std::getenv(g_BaseDirEnv);
-        std::filesystem::path libraryDir = std::filesystem::path(baseDir) / g_LibraryDir;
-        return libraryDir.string();
-    }
-
     std::string GetLibraryPath()
     {
         std::string baseDir = std::getenv(g_BaseDirEnv);
-        std::filesystem::path libraryPath = std::filesystem::path(baseDir) / g_LibraryDir / g_LibraryFileName;
+        std::filesystem::path libraryPath = std::filesystem::path(baseDir) / g_LibraryPath;
         return libraryPath.string();
     }
 
@@ -154,23 +147,10 @@ namespace Zibra::CompressionEngine
             return;
         }
 
-        const std::string libraryDir = GetLibraryDir();
         const std::string libraryPath = GetLibraryPath();
-
-        BOOL res = ::SetDllDirectoryA(libraryDir.c_str());
-        if (!res)
-        {
-            assert(0);
-            return;
-        }
-
-        g_LibraryHandle = ::LoadLibraryA(libraryPath.c_str());
-
-        res = ::SetDllDirectoryA(NULL);
-        if (!res)
-        {
-            assert(0);
-        }
+        char szPath[MAX_PATH];
+        ::GetFullPathNameA(libraryPath.c_str(), MAX_PATH, szPath, NULL);
+        g_LibraryHandle = ::LoadLibraryExA(szPath, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
 
         if (g_LibraryHandle == NULL)
         {
