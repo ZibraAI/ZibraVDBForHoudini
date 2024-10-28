@@ -5,7 +5,7 @@ namespace Zibra::ZibraVDBDecompressor
     constexpr const char* NODE_NAME = "labs::zibravdb_decompress::0.1";
     constexpr const char* NODE_LABEL = "Labs ZibraVDB Decompress (Alpha)";
 
-    class SOP_ZibraVDBDecompressor : public SOP_Node
+    class SOP_ZibraVDBDecompressor final : public SOP_Node
     {
     private:
         static constexpr const char* FILENAME_PARAM_NAME = "filename";
@@ -30,7 +30,7 @@ namespace Zibra::ZibraVDBDecompressor
         uint32_t m_DecompressorInstanceID = uint32_t(-1);
     };
 
-    class SOP_ZibraVDBDecompressor_Operator : public OP_Operator
+    class SOP_ZibraVDBDecompressor_Operator final : public OP_Operator
     {
         using OP_Operator::OP_Operator;
 
