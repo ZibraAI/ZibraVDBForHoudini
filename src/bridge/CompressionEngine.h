@@ -58,7 +58,8 @@ namespace Zibra::CompressionEngine
 
     struct ZCE_Transform
     {
-        float raw[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+        // Identity matrix
+        float matrix[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
     };
 
     struct ZCE_AABB

@@ -23,7 +23,7 @@ namespace Zibra::OpenVDBSupport
         }
         else
         {
-            transform = openvdb::math::Transform::createLinearTransform(openvdb::Mat4d{frameInfo.perChannelInfo[0].gridTransform.raw});
+            transform = openvdb::math::Transform::createLinearTransform(openvdb::Mat4d{frameInfo.perChannelInfo[0].gridTransform.matrix});
         }
 
         const uint32_t gridsCount = frameInfo.channelCount;
@@ -102,12 +102,12 @@ namespace Zibra::OpenVDBSupport
 
     bool OpenVDBEncoder::IsTransformEmpty(const CompressionEngine::ZCE_Transform& gridTransform)
     {
-        static_assert(sizeof(gridTransform.raw) != sizeof(void*));
-        constexpr int arraySize = sizeof(gridTransform.raw) / sizeof(gridTransform.raw[0]);
+        static_assert(sizeof(gridTransform.matrix) != sizeof(void*));
+        constexpr int arraySize = sizeof(gridTransform.matrix) / sizeof(gridTransform.matrix[0]);
 
         for (int i = 0; i < arraySize; ++i)
         {
-            if (gridTransform.raw[i] != 0.f)
+            if (gridTransform.matrix[i] != 0.f)
             {
                 return false;
             }

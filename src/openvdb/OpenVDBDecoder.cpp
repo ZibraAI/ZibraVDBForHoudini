@@ -22,7 +22,7 @@ namespace Zibra::OpenVDBSupport
         const openvdb::math::Mat4 map = transform.baseMap()->getAffineMap()->getMat4();
         for (int i = 0; i < 16; ++i)
         {
-            result.raw[i] = float(map(i >> 2, i & 3));
+            result.matrix[i] = float(map(i >> 2, i & 3));
         }
 
         return result;
