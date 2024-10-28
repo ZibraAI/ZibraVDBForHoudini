@@ -175,11 +175,7 @@ namespace Zibra::ZibraVDBCompressor
             return ROP_ABORT_RENDER;
         }
 
-        UT_String filename = "";
-        evalString(filename, "filename", nullptr, 0, tStart);
-        std::filesystem::create_directories(std::filesystem::path{filename.c_str()}.parent_path());
-
-        CompressorInstanceID = CreateCompressor(filename, tStart);
+        CompressorInstanceID = CreateCompressor(tStart);
         CompressionEngine::StartSequence(CompressorInstanceID);
 
         if (error() < UT_ERROR_ABORT)
@@ -321,9 +317,14 @@ namespace Zibra::ZibraVDBCompressor
         return error() < UT_ERROR_ABORT ? ROP_CONTINUE_RENDER : ROP_ABORT_RENDER;
     }
 
-    uint32_t ROP_ZibraVDBCompressor::CreateCompressor(const UT_String& filename, const fpreal tStart)
+    uint32_t ROP_ZibraVDBCompressor::CreateCompressor(const fpreal tStart)
     {
         CompressionEngine::ZCE_CompressionSettings settings{};
+
+        UT_String filename = "";
+        evalString(filename, "filename", nullptr, 0, tStart);
+        std::filesystem::create_directories(std::filesystem::path{filename.c_str()}.parent_path());
+
         settings.outputFilePath = filename.c_str();
         settings.quality = static_cast<float>(evalFloat(QUALITY_PARAM_NAME, 0, tStart));
         settings.perChannelSettingsCount = 0;
@@ -334,15 +335,19 @@ namespace Zibra::ZibraVDBCompressor
         if (usePerChannelCompressionSettingsString == "on")
         {
             // Just in case evalInt return invalid number.
-            constexpr int maxPerChannelSettingsCount = 64;
+            constexpr int maxPerChannelSettingsCount = 1024;
             const int perChannelSettingsCount = std::max(
                 0, std::min(static_cast<int>(evalInt(PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME, 0, tStart)), maxPerChannelSettingsCount));
 
             settings.perChannelSettings = new CompressionEngine::ZCE_CompressionSettingsPerChannel[perChannelSettingsCount];
-            for (int i = 1; i < perChannelSettingsCount + 1; ++i)
+            for (int i = 0; i < perChannelSettingsCount; ++i)
             {
-                const std::string channelNameParamNameStr = PER_CHANNEL_COMPRESSION_SETTINGS_CHANNEL_NAME_PARAM_NAME + std::to_string(i);
-                const std::string qualityParamNameStr = PER_CHANNEL_COMPRESSION_SETTINGS_QUALITY_PARAM_NAME + std::to_string(i);
+                // Houdini starts count of parameters in list from 1 (not 0).
+                const auto perChannelSettingsID = i + 1;
+                const std::string channelNameParamNameStr =
+                    PER_CHANNEL_COMPRESSION_SETTINGS_CHANNEL_NAME_PARAM_NAME + std::to_string(perChannelSettingsID);
+                const std::string qualityParamNameStr =
+                    PER_CHANNEL_COMPRESSION_SETTINGS_QUALITY_PARAM_NAME + std::to_string(perChannelSettingsID);
 
                 if (!hasParm(channelNameParamNameStr.c_str()))
                 {

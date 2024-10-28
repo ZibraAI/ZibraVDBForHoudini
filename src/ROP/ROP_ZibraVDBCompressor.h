@@ -36,7 +36,7 @@ namespace Zibra::ZibraVDBCompressor
     private:
         std::vector<std::pair<std::string, std::string>> DumpAttributes(const GU_Detail* gdp) noexcept;
         static int DownloadLibrary(void* data, int index, fpreal32 time, const PRM_Template* tplate);
-        uint32_t CreateCompressor(const UT_String& filename, fpreal tStart);
+        uint32_t CreateCompressor(fpreal tStart);
 
     private:
         fpreal m_EndTime = 0;

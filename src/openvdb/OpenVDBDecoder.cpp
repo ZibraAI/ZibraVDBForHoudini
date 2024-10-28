@@ -209,6 +209,7 @@ namespace Zibra::OpenVDBSupport
         CompressionEngine::ZCE_SparseFrameData sparseFrame = {};
         sparseFrame.channelNames = new char*[m_OrderedChannelNames.size()];
         sparseFrame.channelCount = m_OrderedChannelNames.size();
+        sparseFrame.perChannelGridInfo = new CompressionEngine::ZCE_PerChannelGridInfo[m_OrderedChannelNames.size()];
         for (size_t i = 0; i < m_OrderedChannelNames.size(); ++i)
         {
             size_t stringSizeInBytes = m_OrderedChannelNames[i].size() + 1;
@@ -319,7 +320,6 @@ namespace Zibra::OpenVDBSupport
             perBlockStatistics.resize(channelBlockCount);
             sparseFrame.spatialBlockCount = spatialBlockCount;
             sparseFrame.channelBlockCount = channelBlockCount;
-            sparseFrame.perChannelGridInfo = new CompressionEngine::ZCE_PerChannelGridInfo[channelCount];
         }
 
         {
@@ -434,6 +434,7 @@ namespace Zibra::OpenVDBSupport
         delete[] frame.spatialBlocks;
         delete[] frame.channelBlocks;
         delete[] frame.channelIndexPerBlock;
+        delete[] frame.perChannelGridInfo;
     }
 
 } // namespace Zibra::OpenVDBSupport
