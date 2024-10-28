@@ -1,3 +1,5 @@
 build/
 package/
+
+# CLion build directories
 /**/cmake-build-*
