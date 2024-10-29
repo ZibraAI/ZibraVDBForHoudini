@@ -6,6 +6,8 @@ namespace Zibra::CompressionEngine
 #define ZIB_COMPRESSION_ENGINE_BRIDGE_MAJOR_VERSION 0
 #define ZIB_COMPRESSION_ENGINE_BRIDGE_MINOR_VERSION 2
 
+#define ZIB_MAX_CHANNEL_COUNT 8
+
 #define ZIB_BLOCK_SIZE_LOG_2 3
 #define ZIB_BLOCK_SIZE (1 << ZIB_BLOCK_SIZE_LOG_2)
 #define ZIB_BLOCK_ELEMENT_COUNT ZIB_BLOCK_SIZE* ZIB_BLOCK_SIZE* ZIB_BLOCK_SIZE
@@ -58,7 +60,7 @@ namespace Zibra::CompressionEngine
 
     struct ZCE_Transform
     {
-        // Identity matrix
+        // Default value - identity matrix
         float matrix[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
     };
 

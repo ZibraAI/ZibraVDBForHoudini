@@ -1,4 +1,7 @@
+# Build directories
 build/
+
+# ZibraVDB Houdini packages
 package/
 
 # CLion build directories
