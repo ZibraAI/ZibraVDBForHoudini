@@ -119,7 +119,7 @@ namespace Zibra::OpenVDBSupport
         for (size_t i = 0; i < orderedChannelNamesCount; ++i)
         {
             m_ChannelMapping[orderedChannelNames[i]] = 1 << i;
-            m_Grids[grids[i]->getName()] = openvdb::gridConstPtrCast<openvdb::FloatGrid>(grids[i]);
+            m_Grids[orderedChannelNames[i]] = openvdb::gridConstPtrCast<openvdb::FloatGrid>(grids[i]);
             m_OrderedChannelNames.emplace_back(orderedChannelNames[i]);
         }
     }
