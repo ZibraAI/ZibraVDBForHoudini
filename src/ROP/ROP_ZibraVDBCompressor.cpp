@@ -366,7 +366,7 @@ namespace Zibra::ZibraVDBCompressor
                     continue;
                 }
 
-                providedChannelNames.emplace_back(UT_String::ALWAYS_DEEP, channelNameStr);
+                providedChannelNames.emplace_back(std::move(channelNameStr));
 
                 CompressionEngine::ZCE_CompressionSettingsPerChannel perChannelSettings{};
                 perChannelSettings.quality = static_cast<float>(evalFloat(qualityParamNameStr.c_str(), 0, tStart));
