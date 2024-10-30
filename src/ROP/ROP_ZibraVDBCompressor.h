@@ -5,10 +5,15 @@ namespace Zibra::ZibraVDBCompressor
     constexpr const char* NODE_NAME = "labs::zibravdb_compress::0.1";
     constexpr const char* NODE_LABEL = "Labs ZibraVDB Compress (Alpha)";
 
-    class ROP_ZibraVDBCompressor : public ROP_Node
+    class ROP_ZibraVDBCompressor final: public ROP_Node
     {
     private:
         static constexpr const char* QUALITY_PARAM_NAME = "quality";
+        static constexpr const char* USE_PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME = "usePerChannelCompressionSettings";
+        static constexpr const char* PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME = "perChannelCompressionSettings";
+        static constexpr const char* PER_CHANNEL_COMPRESSION_SETTINGS_CHANNEL_NAME_PARAM_NAME =
+            "perChannelCompressionSettings__ChannelName";
+        static constexpr const char* PER_CHANNEL_COMPRESSION_SETTINGS_QUALITY_PARAM_NAME = "perChannelCompressionSettings__Quality";
         static constexpr const char* FILENAME_PARAM_NAME = "filename";
         static constexpr const char* DOWNLOAD_LIBRARY_BUTTON_NAME = "download_library";
 
@@ -31,6 +36,7 @@ namespace Zibra::ZibraVDBCompressor
     private:
         std::vector<std::pair<std::string, std::string>> DumpAttributes(const GU_Detail* gdp) noexcept;
         static int DownloadLibrary(void* data, int index, fpreal32 time, const PRM_Template* tplate);
+        uint32_t CreateCompressor(fpreal tStart);
 
     private:
         fpreal m_EndTime = 0;

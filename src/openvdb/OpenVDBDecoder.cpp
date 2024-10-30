@@ -119,7 +119,7 @@ namespace Zibra::OpenVDBSupport
         for (size_t i = 0; i < orderedChannelNamesCount; ++i)
         {
             m_ChannelMapping[orderedChannelNames[i]] = 1 << i;
-            m_Grids[grids[i]->getName()] = openvdb::gridConstPtrCast<openvdb::FloatGrid>(grids[i]);
+            m_Grids[orderedChannelNames[i]] = openvdb::gridConstPtrCast<openvdb::FloatGrid>(grids[i]);
             m_OrderedChannelNames.emplace_back(orderedChannelNames[i]);
         }
     }
@@ -209,6 +209,7 @@ namespace Zibra::OpenVDBSupport
         CompressionEngine::ZCE_SparseFrameData sparseFrame = {};
         sparseFrame.channelNames = new char*[m_OrderedChannelNames.size()];
         sparseFrame.channelCount = m_OrderedChannelNames.size();
+        sparseFrame.perChannelGridInfo = new CompressionEngine::ZCE_PerChannelGridInfo[m_OrderedChannelNames.size()];
         for (size_t i = 0; i < m_OrderedChannelNames.size(); ++i)
         {
             size_t stringSizeInBytes = m_OrderedChannelNames[i].size() + 1;
@@ -396,18 +397,19 @@ namespace Zibra::OpenVDBSupport
             const double meanPositiveValue = meanPositiveChannelValue[channelIndex] / perChannelBlockCount[channelIndex];
             const double meanNegativeValue = meanNegativeChannelValue[channelIndex] / perChannelBlockCount[channelIndex];
 
-            sparseFrame.channelStatistics[channelIndex].minValue = minChannelValue[channelIndex];
-            sparseFrame.channelStatistics[channelIndex].maxValue = maxChannelValue[channelIndex];
-            sparseFrame.channelStatistics[channelIndex].meanPositiveValue = meanPositiveValue;
-            sparseFrame.channelStatistics[channelIndex].meanNegativeValue = meanNegativeValue;
-            sparseFrame.channelStatistics[channelIndex].voxelCount = perChannelBlockCount[channelIndex] * ZIB_BLOCK_ELEMENT_COUNT;
-        }
+            sparseFrame.perChannelGridInfo[channelIndex].statistics.minValue = minChannelValue[channelIndex];
+            sparseFrame.perChannelGridInfo[channelIndex].statistics.maxValue = maxChannelValue[channelIndex];
+            sparseFrame.perChannelGridInfo[channelIndex].statistics.meanPositiveValue = meanPositiveValue;
+            sparseFrame.perChannelGridInfo[channelIndex].statistics.meanNegativeValue = meanNegativeValue;
+            sparseFrame.perChannelGridInfo[channelIndex].statistics.voxelCount =
+                perChannelBlockCount[channelIndex] * ZIB_BLOCK_ELEMENT_COUNT;
 
-        const double volume = originGrid->constTransform().voxelVolume();
-        if (!MathHelpers::IsNearlyEqual(volume, 0.))
-        {
-            sparseFrame.gridTransform = CastOpenVDBTransformToTransform(GetTranslatedFrameTransform(
-                originGrid->constTransform(), openvdb::math::Vec3d(aabb.minX, aabb.minY, aabb.minZ) * ZIB_BLOCK_SIZE));
+            const double volume = originGrid->constTransform().voxelVolume();
+            if (!MathHelpers::IsNearlyEqual(volume, 0.))
+            {
+                sparseFrame.perChannelGridInfo[channelIndex].gridTransform = CastOpenVDBTransformToTransform(GetTranslatedFrameTransform(
+                    originGrid->constTransform(), openvdb::math::Vec3d(aabb.minX, aabb.minY, aabb.minZ) * ZIB_BLOCK_SIZE));
+            }
         }
 
         // Translate aabb to positive quarter of coordinate system.
@@ -432,6 +434,7 @@ namespace Zibra::OpenVDBSupport
         delete[] frame.spatialBlocks;
         delete[] frame.channelBlocks;
         delete[] frame.channelIndexPerBlock;
+        delete[] frame.perChannelGridInfo;
     }
 
 } // namespace Zibra::OpenVDBSupport

@@ -87,8 +87,8 @@ namespace Zibra::CompressionEngine
 
     ZIB_DECLARE_FUNCTION_POINTER(GetSequenceInfo, ZCE_Result, uint32_t, ZCE_SequenceInfo*);
     ZIB_DECLARE_FUNCTION_POINTER(SetInputFile, ZCE_Result, uint32_t, const char*);
-    ZIB_DECLARE_FUNCTION_POINTER(DecompressFrame, ZCE_Result, uint32_t, uint32_t, ZCE_FrameContainer**);
-    ZIB_DECLARE_FUNCTION_POINTER(FreeFrameData, ZCE_Result, ZCE_FrameContainer*);
+    ZIB_DECLARE_FUNCTION_POINTER(DecompressFrame, ZCE_Result, uint32_t, uint32_t, ZCE_DecompressedFrameContainer**);
+    ZIB_DECLARE_FUNCTION_POINTER(FreeFrameData, ZCE_Result, ZCE_DecompressedFrameContainer*);
 #undef ZIB_DECLARE_FUNCTION_POINTER
 
 #if ZIB_PLATFORM_WIN
@@ -335,7 +335,7 @@ namespace Zibra::CompressionEngine
         return result == ZCE_Result::SUCCESS;
     }
 
-    void DecompressFrame(uint32_t instanceID, uint32_t frameIndex, ZCE_FrameContainer** frameData) noexcept
+    void DecompressFrame(uint32_t instanceID, uint32_t frameIndex, ZCE_DecompressedFrameContainer** frameData) noexcept
     {
         if (!IsLibraryLoaded())
         {
@@ -359,7 +359,7 @@ namespace Zibra::CompressionEngine
         assert(result == ZCE_Result::SUCCESS);
     }
 
-    void FreeFrameData(ZCE_FrameContainer* frameData) noexcept
+    void FreeFrameData(ZCE_DecompressedFrameContainer* frameData) noexcept
     {
         if (!IsLibraryLoaded())
         {
