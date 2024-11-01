@@ -15,17 +15,6 @@ namespace Zibra::OpenVDBSupport
             return {};
         }
 
-        openvdb::math::Transform::Ptr transform = nullptr;
-
-        if (IsTransformEmpty(frameInfo.perChannelInfo[0].gridTransform))
-        {
-            transform = openvdb::math::Transform::createLinearTransform();
-        }
-        else
-        {
-            transform = openvdb::math::Transform::createLinearTransform(openvdb::Mat4d{frameInfo.perChannelInfo[0].gridTransform.matrix});
-        }
-
         const uint32_t gridsCount = frameInfo.channelCount;
 
         // Create grids.
@@ -35,6 +24,12 @@ namespace Zibra::OpenVDBSupport
         {
             openvdb::FloatGrid::Ptr grid = openvdb::FloatGrid::create(0.f);
             grid->setName(frameInfo.channelNames[i]);
+
+            openvdb::math::Transform::Ptr transform =
+                openvdb::math::Transform::createLinearTransform(IsTransformEmpty(frameInfo.perChannelInfo[i].gridTransform)
+                                                                    ? openvdb::Mat4d::identity()
+                                                                    : openvdb::Mat4d{frameInfo.perChannelInfo[i].gridTransform.matrix});
+
             grid->setTransform(transform);
             grids.push_back(grid);
         }

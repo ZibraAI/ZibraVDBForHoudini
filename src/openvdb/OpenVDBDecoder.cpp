@@ -186,9 +186,6 @@ namespace Zibra::OpenVDBSupport
 
         const openvdb::FloatGrid::ConstPtr originGrid = GetOriginGrid(m_Grids);
 
-        CompressionEngine::ZCE_AABB aabb = {std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max(),
-                                            std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::min(),
-                                            std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min()};
         struct LocalBlockData
         {
             const float* voxels = nullptr;
@@ -217,6 +214,8 @@ namespace Zibra::OpenVDBSupport
             std::strncpy(sparseFrame.channelNames[i], m_OrderedChannelNames[i].c_str(), stringSizeInBytes);
         }
 
+        std::vector<CompressionEngine::ZCE_AABB> channelAABB{size_t(channelCount)};
+
         for (int channelIndex = 0; channelIndex < channelCount; channelIndex++)
         {
             const auto& [name, grid] = orderedInputChannels[channelIndex];
@@ -232,25 +231,37 @@ namespace Zibra::OpenVDBSupport
             // Voxelize all tiles to make sure that all active regions are in leaf nodes.
             gridCopy->tree().voxelizeActiveTiles();
 
-            openvdb::FloatGrid::Ptr gridOut;
+            //            openvdb::CoordBBox bbox{};
+            //            gridCopy->tree().evalLeafBoundingBox(bbox);
+            channelAABB[channelIndex] = CalculateAABB(gridCopy->evalActiveVoxelBoundingBox());
 
-            const openvdb::math::Transform relativeTransform = GetIndexSpaceRelativeTransform(grid, originGrid);
+            //            openvdb::FloatGrid::Ptr gridOut;
 
-            // Only apply transformation if it's not identity to not waste time on unnecessary operations.
-            if (!relativeTransform.isIdentity())
-            {
-                // Intentional cast to float.
-                openvdb::Vec3f relativeScale = openvdb::Vec3f(relativeTransform.voxelSize());
+            //            const openvdb::math::Transform relativeTransform = GetIndexSpaceRelativeTransform(grid, originGrid);
 
-                gridOut = OpenVDBGridTransform(gridCopy, originGrid, relativeTransform);
-            }
-            else
-            {
-                gridOut = gridCopy;
-            }
+            //            // Only apply transformation if it's not identity to not waste time on unnecessary operations.
+            //            if (!relativeTransform.isIdentity())
+            //            {
+            //                // Intentional cast to float.
+            //                openvdb::Vec3f relativeScale = openvdb::Vec3f(relativeTransform.voxelSize());
+            //
+            //                gridOut = OpenVDBGridTransform(gridCopy, originGrid, relativeTransform);
+            //            }
+            //            else
+            //            {
+            //                gridOut = gridCopy;
+            //            }
 
-            orderedChannels[channelIndex] = {name, gridOut};
+            orderedChannels[channelIndex] = {name, gridCopy};
         }
+
+        //        std::vector<CompressionEngine::ZCE_AABB> channelAABB{size_t(channelCount),
+        //                                                             {std::numeric_limits<int32_t>::max(),
+        //                                                             std::numeric_limits<int32_t>::max(),
+        //                                                              std::numeric_limits<int32_t>::max(),
+        //                                                              std::numeric_limits<int32_t>::min(),
+        //                                                              std::numeric_limits<int32_t>::min(),
+        //                                                              std::numeric_limits<int32_t>::min()}};
 
         for (int channelIndex = 0; channelIndex < channelCount; channelIndex++)
         {
@@ -258,6 +269,7 @@ namespace Zibra::OpenVDBSupport
             if (!gridOut || gridOut->empty())
                 continue;
 
+            auto& aabb = channelAABB[channelIndex];
             // Iterate over all leaf nodes to get active blocks.
             // openvdb::FloatGrid has ALWAYS leaf blocks of size 8x8x8.
             for (auto leafIter = gridOut->tree().cbeginLeaf(); leafIter; ++leafIter)
@@ -266,15 +278,16 @@ namespace Zibra::OpenVDBSupport
 
                 const CompressionEngine::ZCE_AABB leafAABB = CalculateAABB(leafNode->getNodeBoundingBox());
 
-                aabb = aabb | leafAABB;
+                //                aabb = aabb | leafAABB;
 
-                openvdb::Coord blockOrigin = openvdb::Coord(leafAABB.minX, leafAABB.minY, leafAABB.minZ);
+                openvdb::Coord blockOrigin =
+                    openvdb::Coord(leafAABB.minX - aabb.minX, leafAABB.minY - aabb.minY, leafAABB.minZ - aabb.minZ);
 
                 channelBlockData[blockOrigin].channelBlockDataMap.insert({channelIndex, LocalBlockData{leafNode->buffer().data()}});
             }
         }
 
-        if (IsEmpty(aabb))
+        if (std::all_of(channelAABB.cbegin(), channelAABB.cend(), IsEmpty))
         {
             sparseFrame.boundingBox = {0, 0, 0, 0, 0, 0};
             return sparseFrame;
@@ -328,9 +341,9 @@ namespace Zibra::OpenVDBSupport
                               const auto& [blockCoord, spatialBlockData] = spatialBlockDataPair;
                               CompressionEngine::ZCE_SpatialBlock& spatialInfo =
                                   sparseFrame.spatialBlocks[spatialBlockData.spatialBlockOffset];
-                              spatialInfo.coords[0] = blockCoord.x() - aabb.minX;
-                              spatialInfo.coords[1] = blockCoord.y() - aabb.minY;
-                              spatialInfo.coords[2] = blockCoord.z() - aabb.minZ;
+                              spatialInfo.coords[0] = blockCoord.x();
+                              spatialInfo.coords[1] = blockCoord.y();
+                              spatialInfo.coords[2] = blockCoord.z();
                               spatialInfo.channelBlocksOffset = spatialBlockData.channelBlockOffset;
 
                               for (const auto& [channelIndex, blockData] : spatialBlockData.channelBlockDataMap)
@@ -367,7 +380,6 @@ namespace Zibra::OpenVDBSupport
                           });
         }
 
-        // TODO: use parallel reduce.
         // Calculate per channel statistics.
         float minChannelValue[8] = {FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX};
         float maxChannelValue[8] = {FLT_MIN, FLT_MIN, FLT_MIN, FLT_MIN, FLT_MIN, FLT_MIN, FLT_MIN, FLT_MIN};
@@ -404,22 +416,29 @@ namespace Zibra::OpenVDBSupport
             sparseFrame.perChannelGridInfo[channelIndex].statistics.voxelCount =
                 perChannelBlockCount[channelIndex] * ZIB_BLOCK_ELEMENT_COUNT;
 
-            const double volume = originGrid->constTransform().voxelVolume();
+            const auto& gridTransform = orderedChannels[channelIndex].second->constTransform();
+            const double volume = gridTransform.voxelVolume();
             if (!MathHelpers::IsNearlyEqual(volume, 0.))
             {
-                sparseFrame.perChannelGridInfo[channelIndex].gridTransform = CastOpenVDBTransformToTransform(GetTranslatedFrameTransform(
-                    originGrid->constTransform(), openvdb::math::Vec3d(aabb.minX, aabb.minY, aabb.minZ) * ZIB_BLOCK_SIZE));
+                const auto& aabb = channelAABB[channelIndex];
+                sparseFrame.perChannelGridInfo[channelIndex].gridTransform = CastOpenVDBTransformToTransform(
+                    GetTranslatedFrameTransform(gridTransform, openvdb::math::Vec3d(aabb.minX, aabb.minY, aabb.minZ) * ZIB_BLOCK_SIZE));
             }
         }
 
         // Translate aabb to positive quarter of coordinate system.
-        aabb.maxX -= aabb.minX;
-        aabb.maxY -= aabb.minY;
-        aabb.maxZ -= aabb.minZ;
-        aabb.minX = 0;
-        aabb.minY = 0;
-        aabb.minZ = 0;
-        sparseFrame.boundingBox = aabb;
+        sparseFrame.boundingBox = {
+            0, 0, 0, std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min()};
+        for (int channelIndex = 0; channelIndex < channelCount; ++channelIndex)
+        {
+            auto& aabb = channelAABB[channelIndex];
+            sparseFrame.boundingBox =
+                sparseFrame.boundingBox |
+                CompressionEngine::ZCE_AABB{0, 0, 0, aabb.maxX - aabb.minX, aabb.maxY - aabb.minY, aabb.maxZ - aabb.minZ};
+        }
+
+        std::thread deallocThread([orderedChannels = std::move(orderedChannels)]() mutable { orderedChannels.clear(); });
+        deallocThread.detach();
 
         return sparseFrame;
     }
