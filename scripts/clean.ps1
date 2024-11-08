@@ -1,11 +1,12 @@
+param (
+   [string]$targetFolder = "build"
+)
+
 $RepositeryRoot = "$PSScriptRoot/.."
 Push-Location $RepositeryRoot
 
-if (Test-Path build) {
-    Remove-Item -Recurse -Force build
-}
-if (Test-Path package) {
-    Remove-Item -Recurse -Force package
+if (Test-Path $targetFolder) {
+    Remove-Item -Recurse -Force $targetFolder
 }
 
 Pop-Location
