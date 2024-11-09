@@ -41,10 +41,7 @@ namespace Zibra::ZibraVDBDecompressor
                   nullptr,   OP_FLAG_GENERATOR}
         {
             setIconName(ZIBRAVDB_ICON_PATH);
-            for (const auto& tabName : ZIBRAVDB_NODES_TAB_NAMES)
-            {
-                setOpTabSubMenuPath(tabName);
-            }
+            setOpTabSubMenuPath(ZIBRAVDB_NODES_TAB_NAME);
         }
 
         const UT_StringHolder& getDefaultShape() const final
