@@ -398,8 +398,7 @@ namespace Zibra::OpenVDBSupport
         }
 
         // Translate aabb to positive quarter of coordinate system.
-        sparseFrame.boundingBox = {
-            0, 0, 0, std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min()};
+        sparseFrame.boundingBox = {};
         for (int channelIndex = 0; channelIndex < channelCount; ++channelIndex)
         {
             auto& aabb = channelAABB[channelIndex];

@@ -24,13 +24,7 @@ namespace Zibra::OpenVDBSupport
         {
             openvdb::FloatGrid::Ptr grid = openvdb::FloatGrid::create(0.f);
             grid->setName(frameInfo.channelNames[i]);
-
-            openvdb::math::Transform::Ptr transform =
-                openvdb::math::Transform::createLinearTransform(IsTransformEmpty(frameInfo.perChannelInfo[i].gridTransform)
-                                                                    ? openvdb::Mat4d::identity()
-                                                                    : openvdb::Mat4d{frameInfo.perChannelInfo[i].gridTransform.matrix});
-
-            grid->setTransform(transform);
+            grid->setTransform(OpenVDBTransformFromMatrix(frameInfo.perChannelInfo[i].gridTransform));
             grids.push_back(grid);
         }
 
@@ -98,16 +92,16 @@ namespace Zibra::OpenVDBSupport
     bool OpenVDBEncoder::IsTransformEmpty(const CompressionEngine::ZCE_Transform& gridTransform)
     {
         static_assert(sizeof(gridTransform.matrix) != sizeof(void*));
-        constexpr int arraySize = sizeof(gridTransform.matrix) / sizeof(gridTransform.matrix[0]);
 
-        for (int i = 0; i < arraySize; ++i)
-        {
-            if (gridTransform.matrix[i] != 0.f)
-            {
-                return false;
-            }
-        }
-        return true;
+        const auto isAlmostZero = [](float v) { return std::abs(v) < std::numeric_limits<float>::epsilon(); };
+
+        return std::all_of(std::begin(gridTransform.matrix), std::end(gridTransform.matrix), isAlmostZero);
+    }
+
+    openvdb::math::Transform::Ptr OpenVDBEncoder::OpenVDBTransformFromMatrix(const CompressionEngine::ZCE_Transform& gridTransform)
+    {
+        return openvdb::math::Transform::createLinearTransform(IsTransformEmpty(gridTransform) ? openvdb::Mat4d::identity()
+                                                                                               : openvdb::Mat4d{gridTransform.matrix});
     }
 
 } // namespace Zibra::OpenVDBSupport
