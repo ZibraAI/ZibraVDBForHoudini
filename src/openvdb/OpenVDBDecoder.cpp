@@ -231,37 +231,10 @@ namespace Zibra::OpenVDBSupport
             // Voxelize all tiles to make sure that all active regions are in leaf nodes.
             gridCopy->tree().voxelizeActiveTiles();
 
-            //            openvdb::CoordBBox bbox{};
-            //            gridCopy->tree().evalLeafBoundingBox(bbox);
             channelAABB[channelIndex] = CalculateAABB(gridCopy->evalActiveVoxelBoundingBox());
-
-            //            openvdb::FloatGrid::Ptr gridOut;
-
-            //            const openvdb::math::Transform relativeTransform = GetIndexSpaceRelativeTransform(grid, originGrid);
-
-            //            // Only apply transformation if it's not identity to not waste time on unnecessary operations.
-            //            if (!relativeTransform.isIdentity())
-            //            {
-            //                // Intentional cast to float.
-            //                openvdb::Vec3f relativeScale = openvdb::Vec3f(relativeTransform.voxelSize());
-            //
-            //                gridOut = OpenVDBGridTransform(gridCopy, originGrid, relativeTransform);
-            //            }
-            //            else
-            //            {
-            //                gridOut = gridCopy;
-            //            }
 
             orderedChannels[channelIndex] = {name, gridCopy};
         }
-
-        //        std::vector<CompressionEngine::ZCE_AABB> channelAABB{size_t(channelCount),
-        //                                                             {std::numeric_limits<int32_t>::max(),
-        //                                                             std::numeric_limits<int32_t>::max(),
-        //                                                              std::numeric_limits<int32_t>::max(),
-        //                                                              std::numeric_limits<int32_t>::min(),
-        //                                                              std::numeric_limits<int32_t>::min(),
-        //                                                              std::numeric_limits<int32_t>::min()}};
 
         for (int channelIndex = 0; channelIndex < channelCount; channelIndex++)
         {
@@ -277,8 +250,6 @@ namespace Zibra::OpenVDBSupport
                 const auto& leafNode = leafIter.getLeaf();
 
                 const CompressionEngine::ZCE_AABB leafAABB = CalculateAABB(leafNode->getNodeBoundingBox());
-
-                //                aabb = aabb | leafAABB;
 
                 openvdb::Coord blockOrigin =
                     openvdb::Coord(leafAABB.minX - aabb.minX, leafAABB.minY - aabb.minY, leafAABB.minZ - aabb.minZ);
