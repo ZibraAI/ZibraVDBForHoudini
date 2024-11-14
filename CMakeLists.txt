@@ -77,9 +77,13 @@ target_precompile_headers(ZibraVDBForHoudini PRIVATE src/PrecompiledHeader.h)
 target_compile_definitions(ZibraVDBForHoudini PRIVATE ZIB_PLATFORM_${OS_NAME_CAPITALIZED}=1)
 
 if(DEFINED ENV{ZIBRA_HOUDINI_PATH})
+    message(STATUS "ENV{ZIBRA_HOUDINI_PATH}: $ENV{ZIBRA_HOUDINI_PATH}")
     set(HOUDINI_PATH "$ENV{ZIBRA_HOUDINI_PATH}")
-elseif()
-    message(FATAL_ERROR "ZIBRA_HOUDINI_PATH environment variable is not set. Can't find Houdini installation.")
+elseif(DEFINED ENV{HFS})
+    message(STATUS "ENV{HFS}: $ENV{HFS}")
+    cmake_print_variables($ENV{HFS})
+else()
+    message(FATAL_ERROR "ZIBRA_HOUDINI_PATH and HFS environment variables are not set. Can't find Houdini installation.")
 endif()
 cmake_print_variables(HOUDINI_PATH)
 
@@ -105,6 +109,7 @@ find_package(Houdini REQUIRED)
 target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini Houdini::Dep::openvdb_sesi)
 
 houdini_configure_target(ZibraVDBForHoudini INSTDIR ${HOUDINI_INSTDIR})
+install(TARGETS ZibraVDBForHoudini DESTINATION ${HOUDINI_INSTDIR})
 
 if (MSVC)
     set_target_properties(ZibraVDBForHoudini PROPERTIES
