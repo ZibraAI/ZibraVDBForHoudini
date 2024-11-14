@@ -2,6 +2,8 @@
 
 #include "CompressionEngine.h"
 
+#include <UT/UT_EnvControl.h>
+
 #include "networking/NetworkRequest.h"
 
 namespace Zibra::CompressionEngine
@@ -38,7 +40,7 @@ namespace Zibra::CompressionEngine
 
     std::string GetLibraryPath()
     {
-        std::string baseDir = std::getenv(g_BaseDirEnv);
+        const char* baseDir = UT_EnvControl::getString(ENV_HOUDINI_USER_PREF_DIR);
         std::filesystem::path libraryPath = std::filesystem::path(baseDir) / g_LibraryPath;
         return libraryPath.string();
     }
