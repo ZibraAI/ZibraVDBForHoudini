@@ -38,9 +38,24 @@ namespace Zibra::CompressionEngine
     bool g_IsLibraryLoaded = false;
     ZCE_VersionNumber g_LoadedLibraryVersion = {0, 0, 0, 0};
 
+    std::string GetUserPrefDir()
+    {
+        const char* baseDirUT = UT_EnvControl::getString(ENV_HOUDINI_USER_PREF_DIR);
+        if (baseDirUT != nullptr)
+        {
+            return baseDirUT;
+        }
+        return std::getenv(g_BaseDirEnv);
+    }
+
     std::string GetLibraryPath()
     {
-        const char* baseDir = UT_EnvControl::getString(ENV_HOUDINI_USER_PREF_DIR);
+        std::string baseDir = GetUserPrefDir();
+        if (baseDir == "")
+        {
+            return "";
+        }
+        
         std::filesystem::path libraryPath = std::filesystem::path(baseDir) / g_LibraryPath;
         return libraryPath.string();
     }
@@ -150,6 +165,12 @@ namespace Zibra::CompressionEngine
         }
 
         const std::string libraryPath = GetLibraryPath();
+
+        if (libraryPath == "")
+        {
+            return;
+        }
+
         char szPath[MAX_PATH];
         ::GetFullPathNameA(libraryPath.c_str(), MAX_PATH, szPath, NULL);
         g_LibraryHandle = ::LoadLibraryExA(szPath, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
