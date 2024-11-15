@@ -1,11 +1,12 @@
 #pragma once
+#include "Globals.h"
 
 namespace Zibra::ZibraVDBCompressor
 {
-    constexpr const char* NODE_NAME = "labs::zibravdb_compress::0.1";
+    constexpr const char* NODE_NAME = "labs::zibravdb_compress::" ZIB_ZIBRAVDB_VERSION_SHORT;
     constexpr const char* NODE_LABEL = "Labs ZibraVDB Compress (Alpha)";
 
-    class ROP_ZibraVDBCompressor final: public ROP_Node
+    class ROP_ZibraVDBCompressor final : public ROP_Node
     {
     private:
         static constexpr const char* QUALITY_PARAM_NAME = "quality";

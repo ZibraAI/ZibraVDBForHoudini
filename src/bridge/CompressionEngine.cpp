@@ -55,7 +55,7 @@ namespace Zibra::CompressionEngine
         {
             return "";
         }
-        
+
         std::filesystem::path libraryPath = std::filesystem::path(baseDir) / g_LibraryPath;
         return libraryPath.string();
     }

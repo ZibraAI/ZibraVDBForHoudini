@@ -1,8 +1,9 @@
 #pragma once
+#include "Globals.h"
 
 namespace Zibra::ZibraVDBDecompressor
 {
-    constexpr const char* NODE_NAME = "labs::zibravdb_decompress::0.1";
+    constexpr const char* NODE_NAME = "labs::zibravdb_decompress::" ZIB_ZIBRAVDB_VERSION_SHORT;
     constexpr const char* NODE_LABEL = "Labs ZibraVDB Decompress (Alpha)";
 
     class SOP_ZibraVDBDecompressor final : public SOP_Node

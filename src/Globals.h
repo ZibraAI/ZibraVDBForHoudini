@@ -6,6 +6,8 @@ namespace Zibra
 #define ZIB_STRINGIFY_INTERNAL(x) #x
 #define ZIB_STRINGIFY(x) ZIB_STRINGIFY_INTERNAL(x)
 
+#define ZIB_ZIBRAVDB_VERSION_SHORT "0.2"
+
     static constexpr const char* ZIBRAVDB_NODES_TAB_NAME = "ZibraVDB";
     static constexpr const char* ZIBRAVDB_ICON_PATH = "zibravdb.svg";
 
