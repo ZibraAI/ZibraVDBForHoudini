@@ -214,6 +214,9 @@ namespace Zibra::OpenVDBSupport
             std::strncpy(sparseFrame.channelNames[i], m_OrderedChannelNames[i].c_str(), stringSizeInBytes);
         }
 
+        CompressionEngine::ZCE_AABB totalAABB{std::numeric_limits<int>::max(), std::numeric_limits<int>::max(),
+                                              std::numeric_limits<int>::max(), std::numeric_limits<int>::min(),
+                                              std::numeric_limits<int>::min(), std::numeric_limits<int>::min()};
         std::vector<CompressionEngine::ZCE_AABB> channelAABB{size_t(channelCount)};
 
         for (int channelIndex = 0; channelIndex < channelCount; channelIndex++)
@@ -242,7 +245,6 @@ namespace Zibra::OpenVDBSupport
             if (!gridOut || gridOut->empty())
                 continue;
 
-            auto& aabb = channelAABB[channelIndex];
             // Iterate over all leaf nodes to get active blocks.
             // openvdb::FloatGrid has ALWAYS leaf blocks of size 8x8x8.
             for (auto leafIter = gridOut->tree().cbeginLeaf(); leafIter; ++leafIter)
@@ -251,14 +253,15 @@ namespace Zibra::OpenVDBSupport
 
                 const CompressionEngine::ZCE_AABB leafAABB = CalculateAABB(leafNode->getNodeBoundingBox());
 
+                totalAABB = totalAABB | leafAABB;
                 openvdb::Coord blockOrigin =
-                    openvdb::Coord(leafAABB.minX - aabb.minX, leafAABB.minY - aabb.minY, leafAABB.minZ - aabb.minZ);
+                    openvdb::Coord(leafAABB.minX, leafAABB.minY, leafAABB.minZ);
 
                 channelBlockData[blockOrigin].channelBlockDataMap.insert({channelIndex, LocalBlockData{leafNode->buffer().data()}});
             }
         }
 
-        if (std::all_of(channelAABB.cbegin(), channelAABB.cend(), IsEmpty))
+        if (IsEmpty(totalAABB))
         {
             sparseFrame.boundingBox = {0, 0, 0, 0, 0, 0};
             return sparseFrame;
@@ -312,9 +315,9 @@ namespace Zibra::OpenVDBSupport
                               const auto& [blockCoord, spatialBlockData] = spatialBlockDataPair;
                               CompressionEngine::ZCE_SpatialBlock& spatialInfo =
                                   sparseFrame.spatialBlocks[spatialBlockData.spatialBlockOffset];
-                              spatialInfo.coords[0] = blockCoord.x();
-                              spatialInfo.coords[1] = blockCoord.y();
-                              spatialInfo.coords[2] = blockCoord.z();
+                              spatialInfo.coords[0] = blockCoord.x() - totalAABB.minX;
+                              spatialInfo.coords[1] = blockCoord.y() - totalAABB.minY;
+                              spatialInfo.coords[2] = blockCoord.z() - totalAABB.minZ;
                               spatialInfo.channelBlocksOffset = spatialBlockData.channelBlockOffset;
 
                               for (const auto& [channelIndex, blockData] : spatialBlockData.channelBlockDataMap)
@@ -391,21 +394,14 @@ namespace Zibra::OpenVDBSupport
             const double volume = gridTransform.voxelVolume();
             if (!MathHelpers::IsNearlyEqual(volume, 0.))
             {
-                const auto& aabb = channelAABB[channelIndex];
-                sparseFrame.perChannelGridInfo[channelIndex].gridTransform = CastOpenVDBTransformToTransform(
-                    GetTranslatedFrameTransform(gridTransform, openvdb::math::Vec3d(aabb.minX, aabb.minY, aabb.minZ) * ZIB_BLOCK_SIZE));
+                sparseFrame.perChannelGridInfo[channelIndex].gridTransform = CastOpenVDBTransformToTransform(GetTranslatedFrameTransform(
+                    gridTransform, openvdb::math::Vec3d(totalAABB.minX, totalAABB.minY, totalAABB.minZ) * ZIB_BLOCK_SIZE));
             }
         }
 
         // Translate aabb to positive quarter of coordinate system.
-        sparseFrame.boundingBox = {};
-        for (int channelIndex = 0; channelIndex < channelCount; ++channelIndex)
-        {
-            auto& aabb = channelAABB[channelIndex];
-            sparseFrame.boundingBox =
-                sparseFrame.boundingBox |
-                CompressionEngine::ZCE_AABB{0, 0, 0, aabb.maxX - aabb.minX, aabb.maxY - aabb.minY, aabb.maxZ - aabb.minZ};
-        }
+        sparseFrame.boundingBox = CompressionEngine::ZCE_AABB{
+            0, 0, 0, totalAABB.maxX - totalAABB.minX, totalAABB.maxY - totalAABB.minY, totalAABB.maxZ - totalAABB.minZ};
 
         std::thread deallocThread([orderedChannels = std::move(orderedChannels)]() mutable { orderedChannels.clear(); });
         deallocThread.detach();
