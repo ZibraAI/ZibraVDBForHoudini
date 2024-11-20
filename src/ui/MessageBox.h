@@ -18,6 +18,6 @@ namespace Zibra::UI
             No = 1
         };
 
-        static Result Show(Type type, const std::string& message, const std::string& title);
+        static void Show(Type type, const std::string& message, void (*callback)(MessageBox::Result) = nullptr);
     };
 } // namespace Zibra::UI

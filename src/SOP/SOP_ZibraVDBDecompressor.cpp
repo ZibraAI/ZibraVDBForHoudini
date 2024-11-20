@@ -4,8 +4,8 @@
 
 #include "bridge/CompressionEngine.h"
 #include "openvdb/OpenVDBEncoder.h"
-#include "ui/MessageBox.h"
 #include "utils/GAAttributesDump.h"
+#include "utils/LibraryDownloadManager.h"
 
 #ifdef _DEBUG
 #define DBG_NAME(expression) expression
@@ -230,36 +230,7 @@ namespace Zibra::ZibraVDBDecompressor
 
     int SOP_ZibraVDBDecompressor::DownloadLibrary(void* data, int index, fpreal32 time, const PRM_Template* tplate)
     {
-        using namespace Zibra::UI;
-
-        auto node = static_cast<SOP_ZibraVDBDecompressor*>(data);
-
-        if (CompressionEngine::IsLibraryLoaded())
-        {
-            MessageBox::Result result = MessageBox::Show(MessageBox::Type::OK, "Library is already downloaded.", "ZibraVDB");
-            return 0;
-        }
-        MessageBox::Result result = MessageBox::Show(MessageBox::Type::YesNo,
-                                                     "By downloading ZibraVDB library you agree to ZibraVDB for Houdini Terms of Service - "
-                                                     "https://effects.zibra.ai/vdb-terms-of-services-trial. Do you wish to proceed?",
-                                                     "ZibraVDB");
-        if (result == MessageBox::Result::No)
-        {
-            return 0;
-        }
-        CompressionEngine::DownloadLibrary();
-        if (!CompressionEngine::IsLibraryLoaded())
-        {
-            node->addError(SOP_MESSAGE, "Failed to download ZibraVDB library.");
-            return 0;
-        }
-        if (!CompressionEngine::IsLicenseValid(CompressionEngine::ZCE_Product::Render))
-        {
-            node->addWarning(SOP_MESSAGE, "Library downloaded successfully, but no valid license found. Visit "
-                                          "'https://effects.zibra.ai/zibravdbhoudini', set up your license and restart Houdini.");
-            return 0;
-        }
-        MessageBox::Show(MessageBox::Type::OK, "Library downloaded successfully.", "ZibraVDB");
+        Zibra::UI::LibraryDownloadManager::DownloadLibrary();
         return 0;
     }
 

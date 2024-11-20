@@ -12,7 +12,7 @@ namespace Zibra
     static constexpr const char* ZIBRAVDB_ICON_PATH = "zibravdb.svg";
 
     static constexpr const char* ZIBRAVDB_ERROR_MESSAGE_PLATFORM_NOT_SUPPORTED =
-        "Platform is not supported. Currently ZibraVDB is only supported on Windows.";
+        "Platform is not supported. Currently ZibraVDB is only supported on Windows and Linux.";
     static constexpr const char* ZIBRAVDB_ERROR_MESSAGE_COMPRESSION_ENGINE_MISSING =
         "ZibraVDB implementation is not installed. Please download it via Node UI to use ZibraVDB.";
     static constexpr const char* ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR =

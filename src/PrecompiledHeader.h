@@ -55,7 +55,6 @@
 #include <SOP/SOP_Node.h>
 #include <SYS/SYS_Math.h>
 #include <UT/UT_Assert.h>
-#include <UT/UT_DSOVersion.h>
 #include <UT/UT_Exit.h>
 #include <UT/UT_IOTable.h>
 #include <UT/UT_Interrupt.h>
@@ -94,8 +93,11 @@
 #include <winhttp.h>
 #include <winuser.h>
 #undef ERROR
+#elif ZIB_PLATFORM_LINUX
+#include <dlfcn.h>
 #else
-// TODO cross-platform support
+// TODO macOS support
+#error Unimplemented
 #endif
 
 // Project includes
