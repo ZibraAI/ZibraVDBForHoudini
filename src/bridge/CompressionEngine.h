@@ -170,7 +170,7 @@ namespace Zibra::CompressionEngine
 
     constexpr bool IsPlatformSupported() noexcept
     {
-#if ZIB_PLATFORM_WIN
+#if ZIB_PLATFORM_WIN || ZIB_PLATFORM_LINUX
         return true;
 #else
         return false;

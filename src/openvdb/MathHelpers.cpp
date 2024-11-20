@@ -7,6 +7,26 @@
 namespace Zibra::OpenVDBSupport::MathHelpers
 {
 
+    float FloorFloat(float value) noexcept
+    {
+// Workaround for GCC bug
+#if defined(__GNUC__) && (__GNUC__ < 14)
+        return ::floorf(value);
+#else
+        return std::floorf(value);
+#endif
+    }
+
+    float CeilFloat(float value) noexcept
+    {
+// Workaround for GCC bug
+#if defined(__GNUC__) && (__GNUC__ < 14)
+        return ::ceilf(value);
+#else
+        return std::ceilf(value);
+#endif
+    }
+
     bool IsNearlyEqual(float a, float b) noexcept
     {
         return std::abs(a - b) < std::numeric_limits<float>::epsilon();
@@ -40,12 +60,12 @@ namespace Zibra::OpenVDBSupport::MathHelpers
 
     int FloorWithEpsilon(float value) noexcept
     {
-        return static_cast<int>(std::floorf(value + std::numeric_limits<float>::epsilon()));
+        return static_cast<int>(FloorFloat(value + std::numeric_limits<float>::epsilon()));
     }
 
     int CeilWithEpsilon(float value) noexcept
     {
-        return static_cast<int>(std::ceilf(value - std::numeric_limits<float>::epsilon()));
+        return static_cast<int>(CeilFloat(value - std::numeric_limits<float>::epsilon()));
     }
 
     int ModBlockSize(int value) noexcept
