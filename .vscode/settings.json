@@ -70,6 +70,16 @@
         "typeinfo": "cpp",
         "valarray": "cpp",
         "variant": "cpp",
-        "cmd_ui.C": "cpp"
+        "cmd_ui.C": "cpp",
+        "hash_map": "cpp",
+        "hash_set": "cpp",
+        "typeindex": "cpp",
+        "cinttypes": "cpp",
+        "complex": "cpp",
+        "list": "cpp",
+        "source_location": "cpp",
+        "fstream": "cpp",
+        "shared_mutex": "cpp",
+        "cfenv": "cpp"
     }
 }

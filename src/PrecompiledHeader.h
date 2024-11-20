@@ -95,6 +95,7 @@
 #undef ERROR
 #elif ZIB_PLATFORM_LINUX
 #include <dlfcn.h>
+#include <curl/curl.h>
 #else
 // TODO macOS support
 #error Unimplemented
