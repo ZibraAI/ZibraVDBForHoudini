@@ -8,7 +8,7 @@ namespace Zibra
 
 #define ZIB_ZIBRAVDB_VERSION_SHORT "0.2"
 
-    static constexpr const char* ZIBRAVDB_NODES_TAB_NAME = "ZibraVDB";
+    static constexpr const char* ZIBRAVDB_NODES_TAB_NAME = "ZibraVDB, Labs/FX/Pyro";
     static constexpr const char* ZIBRAVDB_ICON_PATH = "zibravdb.svg";
 
     static constexpr const char* ZIBRAVDB_ERROR_MESSAGE_PLATFORM_NOT_SUPPORTED =

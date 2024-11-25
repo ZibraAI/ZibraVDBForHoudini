@@ -64,13 +64,13 @@ namespace Zibra::ZibraVDBCompressor
 
         const UT_StringHolder& getDefaultShape() const final
         {
-            static UT_StringHolder shape{"trapezoid_down"};
+            static UT_StringHolder shape{"clipped_left"};
             return shape;
         }
 
         UT_Color getDefaultColor() const final
         {
-            return UT_Color{UT_RGB, 0.1, 0.1, 0.1};
+            return UT_Color{UT_RGB, 0.65, 0.4, 0.5};
         }
     };
 } // namespace Zibra::ZibraVDBCompressor

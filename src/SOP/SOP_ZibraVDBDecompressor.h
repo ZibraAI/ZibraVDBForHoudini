@@ -53,7 +53,7 @@ namespace Zibra::ZibraVDBDecompressor
 
         UT_Color getDefaultColor() const final
         {
-            return UT_Color{UT_RGB, 0.1, 0.1, 0.1};
+            return UT_Color{UT_RGB, 0.9, 0.8, 0.55};
         }
     };
 } // namespace Zibra::ZibraVDBDecompressor
