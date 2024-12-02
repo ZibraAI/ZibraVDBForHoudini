@@ -11,28 +11,210 @@ namespace Zibra::ZibraVDBCompressor
 {
     using namespace std::literals;
 
-    OP_Node* ROP_ZibraVDBCompressor::Constructor(OP_Network* net, const char* name, OP_Operator* op) noexcept
+    ROP_ZibraVDBCompressor_Operator::ROP_ZibraVDBCompressor_Operator(ContextType contextType) noexcept
+        : OP_Operator(GetNodeName(contextType), GetNodeLabel(contextType), GetConstructorForContext(contextType),
+                      ROP_ZibraVDBCompressor::GetTemplatePairs(contextType), GetMinSources(contextType), GetMaxSources(contextType),
+                      ROP_ZibraVDBCompressor::GetVariablePair(contextType), GetOperatorFlags(contextType), GetSourceLabels(contextType),
+                      GetMaxOutputs(contextType))
+        , m_ContextType(contextType)
     {
-        return new ROP_ZibraVDBCompressor{net, name, op};
+        setIconName(ZIBRAVDB_ICON_PATH);
+        setOpTabSubMenuPath(ZIBRAVDB_NODES_TAB_NAME);
     }
 
-    PRM_Template* ROP_ZibraVDBCompressor::GetTemplateList() noexcept
+    const UT_StringHolder& ROP_ZibraVDBCompressor_Operator::getDefaultShape() const
     {
+        static UT_StringHolder shapeSOP{"clipped_left"};
+        switch (m_ContextType)
+        {
+        case ContextType::SOP:
+            return shapeSOP;
+        case ContextType::OUT:
+            return OP_Operator::getDefaultShape();
+        default:
+            assert(0);
+            return shapeSOP;
+        }
+    }
+
+    UT_Color ROP_ZibraVDBCompressor_Operator::getDefaultColor() const
+    {
+        switch (m_ContextType)
+        {
+        case ContextType::SOP:
+            return UT_Color{UT_RGB, 0.65, 0.4, 0.5};
+        case ContextType::OUT:
+            return OP_Operator::getDefaultColor();
+        default:
+            assert(0);
+            return UT_Color{UT_RGB, 0.65, 0.4, 0.5};
+        }
+    }
+
+    OP_Constructor ROP_ZibraVDBCompressor_Operator::GetConstructorForContext(ContextType contextType)
+    {
+        switch (contextType)
+        {
+        case ContextType::SOP:
+            return ROP_ZibraVDBCompressor::ConstructorSOPContext;
+        case ContextType::OUT:
+            return ROP_ZibraVDBCompressor::ConstructorOUTContext;
+        default:
+            assert(0);
+            return ROP_ZibraVDBCompressor::ConstructorSOPContext;
+        }
+    }
+
+    unsigned ROP_ZibraVDBCompressor_Operator::GetOperatorFlags(ContextType contextType)
+    {
+        switch (contextType)
+        {
+        case ContextType::SOP:
+            return OP_FLAG_GENERATOR | OP_FLAG_MANAGER;
+        case ContextType::OUT:
+            return OP_FLAG_UNORDERED | OP_FLAG_GENERATOR;
+        default:
+            assert(0);
+            return OP_FLAG_GENERATOR;
+        }
+    }
+
+    unsigned ROP_ZibraVDBCompressor_Operator::GetMinSources(ContextType contextType)
+    {
+        switch (contextType)
+        {
+        case ContextType::SOP:
+            return 1;
+        case ContextType::OUT:
+            return 0;
+        default:
+            assert(0);
+            return 1;
+        }
+    }
+
+    unsigned ROP_ZibraVDBCompressor_Operator::GetMaxSources(ContextType contextType)
+    {
+        switch (contextType)
+        {
+        case ContextType::SOP:
+            return 1;
+        case ContextType::OUT:
+            return OP_MULTI_INPUT_MAX;
+        default:
+            assert(0);
+            return 1;
+        }
+    }
+
+    const char* ROP_ZibraVDBCompressor_Operator::GetNodeLabel(ContextType contextType)
+    {
+        return NODE_LABEL;
+    }
+
+    const char* ROP_ZibraVDBCompressor_Operator::GetNodeName(ContextType contextType)
+    {
+        switch (contextType)
+        {
+        case Zibra::ContextType::SOP:
+            return NODE_NAME_SOP_CONTEXT;
+            break;
+        case Zibra::ContextType::OUT:
+            return NODE_NAME_OUT_CONTEXT;
+            break;
+        default:
+            assert(0);
+            return NODE_NAME_SOP_CONTEXT;
+        }
+    }
+
+    unsigned ROP_ZibraVDBCompressor_Operator::GetMaxOutputs(ContextType contextType)
+    {
+        switch (contextType)
+        {
+        case ContextType::SOP:
+            return 0;
+        case ContextType::OUT:
+            return 1;
+        default:
+            assert(0);
+            return 0;
+        }
+    }
+
+    const char** ROP_ZibraVDBCompressor_Operator::GetSourceLabels(ContextType contextType)
+    {
+        static const char* SOP_LABELS[] = {"OpenVDB to Compress", nullptr};
+        static const char* OUT_LABELS[] = {nullptr};
+
+        switch (contextType)
+        {
+        case ContextType::SOP:
+            return SOP_LABELS;
+        case ContextType::OUT:
+            return OUT_LABELS;
+        default:
+            assert(0);
+            return SOP_LABELS;
+        }
+    }
+
+    OP_Node* ROP_ZibraVDBCompressor::ConstructorSOPContext(OP_Network* net, const char* name, OP_Operator* op) noexcept
+    {
+        return new ROP_ZibraVDBCompressor{ContextType::SOP, net, name, op};
+    }
+
+    OP_Node* ROP_ZibraVDBCompressor::ConstructorOUTContext(OP_Network* net, const char* name, OP_Operator* op) noexcept
+    {
+        return new ROP_ZibraVDBCompressor{ContextType::OUT, net, name, op};
+    }
+
+    std::vector<PRM_Template>& ROP_ZibraVDBCompressor::GetTemplateListContainer(ContextType contextType)
+    {
+        static std::vector<PRM_Template> templateListSOP;
+        static std::vector<PRM_Template> templateListOUT;
+        switch (contextType)
+        {
+        case ContextType::SOP:
+            return templateListSOP;
+        case ContextType::OUT:
+            return templateListOUT;
+        default:
+            assert(0);
+            return templateListSOP;
+        }
+    }
+
+    PRM_Template* ROP_ZibraVDBCompressor::GetTemplateList(ContextType contextType) noexcept
+    {
+        std::vector<PRM_Template>& templateList = GetTemplateListContainer(contextType);
+
+        if (!templateList.empty())
+        {
+            return templateList.data();
+        }
+
+        if (contextType == ContextType::OUT)
+        {
+            static PRM_Name theInputSOP(INPUT_SOP_PARAM_NAME, "SOP Path");
+            templateList.push_back(PRM_Template(PRM_STRING, 1, &theInputSOP));
+        }
+
         static PRM_Name theFileName(FILENAME_PARAM_NAME, "Out File");
         static PRM_Default theFileDefault(0, "$HIP/vol/$HIPNAME.$OS.zibravdb");
+
+        templateList.push_back(PRM_Template(PRM_FILE, 1, &theFileName, &theFileDefault));
 
         static PRM_Name theQualityName(QUALITY_PARAM_NAME, "Quality");
         static PRM_Default theQualityDefault(0.6, nullptr);
         static PRM_Range theQualityRange(PRM_RANGE_RESTRICTED, 0.0f, PRM_RANGE_RESTRICTED, 1.0f);
 
+        templateList.push_back(PRM_Template(PRM_FLT, 1, &theQualityName, &theQualityDefault, nullptr, &theQualityRange));
+
         static PRM_Name theUsePerChannelCompressionSettingsName(USE_PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME,
                                                                 "Use per channel compression settings");
 
-        static PRM_Name thePerChannelCompressionSettingsName[] = {
-            PRM_Name(PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME, "Per channel compression settings"),
-        };
-        static PRM_Conditional thePerChannelCompressionSettingsNameCondition("{ usePerChannelCompressionSettings == \"off\" }",
-                                                                             PRM_CONDTYPE_HIDE);
+        templateList.push_back(PRM_Template(PRM_TOGGLE, 1, &theUsePerChannelCompressionSettingsName));
 
         static PRM_Name thePerChannelCompressionSettingsFieldsNames[] = {
             PRM_Name("perChannelCompressionSettings__ChannelName#", "Channel Name"),
@@ -44,51 +226,71 @@ namespace Zibra::ZibraVDBCompressor
             PRM_Template(PRM_FLT, 1, &thePerChannelCompressionSettingsFieldsNames[1], &theQualityDefault, nullptr, &theQualityRange),
             PRM_Template()};
 
+        static PRM_Name thePerChannelCompressionSettingsName[] = {
+            PRM_Name(PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME, "Per channel compression settings"),
+        };
+        static PRM_Conditional thePerChannelCompressionSettingsNameCondition("{ usePerChannelCompressionSettings == \"off\" }",
+                                                                             PRM_CONDTYPE_HIDE);
+
+        templateList.push_back(PRM_Template(PRM_MULTITYPE_LIST, thePerChannelCompressionSettingsTemplates, 2,
+                                            &thePerChannelCompressionSettingsName[0], nullptr, nullptr, nullptr, nullptr,
+                                            &thePerChannelCompressionSettingsNameCondition));
+
         static PRM_Name theDownloadLibraryButtonName(DOWNLOAD_LIBRARY_BUTTON_NAME, "Download Library");
 
-        static PRM_Template templateList[] = {PRM_Template(PRM_FILE, 1, &theFileName, &theFileDefault),
-                                              PRM_Template(PRM_FLT, 1, &theQualityName, &theQualityDefault, nullptr, &theQualityRange),
-                                              PRM_Template(PRM_TOGGLE, 1, &theUsePerChannelCompressionSettingsName),
-                                              PRM_Template(PRM_MULTITYPE_LIST, thePerChannelCompressionSettingsTemplates, 2,
-                                                           &thePerChannelCompressionSettingsName[0], nullptr, nullptr, nullptr, nullptr,
-                                                           &thePerChannelCompressionSettingsNameCondition),
-                                              PRM_Template(PRM_CALLBACK, 1, &theDownloadLibraryButtonName, nullptr, nullptr, nullptr,
-                                                           &ROP_ZibraVDBCompressor::DownloadLibrary),
-                                              theRopTemplates[ROP_TPRERENDER_TPLATE],
-                                              theRopTemplates[ROP_PRERENDER_TPLATE],
-                                              theRopTemplates[ROP_LPRERENDER_TPLATE],
-                                              theRopTemplates[ROP_TPREFRAME_TPLATE],
-                                              theRopTemplates[ROP_PREFRAME_TPLATE],
-                                              theRopTemplates[ROP_LPREFRAME_TPLATE],
-                                              theRopTemplates[ROP_TPOSTFRAME_TPLATE],
-                                              theRopTemplates[ROP_POSTFRAME_TPLATE],
-                                              theRopTemplates[ROP_LPOSTFRAME_TPLATE],
-                                              theRopTemplates[ROP_TPOSTRENDER_TPLATE],
-                                              theRopTemplates[ROP_POSTRENDER_TPLATE],
-                                              theRopTemplates[ROP_LPOSTRENDER_TPLATE],
-                                              PRM_Template()};
+        templateList.push_back(PRM_Template(PRM_CALLBACK, 1, &theDownloadLibraryButtonName, nullptr, nullptr, nullptr,
+                                            &ROP_ZibraVDBCompressor::DownloadLibrary));
 
-        return templateList;
+        templateList.push_back(theRopTemplates[ROP_TPRERENDER_TPLATE]);
+        templateList.push_back(theRopTemplates[ROP_PRERENDER_TPLATE]);
+        templateList.push_back(theRopTemplates[ROP_LPRERENDER_TPLATE]);
+        templateList.push_back(theRopTemplates[ROP_TPREFRAME_TPLATE]);
+        templateList.push_back(theRopTemplates[ROP_PREFRAME_TPLATE]);
+        templateList.push_back(theRopTemplates[ROP_LPREFRAME_TPLATE]);
+        templateList.push_back(theRopTemplates[ROP_TPOSTFRAME_TPLATE]);
+        templateList.push_back(theRopTemplates[ROP_POSTFRAME_TPLATE]);
+        templateList.push_back(theRopTemplates[ROP_LPOSTFRAME_TPLATE]);
+        templateList.push_back(theRopTemplates[ROP_TPOSTRENDER_TPLATE]);
+        templateList.push_back(theRopTemplates[ROP_POSTRENDER_TPLATE]);
+        templateList.push_back(theRopTemplates[ROP_LPOSTRENDER_TPLATE]);
+        templateList.push_back(PRM_Template());
+
+        return templateList.data();
     }
 
-    OP_TemplatePair* ROP_ZibraVDBCompressor::GetTemplatePairs() noexcept
+    OP_TemplatePair* ROP_ZibraVDBCompressor::GetTemplatePairs(ContextType contextType) noexcept
     {
-        static PRM_Template tmp[] = {theRopTemplates[ROP_RENDERBACKGROUND_TPLATE], PRM_Template()};
+        static PRM_Template ROPTemplates[] = {theRopTemplates[ROP_RENDERBACKGROUND_TPLATE], PRM_Template()};
 
-        static OP_TemplatePair base{GetTemplateList()};
-        static OP_TemplatePair ropPair1{ROP_Node::getROPbaseTemplate(), &base};
-        static OP_TemplatePair ropPair2{tmp, &ropPair1};
-        return &ropPair2;
+        static OP_TemplatePair BaseSOPContext{GetTemplateList(ContextType::SOP)};
+        static OP_TemplatePair ROPPair1SOPContext{ROP_Node::getROPbaseTemplate(), &BaseSOPContext};
+        static OP_TemplatePair ROPPair2SOPContext{ROPTemplates, &ROPPair1SOPContext};
+
+        static OP_TemplatePair BaseOUTContext{GetTemplateList(ContextType::OUT)};
+        static OP_TemplatePair ROPPair1OUTContext{ROP_Node::getROPbaseTemplate(), &BaseOUTContext};
+        static OP_TemplatePair ROPPair2OUTContext{ROPTemplates, &ROPPair1OUTContext};
+
+        switch (contextType)
+        {
+        case ContextType::SOP:
+            return &ROPPair2SOPContext;
+        case ContextType::OUT:
+            return &ROPPair2OUTContext;
+        default:
+            assert(0);
+            return &ROPPair2SOPContext;
+        }
     }
 
-    OP_VariablePair* ROP_ZibraVDBCompressor::GetVariablePair() noexcept
+    OP_VariablePair* ROP_ZibraVDBCompressor::GetVariablePair(ContextType contextType) noexcept
     {
         static OP_VariablePair pair{ROP_Node::myVariableList};
         return &pair;
     }
 
-    ROP_ZibraVDBCompressor::ROP_ZibraVDBCompressor(OP_Network* net, const char* name, OP_Operator* entry) noexcept
+    ROP_ZibraVDBCompressor::ROP_ZibraVDBCompressor(ContextType contextType, OP_Network* net, const char* name, OP_Operator* entry) noexcept
         : ROP_Node{net, name, entry}
+        , m_ContextType(contextType)
     {
     }
 
@@ -127,13 +329,38 @@ namespace Zibra::ZibraVDBCompressor
         if (inputs.lock(ctx) >= UT_ERROR_ABORT)
             return false;
 
-        // 0 index referring to the node's first input
-        m_InputSOP = CAST_SOPNODE(getInputFollowingOutputs(0));
-        if (!m_InputSOP)
+        switch (m_ContextType)
         {
-            addError(ROP_MESSAGE, "No inputs detected. First input must be an OpenVDB source.");
+        case ContextType::SOP: {
+            // 0 index referring to the node's first input
+            m_InputSOP = CAST_SOPNODE(getInputFollowingOutputs(0));
+            if (!m_InputSOP)
+            {
+                addError(ROP_MESSAGE, "No inputs detected. First input must be an OpenVDB source.");
+                return ROP_ABORT_RENDER;
+            }
+            break;
+        }
+        case ContextType::OUT: {
+            // Reads soppath parameter
+            UT_String SOPPath = "";
+            evalString(SOPPath, INPUT_SOP_PARAM_NAME, 0, 0, tStart);
+            OP_Node* node = findNode(SOPPath);
+            m_InputSOP = CAST_SOPNODE(node);
+            if (!m_InputSOP)
+            {
+                addError(ROP_MESSAGE, "No inputs detected. Please make sure that SOP Path is correct.");
+                return ROP_ABORT_RENDER;
+            }
+            break;
+        }
+        default: {
+            assert(0);
+            addError(ROP_MESSAGE, "Internal Error, Unkown context type.");
             return ROP_ABORT_RENDER;
         }
+        }
+
         const GU_Detail* gdp = m_InputSOP->getCookedGeoHandle(ctx, 0).gdp();
         if (!gdp)
         {
@@ -322,7 +549,7 @@ namespace Zibra::ZibraVDBCompressor
         CompressionEngine::ZCE_CompressionSettings settings{};
 
         UT_String filename = "";
-        evalString(filename, "filename", nullptr, 0, tStart);
+        evalString(filename, FILENAME_PARAM_NAME, nullptr, 0, tStart);
         std::filesystem::create_directories(std::filesystem::path{filename.c_str()}.parent_path());
 
         settings.outputFilePath = filename.c_str();

@@ -24,4 +24,11 @@ namespace Zibra
         "Couldn't decompress frame. Please verify decompression settings.";
     static constexpr const char* ZIBRAVDB_ERROR_MESSAGE_FRAME_INDEX_OUT_OF_RANGE =
         "Trying to decompress frame out of range of input sequence.";
+
+    enum class ContextType
+    {
+        SOP,
+        OUT
+    };
+
 } // namespace Zibra

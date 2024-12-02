@@ -94,6 +94,7 @@
 #include <winhttp.h>
 #include <winuser.h>
 #undef ERROR
+#undef OUT
 #else
 // TODO cross-platform support
 #endif
