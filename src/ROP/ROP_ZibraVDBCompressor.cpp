@@ -259,15 +259,22 @@ namespace Zibra::ZibraVDBCompressor
 
     OP_TemplatePair* ROP_ZibraVDBCompressor::GetTemplatePairs(ContextType contextType) noexcept
     {
-        static PRM_Template ROPTemplates[] = {theRopTemplates[ROP_RENDERBACKGROUND_TPLATE], PRM_Template()};
+        static PRM_Template ROPTemplates[] = {
+            theRopTemplates[ROP_RENDER_TPLATE],
+            theRopTemplates[ROP_RENDERBACKGROUND_TPLATE],
+            theRopTemplates[ROP_PREVIEW_TPLATE],
+            theRopTemplates[ROP_RENDERDIALOG_TPLATE],
+            theRopTemplates[ROP_TRANGE_TPLATE],
+            theRopTemplates[ROP_FRAMERANGE_TPLATE],
+            theRopTemplates[ROP_TAKENAME_TPLATE],
+            PRM_Template()
+        };
 
         static OP_TemplatePair BaseSOPContext{GetTemplateList(ContextType::SOP)};
-        static OP_TemplatePair ROPPair1SOPContext{ROP_Node::getROPbaseTemplate(), &BaseSOPContext};
-        static OP_TemplatePair ROPPair2SOPContext{ROPTemplates, &ROPPair1SOPContext};
+        static OP_TemplatePair ROPPair2SOPContext{ROPTemplates, &BaseSOPContext};
 
         static OP_TemplatePair BaseOUTContext{GetTemplateList(ContextType::OUT)};
-        static OP_TemplatePair ROPPair1OUTContext{ROP_Node::getROPbaseTemplate(), &BaseOUTContext};
-        static OP_TemplatePair ROPPair2OUTContext{ROPTemplates, &ROPPair1OUTContext};
+        static OP_TemplatePair ROPPair2OUTContext{ROPTemplates, &BaseOUTContext};
 
         switch (contextType)
         {
