@@ -236,11 +236,6 @@ namespace Zibra::ZibraVDBCompressor
                                             &thePerChannelCompressionSettingsName[0], nullptr, nullptr, nullptr, nullptr,
                                             &thePerChannelCompressionSettingsNameCondition));
 
-        static PRM_Name theDownloadLibraryButtonName(DOWNLOAD_LIBRARY_BUTTON_NAME, "Download Library");
-
-        templateList.push_back(PRM_Template(PRM_CALLBACK, 1, &theDownloadLibraryButtonName, nullptr, nullptr, nullptr,
-                                            &ROP_ZibraVDBCompressor::DownloadLibrary));
-
         templateList.push_back(theRopTemplates[ROP_TPRERENDER_TPLATE]);
         templateList.push_back(theRopTemplates[ROP_PRERENDER_TPLATE]);
         templateList.push_back(theRopTemplates[ROP_LPRERENDER_TPLATE]);
@@ -253,8 +248,12 @@ namespace Zibra::ZibraVDBCompressor
         templateList.push_back(theRopTemplates[ROP_TPOSTRENDER_TPLATE]);
         templateList.push_back(theRopTemplates[ROP_POSTRENDER_TPLATE]);
         templateList.push_back(theRopTemplates[ROP_LPOSTRENDER_TPLATE]);
-        templateList.push_back(PRM_Template());
 
+        static PRM_Name theDownloadLibraryButtonName(DOWNLOAD_LIBRARY_BUTTON_NAME, "Download Library");
+        templateList.push_back(PRM_Template(PRM_CALLBACK, 1, &theDownloadLibraryButtonName, nullptr, nullptr, nullptr,
+                                            &ROP_ZibraVDBCompressor::DownloadLibrary));
+
+        templateList.push_back(PRM_Template());
         return templateList.data();
     }
 
