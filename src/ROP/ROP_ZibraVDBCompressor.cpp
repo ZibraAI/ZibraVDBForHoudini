@@ -217,8 +217,8 @@ namespace Zibra::ZibraVDBCompressor
         templateList.push_back(PRM_Template(PRM_TOGGLE, 1, &theUsePerChannelCompressionSettingsName));
 
         static PRM_Name thePerChannelCompressionSettingsFieldsNames[] = {
-            PRM_Name("perChannelCompressionSettings__ChannelName#", "Channel Name"),
-            PRM_Name("perChannelCompressionSettings__Quality#", "Channel Quality"),
+            PRM_Name("perchname#", "Channel Name"),
+            PRM_Name("perchquality#", "Channel Quality"),
         };
 
         static PRM_Template thePerChannelCompressionSettingsTemplates[] = {
