@@ -212,13 +212,13 @@ namespace Zibra::ZibraVDBCompressor
         templateList.push_back(PRM_Template(PRM_FLT, 1, &theQualityName, &theQualityDefault, nullptr, &theQualityRange));
 
         static PRM_Name theUsePerChannelCompressionSettingsName(USE_PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME,
-                                                                "Use per channel compression settings");
+                                                                "Use per Channel Compression Settings");
 
         templateList.push_back(PRM_Template(PRM_TOGGLE, 1, &theUsePerChannelCompressionSettingsName));
 
         static PRM_Name thePerChannelCompressionSettingsFieldsNames[] = {
             PRM_Name("perChannelCompressionSettings__ChannelName#", "Channel Name"),
-            PRM_Name("perChannelCompressionSettings__Quality#", "Quality"),
+            PRM_Name("perChannelCompressionSettings__Quality#", "Channel Quality"),
         };
 
         static PRM_Template thePerChannelCompressionSettingsTemplates[] = {
@@ -227,7 +227,7 @@ namespace Zibra::ZibraVDBCompressor
             PRM_Template()};
 
         static PRM_Name thePerChannelCompressionSettingsName[] = {
-            PRM_Name(PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME, "Per channel compression settings"),
+            PRM_Name(PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME, "Number of Channels"),
         };
         static PRM_Conditional thePerChannelCompressionSettingsNameCondition("{ usePerChannelCompressionSettings == \"off\" }",
                                                                              PRM_CONDTYPE_HIDE);
@@ -662,8 +662,8 @@ namespace Zibra::ZibraVDBCompressor
 
         if (!CompressionEngine::IsLicenseValid(CompressionEngine::ZCE_Product::Compression))
         {
-            node->addWarning(ROP_MESSAGE, "Library downloaded successfully, but no valid license found. Visit "
-                                          "'https://effects.zibra.ai/zibravdbhoudini', set up your license and restart Houdini.");
+            node->addWarning(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_NO_LICENSE_AFTER_DOWNLOAD);
+            MessageBox::Show(MessageBox::Type::OK, ZIBRAVDB_ERROR_MESSAGE_NO_LICENSE_AFTER_DOWNLOAD, "ZibraVDB");
             return 0;
         }
         MessageBox::Show(MessageBox::Type::OK, "Library downloaded successfully.", "ZibraVDB");

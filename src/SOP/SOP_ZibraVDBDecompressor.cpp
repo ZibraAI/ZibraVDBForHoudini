@@ -43,7 +43,7 @@ namespace Zibra::ZibraVDBDecompressor
         static PRM_Name theFileName(FILENAME_PARAM_NAME, "Input File");
         static PRM_Default theFileDefault(0, "$HIP/vol/$HIPNAME.$OS.zibravdb");
 
-        static PRM_Name theFrameName(FRAME_PARAM_NAME, "Sequence frame");
+        static PRM_Name theFrameName(FRAME_PARAM_NAME, "Sequence Frame");
         static PRM_Default theFrameDefault(0, "$F");
 
         static PRM_Name theReloadCacheName(REFRESH_CALLBACK_PARAM_NAME, "Reload Cache");
@@ -255,8 +255,8 @@ namespace Zibra::ZibraVDBDecompressor
         }
         if (!CompressionEngine::IsLicenseValid(CompressionEngine::ZCE_Product::Render))
         {
-            node->addWarning(SOP_MESSAGE, "Library downloaded successfully, but no valid license found. Visit "
-                                          "'https://effects.zibra.ai/zibravdbhoudini', set up your license and restart Houdini.");
+            node->addWarning(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_NO_LICENSE_AFTER_DOWNLOAD);
+            MessageBox::Show(MessageBox::Type::OK, ZIBRAVDB_ERROR_MESSAGE_NO_LICENSE_AFTER_DOWNLOAD, "ZibraVDB");
             return 0;
         }
         MessageBox::Show(MessageBox::Type::OK, "Library downloaded successfully.", "ZibraVDB");
