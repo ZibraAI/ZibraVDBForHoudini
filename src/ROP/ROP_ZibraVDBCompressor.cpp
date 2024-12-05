@@ -252,6 +252,9 @@ namespace Zibra::ZibraVDBCompressor
         static PRM_Name theDownloadLibraryButtonName(DOWNLOAD_LIBRARY_BUTTON_NAME, "Download Library");
         templateList.push_back(PRM_Template(PRM_CALLBACK, 1, &theDownloadLibraryButtonName, nullptr, nullptr, nullptr,
                                             &ROP_ZibraVDBCompressor::DownloadLibrary));
+        static PRM_Name theCoreLibPathName(CORE_LIB_PATH_FIELD_NAME, "Core Lib");
+        static PRM_Default theCoreLibPathDefault(0, "UNLOADEDED");
+        templateList.emplace_back(PRM_STRING, 1, &theCoreLibPathName, &theCoreLibPathDefault);
 
         templateList.push_back(PRM_Template());
         return templateList.data();
@@ -298,12 +301,16 @@ namespace Zibra::ZibraVDBCompressor
         : ROP_Node{net, name, entry}
         , m_ContextType(contextType)
     {
+        using namespace CompressionEngine;
+        std::string libpath = g_IsLibraryLoaded ? g_LibraryPath : "UNLOADED("s + g_LibraryPath + ")"s;
+        setString(libpath, CH_STRING_LITERAL, CORE_LIB_PATH_FIELD_NAME, 0, 0);
     }
 
     ROP_ZibraVDBCompressor::~ROP_ZibraVDBCompressor() noexcept = default;
 
     int ROP_ZibraVDBCompressor::startRender(const int nFrames, const fpreal tStart, const fpreal tEnd)
     {
+        using namespace std::string_literals;
         if (!CompressionEngine::IsPlatformSupported())
         {
             addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_PLATFORM_NOT_SUPPORTED);
@@ -311,6 +318,12 @@ namespace Zibra::ZibraVDBCompressor
         }
 
         CompressionEngine::LoadLibrary();
+
+        {
+            using namespace CompressionEngine;
+            std::string libpath = g_IsLibraryLoaded ? g_LibraryPath : "UNLOADED("s + g_LibraryPath + ")"s;
+            setString(libpath, CH_STRING_LITERAL, CORE_LIB_PATH_FIELD_NAME, 0, 0);
+        }
 
         if (!CompressionEngine::IsLibraryLoaded())
         {

@@ -7,6 +7,7 @@ namespace Zibra::ZibraVDBCompressor
     constexpr const char* NODE_NAME_OUT_CONTEXT = "labs::zibravdb_compress::" ZIB_ZIBRAVDB_VERSION_SHORT;
     constexpr const char* NODE_LABEL = "Labs ZibraVDB Compress (Alpha)";
 
+
     class ROP_ZibraVDBCompressor_Operator : public OP_Operator
     {
         using OP_Operator::OP_Operator;
@@ -41,6 +42,7 @@ namespace Zibra::ZibraVDBCompressor
         static constexpr const char* PER_CHANNEL_COMPRESSION_SETTINGS_QUALITY_PARAM_NAME = "perchquality";
         static constexpr const char* FILENAME_PARAM_NAME = "filename";
         static constexpr const char* DOWNLOAD_LIBRARY_BUTTON_NAME = "downloadlibrary";
+        static constexpr const char* CORE_LIB_PATH_FIELD_NAME = "corelibpath";
 
     public:
         static OP_Node* ConstructorSOPContext(OP_Network* net, const char* name, OP_Operator* op) noexcept;

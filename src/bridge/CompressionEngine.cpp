@@ -29,8 +29,7 @@ namespace Zibra::CompressionEngine
                                                              ZIB_COMPRESSION_ENGINE_BRIDGE_MINOR_VERSION};
 
     static constexpr const char* g_BaseDirEnv = "HOUDINI_USER_PREF_DIR";
-    static constexpr const char* g_LibraryPath =
-        "zibra/" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING "/ZibraVDBHoudiniBridge" ZIB_DYNAMIC_LIB_EXTENSION;
+    const char* g_LibraryPath = "zibra/" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING "/ZibraVDBHoudiniBridge" ZIB_DYNAMIC_LIB_EXTENSION;
     static constexpr const char* g_LibraryDownloadURL =
         "https://storage.googleapis.com/zibra-storage/ZibraVDBHoudiniBridge_" ZIB_PLATFORM_NAME
         "_" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING ZIB_DYNAMIC_LIB_EXTENSION;

@@ -54,13 +54,18 @@ namespace Zibra::ZibraVDBDecompressor
             return 1;
         }};
 
+        static PRM_Name theCoreLibPathName(CORE_LIB_PATH_FIELD_NAME, "Core Lib");
+        static PRM_Default theCoreLibPathDefault(0, "UNLOADEDED");
+
         static PRM_Name theDownloadLibraryButtonName(DOWNLOAD_LIBRARY_BUTTON_NAME, "Download Library");
 
         static PRM_Template templateList[] = {
-            PRM_Template(PRM_FILE, 1, &theFileName, &theFileDefault), PRM_Template(PRM_INT, 1, &theFrameName, &theFrameDefault),
+            PRM_Template(PRM_FILE, 1, &theFileName, &theFileDefault),
+            PRM_Template(PRM_INT, 1, &theFrameName, &theFrameDefault),
             PRM_Template(PRM_CALLBACK, 1, &theReloadCacheName, nullptr, nullptr, nullptr, theReloadCallback),
             PRM_Template(PRM_CALLBACK, 1, &theDownloadLibraryButtonName, nullptr, nullptr, nullptr,
                          &SOP_ZibraVDBDecompressor::DownloadLibrary),
+            PRM_Template(PRM_STRING, 1, &theCoreLibPathName, &theCoreLibPathDefault),
             PRM_Template()};
         return templateList;
     }
@@ -113,6 +118,12 @@ namespace Zibra::ZibraVDBDecompressor
         {
             addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_COMPRESSION_ENGINE_MISSING);
             return error(context);
+        }
+
+        {
+            using namespace CompressionEngine;
+            std::string libpath = g_IsLibraryLoaded ? g_LibraryPath : "UNLOADED("s + g_LibraryPath + ")"s;
+            setString(libpath, CH_STRING_LITERAL, CORE_LIB_PATH_FIELD_NAME, 0, 0);
         }
 
         if (!CompressionEngine::IsLicenseValid(CompressionEngine::ZCE_Product::Render))
