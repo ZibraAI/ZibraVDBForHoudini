@@ -65,7 +65,7 @@ namespace Zibra::ZibraVDBDecompressor
             PRM_Template(PRM_CALLBACK, 1, &theReloadCacheName, nullptr, nullptr, nullptr, theReloadCallback),
             PRM_Template(PRM_CALLBACK, 1, &theDownloadLibraryButtonName, nullptr, nullptr, nullptr,
                          &SOP_ZibraVDBDecompressor::DownloadLibrary),
-            PRM_Template(PRM_STRING, 1, &theCoreLibPathName, &theCoreLibPathDefault),
+            PRM_Template(PRM_STRING_E, 1, &theCoreLibPathName, &theCoreLibPathDefault),
             PRM_Template()};
         return templateList;
     }

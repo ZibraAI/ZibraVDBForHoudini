@@ -254,7 +254,7 @@ namespace Zibra::ZibraVDBCompressor
                                             &ROP_ZibraVDBCompressor::DownloadLibrary));
         static PRM_Name theCoreLibPathName(CORE_LIB_PATH_FIELD_NAME, "Core Lib");
         static PRM_Default theCoreLibPathDefault(0, CompressionEngine::g_LibraryPath);
-        templateList.emplace_back(PRM_STRING, 1, &theCoreLibPathName, &theCoreLibPathDefault);
+        templateList.emplace_back(PRM_STRING_E, 1, &theCoreLibPathName, &theCoreLibPathDefault);
 
         templateList.push_back(PRM_Template());
         return templateList.data();
