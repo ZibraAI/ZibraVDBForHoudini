@@ -11,8 +11,9 @@ namespace Zibra::ZibraVDBDecompressor
     private:
         static constexpr const char* FILENAME_PARAM_NAME = "filename";
         static constexpr const char* FRAME_PARAM_NAME = "frame";
-        static constexpr const char* REFRESH_CALLBACK_PARAM_NAME = "refresh";
-        static constexpr const char* DOWNLOAD_LIBRARY_BUTTON_NAME = "download_library";
+        static constexpr const char* REFRESH_CALLBACK_PARAM_NAME = "reload";
+        static constexpr const char* DOWNLOAD_LIBRARY_BUTTON_NAME = "downloadlibrary";
+        static constexpr const char* CORE_LIB_PATH_FIELD_NAME = "corelibpath";
 
     public:
         static OP_Node* Constructor(OP_Network* net, const char* name, OP_Operator* op) noexcept;
