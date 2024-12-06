@@ -48,6 +48,7 @@
 #include <PRM/PRM_Include.h>
 #include <PRM/PRM_Parm.h>
 #include <PRM/PRM_ParmList.h>
+#include <PRM/PRM_SpareData.h>
 #include <PRM/PRM_TemplateBuilder.h>
 #include <ROP/ROP_Error.h>
 #include <ROP/ROP_Node.h>
