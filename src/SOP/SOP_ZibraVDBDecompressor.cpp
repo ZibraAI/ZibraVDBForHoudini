@@ -122,8 +122,7 @@ namespace Zibra::ZibraVDBDecompressor
 
         {
             using namespace CompressionEngine;
-            std::string libpath = g_IsLibraryLoaded ? g_LibraryPath : "UNLOADED("s + g_LibraryPath + ")"s;
-            setString(libpath, CH_STRING_LITERAL, CORE_LIB_PATH_FIELD_NAME, 0, 0);
+            setString(g_LibraryPath, CH_STRING_LITERAL, CORE_LIB_PATH_FIELD_NAME, 0, 0);
         }
 
         if (!CompressionEngine::IsLicenseValid(CompressionEngine::ZCE_Product::Render))
