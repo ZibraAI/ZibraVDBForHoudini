@@ -55,7 +55,7 @@ namespace Zibra::ZibraVDBDecompressor
         }};
 
         static PRM_Name theCoreLibPathName(CORE_LIB_PATH_FIELD_NAME, "Core Lib");
-        static PRM_Default theCoreLibPathDefault(0, "UNLOADEDED");
+        static PRM_Default theCoreLibPathDefault(0, CompressionEngine::g_LibraryPath);
 
         static PRM_Name theDownloadLibraryButtonName(DOWNLOAD_LIBRARY_BUTTON_NAME, "Download Library");
 
@@ -118,11 +118,6 @@ namespace Zibra::ZibraVDBDecompressor
         {
             addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_COMPRESSION_ENGINE_MISSING);
             return error(context);
-        }
-
-        {
-            using namespace CompressionEngine;
-            setString(g_LibraryPath, CH_STRING_LITERAL, CORE_LIB_PATH_FIELD_NAME, 0, 0);
         }
 
         if (!CompressionEngine::IsLicenseValid(CompressionEngine::ZCE_Product::Render))

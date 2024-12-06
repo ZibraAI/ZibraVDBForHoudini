@@ -253,7 +253,7 @@ namespace Zibra::ZibraVDBCompressor
         templateList.push_back(PRM_Template(PRM_CALLBACK, 1, &theDownloadLibraryButtonName, nullptr, nullptr, nullptr,
                                             &ROP_ZibraVDBCompressor::DownloadLibrary));
         static PRM_Name theCoreLibPathName(CORE_LIB_PATH_FIELD_NAME, "Core Lib");
-        static PRM_Default theCoreLibPathDefault(0, "UNLOADEDED");
+        static PRM_Default theCoreLibPathDefault(0, CompressionEngine::g_LibraryPath);
         templateList.emplace_back(PRM_STRING, 1, &theCoreLibPathName, &theCoreLibPathDefault);
 
         templateList.push_back(PRM_Template());
@@ -315,11 +315,6 @@ namespace Zibra::ZibraVDBCompressor
         }
 
         CompressionEngine::LoadLibrary();
-
-        {
-            using namespace CompressionEngine;
-            setString(g_LibraryPath, CH_STRING_LITERAL, CORE_LIB_PATH_FIELD_NAME, 0, 0);
-        }
 
         if (!CompressionEngine::IsLibraryLoaded())
         {
