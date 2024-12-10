@@ -7,7 +7,6 @@
 | _Property_             | _Value_                                |
 |------------------------|----------------------------------------|
 | __Asset Label__        | ```Labs ZibraVDB File Cache (Alpha)``` |
-| __TAB Submenu path__   | ```ZibraVDB, Labs/FX/Pyro```           |
 | __Internal Name__      | ```labs::zibravdb_filecache::0.2```    |
 | __Filename (Save To)__ | ```zibravdb_filecache.0.2.hda```       |
 
@@ -34,8 +33,14 @@
 | __Input 1 Label__  | ```Volumes to Cache to Disk``` |
 | __Output 1 Labal__ | ```Cached VDBs```              |
 
+#### Tab: Interactive -> Shelf Tooks -> Context
+
+| _Property_           | _Value_                      |
+|----------------------|------------------------------|
+| __TAB Submenu path__ | ```ZibraVDB, Labs/FX/Pyro``` |
+
 #### Tab: Scripts
-- OnCreated
+- OnCreated ```(Python)```
   > ```
   > import platform
   >
