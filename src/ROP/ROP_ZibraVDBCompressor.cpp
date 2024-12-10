@@ -229,8 +229,7 @@ namespace Zibra::ZibraVDBCompressor
         static PRM_Name thePerChannelCompressionSettingsName[] = {
             PRM_Name(PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME, "Number of Channels"),
         };
-        static PRM_Conditional thePerChannelCompressionSettingsNameCondition("{ usePerChannelCompressionSettings == \"off\" }",
-                                                                             PRM_CONDTYPE_HIDE);
+        static PRM_Conditional thePerChannelCompressionSettingsNameCondition("{ useperchsettings == \"off\" }", PRM_CONDTYPE_DISABLE);
 
         templateList.emplace_back(PRM_MULTITYPE_LIST, thePerChannelCompressionSettingsTemplates, 2,
                                   &thePerChannelCompressionSettingsName[0], nullptr, nullptr, nullptr, nullptr,
