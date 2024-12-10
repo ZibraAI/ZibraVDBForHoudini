@@ -13,9 +13,9 @@ namespace Zibra
 
     constexpr auto* ZIBRAVDB_ERROR_MESSAGE_PLATFORM_NOT_SUPPORTED = "Platform is not supported. Currently ZibraVDB "
                                                                     "is only supported on Windows.";
-    constexpr auto* ZIBRAVDB_ERROR_MESSAGE_COMPRESSION_ENGINE_MISSING = "The ZibraVDB core library is not installed. Please "
-                                                                        "first download the core library via the Download "
-                                                                        "Library button on any of the ZibraVDB nodes.";
+    constexpr auto* ZIBRAVDB_ERROR_MESSAGE_COMPRESSION_ENGINE_MISSING = "The ZibraVDB core library is not installed. Please first download "
+                                                                        "the core library via the Download Library button on any of the "
+                                                                        "ZibraVDB nodes. (See the node help page for more information.)";
     constexpr auto* ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR = "License is not verified. Visit "
                                                            "'https://effects.zibra.ai/zibravdbhoudini' for activation.";
     constexpr auto* ZIBRAVDB_ERROR_MESSAGE_NO_FILE_SELECTED = "No file was selected to decompress.";
@@ -28,6 +28,17 @@ namespace Zibra
     constexpr auto* ZIBRAVDB_ERROR_MESSAGE_NO_LICENSE_AFTER_DOWNLOAD = "Library downloaded successfully, but no valid license found. Visit "
                                                                        "'https://effects.zibra.ai/zibravdbhoudini', set up your license "
                                                                        "and restart Houdini.";
+
+    constexpr auto* ZVDB_MSG_LIB_DOWNLOADED_SUCCESSFULLY_WITH_LICENSE = "Library downloaded successfully to "
+                                                                        "$HOUDINI_USER_PREF_DIR/zibra/X_Y/ZibraVDBHoudiniBridge.dll. "
+                                                                        "(See the node help page for more information.)";
+    constexpr auto* ZVDB_MSG_LIB_DOWNLOADED_SUCCESSFULLY_WITH_NO_LICENSE = "Library downloaded successfully to "
+                                                                           "$HOUDINI_USER_PREF_DIR/zibra/X_Y/ZibraVDBHoudiniBridge.dll, "
+                                                                           "but no valid license found. Visit "
+                                                                           "http://effects.zibra.ai/zibravdbhoudini, set up your license, "
+                                                                           "and then restart Houdini. (See the node help page for more "
+                                                                           "information.)";
+    constexpr auto* ZVDB_ERR_MSG_FAILED_TO_DOWNLOAD_LIBRARY = "Failed to download ZibraVDB library.";
 
 
     enum class ContextType
