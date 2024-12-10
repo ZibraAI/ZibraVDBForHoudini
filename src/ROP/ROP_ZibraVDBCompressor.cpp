@@ -663,6 +663,7 @@ namespace Zibra::ZibraVDBCompressor
         if (!CompressionEngine::IsLibraryLoaded())
         {
             node->addError(ROP_MESSAGE, ZVDB_ERR_MSG_FAILED_TO_DOWNLOAD_LIBRARY);
+            MessageBox::Show(MessageBox::Type::OK, ZVDB_ERR_MSG_FAILED_TO_DOWNLOAD_LIBRARY, "ZibraVDB");
             return 0;
         }
 

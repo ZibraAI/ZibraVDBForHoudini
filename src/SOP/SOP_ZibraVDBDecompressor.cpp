@@ -252,6 +252,7 @@ namespace Zibra::ZibraVDBDecompressor
         if (!CompressionEngine::IsLibraryLoaded())
         {
             node->addError(SOP_MESSAGE, ZVDB_ERR_MSG_FAILED_TO_DOWNLOAD_LIBRARY);
+            MessageBox::Show(MessageBox::Type::OK, ZVDB_ERR_MSG_FAILED_TO_DOWNLOAD_LIBRARY, "ZibraVDB");
             return 0;
         }
         if (!CompressionEngine::IsLicenseValid(CompressionEngine::ZCE_Product::Render))
