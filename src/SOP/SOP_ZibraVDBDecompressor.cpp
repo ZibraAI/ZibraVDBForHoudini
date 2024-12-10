@@ -54,9 +54,6 @@ namespace Zibra::ZibraVDBDecompressor
             return 1;
         }};
 
-        static PRM_Name theCoreLibPathName(CORE_LIB_PATH_FIELD_NAME, "Core Lib");
-        static PRM_Default theCoreLibPathDefault(0, CompressionEngine::g_LibraryPath);
-
         static PRM_Name theDownloadLibraryButtonName(DOWNLOAD_LIBRARY_BUTTON_NAME, "Download Library");
 
         static PRM_Template templateList[] = {
@@ -65,7 +62,6 @@ namespace Zibra::ZibraVDBDecompressor
             PRM_Template(PRM_CALLBACK, 1, &theReloadCacheName, nullptr, nullptr, nullptr, theReloadCallback),
             PRM_Template(PRM_CALLBACK, 1, &theDownloadLibraryButtonName, nullptr, nullptr, nullptr,
                          &SOP_ZibraVDBDecompressor::DownloadLibrary),
-            PRM_Template(PRM_STRING_E, 1, &theCoreLibPathName, &theCoreLibPathDefault, nullptr, nullptr, 0, &PRM_SpareData::saveValueNever),
             PRM_Template()};
         return templateList;
     }
@@ -255,16 +251,16 @@ namespace Zibra::ZibraVDBDecompressor
         CompressionEngine::DownloadLibrary();
         if (!CompressionEngine::IsLibraryLoaded())
         {
-            node->addError(SOP_MESSAGE, "Failed to download ZibraVDB library.");
+            node->addError(SOP_MESSAGE, ZVDB_ERR_MSG_FAILED_TO_DOWNLOAD_LIBRARY);
             return 0;
         }
         if (!CompressionEngine::IsLicenseValid(CompressionEngine::ZCE_Product::Render))
         {
             node->addWarning(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_NO_LICENSE_AFTER_DOWNLOAD);
-            MessageBox::Show(MessageBox::Type::OK, ZIBRAVDB_ERROR_MESSAGE_NO_LICENSE_AFTER_DOWNLOAD, "ZibraVDB");
+            MessageBox::Show(MessageBox::Type::OK, ZVDB_MSG_LIB_DOWNLOADED_SUCCESSFULLY_WITH_NO_LICENSE, "ZibraVDB");
             return 0;
         }
-        MessageBox::Show(MessageBox::Type::OK, "Library downloaded successfully.", "ZibraVDB");
+        MessageBox::Show(MessageBox::Type::OK, ZVDB_MSG_LIB_DOWNLOADED_SUCCESSFULLY_WITH_LICENSE, "ZibraVDB");
         return 0;
     }
 
