@@ -197,24 +197,24 @@ namespace Zibra::ZibraVDBCompressor
         if (contextType == ContextType::OUT)
         {
             static PRM_Name theInputSOP(INPUT_SOP_PARAM_NAME, "SOP Path");
-            templateList.push_back(PRM_Template(PRM_STRING, 1, &theInputSOP));
+            templateList.push_back(PRM_Template{PRM_STRING, PRM_TYPE_DYNAMIC_PATH, 1, &theInputSOP, 0, 0, 0, 0, &PRM_SpareData::sopPath});
         }
 
         static PRM_Name theFileName(FILENAME_PARAM_NAME, "Out File");
         static PRM_Default theFileDefault(0, "$HIP/vol/$HIPNAME.$OS.zibravdb");
 
-        templateList.push_back(PRM_Template(PRM_FILE, 1, &theFileName, &theFileDefault));
+        templateList.emplace_back(PRM_FILE, 1, &theFileName, &theFileDefault);
 
         static PRM_Name theQualityName(QUALITY_PARAM_NAME, "Quality");
         static PRM_Default theQualityDefault(0.6, nullptr);
         static PRM_Range theQualityRange(PRM_RANGE_RESTRICTED, 0.0f, PRM_RANGE_RESTRICTED, 1.0f);
 
-        templateList.push_back(PRM_Template(PRM_FLT, 1, &theQualityName, &theQualityDefault, nullptr, &theQualityRange));
+        templateList.emplace_back(PRM_FLT, 1, &theQualityName, &theQualityDefault, nullptr, &theQualityRange);
 
         static PRM_Name theUsePerChannelCompressionSettingsName(USE_PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME,
                                                                 "Use per Channel Compression Settings");
 
-        templateList.push_back(PRM_Template(PRM_TOGGLE, 1, &theUsePerChannelCompressionSettingsName));
+        templateList.emplace_back(PRM_TOGGLE, 1, &theUsePerChannelCompressionSettingsName);
 
         static PRM_Name thePerChannelCompressionSettingsFieldsNames[] = {
             PRM_Name("perchname#", "Channel Name"),
@@ -232,9 +232,9 @@ namespace Zibra::ZibraVDBCompressor
         static PRM_Conditional thePerChannelCompressionSettingsNameCondition("{ usePerChannelCompressionSettings == \"off\" }",
                                                                              PRM_CONDTYPE_HIDE);
 
-        templateList.push_back(PRM_Template(PRM_MULTITYPE_LIST, thePerChannelCompressionSettingsTemplates, 2,
-                                            &thePerChannelCompressionSettingsName[0], nullptr, nullptr, nullptr, nullptr,
-                                            &thePerChannelCompressionSettingsNameCondition));
+        templateList.emplace_back(PRM_MULTITYPE_LIST, thePerChannelCompressionSettingsTemplates, 2,
+                                  &thePerChannelCompressionSettingsName[0], nullptr, nullptr, nullptr, nullptr,
+                                  &thePerChannelCompressionSettingsNameCondition);
 
         templateList.push_back(theRopTemplates[ROP_TPRERENDER_TPLATE]);
         templateList.push_back(theRopTemplates[ROP_PRERENDER_TPLATE]);
@@ -250,10 +250,10 @@ namespace Zibra::ZibraVDBCompressor
         templateList.push_back(theRopTemplates[ROP_LPOSTRENDER_TPLATE]);
 
         static PRM_Name theDownloadLibraryButtonName(DOWNLOAD_LIBRARY_BUTTON_NAME, "Download Library");
-        templateList.push_back(PRM_Template(PRM_CALLBACK, 1, &theDownloadLibraryButtonName, nullptr, nullptr, nullptr,
-                                            &ROP_ZibraVDBCompressor::DownloadLibrary));
+        templateList.emplace_back(PRM_CALLBACK, 1, &theDownloadLibraryButtonName, nullptr, nullptr, nullptr,
+                                  &ROP_ZibraVDBCompressor::DownloadLibrary);
 
-        templateList.push_back(PRM_Template());
+        templateList.emplace_back();
         return templateList.data();
     }
 
