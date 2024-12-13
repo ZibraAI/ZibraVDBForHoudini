@@ -15,12 +15,18 @@ namespace Zibra::CompressionEngine
 #if ZIB_PLATFORM_WIN
 #define ZIB_PLATFORM_NAME "Windows"
 #define ZIB_DYNAMIC_LIB_EXTENSION ".dll"
+#define ZIB_DYNAMIC_LIB_PREFIX ""
+#define ZIB_CALL_CONV __cdecl
 #elif ZIB_PLATFORM_MAC
 #define ZIB_PLATFORM_NAME "macOS"
 #define ZIB_DYNAMIC_LIB_EXTENSION ".dylib"
+#define ZIB_DYNAMIC_LIB_PREFIX "lib"
+#define ZIB_CALL_CONV
 #elif ZIB_PLATFORM_LINUX
 #define ZIB_PLATFORM_NAME "Linux"
 #define ZIB_DYNAMIC_LIB_EXTENSION ".so"
+#define ZIB_DYNAMIC_LIB_PREFIX "lib"
+#define ZIB_CALL_CONV
 #else
 #error Unuspported platform
 #endif
@@ -30,7 +36,7 @@ namespace Zibra::CompressionEngine
 
     static constexpr const char* g_BaseDirEnv = "HOUDINI_USER_PREF_DIR";
     static constexpr const char* g_LibraryPath =
-        "zibra/" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING "/ZibraVDBHoudiniBridge" ZIB_DYNAMIC_LIB_EXTENSION;
+        "zibra/" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING "/" ZIB_DYNAMIC_LIB_PREFIX "ZibraVDBHoudiniBridge" ZIB_DYNAMIC_LIB_EXTENSION;
     static constexpr const char* g_LibraryDownloadURL =
         "https://storage.googleapis.com/zibra-storage/ZibraVDBHoudiniBridge_" ZIB_PLATFORM_NAME
         "_" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING ZIB_DYNAMIC_LIB_EXTENSION;
@@ -82,7 +88,7 @@ namespace Zibra::CompressionEngine
     }
 
 #define ZIB_DECLARE_FUNCTION_POINTER(functionName, returnType, ...) \
-    typedef returnType (*functionName##Type)(__VA_ARGS__);          \
+    typedef returnType ZIB_CALL_CONV (*functionName##Type)(__VA_ARGS__);          \
     functionName##Type Bridge##functionName = nullptr;
 
     ZIB_DECLARE_FUNCTION_POINTER(GetVersion, ZCE_VersionNumber);
