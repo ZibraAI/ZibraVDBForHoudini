@@ -11,8 +11,9 @@ namespace Zibra::ZibraVDBDecompressor
     private:
         static constexpr const char* FILENAME_PARAM_NAME = "filename";
         static constexpr const char* FRAME_PARAM_NAME = "frame";
-        static constexpr const char* REFRESH_CALLBACK_PARAM_NAME = "refresh";
-        static constexpr const char* DOWNLOAD_LIBRARY_BUTTON_NAME = "download_library";
+        static constexpr const char* REFRESH_CALLBACK_PARAM_NAME = "reload";
+        static constexpr const char* DOWNLOAD_LIBRARY_BUTTON_NAME = "downloadlibrary";
+        static constexpr const char* CORE_LIB_PATH_FIELD_NAME = "corelibpath";
 
     public:
         static OP_Node* Constructor(OP_Network* net, const char* name, OP_Operator* op) noexcept;
@@ -53,7 +54,7 @@ namespace Zibra::ZibraVDBDecompressor
 
         UT_Color getDefaultColor() const final
         {
-            return UT_Color{UT_RGB, 0.1, 0.1, 0.1};
+            return UT_Color{UT_RGB, 0.9, 0.8, 0.55};
         }
     };
 } // namespace Zibra::ZibraVDBDecompressor

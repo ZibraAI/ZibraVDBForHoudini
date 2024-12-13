@@ -3,6 +3,9 @@
 namespace Zibra::CompressionEngine
 {
 
+    extern const char* g_LibraryPath;
+    extern bool g_IsLibraryLoaded;
+
 #define ZIB_COMPRESSION_ENGINE_BRIDGE_MAJOR_VERSION 0
 #define ZIB_COMPRESSION_ENGINE_BRIDGE_MINOR_VERSION 2
 

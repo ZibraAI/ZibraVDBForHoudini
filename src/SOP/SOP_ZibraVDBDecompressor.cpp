@@ -43,7 +43,7 @@ namespace Zibra::ZibraVDBDecompressor
         static PRM_Name theFileName(FILENAME_PARAM_NAME, "Input File");
         static PRM_Default theFileDefault(0, "$HIP/vol/$HIPNAME.$OS.zibravdb");
 
-        static PRM_Name theFrameName(FRAME_PARAM_NAME, "Sequence frame");
+        static PRM_Name theFrameName(FRAME_PARAM_NAME, "Sequence Frame");
         static PRM_Default theFrameDefault(0, "$F");
 
         static PRM_Name theReloadCacheName(REFRESH_CALLBACK_PARAM_NAME, "Reload Cache");
@@ -57,7 +57,8 @@ namespace Zibra::ZibraVDBDecompressor
         static PRM_Name theDownloadLibraryButtonName(DOWNLOAD_LIBRARY_BUTTON_NAME, "Download Library");
 
         static PRM_Template templateList[] = {
-            PRM_Template(PRM_FILE, 1, &theFileName, &theFileDefault), PRM_Template(PRM_INT, 1, &theFrameName, &theFrameDefault),
+            PRM_Template(PRM_FILE, 1, &theFileName, &theFileDefault),
+            PRM_Template(PRM_INT, 1, &theFrameName, &theFrameDefault),
             PRM_Template(PRM_CALLBACK, 1, &theReloadCacheName, nullptr, nullptr, nullptr, theReloadCallback),
             PRM_Template(PRM_CALLBACK, 1, &theDownloadLibraryButtonName, nullptr, nullptr, nullptr,
                          &SOP_ZibraVDBDecompressor::DownloadLibrary),

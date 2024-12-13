@@ -30,13 +30,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 cmake_print_variables(CMAKE_CXX_COMPILER_VERSION)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     cmake_print_variables(CMAKE_VS_PLATFORM_TOOLSET_VERSION)
-    string(COMPARE LESS ${CMAKE_VS_PLATFORM_TOOLSET_VERSION} "14.40" IS_TOOLSET_COMPATIBLE)
-    if(NOT IS_TOOLSET_COMPATIBLE)
-        message(FATAL_ERROR "Visual Studio toolset is not compatible with Houdini plugins. \
-Please use build tools 14.39 or earlier. \
-Houdini will not load plugins built with 14.40 or higher."        )
-    endif()
-
     # Disable Microsoft extensions and enable correct __cplusplus macro
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive- /Zc:__cplusplus")
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
