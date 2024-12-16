@@ -508,9 +508,15 @@ namespace Zibra::ZibraVDBCompressor
         OpenVDBSupport::OpenVDBDecoder reader{volumes.data(), orderedChannelNames.data(), orderedChannelNames.size()};
         frameData.frameData = reader.DecodeFrame();
 
-        CompressionEngine::CompressFrame(CompressorInstanceID, &frameData);
+        bool res = CompressionEngine::CompressFrame(CompressorInstanceID, &frameData);
 
         reader.FreeFrame(frameData.frameData);
+
+        if (!res)
+        {
+            addError(ROP_MESSAGE, "Failed to compress frame.");
+            return ROP_ABORT_RENDER;
+        }
 
         if (error() < UT_ERROR_ABORT)
         {

@@ -206,7 +206,7 @@ namespace Zibra::CompressionEngine
     void ReleaseCompressorInstance(uint32_t instanceID) noexcept;
 
     void StartSequence(uint32_t instanceID) noexcept;
-    void CompressFrame(uint32_t instanceID, ZCE_FrameContainer* frameData) noexcept;
+    bool CompressFrame(uint32_t instanceID, ZCE_FrameContainer* frameData) noexcept;
     void FinishSequence(uint32_t instanceID) noexcept;
     void AbortSequence(uint32_t instanceID) noexcept;
 

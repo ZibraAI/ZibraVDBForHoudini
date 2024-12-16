@@ -351,16 +351,16 @@ namespace Zibra::CompressionEngine
         return compressorID;
     }
 
-    void CompressFrame(uint32_t instanceID, ZCE_FrameContainer* frameData) noexcept
+    bool CompressFrame(uint32_t instanceID, ZCE_FrameContainer* frameData) noexcept
     {
         if (!IsLibraryLoaded())
         {
             assert(0);
-            return;
+            return false;
         }
 
         ZCE_Result result = BridgeCompressFrame(instanceID, frameData);
-        assert(result == ZCE_Result::SUCCESS);
+        return result == ZCE_Result::SUCCESS;
     }
 
     void FinishSequence(uint32_t instanceID) noexcept
