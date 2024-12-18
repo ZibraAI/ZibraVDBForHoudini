@@ -188,6 +188,11 @@ namespace Zibra::CompressionEngine
 
     // Returns true if library is loaded, false otherwise.
     bool IsLibraryLoaded() noexcept;
+    // Returns true if library is loaded AND initialized.
+    // If library loaded it means that dynamic library is loaded into memory
+    // If library initialized it means that graphic API is initialized and ready to use
+    // Initialization may fail if there are no supported GPUs or software implementations of graphic API
+    bool IsLibraryInitialized() noexcept;
     // Checks if license is valid for the given product.
     // Licenes validation happens in during library load
     // To re-validate the license you need to restart Houdini

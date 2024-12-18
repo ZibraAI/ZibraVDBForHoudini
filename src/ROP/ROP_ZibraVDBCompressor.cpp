@@ -318,6 +318,12 @@ namespace Zibra::ZibraVDBCompressor
             return ROP_ABORT_RENDER;
         }
 
+        if (!CompressionEngine::IsLibraryInitialized())
+        {
+            addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LIBRARY_NOT_INITIALIZED);
+            return ROP_ABORT_RENDER;
+        }
+
         if (!CompressionEngine::IsLicenseValid(CompressionEngine::ZCE_Product::Compression))
         {
             addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR);
@@ -532,9 +538,13 @@ namespace Zibra::ZibraVDBCompressor
             return ROP_ABORT_RENDER;
         }
 
+        if (!CompressionEngine::IsLibraryInitialized())
+        {
+            return ROP_ABORT_RENDER;
+        }
+
         if (CompressorInstanceID != uint32_t(-1))
         {
-
             if (error() < UT_ERROR_ABORT)
             {
                 CompressionEngine::FinishSequence(CompressorInstanceID);

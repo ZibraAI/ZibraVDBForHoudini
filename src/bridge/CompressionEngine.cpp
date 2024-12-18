@@ -42,6 +42,7 @@ namespace Zibra::CompressionEngine
 
     bool g_IsLibraryLoaded = false;
     ZCE_VersionNumber g_LoadedLibraryVersion = {0, 0, 0, 0};
+    bool g_IsLibraryInitialized = false;
 
     std::string GetUserPrefDir()
     {
@@ -87,7 +88,7 @@ namespace Zibra::CompressionEngine
     }
 
 #define ZIB_DECLARE_FUNCTION_POINTER(functionName, returnType, ...) \
-    typedef returnType ZIB_CALL_CONV (*functionName##Type)(__VA_ARGS__);          \
+    typedef returnType(ZIB_CALL_CONV * functionName##Type)(__VA_ARGS__);          \
     functionName##Type Bridge##functionName = nullptr;
 
     ZIB_DECLARE_FUNCTION_POINTER(GetVersion, ZCE_VersionNumber);
@@ -280,7 +281,7 @@ namespace Zibra::CompressionEngine
 #error Unimplemented
 #endif
         ZCE_Result result = BridgeInitializeCompressionEngine();
-        assert(result == ZCE_Result::SUCCESS);
+        g_IsLibraryInitialized = (result == ZCE_Result::SUCCESS);
     }
 
     void DownloadLibrary() noexcept
@@ -299,6 +300,11 @@ namespace Zibra::CompressionEngine
     bool IsLibraryLoaded() noexcept
     {
         return g_IsLibraryLoaded;
+    }
+
+    bool IsLibraryInitialized() noexcept
+    {
+        return g_IsLibraryInitialized;
     }
 
     bool IsLicenseValid(ZCE_Product product) noexcept
@@ -339,7 +345,7 @@ namespace Zibra::CompressionEngine
 
     uint32_t CreateCompressorInstance(const ZCE_CompressionSettings* settings) noexcept
     {
-        if (!IsLibraryLoaded())
+        if (!IsLibraryInitialized())
         {
             assert(0);
             return UINT32_MAX;
@@ -353,7 +359,7 @@ namespace Zibra::CompressionEngine
 
     bool CompressFrame(uint32_t instanceID, ZCE_FrameContainer* frameData) noexcept
     {
-        if (!IsLibraryLoaded())
+        if (!IsLibraryInitialized())
         {
             assert(0);
             return false;
@@ -365,7 +371,7 @@ namespace Zibra::CompressionEngine
 
     void FinishSequence(uint32_t instanceID) noexcept
     {
-        if (!IsLibraryLoaded())
+        if (!IsLibraryInitialized())
         {
             assert(0);
             return;
@@ -377,7 +383,7 @@ namespace Zibra::CompressionEngine
 
     void AbortSequence(uint32_t instanceID) noexcept
     {
-        if (!IsLibraryLoaded())
+        if (!IsLibraryInitialized())
         {
             assert(0);
             return;
@@ -389,7 +395,7 @@ namespace Zibra::CompressionEngine
 
     void ReleaseCompressorInstance(uint32_t instanceID) noexcept
     {
-        if (!IsLibraryLoaded())
+        if (!IsLibraryInitialized())
         {
             assert(0);
             return;
@@ -401,7 +407,7 @@ namespace Zibra::CompressionEngine
 
     void StartSequence(uint32_t instanceID) noexcept
     {
-        if (!IsLibraryLoaded())
+        if (!IsLibraryInitialized())
         {
             assert(0);
             return;
@@ -413,7 +419,7 @@ namespace Zibra::CompressionEngine
 
     uint32_t CreateDecompressorInstance() noexcept
     {
-        if (!IsLibraryLoaded())
+        if (!IsLibraryInitialized())
         {
             assert(0);
             return UINT32_MAX;
@@ -427,7 +433,7 @@ namespace Zibra::CompressionEngine
 
     bool SetInputFile(uint32_t instanceID, const char* inputFilePath) noexcept
     {
-        if (!IsLibraryLoaded())
+        if (!IsLibraryInitialized())
         {
             assert(0);
             return false;
@@ -439,7 +445,7 @@ namespace Zibra::CompressionEngine
 
     void DecompressFrame(uint32_t instanceID, uint32_t frameIndex, ZCE_DecompressedFrameContainer** frameData) noexcept
     {
-        if (!IsLibraryLoaded())
+        if (!IsLibraryInitialized())
         {
             assert(0);
             return;
@@ -451,7 +457,7 @@ namespace Zibra::CompressionEngine
 
     void ReleaseDecompressorInstance(uint32_t instanceID) noexcept
     {
-        if (!IsLibraryLoaded())
+        if (!IsLibraryInitialized())
         {
             assert(0);
             return;
@@ -463,7 +469,7 @@ namespace Zibra::CompressionEngine
 
     void FreeFrameData(ZCE_DecompressedFrameContainer* frameData) noexcept
     {
-        if (!IsLibraryLoaded())
+        if (!IsLibraryInitialized())
         {
             assert(0);
             return;
@@ -475,7 +481,7 @@ namespace Zibra::CompressionEngine
 
     void GetSequenceInfo(uint32_t instanceID, ZCE_SequenceInfo* sequenceInfo) noexcept
     {
-        if (!IsLibraryLoaded())
+        if (!IsLibraryInitialized())
         {
             assert(0);
             return;

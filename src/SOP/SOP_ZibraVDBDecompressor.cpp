@@ -70,7 +70,7 @@ namespace Zibra::ZibraVDBDecompressor
         : SOP_Node(net, name, entry)
     {
         CompressionEngine::LoadLibrary();
-        if (!CompressionEngine::IsLibraryLoaded())
+        if (!CompressionEngine::IsLibraryInitialized())
         {
             return;
         }
@@ -88,7 +88,7 @@ namespace Zibra::ZibraVDBDecompressor
         {
             return;
         }
-        if (!CompressionEngine::IsLibraryLoaded())
+        if (!CompressionEngine::IsLibraryInitialized())
         {
             return;
         }
@@ -113,6 +113,12 @@ namespace Zibra::ZibraVDBDecompressor
         if (!CompressionEngine::IsLibraryLoaded())
         {
             addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_COMPRESSION_ENGINE_MISSING);
+            return error(context);
+        }
+
+        if (!CompressionEngine::IsLibraryInitialized())
+        {
+            addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LIBRARY_NOT_INITIALIZED);
             return error(context);
         }
 

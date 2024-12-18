@@ -27,10 +27,18 @@ namespace Zibra::UI
         {
             return;
         }
+
         CompressionEngine::DownloadLibrary();
+
         if (!CompressionEngine::IsLibraryLoaded())
         {
-            MessageBox::Show(MessageBox::Type::OK, ZVDB_ERR_MSG_FAILED_TO_DOWNLOAD_LIBRARY);
+            MessageBox::Show(MessageBox::Type::OK, ZVDB_MSG_FAILED_TO_DOWNLOAD_LIBRARY);
+            return;
+        }
+
+        if (!CompressionEngine::IsLibraryInitialized())
+        {
+            MessageBox::Show(MessageBox::Type::OK, ZVDB_MSG_LIB_DOWNLOADED_SUCCESSFULLY_INITIALIZATION_FAILED);
             return;
         }
 
@@ -39,6 +47,7 @@ namespace Zibra::UI
             MessageBox::Show(MessageBox::Type::OK, ZVDB_MSG_LIB_DOWNLOADED_SUCCESSFULLY_WITH_NO_LICENSE);
             return;
         }
+        
         MessageBox::Show(MessageBox::Type::OK, ZVDB_MSG_LIB_DOWNLOADED_SUCCESSFULLY_WITH_LICENSE);
     }
 } // namespace Zibra::UI
