@@ -1,12 +1,14 @@
+#!/usr/bin/pwsh
+
 param (
-   [string]$additionalArgs,
-   [string]$targetFolder = "build"
+   [string]$AdditionalArgs,
+   [string]$TargetFolder = "build"
 )
 
 $RepositeryRoot = "$PSScriptRoot/.."
 Push-Location $RepositeryRoot
 
-& ./scripts/clean.ps1 $targetFolder
-& ./scripts/build.ps1 $additionalArgs $targetFolder
+& ./scripts/clean.ps1 $TargetFolder
+& ./scripts/build.ps1 $AdditionalArgs $TargetFolder
 
 Pop-Location

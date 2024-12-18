@@ -4,8 +4,8 @@
 
 #include "bridge/CompressionEngine.h"
 #include "openvdb/OpenVDBDecoder.h"
-#include "ui/MessageBox.h"
 #include "utils/GAAttributesDump.h"
+#include "utils/LibraryDownloadManager.h"
 
 namespace Zibra::ZibraVDBCompressor
 {
@@ -318,6 +318,12 @@ namespace Zibra::ZibraVDBCompressor
             return ROP_ABORT_RENDER;
         }
 
+        if (!CompressionEngine::IsLibraryInitialized())
+        {
+            addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LIBRARY_NOT_INITIALIZED);
+            return ROP_ABORT_RENDER;
+        }
+
         if (!CompressionEngine::IsLicenseValid(CompressionEngine::ZCE_Product::Compression))
         {
             addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR);
@@ -508,9 +514,15 @@ namespace Zibra::ZibraVDBCompressor
         OpenVDBSupport::OpenVDBDecoder reader{volumes.data(), orderedChannelNames.data(), orderedChannelNames.size()};
         frameData.frameData = reader.DecodeFrame();
 
-        CompressionEngine::CompressFrame(CompressorInstanceID, &frameData);
+        bool res = CompressionEngine::CompressFrame(CompressorInstanceID, &frameData);
 
         reader.FreeFrame(frameData.frameData);
+
+        if (!res)
+        {
+            addError(ROP_MESSAGE, "Failed to compress frame.");
+            return ROP_ABORT_RENDER;
+        }
 
         if (error() < UT_ERROR_ABORT)
         {
@@ -526,9 +538,13 @@ namespace Zibra::ZibraVDBCompressor
             return ROP_ABORT_RENDER;
         }
 
+        if (!CompressionEngine::IsLibraryInitialized())
+        {
+            return ROP_ABORT_RENDER;
+        }
+
         if (CompressorInstanceID != uint32_t(-1))
         {
-
             if (error() < UT_ERROR_ABORT)
             {
                 CompressionEngine::FinishSequence(CompressorInstanceID);
@@ -642,38 +658,7 @@ namespace Zibra::ZibraVDBCompressor
 
     int ROP_ZibraVDBCompressor::DownloadLibrary(void* data, int index, fpreal32 time, const PRM_Template* tplate)
     {
-        using namespace Zibra::UI;
-
-        auto node = static_cast<ROP_ZibraVDBCompressor*>(data);
-
-        if (CompressionEngine::IsLibraryLoaded())
-        {
-            MessageBox::Result result = MessageBox::Show(MessageBox::Type::OK, "Library is already downloaded.", "ZibraVDB");
-            return 0;
-        }
-        MessageBox::Result result = MessageBox::Show(MessageBox::Type::YesNo,
-                                                     "By downloading ZibraVDB library you agree to ZibraVDB for Houdini Terms of Service - "
-                                                     "https://effects.zibra.ai/vdb-terms-of-services-trial. Do you wish to proceed?",
-                                                     "ZibraVDB");
-        if (result == MessageBox::Result::No)
-        {
-            return 0;
-        }
-        CompressionEngine::DownloadLibrary();
-        if (!CompressionEngine::IsLibraryLoaded())
-        {
-            node->addError(ROP_MESSAGE, ZVDB_ERR_MSG_FAILED_TO_DOWNLOAD_LIBRARY);
-            MessageBox::Show(MessageBox::Type::OK, ZVDB_ERR_MSG_FAILED_TO_DOWNLOAD_LIBRARY, "ZibraVDB");
-            return 0;
-        }
-
-        if (!CompressionEngine::IsLicenseValid(CompressionEngine::ZCE_Product::Compression))
-        {
-            node->addWarning(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_NO_LICENSE_AFTER_DOWNLOAD);
-            MessageBox::Show(MessageBox::Type::OK, ZVDB_MSG_LIB_DOWNLOADED_SUCCESSFULLY_WITH_NO_LICENSE, "ZibraVDB");
-            return 0;
-        }
-        MessageBox::Show(MessageBox::Type::OK, ZVDB_MSG_LIB_DOWNLOADED_SUCCESSFULLY_WITH_LICENSE, "ZibraVDB");
+        Zibra::UI::LibraryDownloadManager::DownloadLibrary();
         return 0;
     }
 

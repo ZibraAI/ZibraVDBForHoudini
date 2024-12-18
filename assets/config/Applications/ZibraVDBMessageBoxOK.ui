@@ -1,0 +1,16 @@
+message.val := "You should never see this";
+
+dialog.gad = DIALOG "ZibraVDB"
+{
+    LAYOUT(vertical) WIDTH(4) MARGIN(0.2) SPACING(0.1) LOOK(plain) EXCLUSIVE
+    VALUE(dialog.val)
+
+    LABEL VALUE(message.val) HSTRETCH;
+
+    SEPARATOR;
+
+    ROW 
+    {
+        ACTION_BUTTON "OK" SENDS(0) VALUE(result.val);
+    }
+}

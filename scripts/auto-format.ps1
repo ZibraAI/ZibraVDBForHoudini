@@ -1,3 +1,5 @@
+#!/usr/bin/pwsh
+
 $RepositeryRoot = "$PSScriptRoot/.."
 Push-Location $RepositeryRoot
 
