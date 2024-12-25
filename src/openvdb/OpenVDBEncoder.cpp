@@ -8,7 +8,8 @@ namespace Zibra::OpenVDBSupport
 {
 
     openvdb::GridPtrVec OpenVDBEncoder::EncodeFrame(const CompressionEngine::ZCE_FrameInfo& frameInfo,
-                                                    const CompressionEngine::ZCE_DecompressedFrameData& frameData) noexcept
+                                                    const CompressionEngine::ZCE_DecompressedFrameData& frameData,
+                                                    const EncodeMetadata& encodeMetadata) noexcept
     {
         if (frameInfo.channelCount == 0 || frameInfo.spatialBlockCount == 0 || frameInfo.channelBlockCount == 0)
         {
@@ -24,7 +25,10 @@ namespace Zibra::OpenVDBSupport
         {
             openvdb::FloatGrid::Ptr grid = openvdb::FloatGrid::create(0.f);
             grid->setName(frameInfo.channelNames[i]);
-            grid->setTransform(OpenVDBTransformFromMatrix(frameInfo.perChannelInfo[i].gridTransform));
+
+            CompressionEngine::ZCE_Transform gridTransform = frameInfo.perChannelInfo[i].gridTransform;
+            OffsetTransform(gridTransform, encodeMetadata);
+            grid->setTransform(OpenVDBTransformFromMatrix(gridTransform));
             grids.push_back(grid);
         }
 
@@ -64,7 +68,9 @@ namespace Zibra::OpenVDBSupport
                                const auto y = blockInfo.coords[1];
                                const auto z = blockInfo.coords[2];
 
-                               const openvdb::Coord blockMin = {x * ZIB_BLOCK_SIZE, y * ZIB_BLOCK_SIZE, z * ZIB_BLOCK_SIZE};
+                               const openvdb::Coord blockMin = {x * ZIB_BLOCK_SIZE + encodeMetadata.offsetX,
+                                                                y * ZIB_BLOCK_SIZE + encodeMetadata.offsetY,
+                                                                z * ZIB_BLOCK_SIZE + encodeMetadata.offsetZ};
 
                                auto* leaf = new LeafT{openvdb::PartialCreate{}, blockMin, 0.f, true};
                                leaf->allocate();
@@ -102,6 +108,14 @@ namespace Zibra::OpenVDBSupport
     {
         return openvdb::math::Transform::createLinearTransform(IsTransformEmpty(gridTransform) ? openvdb::Mat4d::identity()
                                                                                                : openvdb::Mat4d{gridTransform.matrix});
+    }
+
+    void OpenVDBEncoder::OffsetTransform(CompressionEngine::ZCE_Transform& gridTransform, const EncodeMetadata& encodeMetadata)
+    {
+        float voxelScale = gridTransform.matrix[0];
+        gridTransform.matrix[12] -= encodeMetadata.offsetX * voxelScale;
+        gridTransform.matrix[13] -= encodeMetadata.offsetY * voxelScale;
+        gridTransform.matrix[14] -= encodeMetadata.offsetZ * voxelScale;
     }
 
 } // namespace Zibra::OpenVDBSupport

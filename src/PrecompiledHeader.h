@@ -16,6 +16,7 @@
 #include <optional>
 #include <regex>
 #include <set>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <unordered_set>

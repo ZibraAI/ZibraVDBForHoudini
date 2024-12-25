@@ -1,12 +1,16 @@
 #pragma once
 #include "Globals.h"
 
+namespace Zibra::OpenVDBSupport
+{
+    struct DecodeMetadata;
+}
+
 namespace Zibra::ZibraVDBCompressor
 {
     constexpr const char* NODE_NAME_SOP_CONTEXT = "labs::rop_zibravdb_compress::" ZIB_ZIBRAVDB_VERSION_SHORT;
     constexpr const char* NODE_NAME_OUT_CONTEXT = "labs::zibravdb_compress::" ZIB_ZIBRAVDB_VERSION_SHORT;
     constexpr const char* NODE_LABEL = "Labs ZibraVDB Compress (Alpha)";
-
 
     class ROP_ZibraVDBCompressor_Operator : public OP_Operator
     {
@@ -64,7 +68,12 @@ namespace Zibra::ZibraVDBCompressor
     private:
         static std::vector<PRM_Template>& GetTemplateListContainer(ContextType contextType);
 
-        std::vector<std::pair<std::string, std::string>> DumpAttributes(const GU_Detail* gdp) noexcept;
+        std::vector<std::pair<std::string, std::string>> DumpAttributes(const GU_Detail* gdp,
+                                                                        const OpenVDBSupport::DecodeMetadata& decodeMetadata) noexcept;
+        void DumpVisualisationAttributes(std::vector<std::pair<std::string, std::string>>& attributes, const GEO_PrimVDB* vdbPrim);
+        void DumpDecodeMetadata(std::vector<std::pair<std::string, std::string>>& result,
+                                const OpenVDBSupport::DecodeMetadata& decodeMetadata);
+
         static int DownloadLibrary(void* data, int index, fpreal32 time, const PRM_Template* tplate);
         uint32_t CreateCompressor(fpreal tStart);
 

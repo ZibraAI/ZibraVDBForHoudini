@@ -167,7 +167,7 @@ namespace Zibra::OpenVDBSupport
         return transformedGrid;
     }
 
-    CompressionEngine::ZCE_SparseFrameData OpenVDBDecoder::DecodeFrame() noexcept
+    CompressionEngine::ZCE_SparseFrameData OpenVDBDecoder::DecodeFrame(DecodeMetadata& decodeMetadata) noexcept
     {
         using namespace MathHelpers;
 
@@ -254,8 +254,7 @@ namespace Zibra::OpenVDBSupport
                 const CompressionEngine::ZCE_AABB leafAABB = CalculateAABB(leafNode->getNodeBoundingBox());
 
                 totalAABB = totalAABB | leafAABB;
-                openvdb::Coord blockOrigin =
-                    openvdb::Coord(leafAABB.minX, leafAABB.minY, leafAABB.minZ);
+                openvdb::Coord blockOrigin = openvdb::Coord(leafAABB.minX, leafAABB.minY, leafAABB.minZ);
 
                 channelBlockData[blockOrigin].channelBlockDataMap.insert({channelIndex, LocalBlockData{leafNode->buffer().data()}});
             }
@@ -398,6 +397,11 @@ namespace Zibra::OpenVDBSupport
                     gridTransform, openvdb::math::Vec3d(totalAABB.minX, totalAABB.minY, totalAABB.minZ) * ZIB_BLOCK_SIZE));
             }
         }
+
+        decodeMetadata = {};
+        decodeMetadata.offsetX = totalAABB.minX * ZIB_BLOCK_SIZE;
+        decodeMetadata.offsetY = totalAABB.minY * ZIB_BLOCK_SIZE;
+        decodeMetadata.offsetZ = totalAABB.minZ * ZIB_BLOCK_SIZE;
 
         // Translate aabb to positive quarter of coordinate system.
         sparseFrame.boundingBox = CompressionEngine::ZCE_AABB{
