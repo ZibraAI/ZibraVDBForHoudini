@@ -27,8 +27,9 @@ namespace Zibra::OpenVDBSupport
             grid->setName(frameInfo.channelNames[i]);
 
             CompressionEngine::ZCE_Transform gridTransform = frameInfo.perChannelInfo[i].gridTransform;
-            OffsetTransform(gridTransform, encodeMetadata);
-            grid->setTransform(OpenVDBTransformFromMatrix(gridTransform));
+            openvdb::math::Transform::Ptr openVDBTransform = OpenVDBTransformFromMatrix(gridTransform);
+            OffsetTransform(openVDBTransform, encodeMetadata);
+            grid->setTransform(openVDBTransform);
             grids.push_back(grid);
         }
 
@@ -110,12 +111,13 @@ namespace Zibra::OpenVDBSupport
                                                                                                : openvdb::Mat4d{gridTransform.matrix});
     }
 
-    void OpenVDBEncoder::OffsetTransform(CompressionEngine::ZCE_Transform& gridTransform, const EncodeMetadata& encodeMetadata)
+    void OpenVDBEncoder::OffsetTransform(openvdb::math::Transform::Ptr openVDBTransform, const EncodeMetadata& encodeMetadata)
     {
-        float voxelScale = gridTransform.matrix[0];
-        gridTransform.matrix[12] -= encodeMetadata.offsetX * voxelScale;
-        gridTransform.matrix[13] -= encodeMetadata.offsetY * voxelScale;
-        gridTransform.matrix[14] -= encodeMetadata.offsetZ * voxelScale;
+        const openvdb::math::Vec3d translationFromMetadata(-encodeMetadata.offsetX, -encodeMetadata.offsetY, -encodeMetadata.offsetZ);
+        // transform3x3 will apply only 3x3 part of matrix, without translation.
+        const openvdb::math::Vec3d frameTranslationInFrameCoordinateSystem =
+            openVDBTransform->baseMap()->getAffineMap()->getMat4().transform3x3(translationFromMetadata);
+        openVDBTransform->postTranslate(frameTranslationInFrameCoordinateSystem);
     }
 
 } // namespace Zibra::OpenVDBSupport

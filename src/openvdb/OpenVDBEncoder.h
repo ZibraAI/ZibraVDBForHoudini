@@ -21,6 +21,6 @@ namespace Zibra::OpenVDBSupport
     private:
         static bool IsTransformEmpty(const CompressionEngine::ZCE_Transform& gridTransform);
         static openvdb::math::Transform::Ptr OpenVDBTransformFromMatrix(const CompressionEngine::ZCE_Transform& gridTransform);
-        static void OffsetTransform(CompressionEngine::ZCE_Transform& gridTransform, const EncodeMetadata& encodeMetadata);
+        static void OffsetTransform(openvdb::math::Transform::Ptr gridTransform, const EncodeMetadata& encodeMetadata);
     };
 } // namespace Zibra::OpenVDBSupport
