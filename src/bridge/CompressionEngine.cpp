@@ -29,6 +29,7 @@ namespace Zibra::CompressionEngine
                                                              ZIB_COMPRESSION_ENGINE_BRIDGE_MINOR_VERSION};
 
     static constexpr const char* g_BaseDirEnv = "HOUDINI_USER_PREF_DIR";
+    static constexpr const char* g_AltDirEnv = "HSITE";
     const char* g_LibraryPath = "zibra/" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING "/ZibraVDBHoudiniBridge" ZIB_DYNAMIC_LIB_EXTENSION;
     static constexpr const char* g_LibraryDownloadURL =
         "https://storage.googleapis.com/zibra-storage/ZibraVDBHoudiniBridge_" ZIB_PLATFORM_NAME
@@ -39,12 +40,22 @@ namespace Zibra::CompressionEngine
 
     std::string GetUserPrefDir()
     {
-        const char* baseDirUT = UT_EnvControl::getString(ENV_HOUDINI_USER_PREF_DIR);
-        if (baseDirUT != nullptr)
+        const char* dirUT = UT_EnvControl::getString(ENV_HOUDINI_USER_PREF_DIR);
+        if (dirUT != nullptr)
         {
-            return baseDirUT;
+            return dirUT;
         }
         return std::getenv(g_BaseDirEnv);
+    }
+
+    std::string GetHSiteDir()
+    {
+        const char* dirUT = UT_EnvControl::getString(ENV_HSITE);
+        if (dirUT != nullptr)
+        {
+            return dirUT;
+        }
+        return std::getenv(g_AltDirEnv);
     }
 
     std::string GetLibraryPath()
@@ -55,6 +66,17 @@ namespace Zibra::CompressionEngine
             return "";
         }
 
+        std::filesystem::path libraryPath = std::filesystem::path(baseDir) / g_LibraryPath;
+        return libraryPath.string();
+    }
+
+    std::string GetAltLibraryPath()
+    {
+        std::string baseDir = GetHSiteDir();
+        if (baseDir == "")
+        {
+            return "";
+        }
         std::filesystem::path libraryPath = std::filesystem::path(baseDir) / g_LibraryPath;
         return libraryPath.string();
     }
@@ -152,6 +174,44 @@ namespace Zibra::CompressionEngine
         return true;
     }
 
+    bool LoadLibraryByPath(const std::string& libraryPath) noexcept
+    {
+#if ZIB_PLATFORM_WIN
+        if (libraryPath == "")
+        {
+            return false;
+        }
+
+        char szPath[MAX_PATH];
+        ::GetFullPathNameA(libraryPath.c_str(), MAX_PATH, szPath, NULL);
+        g_LibraryHandle = ::LoadLibraryExA(szPath, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+
+        if (g_LibraryHandle == NULL)
+        {
+            return false;
+        }
+
+        if (!LoadFunctions())
+        {
+            ::FreeLibrary(g_LibraryHandle);
+            g_LibraryHandle = NULL;
+            return false;
+        }
+
+        g_LoadedLibraryVersion = BridgeGetVersion();
+        if (!IsLibrarySupported(g_LoadedLibraryVersion))
+        {
+            ::FreeLibrary(g_LibraryHandle);
+            g_LibraryHandle = NULL;
+            return false;
+        }
+
+        return true;
+#else
+        // TODO cross-platform support
+#endif
+    }
+
     void LoadLibrary() noexcept
     {
 #if ZIB_PLATFORM_WIN
@@ -163,39 +223,23 @@ namespace Zibra::CompressionEngine
             return;
         }
 
-        const std::string libraryPath = GetLibraryPath();
+        const std::string libraryPaths[] = {GetLibraryPath(), GetAltLibraryPath()};
 
-        if (libraryPath == "")
+        bool isLoaded = false;
+        for (const std::string& libraryPath : libraryPaths)
         {
-            return;
+            if (LoadLibraryByPath(libraryPath))
+            {
+                isLoaded = true;
+                break;
+            }
         }
-
-        char szPath[MAX_PATH];
-        ::GetFullPathNameA(libraryPath.c_str(), MAX_PATH, szPath, NULL);
-        g_LibraryHandle = ::LoadLibraryExA(szPath, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
-
-        if (g_LibraryHandle == NULL)
+        if (!isLoaded)
         {
-            return;
-        }
-
-        if (!LoadFunctions())
-        {
-            ::FreeLibrary(g_LibraryHandle);
-            g_LibraryHandle = NULL;
-            return;
-        }
-
-        g_LoadedLibraryVersion = BridgeGetVersion();
-        if (!IsLibrarySupported(g_LoadedLibraryVersion))
-        {
-            ::FreeLibrary(g_LibraryHandle);
-            g_LibraryHandle = NULL;
             return;
         }
 
         g_IsLibraryLoaded = true;
-
 #else
         // TODO cross-platform support
 #endif
