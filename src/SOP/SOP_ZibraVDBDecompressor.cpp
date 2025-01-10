@@ -57,8 +57,7 @@ namespace Zibra::ZibraVDBDecompressor
         static PRM_Name theDownloadLibraryButtonName(DOWNLOAD_LIBRARY_BUTTON_NAME, "Download Library");
 
         static PRM_Template templateList[] = {
-            PRM_Template(PRM_FILE, 1, &theFileName, &theFileDefault),
-            PRM_Template(PRM_INT, 1, &theFrameName, &theFrameDefault),
+            PRM_Template(PRM_FILE, 1, &theFileName, &theFileDefault), PRM_Template(PRM_INT, 1, &theFrameName, &theFrameDefault),
             PRM_Template(PRM_CALLBACK, 1, &theReloadCacheName, nullptr, nullptr, nullptr, theReloadCallback),
             PRM_Template(PRM_CALLBACK, 1, &theDownloadLibraryButtonName, nullptr, nullptr, nullptr,
                          &SOP_ZibraVDBDecompressor::DownloadLibrary),
@@ -163,7 +162,9 @@ namespace Zibra::ZibraVDBDecompressor
             return error(context);
         }
 
-        auto vdbGrids = OpenVDBSupport::OpenVDBEncoder::EncodeFrame(frameContainer->frameInfo, frameContainer->frameData);
+        OpenVDBSupport::EncodeMetadata encodeMetadata = ReadEncodeMetadata(frameContainer->metadata, frameContainer->metadataCount);
+
+        auto vdbGrids = OpenVDBSupport::OpenVDBEncoder::EncodeFrame(frameContainer->frameInfo, frameContainer->frameData, encodeMetadata);
 
         auto metadataBegin = frameContainer->metadata;
         auto metadataEnd = frameContainer->metadata + frameContainer->metadataCount;
@@ -173,6 +174,7 @@ namespace Zibra::ZibraVDBDecompressor
         for (size_t i = 0; i < vdbGrids.size(); ++i)
         {
             const openvdb::GridBase::Ptr grid = vdbGrids[i];
+
             if (!grid)
             {
                 addError(SOP_MESSAGE, ("Failed to decompress channel: "s + frameContainer->frameInfo.channelNames[i]).c_str());
@@ -183,46 +185,10 @@ namespace Zibra::ZibraVDBDecompressor
             nameAttr.set(vdbPrim->getMapOffset(), grid->getName());
             vdbPrim->setGrid(*grid);
 
-            const std::string metadataName = "houdiniPrimitiveAttributes_"s + grid->getName();
-            auto primMetaIt = std::find_if(metadataBegin, metadataEnd, [&metadataName](const CompressionEngine::ZCE_MetadataEntry& entry) {
-                return entry.key == metadataName;
-            });
-            if (primMetaIt != metadataEnd)
-            {
-                auto primAttribMeta = nlohmann::json::parse(primMetaIt->value);
-                switch (Utils::LoadEntityAttributesFromMeta(gdp, GA_ATTRIB_PRIMITIVE, vdbPrim->getMapOffset(), primAttribMeta))
-                {
-                case Utils::MetaAttributesLoadStatus::SUCCESS:
-                    break;
-                case Utils::MetaAttributesLoadStatus::FATAL_ERROR_INVALID_METADATA:
-                    addWarning(SOP_MESSAGE, "Corrupted metadata for channel. Canceling attributes transfer.");
-                    break;
-                case Utils::MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA:
-                    addWarning(SOP_MESSAGE, "Partially corrupted metadata for channel. Skipping invalid attributes.");
-                    break;
-                }
-            }
+            ApplyGridMetadata(vdbPrim, metadataBegin, metadataEnd);
         }
 
-        auto detailMetaIt = std::find_if(metadataBegin, metadataEnd, [](const CompressionEngine::ZCE_MetadataEntry& entry) {
-            return entry.key == "houdiniDetailAttributes"s;
-        });
-
-        if (detailMetaIt != metadataEnd)
-        {
-            auto detailAttribMeta = nlohmann::json::parse(detailMetaIt->value);
-            switch (Utils::LoadEntityAttributesFromMeta(gdp, GA_ATTRIB_DETAIL, 0, detailAttribMeta))
-            {
-            case Utils::MetaAttributesLoadStatus::SUCCESS:
-                break;
-            case Utils::MetaAttributesLoadStatus::FATAL_ERROR_INVALID_METADATA:
-                addWarning(SOP_MESSAGE, "Corrupted metadata for channel. Canceling attributes transfer.");
-                break;
-            case Utils::MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA:
-                addWarning(SOP_MESSAGE, "Partially corrupted metadata for channel. Skipping invalid attributes.");
-                break;
-            }
-        }
+        ApplyDetailMetadata(gdp, metadataBegin, metadataEnd);
 
         CompressionEngine::FreeFrameData(frameContainer);
 
@@ -263,6 +229,113 @@ namespace Zibra::ZibraVDBDecompressor
         }
         MessageBox::Show(MessageBox::Type::OK, ZVDB_MSG_LIB_DOWNLOADED_SUCCESSFULLY_WITH_LICENSE, "ZibraVDB");
         return 0;
+    }
+
+    void SOP_ZibraVDBDecompressor::ApplyGridMetadata(GU_PrimVDB* vdbPrim, CompressionEngine::ZCE_MetadataEntry* metadataBegin,
+                                                     CompressionEngine::ZCE_MetadataEntry* metadataEnd)
+    {
+        ApplyGridAttributeMetadata(vdbPrim, metadataBegin, metadataEnd);
+        ApplyGridVisualizationMetadata(vdbPrim, metadataBegin, metadataEnd);
+    }
+
+    void SOP_ZibraVDBDecompressor::ApplyGridAttributeMetadata(GU_PrimVDB* vdbPrim, CompressionEngine::ZCE_MetadataEntry* metadataBegin,
+                                                              CompressionEngine::ZCE_MetadataEntry* metadataEnd)
+    {
+        const std::string attributeMetadataName = "houdiniPrimitiveAttributes_"s + vdbPrim->getGridName();
+        auto primMetaIt =
+            std::find_if(metadataBegin, metadataEnd, [&attributeMetadataName](const CompressionEngine::ZCE_MetadataEntry& entry) {
+                return entry.key == attributeMetadataName;
+            });
+        if (primMetaIt != metadataEnd)
+        {
+            auto primAttribMeta = nlohmann::json::parse(primMetaIt->value);
+            switch (Utils::LoadEntityAttributesFromMeta(gdp, GA_ATTRIB_PRIMITIVE, vdbPrim->getMapOffset(), primAttribMeta))
+            {
+            case Utils::MetaAttributesLoadStatus::SUCCESS:
+                break;
+            case Utils::MetaAttributesLoadStatus::FATAL_ERROR_INVALID_METADATA:
+                addWarning(SOP_MESSAGE, "Corrupted metadata for channel. Canceling attributes transfer.");
+                break;
+            case Utils::MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA:
+                addWarning(SOP_MESSAGE, "Partially corrupted metadata for channel. Skipping invalid attributes.");
+                break;
+            }
+        }
+    }
+
+    void SOP_ZibraVDBDecompressor::ApplyGridVisualizationMetadata(GU_PrimVDB* vdbPrim, CompressionEngine::ZCE_MetadataEntry* metadataBegin,
+                                                                  CompressionEngine::ZCE_MetadataEntry* metadataEnd)
+    {
+        const std::string keyPrefix = "houdiniVisualizationAttributes_"s + vdbPrim->getGridName();
+
+        const std::string keyVisMode = keyPrefix + "_mode";
+        auto visModeIt = std::find_if(metadataBegin, metadataEnd,
+                                      [&keyVisMode](const CompressionEngine::ZCE_MetadataEntry& entry) { return entry.key == keyVisMode; });
+
+        const std::string keyVisIso = keyPrefix + "_iso";
+        auto visIsoIt = std::find_if(metadataBegin, metadataEnd,
+                                     [&keyVisIso](const CompressionEngine::ZCE_MetadataEntry& entry) { return entry.key == keyVisIso; });
+        const std::string keyVisDensity = keyPrefix + "_density";
+        auto visDensityIt = std::find_if(metadataBegin, metadataEnd, [&keyVisDensity](const CompressionEngine::ZCE_MetadataEntry& entry) {
+            return entry.key == keyVisDensity;
+        });
+        const std::string keyVisLod = keyPrefix + "_lod";
+        auto visLodIt = std::find_if(metadataBegin, metadataEnd,
+                                     [&keyVisLod](const CompressionEngine::ZCE_MetadataEntry& entry) { return entry.key == keyVisLod; });
+
+        if (visModeIt != metadataEnd && visIsoIt != metadataEnd && visDensityIt != metadataEnd && visLodIt != metadataEnd)
+        {
+            GEO_VolumeOptions visOptions{};
+            visOptions.myMode = static_cast<GEO_VolumeVis>(std::stoi(visModeIt->value));
+            visOptions.myIso = std::stof(visIsoIt->value);
+            visOptions.myDensity = std::stof(visDensityIt->value);
+            visOptions.myLod = static_cast<GEO_VolumeVisLod>(std::stoi(visLodIt->value));
+            vdbPrim->setVisOptions(visOptions);
+        }
+    }
+
+    void SOP_ZibraVDBDecompressor::ApplyDetailMetadata(GU_Detail* gdp, CompressionEngine::ZCE_MetadataEntry* metadataBegin,
+                                                       CompressionEngine::ZCE_MetadataEntry* metadataEnd)
+    {
+        auto detailMetaIt = std::find_if(metadataBegin, metadataEnd, [](const CompressionEngine::ZCE_MetadataEntry& entry) {
+            return entry.key == "houdiniDetailAttributes"s;
+        });
+
+        if (detailMetaIt == metadataEnd)
+        {
+            return;
+        }
+
+        auto detailAttribMeta = nlohmann::json::parse(detailMetaIt->value);
+        switch (Utils::LoadEntityAttributesFromMeta(gdp, GA_ATTRIB_DETAIL, 0, detailAttribMeta))
+        {
+        case Utils::MetaAttributesLoadStatus::SUCCESS:
+            break;
+        case Utils::MetaAttributesLoadStatus::FATAL_ERROR_INVALID_METADATA:
+            addWarning(SOP_MESSAGE, "Corrupted metadata for channel. Canceling attributes transfer.");
+            break;
+        case Utils::MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA:
+            addWarning(SOP_MESSAGE, "Partially corrupted metadata for channel. Skipping invalid attributes.");
+            break;
+        }
+    }
+
+    OpenVDBSupport::EncodeMetadata SOP_ZibraVDBDecompressor::ReadEncodeMetadata(const CompressionEngine::ZCE_MetadataEntry* metadata,
+                                                                                uint32_t metadataCount)
+    {
+        const CompressionEngine::ZCE_MetadataEntry* metadataEnd = metadata + metadataCount;
+        auto detailMetaIt = std::find_if(
+            metadata, metadataEnd, [](const CompressionEngine::ZCE_MetadataEntry& entry) { return entry.key == "houdiniDecodeMetadata"s; });
+
+        if (detailMetaIt == metadataEnd)
+        {
+            return {};
+        }
+
+        std::istringstream metadataStream(detailMetaIt->value);
+        OpenVDBSupport::EncodeMetadata encodeMetadata{};
+        metadataStream >> encodeMetadata.offsetX >> encodeMetadata.offsetY >> encodeMetadata.offsetZ;
+        return encodeMetadata;
     }
 
 } // namespace Zibra::ZibraVDBDecompressor

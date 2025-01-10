@@ -1,5 +1,11 @@
 #pragma once
 #include "Globals.h"
+#include "openvdb/OpenVDBEncoder.h"
+
+namespace Zibra::CompressionEngine
+{
+    struct ZCE_MetadataEntry;
+}
 
 namespace Zibra::ZibraVDBDecompressor
 {
@@ -28,6 +34,16 @@ namespace Zibra::ZibraVDBDecompressor
 
     private:
         static int DownloadLibrary(void* data, int index, fpreal32 time, const PRM_Template* tplate);
+
+        void ApplyGridMetadata(GU_PrimVDB* vdbPrim, CompressionEngine::ZCE_MetadataEntry* metadataBegin,
+                               CompressionEngine::ZCE_MetadataEntry* metadataEnd);
+        void ApplyGridAttributeMetadata(GU_PrimVDB* vdbPrim, CompressionEngine::ZCE_MetadataEntry* metadataBegin,
+                                        CompressionEngine::ZCE_MetadataEntry* metadataEnd);
+        void ApplyGridVisualizationMetadata(GU_PrimVDB* vdbPrim, CompressionEngine::ZCE_MetadataEntry* metadataBegin,
+                                            CompressionEngine::ZCE_MetadataEntry* metadataEnd);
+        void ApplyDetailMetadata(GU_Detail* gdp, CompressionEngine::ZCE_MetadataEntry* metadataBegin,
+                                 CompressionEngine::ZCE_MetadataEntry* metadataEnd);
+        OpenVDBSupport::EncodeMetadata ReadEncodeMetadata(const CompressionEngine::ZCE_MetadataEntry* metadata, uint32_t metadataCount);
 
         uint32_t m_DecompressorInstanceID = uint32_t(-1);
     };
