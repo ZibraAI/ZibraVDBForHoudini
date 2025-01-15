@@ -38,30 +38,41 @@ namespace Zibra::CompressionEngine
     bool g_IsLibraryLoaded = false;
     ZCE_VersionNumber g_LoadedLibraryVersion = {0, 0, 0, 0};
 
-    std::string GetUserPrefDir()
+    bool GetUserPrefDir(std::string& prefDir)
     {
         const char* dirUT = UT_EnvControl::getString(ENV_HOUDINI_USER_PREF_DIR);
-        if (dirUT != nullptr)
+        if (dirUT == nullptr)
         {
-            return dirUT;
+            dirUT = std::getenv(g_BaseDirEnv);
+            if (dirUT == nullptr)
+            {
+                return false;
+            }
         }
-        return std::getenv(g_BaseDirEnv);
+        prefDir = dirUT;
+        return true;
     }
 
-    std::string GetHSiteDir()
+    bool GetHSiteDir(std::string& hsiteDir)
     {
         const char* dirUT = UT_EnvControl::getString(ENV_HSITE);
-        if (dirUT != nullptr)
+        if (dirUT == nullptr)
         {
-            return dirUT;
+            dirUT = std::getenv(g_AltDirEnv);
+            if (dirUT == nullptr)
+            {
+                return false;
+            }
         }
-        return std::getenv(g_AltDirEnv);
+        hsiteDir = dirUT;
+        return true;
     }
 
     std::string GetLibraryPath()
     {
-        std::string baseDir = GetUserPrefDir();
-        if (baseDir == "")
+        std::string baseDir;
+        bool success = GetUserPrefDir(baseDir);
+        if (!success)
         {
             return "";
         }
@@ -72,8 +83,9 @@ namespace Zibra::CompressionEngine
 
     std::string GetAltLibraryPath()
     {
-        std::string baseDir = GetHSiteDir();
-        if (baseDir == "")
+        std::string baseDir;
+        bool success = GetHSiteDir(baseDir);
+        if (!success)
         {
             return "";
         }
