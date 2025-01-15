@@ -38,59 +38,61 @@ namespace Zibra::CompressionEngine
     bool g_IsLibraryLoaded = false;
     ZCE_VersionNumber g_LoadedLibraryVersion = {0, 0, 0, 0};
 
-    bool GetUserPrefDir(std::string& prefDir)
+    // May return 0-2 elements
+    // 0 elements - environment variable is not set
+    // 1 element - environment variable is set and is consistent between Houdini and STL (or one of them returned nullptr)
+    // 2 elements - environment variable is set and is different between Houdini and STL (Houdini value is first)
+    // This is necessary as either STL or Houdini value can be "bad" under certain circumstances
+    std::vector<std::string> GetHoudiniEnvironmentVariable(UT_StrControl envVarEnum, const char* envVarName)
     {
-        const char* dirUT = UT_EnvControl::getString(ENV_HOUDINI_USER_PREF_DIR);
-        if (dirUT == nullptr)
+        std::vector<std::string> result;
+        const char* envVarHoudini = UT_EnvControl::getString(envVarEnum);
+        if (envVarHoudini != nullptr)
         {
-            dirUT = std::getenv(g_BaseDirEnv);
-            if (dirUT == nullptr)
+            result.push_back(envVarHoudini);
+        }
+
+        const char* envVarSTL = std::getenv(envVarName);
+        if (envVarSTL != nullptr)
+        {
+            if (envVarHoudini == nullptr || strcmp(envVarHoudini, envVarSTL) != 0)
             {
-                return false;
+                result.push_back(envVarSTL);
             }
         }
-        prefDir = dirUT;
-        return true;
+        return result;
     }
 
-    bool GetHSiteDir(std::string& hsiteDir)
+    // Returns vector of paths that can be used to search for the library
+    // First element is the path used for downloading the library
+    // Other elements are alternative load paths for manual library installation
+    std::vector<std::string> GetLibraryPaths()
     {
-        const char* dirUT = UT_EnvControl::getString(ENV_HSITE);
-        if (dirUT == nullptr)
+        std::vector<std::string> result;
+
+        const std::pair<UT_StrControl, const char*> basePathEnvVars[] = {
+            {ENV_HOUDINI_USER_PREF_DIR, "HOUDINI_USER_PREF_DIR"},
+            {ENV_HSITE, "HSITE"},
+        };
+
+        for (const auto& [envVarEnum, envVarName] : basePathEnvVars)
         {
-            dirUT = std::getenv(g_AltDirEnv);
-            if (dirUT == nullptr)
+            const std::vector<std::string> baseDirs = GetHoudiniEnvironmentVariable(envVarEnum, envVarName);
+            for (const std::string& baseDir : baseDirs)
             {
-                return false;
+                std::filesystem::path libraryPath = std::filesystem::path(baseDir) / g_LibraryPath;
+                result.push_back(libraryPath.string());
             }
         }
-        hsiteDir = dirUT;
-        return true;
-    }
 
-    std::string GetLibraryPath()
-    {
-        std::string baseDir;
-        bool success = GetUserPrefDir(baseDir);
-        if (!success)
+        assert(!result.empty());
+
+        if (result.empty())
         {
-            return "";
+            result.push_back("");
         }
 
-        std::filesystem::path libraryPath = std::filesystem::path(baseDir) / g_LibraryPath;
-        return libraryPath.string();
-    }
-
-    std::string GetAltLibraryPath()
-    {
-        std::string baseDir;
-        bool success = GetHSiteDir(baseDir);
-        if (!success)
-        {
-            return "";
-        }
-        std::filesystem::path libraryPath = std::filesystem::path(baseDir) / g_LibraryPath;
-        return libraryPath.string();
+        return result;
     }
 
     std::string GetDownloadURL()
@@ -235,7 +237,7 @@ namespace Zibra::CompressionEngine
             return;
         }
 
-        const std::string libraryPaths[] = {GetLibraryPath(), GetAltLibraryPath()};
+        const std::vector<std::string> libraryPaths = GetLibraryPaths();
 
         bool isLoaded = false;
         for (const std::string& libraryPath : libraryPaths)
@@ -262,7 +264,7 @@ namespace Zibra::CompressionEngine
     void DownloadLibrary() noexcept
     {
         const std::string downloadURL = GetDownloadURL();
-        const std::string libraryPath = GetLibraryPath();
+        const std::string libraryPath = GetLibraryPaths()[0];
         bool success = NetworkRequest::DownloadFile(downloadURL, libraryPath);
         if (!success)
         {
