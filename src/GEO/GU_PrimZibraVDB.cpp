@@ -75,4 +75,54 @@ namespace Zibra
     {
         return 0.0f;
     }
+
+
+    void GR_RevealAttr::renderWire(GU_Detail *gdp,
+                               RE_Render &ren,
+                               const GR_AttribOffset & /*ptinfo*/,
+                               const GR_DisplayOption * /*dopt*/,
+                               float /*lod*/,
+                               const GU_PrimGroupClosure *hidden_geometry)
+    {
+        // PARAMETERS
+
+        GEO_PrimList& pl = gdp->primitives();
+
+        for(int i=0;i<pl.entries();i++)
+        {
+            GEO_OctreePrim* o = dynamic_cast<GEO_OctreePrim*>(pl[i]);
+            if(o == NULL) continue;
+
+            UT_BoundingBox b;
+            o->getBBox(&b);
+
+            ren.beginClosedLine();
+            ren.vertex3DW(b.xmin(),b.ymin(),b.zmin());
+            ren.vertex3DW(b.xmax(),b.ymin(),b.zmin());
+            ren.vertex3DW(b.xmax(),b.ymin(),b.zmax());
+            ren.vertex3DW(b.xmin(),b.ymin(),b.zmax());
+            ren.endClosedLine();
+
+            ren.beginClosedLine();
+            ren.vertex3DW(b.xmin(),b.ymax(),b.zmin());
+            ren.vertex3DW(b.xmax(),b.ymax(),b.zmin());
+            ren.vertex3DW(b.xmax(),b.ymax(),b.zmax());
+            ren.vertex3DW(b.xmin(),b.ymax(),b.zmax());
+            ren.endClosedLine();
+
+        }
+    }
+
+    void GR_RevealAttr::renderShaded(GU_Detail *gdp,
+                                     RE_Render &ren,
+                                     const GR_AttribOffset &ptinfo,
+                                     const GR_DisplayOption *dopt,
+                                     float lod,
+                                     const GU_PrimGroupClosure *hidden_geometry)
+    {
+        // We don't want to light the points as they have no normals.
+        GR_Detail::toggleLightShading(ren, 0);
+        renderWire(gdp, ren, ptinfo, dopt, lod, hidden_geometry);
+        GR_Detail::toggleLightShading(ren, 1);
+    }
 } // namespace Zibra

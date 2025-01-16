@@ -81,4 +81,19 @@ namespace Zibra
     private:
         static GA_PrimitiveDefinition* theDef;
     };
+
+
+    class GR_RevealAttr : public GR_RenderHook
+    {
+    public:
+        GR_RevealAttr() = default;
+        virtual ~GR_RevealAttr() = default;
+
+    public:
+        void renderWire(GU_Detail* gdp, RE_Render& ren, const GR_AttribOffset& ptinfo, const GR_DisplayOption* dopt, float lod,
+                                const GU_PrimGroupClosure* hidden_geometry) final;
+        void renderShaded(GU_Detail* gdp, RE_Render& ren, const GR_AttribOffset& ptinfo, const GR_DisplayOption* dopt, float lod,
+                                  const GU_PrimGroupClosure* hidden_geometry) final;
+        const char *getName() const final { return "GR_RenderOctree"; }
+    };
 } // namespace Zibra
