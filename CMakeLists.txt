@@ -45,6 +45,7 @@ set(HeaderFiles
         src/openvdb/MathHelpers.h
         src/ROP/ROP_ZibraVDBCompressor.h
         src/SOP/SOP_ZibraVDBDecompressor.h
+        src/GEO/GU_PrimZibraVDB.h
         src/ui/MessageBox.h
         src/utils/GAAttributesDump.h
 )
@@ -58,6 +59,7 @@ set(SourceFiles
         src/openvdb/MathHelpers.cpp
         src/ROP/ROP_ZibraVDBCompressor.cpp
         src/SOP/SOP_ZibraVDBDecompressor.cpp
+        src/GEO/GU_PrimZibraVDB.cpp
         src/ui/MessageBox.cpp
         src/utils/GAAttributesDump.cpp
 )
