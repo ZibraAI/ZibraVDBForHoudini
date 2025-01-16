@@ -81,6 +81,11 @@ namespace Zibra
         const GT_GEOPrimitive* prim = static_cast<const GT_GEOPrimitive*>(primh.get());
         (void)prim; // Silence a compiler warning.
 
+        RV_Render* vkRender =  r.vkRender();
+        vkRender->device();
+        vkRender->instance();
+        // vkRender->beginFrame();
+
         // Process the reason that this update occurred. The reason is bitfield,
         // and multiple reasons can be sent in one update.
 
