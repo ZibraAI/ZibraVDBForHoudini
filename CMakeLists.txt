@@ -62,6 +62,8 @@ set(SourceFiles
         src/GEO/GU_PrimZibraVDB.cpp
         src/ui/MessageBox.cpp
         src/utils/GAAttributesDump.cpp
+        src/GUI/GUI_ZibraVDBRender.cpp
+        src/GUI/GUI_ZibraVDBRender.h
 )
 
 add_library(ZibraVDBForHoudini SHARED ${HeaderFiles} ${SourceFiles})

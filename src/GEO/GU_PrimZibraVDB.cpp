@@ -2,7 +2,7 @@
 
 namespace Zibra
 {
-    GA_PrimitiveDefinition* GU_PrimZibraVDB::theDef = nullptr;
+    GA_PrimitiveDefinition* GU_PrimZibraVDB::ms_PrimDef = nullptr;
 
     GU_PrimZibraVDB::GU_PrimZibraVDB(GEO_Detail* gdp) noexcept
         : GEO_Primitive(gdp)
@@ -12,34 +12,45 @@ namespace Zibra
         m_Vertex = new GEO_Vertex(gdp, m_Point);
 
         // TODO: load data
-        gdp->appendPrimitive(this);
+        gdp->appendPrimitive(this->getTypeId());
     }
 
-    GU_PrimZibraVDB::~GU_PrimZibraVDB()
+    GU_PrimZibraVDB::~GU_PrimZibraVDB() noexcept
     {
         delete m_Vertex;
         // GEO_Detail* gdp = getParent();
         // gdp->removeUnusedPoints();
     }
 
-    bool GU_PrimZibraVDB::getBBox(UT_BoundingBox* bbox) const
+    void GU_PrimZibraVDB::registerMyself(GA_PrimitiveFactory* factory) noexcept
+    {
+        // register GU primitive
+        ms_PrimDef = factory->registerDefinition("zibravdb", gu_newPrimAwesome, GA_FAMILY_NONE);
+        ms_PrimDef->setLabel("ZibraVDB");
+        registerIntrinsics(*ms_PrimDef);
+
+        constexpr int priority = 0;
+        DM_RenderTable::getTable()->registerGEOHook(new GUI_ZibraVDBRenderHook{}, ms_PrimDef->getId(), priority, GUI_HOOK_FLAG_NONE);
+    }
+
+    bool GU_PrimZibraVDB::getBBox(UT_BoundingBox* bbox) const noexcept
     {
         *bbox = UT_BoundingBox{};
         bbox->setBounds(0, 0, 0, 1, 1, 1);
         return bbox->area() ? true : false;
     }
 
-    UT_Vector3 GU_PrimZibraVDB::computeNormal() const
+    UT_Vector3 GU_PrimZibraVDB::computeNormal() const noexcept
     {
         return UT_Vector3{0,1,0};
     }
 
-    void GU_PrimZibraVDB::transform(const UT_Matrix4& mat)
+    void GU_PrimZibraVDB::transform(const UT_Matrix4& mat) noexcept
     {
         m_XForm = mat;
     }
 
-    void GU_PrimZibraVDB::copyPrimitive(const GEO_Primitive* src)
+    void GU_PrimZibraVDB::copyPrimitive(const GEO_Primitive* src) noexcept
     {
         const auto* zibravdbPrim = dynamic_cast<const GU_PrimZibraVDB*>(src);
         if(!zibravdbPrim) return;
@@ -51,12 +62,12 @@ namespace Zibra
         GEO_Primitive::copyPrimitive(src);
     }
 
-    void GU_PrimZibraVDB::reverse()
+    void GU_PrimZibraVDB::reverse() noexcept
     {
         // NOOP. We have just 1 point.
     }
 
-    int GU_PrimZibraVDB::detachPoints(GA_PointGroup& grp)
+    int GU_PrimZibraVDB::detachPoints(GA_PointGroup& grp) noexcept
     {
         return (grp.contains(m_Point) ? -2 : 0);
     }
@@ -66,63 +77,13 @@ namespace Zibra
         return false;
     }
 
-    fpreal GU_PrimZibraVDB::calcVolume(const UT_Vector3& refpt) const
+    fpreal GU_PrimZibraVDB::calcVolume(const UT_Vector3& refpt) const noexcept
     {
         return m_AABB.volume();
     }
 
-    fpreal GU_PrimZibraVDB::calcArea() const
+    fpreal GU_PrimZibraVDB::calcArea() const noexcept
     {
         return 0.0f;
-    }
-
-
-    void GR_RevealAttr::renderWire(GU_Detail *gdp,
-                               RE_Render &ren,
-                               const GR_AttribOffset & /*ptinfo*/,
-                               const GR_DisplayOption * /*dopt*/,
-                               float /*lod*/,
-                               const GU_PrimGroupClosure *hidden_geometry)
-    {
-        // PARAMETERS
-
-        GEO_PrimList& pl = gdp->primitives();
-
-        for(int i=0;i<pl.entries();i++)
-        {
-            GEO_OctreePrim* o = dynamic_cast<GEO_OctreePrim*>(pl[i]);
-            if(o == NULL) continue;
-
-            UT_BoundingBox b;
-            o->getBBox(&b);
-
-            ren.beginClosedLine();
-            ren.vertex3DW(b.xmin(),b.ymin(),b.zmin());
-            ren.vertex3DW(b.xmax(),b.ymin(),b.zmin());
-            ren.vertex3DW(b.xmax(),b.ymin(),b.zmax());
-            ren.vertex3DW(b.xmin(),b.ymin(),b.zmax());
-            ren.endClosedLine();
-
-            ren.beginClosedLine();
-            ren.vertex3DW(b.xmin(),b.ymax(),b.zmin());
-            ren.vertex3DW(b.xmax(),b.ymax(),b.zmin());
-            ren.vertex3DW(b.xmax(),b.ymax(),b.zmax());
-            ren.vertex3DW(b.xmin(),b.ymax(),b.zmax());
-            ren.endClosedLine();
-
-        }
-    }
-
-    void GR_RevealAttr::renderShaded(GU_Detail *gdp,
-                                     RE_Render &ren,
-                                     const GR_AttribOffset &ptinfo,
-                                     const GR_DisplayOption *dopt,
-                                     float lod,
-                                     const GU_PrimGroupClosure *hidden_geometry)
-    {
-        // We don't want to light the points as they have no normals.
-        GR_Detail::toggleLightShading(ren, 0);
-        renderWire(gdp, ren, ptinfo, dopt, lod, hidden_geometry);
-        GR_Detail::toggleLightShading(ren, 1);
     }
 } // namespace Zibra
