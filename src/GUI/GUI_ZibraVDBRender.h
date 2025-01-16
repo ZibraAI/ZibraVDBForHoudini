@@ -19,11 +19,11 @@ namespace Zibra
                                       const char* cache_name, GR_PrimAcceptResult& processed) noexcept final;
     };
 
-    class GUI_PrimFramework : public GR_Primitive
+    class GUI_ZibraVDBRenderer : public GR_Primitive
     {
     public:
-        GUI_PrimFramework(const GR_RenderInfo* info, const char* cache_name, const GEO_Primitive* prim);
-        ~GUI_PrimFramework() override;
+        GUI_ZibraVDBRenderer(const GR_RenderInfo* info, const char* cache_name, const GEO_Primitive* prim);
+        ~GUI_ZibraVDBRenderer() override;
 
     public:
         const char* className() const override

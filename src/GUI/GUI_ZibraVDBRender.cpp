@@ -27,22 +27,22 @@ namespace Zibra
 
             // In this case, we aren't doing anything special, like checking attribs
             // to see if this is a flagged native primitive we want to hook on.
-            return new GUI_PrimFramework(info, cache_name, geo_prim);
+            return new GUI_ZibraVDBRenderer(info, cache_name, geo_prim);
         }
         return nullptr;
     }
 
 
-    GUI_PrimFramework::GUI_PrimFramework(const GR_RenderInfo* info, const char* cache_name, const GEO_Primitive* prim)
+    GUI_ZibraVDBRenderer::GUI_ZibraVDBRenderer(const GR_RenderInfo* info, const char* cache_name, const GEO_Primitive* prim)
         : GR_Primitive(info, cache_name, GA_PrimCompat::TypeMask(0))
     {
     }
 
-    GUI_PrimFramework::~GUI_PrimFramework()
+    GUI_ZibraVDBRenderer::~GUI_ZibraVDBRenderer()
     {
     }
 
-    GR_PrimAcceptResult GUI_PrimFramework::acceptPrimitive(GT_PrimitiveType gt_type, int geo_type, const GT_PrimitiveHandle& ph,
+    GR_PrimAcceptResult GUI_ZibraVDBRenderer::acceptPrimitive(GT_PrimitiveType gt_type, int geo_type, const GT_PrimitiveHandle& ph,
                                                            const GEO_Primitive* prim)
     {
         if (geo_type == GA_PRIMNONE)
@@ -50,7 +50,7 @@ namespace Zibra
         return GR_NOT_PROCESSED;
     }
 
-    GR_Primitive::GR_DispOptChange GUI_PrimFramework::displayOptionChange(const GR_DisplayOption& opts, bool first_init)
+    GR_Primitive::GR_DispOptChange GUI_ZibraVDBRenderer::displayOptionChange(const GR_DisplayOption& opts, bool first_init)
     {
         // Check opts to see if any options of interest have changed. Generally
         // these need to be cached in the primitive so that it's possible to tell
@@ -75,7 +75,7 @@ namespace Zibra
 
         return DISPLAY_UNCHANGED;
     }
-    void GUI_PrimFramework::update(RE_RenderContext r, const GT_PrimitiveHandle& primh, const GR_UpdateParms& p)
+    void GUI_ZibraVDBRenderer::update(RE_RenderContext r, const GT_PrimitiveHandle& primh, const GR_UpdateParms& p)
     {
         // Fetch the GEO primitive from the GT primitive handle
         const GT_GEOPrimitive* prim = static_cast<const GT_GEOPrimitive*>(primh.get());
@@ -85,6 +85,7 @@ namespace Zibra
         vkRender->device();
         vkRender->instance();
         // vkRender->beginFrame();
+
 
         // Process the reason that this update occurred. The reason is bitfield,
         // and multiple reasons can be sent in one update.
@@ -146,7 +147,7 @@ namespace Zibra
             // switched or removed, or some primitives have different materials.
         }
     }
-    void GUI_PrimFramework::renderDecoration(RE_RenderContext r, GR_Decoration decor, const GR_DecorationParms& p)
+    void GUI_ZibraVDBRenderer::renderDecoration(RE_RenderContext r, GR_Decoration decor, const GR_DecorationParms& p)
     {
         if (decor >= GR_USER_DECORATION)
         {
@@ -159,7 +160,7 @@ namespace Zibra
             }
         }
     }
-    void GUI_PrimFramework::render(RE_RenderContext r, GR_RenderMode render_mode, GR_RenderFlags flags, GR_DrawParms draw_parms)
+    void GUI_ZibraVDBRenderer::render(RE_RenderContext r, GR_RenderMode render_mode, GR_RenderFlags flags, GR_DrawParms draw_parms)
     {
         std::cerr << "Render " << std::endl;
         // draw_parms.opts:           display options ptr
@@ -306,7 +307,7 @@ namespace Zibra
             break;
         }
     }
-    int GUI_PrimFramework::renderPick(RE_RenderContext r, const GR_DisplayOption* opt, unsigned int pick_type, GR_PickStyle pick_style,
+    int GUI_ZibraVDBRenderer::renderPick(RE_RenderContext r, const GR_DisplayOption* opt, unsigned int pick_type, GR_PickStyle pick_style,
                                       bool has_pick_map)
     {
         // If you don't need your primitive to be picked on a component basis,
