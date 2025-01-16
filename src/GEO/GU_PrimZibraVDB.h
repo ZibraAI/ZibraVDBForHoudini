@@ -23,6 +23,20 @@
 
 namespace Zibra
 {
+    class GUI_ZibraVDBRenderHook : public GUI_PrimitiveHook
+    {
+    public:
+        GUI_ZibraVDBRenderHook() = default;
+        virtual ~GUI_ZibraVDBRenderHook() = default;
+
+    public:
+        void renderWire(GU_Detail* gdp, RE_Render& ren, const GR_AttribOffset& ptinfo, const GR_DisplayOption* dopt, float lod,
+                                const GU_PrimGroupClosure* hidden_geometry) final;
+        void renderShaded(GU_Detail* gdp, RE_Render& ren, const GR_AttribOffset& ptinfo, const GR_DisplayOption* dopt, float lod,
+                                  const GU_PrimGroupClosure* hidden_geometry) final;
+        const char *getName() const final { return "GR_RenderOctree"; }
+    };
+
     class GU_PrimZibraVDB : public GEO_Primitive
     {
     public:
@@ -32,10 +46,9 @@ namespace Zibra
             theDef = factory->registerDefinition("zibravdb", gu_newPrimAwesome, GA_FAMILY_NONE);
             theDef->setLabel("ZibraVDB");
             registerIntrinsics(*theDef);
-            // register GR primitive
-            const int hook_priority = 0;
 
-            DM_RenderTable::getTable()->registerGEOHook(new GR_PrimAwesomeHook, theDef->getId(), hook_priority, GUI_HOOK_FLAG_NONE);
+            constexpr int priority = 0;
+            DM_RenderTable::getTable()->registerGEOHook(new GUI_ZibraVDBRenderHook{}, theDef->getId(), priority, GUI_HOOK_FLAG_NONE);
         }
 
     public:
@@ -80,20 +93,5 @@ namespace Zibra
 
     private:
         static GA_PrimitiveDefinition* theDef;
-    };
-
-
-    class GR_RevealAttr : public GR_RenderHook
-    {
-    public:
-        GR_RevealAttr() = default;
-        virtual ~GR_RevealAttr() = default;
-
-    public:
-        void renderWire(GU_Detail* gdp, RE_Render& ren, const GR_AttribOffset& ptinfo, const GR_DisplayOption* dopt, float lod,
-                                const GU_PrimGroupClosure* hidden_geometry) final;
-        void renderShaded(GU_Detail* gdp, RE_Render& ren, const GR_AttribOffset& ptinfo, const GR_DisplayOption* dopt, float lod,
-                                  const GU_PrimGroupClosure* hidden_geometry) final;
-        const char *getName() const final { return "GR_RenderOctree"; }
     };
 } // namespace Zibra

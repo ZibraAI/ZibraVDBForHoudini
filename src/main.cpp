@@ -19,10 +19,3 @@ extern "C" SYS_VISIBILITY_EXPORT void newDriverOperator(OP_OperatorTable* table)
 
     table->addOperator(new ZibraVDBCompressor::ROP_ZibraVDBCompressor_Operator(ContextType::OUT));
 }
-
-
-void newRenderHook(GR_RenderTable *table)
-{
-    GR_RevealAttr *hook = new Zibra::GR_RevealAttr{};
-    table->addHook(hook);
-}
