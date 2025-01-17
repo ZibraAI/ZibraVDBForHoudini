@@ -38,7 +38,6 @@ endif()
 set(HeaderFiles
         src/PrecompiledHeader.h
         src/Globals.h
-        src/bridge/CompressionEngine.h
         src/bridge/networking/NetworkRequest.h
         src/openvdb/OpenVDBDecoder.h
         src/openvdb/OpenVDBEncoder.h
@@ -51,7 +50,6 @@ set(HeaderFiles
 
 set(SourceFiles
         src/main.cpp
-        src/bridge/CompressionEngine.cpp
         src/bridge/networking/NetworkRequest.cpp
         src/openvdb/OpenVDBDecoder.cpp
         src/openvdb/OpenVDBEncoder.cpp
@@ -68,6 +66,8 @@ target_include_directories(ZibraVDBForHoudini
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/Include)
 target_precompile_headers(ZibraVDBForHoudini PRIVATE src/PrecompiledHeader.h)
 target_compile_definitions(ZibraVDBForHoudini PRIVATE ZIB_PLATFORM_${OS_NAME_CAPITALIZED}=1)
+
+target_include_directories(ZibraVDBForHoudini PRIVATE SDK/include)
 
 if(DEFINED ENV{ZIBRA_HOUDINI_PATH})
     message(STATUS "ENV{ZIBRA_HOUDINI_PATH}: $ENV{ZIBRA_HOUDINI_PATH}")

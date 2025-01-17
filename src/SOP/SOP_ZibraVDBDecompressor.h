@@ -2,11 +2,6 @@
 #include "Globals.h"
 #include "openvdb/OpenVDBEncoder.h"
 
-namespace Zibra::CompressionEngine
-{
-    struct ZCE_MetadataEntry;
-}
-
 namespace Zibra::ZibraVDBDecompressor
 {
     constexpr const char* NODE_NAME = "labs::zibravdb_decompress::" ZIB_ZIBRAVDB_VERSION_SHORT;
@@ -45,7 +40,10 @@ namespace Zibra::ZibraVDBDecompressor
                                  CompressionEngine::ZCE_MetadataEntry* metadataEnd);
         OpenVDBSupport::EncodeMetadata ReadEncodeMetadata(const CompressionEngine::ZCE_MetadataEntry* metadata, uint32_t metadataCount);
 
-        uint32_t m_DecompressorInstanceID = uint32_t(-1);
+    private:
+        CE::Decompression::DecompressorFactory* m_Factory = nullptr;
+        CE::ZibraVDB::FileDecoder* m_Decoder = nullptr;
+        CE::Decompression::Decompressor* m_Decompressor = nullptr;
     };
 
     class SOP_ZibraVDBDecompressor_Operator final : public OP_Operator

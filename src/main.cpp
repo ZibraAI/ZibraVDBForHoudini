@@ -2,7 +2,6 @@
 
 #include "ROP/ROP_ZibraVDBCompressor.h"
 #include "SOP/SOP_ZibraVDBDecompressor.h"
-#include "bridge/CompressionEngine.h"
 
 extern "C" SYS_VISIBILITY_EXPORT void newSopOperator(OP_OperatorTable* table)
 {

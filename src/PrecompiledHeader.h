@@ -101,5 +101,9 @@
 // TODO cross-platform support
 #endif
 
+#include <Zibra/CE/Compression.h>
+#include <Zibra/CE/Decompression.h>
+#include <Zibra/CE/Licensing.h>
+
 // Project includes
 #include "Globals.h"

@@ -16,6 +16,7 @@
 namespace Zibra::ZibraVDBDecompressor
 {
     using namespace std::literals;
+    using namespace CE::Decompression;
 
     class StreamAutorelease
     {
@@ -74,28 +75,35 @@ namespace Zibra::ZibraVDBDecompressor
             return;
         }
 
-        if (!CompressionEngine::IsLicenseValid(CompressionEngine::ZCE_Product::Render))
+        if (CE::Licensing::GetLicenseStatus(CE::Licensing::ProductType::Decompression) != CE::Licensing::LicenseStatus::OK)
         {
             return;
         }
-        m_DecompressorInstanceID = CompressionEngine::CreateDecompressorInstance();
+
+        CAPI::CreateDecompressorFactory(&m_Factory);
+        m_Factory->UseRHI();
     }
 
     SOP_ZibraVDBDecompressor::~SOP_ZibraVDBDecompressor() noexcept
     {
-        if (m_DecompressorInstanceID == uint32_t(-1))
-        {
-            return;
-        }
         if (!CompressionEngine::IsLibraryLoaded())
         {
             return;
         }
-        if (!CompressionEngine::IsLicenseValid(CompressionEngine::ZCE_Product::Render))
+        if (CE::Licensing::GetLicenseStatus(CE::Licensing::ProductType::Decompression) != CE::Licensing::LicenseStatus::OK)
         {
             return;
         }
-        CompressionEngine::ReleaseDecompressorInstance(m_DecompressorInstanceID);
+        if (m_Decompressor)
+        {
+            m_Decompressor->Release();
+            m_Decompressor = nullptr;
+        }
+        if (m_Factory)
+        {
+            m_Factory->Release();
+            m_Factory = nullptr;
+        }
     }
 
     OP_ERROR SOP_ZibraVDBDecompressor::cookMySop(OP_Context& context)
@@ -115,32 +123,55 @@ namespace Zibra::ZibraVDBDecompressor
             return error(context);
         }
 
-        if (!CompressionEngine::IsLicenseValid(CompressionEngine::ZCE_Product::Render))
+        if (CE::Licensing::GetLicenseStatus(CE::Licensing::ProductType::Decompression) != CE::Licensing::LicenseStatus::OK)
         {
             addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR);
             return error(context);
         }
 
-        if (m_DecompressorInstanceID == uint32_t(-1))
+        const bool filenameIsDirty = isParmDirty("filename", context.getTime());
+        if (filenameIsDirty)
         {
-            m_DecompressorInstanceID = CompressionEngine::CreateDecompressorInstance();
+            if (m_Decoder)
+            {
+                CE::Decompression::CAPI::ReleaseDecoder(m_Decoder);
+                m_Decoder = nullptr;
+            }
+            UT_String filename = "";
+            evalString(filename, "filename", nullptr, 0, context.getTime());
+            if (filename == "")
+            {
+                addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_NO_FILE_SELECTED);
+                return error(context);
+            }
+            auto status = CE::Decompression::CAPI::CreateDecoder(filename.c_str(), &m_Decoder);
+            if (status != CE::ZCE_SUCCESS)
+            {
+                addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_COULDNT_OPEN_FILE);
+                return error(context);
+            }
+            m_Factory->UseDecoder(m_Decoder);
         }
 
-        UT_String filename = "";
-        evalString(filename, "filename", nullptr, 0, context.getTime());
-
-        if (filename == "")
+        if (!m_Decompressor || filenameIsDirty)
         {
-            addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_NO_FILE_SELECTED);
-            return error(context);
+            if (m_Decompressor)
+            {
+                m_Decompressor->Release();
+                m_Decompressor = nullptr;
+            }
+            auto status = m_Factory->Create(&m_Decompressor);
+            if (status != CE::ZCE_SUCCESS)
+            {
+                addError(SOP_MESSAGE, "Failed to create decompressor instance.");
+                return error(context);
+            }
         }
 
-        bool isFileOpened = CompressionEngine::SetInputFile(m_DecompressorInstanceID, filename.c_str());
-        if (!isFileOpened)
-        {
-            addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_COULDNT_OPEN_FILE);
-            return error(context);
-        }
+        auto fm = m_Decompressor->GetFormatMapper();
+
+
+
 
         CompressionEngine::ZCE_SequenceInfo sequenceInfo{};
         CompressionEngine::GetSequenceInfo(m_DecompressorInstanceID, &sequenceInfo);
@@ -221,7 +252,7 @@ namespace Zibra::ZibraVDBDecompressor
             MessageBox::Show(MessageBox::Type::OK, ZVDB_ERR_MSG_FAILED_TO_DOWNLOAD_LIBRARY, "ZibraVDB");
             return 0;
         }
-        if (!CompressionEngine::IsLicenseValid(CompressionEngine::ZCE_Product::Render))
+        if (CE::Licensing::GetLicenseStatus(CE::Licensing::ProductType::Decompression) != CE::Licensing::LicenseStatus::OK)
         {
             node->addWarning(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_NO_LICENSE_AFTER_DOWNLOAD);
             MessageBox::Show(MessageBox::Type::OK, ZVDB_MSG_LIB_DOWNLOADED_SUCCESSFULLY_WITH_NO_LICENSE, "ZibraVDB");
