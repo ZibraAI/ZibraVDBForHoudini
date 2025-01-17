@@ -34,7 +34,6 @@ namespace Zibra::CompressionEngine
     static constexpr ZCE_VersionNumber g_SupportedVersion = {ZIB_COMPRESSION_ENGINE_BRIDGE_MAJOR_VERSION,
                                                              ZIB_COMPRESSION_ENGINE_BRIDGE_MINOR_VERSION};
 
-    static constexpr const char* g_BaseDirEnv = "HOUDINI_USER_PREF_DIR";
     const char* g_LibraryPath = "zibra/" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING "/" ZIB_DYNAMIC_LIB_PREFIX "ZibraVDBHoudiniBridge" ZIB_DYNAMIC_LIB_EXTENSION;
     static constexpr const char* g_LibraryDownloadURL =
         "https://storage.googleapis.com/zibra-storage/ZibraVDBHoudiniBridge_" ZIB_PLATFORM_NAME
@@ -44,26 +43,61 @@ namespace Zibra::CompressionEngine
     ZCE_VersionNumber g_LoadedLibraryVersion = {0, 0, 0, 0};
     bool g_IsLibraryInitialized = false;
 
-    std::string GetUserPrefDir()
+    // May return 0-2 elements
+    // 0 elements - environment variable is not set
+    // 1 element - environment variable is set and is consistent between Houdini and STL (or one of them returned nullptr)
+    // 2 elements - environment variable is set and is different between Houdini and STL (Houdini value is first)
+    // This is necessary as either STL or Houdini value can be "bad" under certain circumstances
+    std::vector<std::string> GetHoudiniEnvironmentVariable(UT_StrControl envVarEnum, const char* envVarName)
     {
-        const char* baseDirUT = UT_EnvControl::getString(ENV_HOUDINI_USER_PREF_DIR);
-        if (baseDirUT != nullptr)
+        std::vector<std::string> result;
+        const char* envVarHoudini = UT_EnvControl::getString(envVarEnum);
+        if (envVarHoudini != nullptr)
         {
-            return baseDirUT;
+            result.push_back(envVarHoudini);
         }
-        return std::getenv(g_BaseDirEnv);
+
+        const char* envVarSTL = std::getenv(envVarName);
+        if (envVarSTL != nullptr)
+        {
+            if (envVarHoudini == nullptr || strcmp(envVarHoudini, envVarSTL) != 0)
+            {
+                result.push_back(envVarSTL);
+            }
+        }
+        return result;
     }
 
-    std::string GetLibraryPath()
+    // Returns vector of paths that can be used to search for the library
+    // First element is the path used for downloading the library
+    // Other elements are alternative load paths for manual library installation
+    std::vector<std::string> GetLibraryPaths()
     {
-        std::string baseDir = GetUserPrefDir();
-        if (baseDir == "")
+        std::vector<std::string> result;
+
+        const std::pair<UT_StrControl, const char*> basePathEnvVars[] = {
+            {ENV_HOUDINI_USER_PREF_DIR, "HOUDINI_USER_PREF_DIR"},
+            {ENV_HSITE, "HSITE"},
+        };
+
+        for (const auto& [envVarEnum, envVarName] : basePathEnvVars)
         {
-            return "";
+            const std::vector<std::string> baseDirs = GetHoudiniEnvironmentVariable(envVarEnum, envVarName);
+            for (const std::string& baseDir : baseDirs)
+            {
+                std::filesystem::path libraryPath = std::filesystem::path(baseDir) / g_LibraryPath;
+                result.push_back(libraryPath.string());
+            }
         }
 
-        std::filesystem::path libraryPath = std::filesystem::path(baseDir) / g_LibraryPath;
-        return libraryPath.string();
+        assert(!result.empty());
+
+        if (result.empty())
+        {
+            result.push_back("");
+        }
+
+        return result;
     }
 
     std::string GetDownloadURL()
@@ -194,22 +228,18 @@ namespace Zibra::CompressionEngine
         return true;
     }
 
-    void LoadLibrary() noexcept
+    bool LoadLibraryByPath(const std::string& libraryPath) noexcept
     {
+        assert(!g_IsLibraryLoaded);
+
 #if ZIB_PLATFORM_WIN
         static_assert(IsPlatformSupported());
-        assert(g_IsLibraryLoaded == (g_LibraryHandle != NULL));
 
-        if (g_IsLibraryLoaded)
-        {
-            return;
-        }
-
-        const std::string libraryPath = GetLibraryPath();
+        assert(g_LibraryHandle == NULL);
 
         if (libraryPath == "")
         {
-            return;
+            return false;
         }
 
         char szPath[MAX_PATH];
@@ -218,14 +248,14 @@ namespace Zibra::CompressionEngine
 
         if (g_LibraryHandle == NULL)
         {
-            return;
+            return false;
         }
 
         if (!LoadFunctions())
         {
             ::FreeLibrary(g_LibraryHandle);
             g_LibraryHandle = NULL;
-            return;
+            return false;
         }
 
         g_LoadedLibraryVersion = BridgeGetVersion();
@@ -233,38 +263,32 @@ namespace Zibra::CompressionEngine
         {
             ::FreeLibrary(g_LibraryHandle);
             g_LibraryHandle = NULL;
-            return;
+            return false;
         }
 
-        g_IsLibraryLoaded = true;
-
+        return true;
 #elif ZIB_PLATFORM_LINUX
         static_assert(IsPlatformSupported());
-        assert(g_IsLibraryLoaded == (g_LibraryHandle != nullptr));
-        if (g_IsLibraryLoaded)
-        {
-            return;
-        }
 
-        const std::string libraryPath = GetLibraryPath();
+        assert(g_LibraryHandle == nullptr);
 
         if (libraryPath == "")
         {
-            return;
+            return false;
         }
 
         g_LibraryHandle = dlopen(libraryPath.c_str(), RTLD_LAZY);
 
         if (g_LibraryHandle == nullptr)
         {
-            return;
+            return false;
         }
 
         if (!LoadFunctions())
         {
             dlclose(g_LibraryHandle);
             g_LibraryHandle = nullptr;
-            return;
+            return false;
         }
 
         g_LoadedLibraryVersion = BridgeGetVersion();
@@ -272,14 +296,49 @@ namespace Zibra::CompressionEngine
         {
             dlclose(g_LibraryHandle);
             g_LibraryHandle = nullptr;
+            return false;
+        }
+
+        g_IsLibraryLoaded = true;
+        return true;
+#else
+        // TODO cross-platform support
+        assert(0);
+        return false;
+#endif
+    }
+
+    void LoadLibrary() noexcept
+    {
+        if (!IsPlatformSupported())
+        {
+            assert(0);
+            return;
+        }
+
+        if (g_IsLibraryLoaded)
+        {
+            return;
+        }
+
+        const std::vector<std::string> libraryPaths = GetLibraryPaths();
+
+        bool isLoaded = false;
+        for (const std::string& libraryPath : libraryPaths)
+        {
+            if (LoadLibraryByPath(libraryPath))
+            {
+                isLoaded = true;
+                break;
+            }
+        }
+        if (!isLoaded)
+        {
             return;
         }
 
         g_IsLibraryLoaded = true;
-#else
-// TODO macOS support
-#error Unimplemented
-#endif
+
         ZCE_Result result = BridgeInitializeCompressionEngine();
         g_IsLibraryInitialized = (result == ZCE_Result::SUCCESS);
     }
@@ -287,7 +346,7 @@ namespace Zibra::CompressionEngine
     void DownloadLibrary() noexcept
     {
         const std::string downloadURL = GetDownloadURL();
-        const std::string libraryPath = GetLibraryPath();
+        const std::string libraryPath = GetLibraryPaths()[0];
         bool success = NetworkRequest::DownloadFile(downloadURL, libraryPath);
         if (!success)
         {

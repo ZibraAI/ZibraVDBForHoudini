@@ -4,6 +4,13 @@
 
 namespace Zibra::OpenVDBSupport
 {
+    struct DecodeMetadata
+    {
+        int32_t offsetX = 0;
+        int32_t offsetY = 0;
+        int32_t offsetZ = 0;
+    };
+
     class OpenVDBDecoder
     {
     public:
@@ -11,7 +18,7 @@ namespace Zibra::OpenVDBSupport
                                 size_t orderedChannelNamesCount) noexcept;
         explicit OpenVDBDecoder(openvdb::io::Stream& stream, const char* const* orderedChannelNames,
                                 size_t orderedChannelNamesCount) noexcept;
-        CompressionEngine::ZCE_SparseFrameData DecodeFrame() noexcept;
+        CompressionEngine::ZCE_SparseFrameData DecodeFrame(DecodeMetadata& decodeMetadata) noexcept;
         static void FreeFrame(CompressionEngine::ZCE_SparseFrameData& frame);
 
     private:
