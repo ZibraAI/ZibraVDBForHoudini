@@ -12,6 +12,8 @@ if (-not $IsWindows)
     Exit 1
 }
 
+$HDAVersion = "0.2"
+
 if (Test-Path package) {
     Remove-Item -Recurse -Force package
 }
@@ -20,11 +22,13 @@ if (Test-Path package) {
 
 # Prepare the assets
 Copy-Item -Path ./assets -Destination "$($RepositeryRoot)/package/archive" -Recurse
-$HOTLPath = $Env:ZIBRA_HOUDINI_PATH + "/bin/hotl.exe"
 # Packs HDA back into binary format replacing the original
-& $HOTLPath -l "$($RepositeryRoot)/package/archive/otls/zibravdb_filecache.0.2.hda" "$($RepositeryRoot)/package/archive/otls/zibravdb_filecache.0.2.hda.2"
-Remove-Item -Recurse -Force "$($RepositeryRoot)/package/archive/otls/zibravdb_filecache.0.2.hda"
-Move-Item -Path "$($RepositeryRoot)/package/archive/otls/zibravdb_filecache.0.2.hda.2" -Destination "$($RepositeryRoot)/package/archive/otls/zibravdb_filecache.0.2.hda"
+$HOTLPath = $Env:ZIBRA_HOUDINI_PATH + "/bin/hotl.exe"
+$HDAPath = "$($RepositeryRoot)/package/archive/otls/zibravdb_filecache.$($HDAVersion).hda"
+$TempHDAPath = $HDAPath + ".2"
+& $HOTLPath -l $HDAPath $TempHDAPath
+Remove-Item -Recurse -Force $HDAPath
+Move-Item -Path $TempHDAPath -Destination $HDAPath
 # Add the compiled plugin to the package
 New-Item ./package/archive/dso -Type Directory
 Copy-Item -Path "$($RepositeryRoot)/package/plugin/ZibraVDBForHoudini.dll" -Destination "$($RepositeryRoot)/package/archive/dso/ZibraVDBForHoudini.dll"
