@@ -1,0 +1,17 @@
+{
+	"hdaroot/rop_zibravdb_compress1.def":1733406794,
+	"hdaroot/groupdelete1.def":1726217517,
+	"hdaroot/attribcast1.def":1726217548,
+	"hdaroot/detect_unsupported_vdbs.def":1737114157,
+	"hdaroot/OUT_CACHE.def":1726217642,
+	"hdaroot/output0.def":1726217245,
+	"hdaroot/trim_unsupported_str.def":1737114741,
+	"hdaroot/input_error.def":1737115078,
+	"hdaroot/convertvdb1.def":1726688029,
+	"hdaroot/IN.def":1726217455,
+	"hdaroot/zibravdb_decompress1.def":1733406797,
+	"hdaroot/attribdelete1.def":1726217481,
+	"hdaroot.def":1737088133,
+	"hdaroot/switch_has_unsupported.def":1737115423,
+	"hdaroot/switchif1.def":1726217305
+}
