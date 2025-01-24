@@ -2,7 +2,6 @@
 
 #include "SOP_ZibraVDBDecompressor.h"
 
-#include "bridge/CompressionEngine.h"
 #include "openvdb/OpenVDBEncoder.h"
 #include "ui/MessageBox.h"
 #include "utils/GAAttributesDump.h"
@@ -262,19 +261,19 @@ namespace Zibra::ZibraVDBDecompressor
         return 0;
     }
 
-    void SOP_ZibraVDBDecompressor::ApplyGridMetadata(GU_PrimVDB* vdbPrim, CompressionEngine::ZCE_MetadataEntry* metadataBegin,
-                                                     CompressionEngine::ZCE_MetadataEntry* metadataEnd)
+    void SOP_ZibraVDBDecompressor::ApplyGridMetadata(GU_PrimVDB* vdbPrim, CE::MetadataEntry* metadataBegin,
+                                                     CE::MetadataEntry* metadataEnd)
     {
         ApplyGridAttributeMetadata(vdbPrim, metadataBegin, metadataEnd);
         ApplyGridVisualizationMetadata(vdbPrim, metadataBegin, metadataEnd);
     }
 
-    void SOP_ZibraVDBDecompressor::ApplyGridAttributeMetadata(GU_PrimVDB* vdbPrim, CompressionEngine::ZCE_MetadataEntry* metadataBegin,
-                                                              CompressionEngine::ZCE_MetadataEntry* metadataEnd)
+    void SOP_ZibraVDBDecompressor::ApplyGridAttributeMetadata(GU_PrimVDB* vdbPrim, CE::MetadataEntry* metadataBegin,
+                                                              CE::MetadataEntry* metadataEnd)
     {
         const std::string attributeMetadataName = "houdiniPrimitiveAttributes_"s + vdbPrim->getGridName();
         auto primMetaIt =
-            std::find_if(metadataBegin, metadataEnd, [&attributeMetadataName](const CompressionEngine::ZCE_MetadataEntry& entry) {
+            std::find_if(metadataBegin, metadataEnd, [&attributeMetadataName](const CE::MetadataEntry& entry) {
                 return entry.key == attributeMetadataName;
             });
         if (primMetaIt != metadataEnd)
@@ -294,25 +293,25 @@ namespace Zibra::ZibraVDBDecompressor
         }
     }
 
-    void SOP_ZibraVDBDecompressor::ApplyGridVisualizationMetadata(GU_PrimVDB* vdbPrim, CompressionEngine::ZCE_MetadataEntry* metadataBegin,
-                                                                  CompressionEngine::ZCE_MetadataEntry* metadataEnd)
+    void SOP_ZibraVDBDecompressor::ApplyGridVisualizationMetadata(GU_PrimVDB* vdbPrim, CE::MetadataEntry* metadataBegin,
+                                                                  CE::MetadataEntry* metadataEnd)
     {
         const std::string keyPrefix = "houdiniVisualizationAttributes_"s + vdbPrim->getGridName();
 
         const std::string keyVisMode = keyPrefix + "_mode";
         auto visModeIt = std::find_if(metadataBegin, metadataEnd,
-                                      [&keyVisMode](const CompressionEngine::ZCE_MetadataEntry& entry) { return entry.key == keyVisMode; });
+                                      [&keyVisMode](const CE::MetadataEntry& entry) { return entry.key == keyVisMode; });
 
         const std::string keyVisIso = keyPrefix + "_iso";
         auto visIsoIt = std::find_if(metadataBegin, metadataEnd,
-                                     [&keyVisIso](const CompressionEngine::ZCE_MetadataEntry& entry) { return entry.key == keyVisIso; });
+                                     [&keyVisIso](const CE::MetadataEntry& entry) { return entry.key == keyVisIso; });
         const std::string keyVisDensity = keyPrefix + "_density";
-        auto visDensityIt = std::find_if(metadataBegin, metadataEnd, [&keyVisDensity](const CompressionEngine::ZCE_MetadataEntry& entry) {
+        auto visDensityIt = std::find_if(metadataBegin, metadataEnd, [&keyVisDensity](const CE::MetadataEntry& entry) {
             return entry.key == keyVisDensity;
         });
         const std::string keyVisLod = keyPrefix + "_lod";
         auto visLodIt = std::find_if(metadataBegin, metadataEnd,
-                                     [&keyVisLod](const CompressionEngine::ZCE_MetadataEntry& entry) { return entry.key == keyVisLod; });
+                                     [&keyVisLod](const CE::MetadataEntry& entry) { return entry.key == keyVisLod; });
 
         if (visModeIt != metadataEnd && visIsoIt != metadataEnd && visDensityIt != metadataEnd && visLodIt != metadataEnd)
         {
@@ -325,10 +324,10 @@ namespace Zibra::ZibraVDBDecompressor
         }
     }
 
-    void SOP_ZibraVDBDecompressor::ApplyDetailMetadata(GU_Detail* gdp, CompressionEngine::ZCE_MetadataEntry* metadataBegin,
-                                                       CompressionEngine::ZCE_MetadataEntry* metadataEnd)
+    void SOP_ZibraVDBDecompressor::ApplyDetailMetadata(GU_Detail* gdp, CE::MetadataEntry* metadataBegin,
+                                                       CE::MetadataEntry* metadataEnd)
     {
-        auto detailMetaIt = std::find_if(metadataBegin, metadataEnd, [](const CompressionEngine::ZCE_MetadataEntry& entry) {
+        auto detailMetaIt = std::find_if(metadataBegin, metadataEnd, [](const CE::MetadataEntry& entry) {
             return entry.key == "houdiniDetailAttributes"s;
         });
 
@@ -351,12 +350,12 @@ namespace Zibra::ZibraVDBDecompressor
         }
     }
 
-    OpenVDBSupport::EncodeMetadata SOP_ZibraVDBDecompressor::ReadEncodeMetadata(const CompressionEngine::ZCE_MetadataEntry* metadata,
+    OpenVDBSupport::EncodeMetadata SOP_ZibraVDBDecompressor::ReadEncodeMetadata(const CE::MetadataEntry* metadata,
                                                                                 uint32_t metadataCount)
     {
-        const CompressionEngine::ZCE_MetadataEntry* metadataEnd = metadata + metadataCount;
+        const CE::MetadataEntry* metadataEnd = metadata + metadataCount;
         auto detailMetaIt = std::find_if(
-            metadata, metadataEnd, [](const CompressionEngine::ZCE_MetadataEntry& entry) { return entry.key == "houdiniDecodeMetadata"s; });
+            metadata, metadataEnd, [](const CE::MetadataEntry& entry) { return entry.key == "houdiniDecodeMetadata"s; });
 
         if (detailMetaIt == metadataEnd)
         {

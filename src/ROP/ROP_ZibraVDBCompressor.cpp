@@ -2,7 +2,6 @@
 
 #include "ROP_ZibraVDBCompressor.h"
 
-#include "bridge/CompressionEngine.h"
 #include "openvdb/OpenVDBDecoder.h"
 #include "ui/MessageBox.h"
 #include "utils/GAAttributesDump.h"
@@ -494,11 +493,11 @@ namespace Zibra::ZibraVDBCompressor
         frameData.frameData = reader.DecodeFrame(decodeMetadata);
 
         auto attrDump = DumpAttributes(gdp, decodeMetadata);
-        std::vector<CompressionEngine::ZCE_MetadataEntry> metadata{};
+        std::vector<CE::MetadataEntry> metadata{};
         metadata.reserve(attrDump.size());
         for (auto& [key, val] : attrDump)
         {
-            metadata.push_back(CompressionEngine::ZCE_MetadataEntry{key.c_str(), val.c_str()});
+            metadata.push_back(CE::MetadataEntry{key.c_str(), val.c_str()});
         }
 
         frameData.metadata = metadata.data();

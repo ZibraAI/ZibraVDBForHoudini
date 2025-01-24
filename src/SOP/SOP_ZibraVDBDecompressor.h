@@ -30,15 +30,11 @@ namespace Zibra::ZibraVDBDecompressor
     private:
         static int DownloadLibrary(void* data, int index, fpreal32 time, const PRM_Template* tplate);
 
-        void ApplyGridMetadata(GU_PrimVDB* vdbPrim, CompressionEngine::ZCE_MetadataEntry* metadataBegin,
-                               CompressionEngine::ZCE_MetadataEntry* metadataEnd);
-        void ApplyGridAttributeMetadata(GU_PrimVDB* vdbPrim, CompressionEngine::ZCE_MetadataEntry* metadataBegin,
-                                        CompressionEngine::ZCE_MetadataEntry* metadataEnd);
-        void ApplyGridVisualizationMetadata(GU_PrimVDB* vdbPrim, CompressionEngine::ZCE_MetadataEntry* metadataBegin,
-                                            CompressionEngine::ZCE_MetadataEntry* metadataEnd);
-        void ApplyDetailMetadata(GU_Detail* gdp, CompressionEngine::ZCE_MetadataEntry* metadataBegin,
-                                 CompressionEngine::ZCE_MetadataEntry* metadataEnd);
-        OpenVDBSupport::EncodeMetadata ReadEncodeMetadata(const CompressionEngine::ZCE_MetadataEntry* metadata, uint32_t metadataCount);
+        void ApplyGridMetadata(GU_PrimVDB* vdbPrim, CE::MetadataEntry* metadataBegin, CE::MetadataEntry* metadataEnd);
+        void ApplyGridAttributeMetadata(GU_PrimVDB* vdbPrim, CE::MetadataEntry* metadataBegin, CE::MetadataEntry* metadataEnd);
+        void ApplyGridVisualizationMetadata(GU_PrimVDB* vdbPrim, CE::MetadataEntry* metadataBegin, CE::MetadataEntry* metadataEnd);
+        void ApplyDetailMetadata(GU_Detail* gdp, CE::MetadataEntry* metadataBegin, CE::MetadataEntry* metadataEnd);
+        OpenVDBSupport::EncodeMetadata ReadEncodeMetadata(const CE::MetadataEntry* metadata, uint32_t metadataCount);
 
     private:
         CE::Decompression::DecompressorFactory* m_Factory = nullptr;
