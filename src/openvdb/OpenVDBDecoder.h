@@ -1,7 +1,5 @@
 #pragma once
 
-#include "bridge/CompressionEngine.h"
-
 namespace Zibra::OpenVDBSupport
 {
     struct DecodeMetadata
@@ -18,8 +16,8 @@ namespace Zibra::OpenVDBSupport
                                 size_t orderedChannelNamesCount) noexcept;
         explicit OpenVDBDecoder(openvdb::io::Stream& stream, const char* const* orderedChannelNames,
                                 size_t orderedChannelNamesCount) noexcept;
-        CompressionEngine::ZCE_SparseFrameData DecodeFrame(DecodeMetadata& decodeMetadata) noexcept;
-        static void FreeFrame(CompressionEngine::ZCE_SparseFrameData& frame);
+        CE::Compression::SparseFrame* DecodeFrame(DecodeMetadata& decodeMetadata) noexcept;
+        static void FreeFrame(CE::Compression::SparseFrame*);
 
     private:
         std::map<std::string, openvdb::FloatGrid::ConstPtr> m_Grids = {};

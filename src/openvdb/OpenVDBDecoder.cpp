@@ -15,9 +15,9 @@ namespace Zibra::OpenVDBSupport
         return voxelSize[0];
     }
 
-    CompressionEngine::ZCE_Transform CastOpenVDBTransformToTransform(const openvdb::math::Transform& transform)
+    Math3D::Transform CastOpenVDBTransformToTransform(const openvdb::math::Transform& transform)
     {
-        CompressionEngine::ZCE_Transform result{};
+        Math3D::Transform result{};
 
         const openvdb::math::Mat4 map = transform.baseMap()->getAffineMap()->getMat4();
         for (int i = 0; i < 16; ++i)
@@ -77,22 +77,22 @@ namespace Zibra::OpenVDBSupport
         return result;
     }
 
-    CompressionEngine::ZCE_AABB CalculateAABB(const openvdb::CoordBBox bbox)
+    Math3D::AABB CalculateAABB(const openvdb::CoordBBox bbox)
     {
         using namespace MathHelpers;
 
-        CompressionEngine::ZCE_AABB result{};
+        Math3D::AABB result{};
 
         const openvdb::math::Vec3d transformedBBoxMin = bbox.min().asVec3d();
         const openvdb::math::Vec3d transformedBBoxMax = bbox.max().asVec3d();
 
-        result.minX = FloorToBlockSize(FloorWithEpsilon(transformedBBoxMin.x())) / ZIB_BLOCK_SIZE;
-        result.minY = FloorToBlockSize(FloorWithEpsilon(transformedBBoxMin.y())) / ZIB_BLOCK_SIZE;
-        result.minZ = FloorToBlockSize(FloorWithEpsilon(transformedBBoxMin.z())) / ZIB_BLOCK_SIZE;
+        result.minX = FloorToBlockSize(FloorWithEpsilon(transformedBBoxMin.x())) / CE::SPARSE_BLOCK_SIZE;
+        result.minY = FloorToBlockSize(FloorWithEpsilon(transformedBBoxMin.y())) / CE::SPARSE_BLOCK_SIZE;
+        result.minZ = FloorToBlockSize(FloorWithEpsilon(transformedBBoxMin.z())) / CE::SPARSE_BLOCK_SIZE;
 
-        result.maxX = CeilToBlockSize(CeilWithEpsilon(transformedBBoxMax.x())) / ZIB_BLOCK_SIZE;
-        result.maxY = CeilToBlockSize(CeilWithEpsilon(transformedBBoxMax.y())) / ZIB_BLOCK_SIZE;
-        result.maxZ = CeilToBlockSize(CeilWithEpsilon(transformedBBoxMax.z())) / ZIB_BLOCK_SIZE;
+        result.maxX = CeilToBlockSize(CeilWithEpsilon(transformedBBoxMax.x())) / CE::SPARSE_BLOCK_SIZE;
+        result.maxY = CeilToBlockSize(CeilWithEpsilon(transformedBBoxMax.y())) / CE::SPARSE_BLOCK_SIZE;
+        result.maxZ = CeilToBlockSize(CeilWithEpsilon(transformedBBoxMax.z())) / CE::SPARSE_BLOCK_SIZE;
 
         return result;
     }
@@ -167,7 +167,7 @@ namespace Zibra::OpenVDBSupport
         return transformedGrid;
     }
 
-    CompressionEngine::ZCE_SparseFrameData OpenVDBDecoder::DecodeFrame(DecodeMetadata& decodeMetadata) noexcept
+    CE::Compression::SparseFrame* OpenVDBDecoder::DecodeFrame(DecodeMetadata& decodeMetadata) noexcept
     {
         using namespace MathHelpers;
 
@@ -203,21 +203,24 @@ namespace Zibra::OpenVDBSupport
         std::vector<std::pair<std::string, openvdb::FloatGrid::Ptr>> orderedChannels{};
         orderedChannels.resize(orderedInputChannels.size());
 
-        CompressionEngine::ZCE_SparseFrameData sparseFrame = {};
-        sparseFrame.channelNames = new char*[m_OrderedChannelNames.size()];
-        sparseFrame.channelCount = m_OrderedChannelNames.size();
-        sparseFrame.perChannelGridInfo = new CompressionEngine::ZCE_PerChannelGridInfo[m_OrderedChannelNames.size()];
-        for (size_t i = 0; i < m_OrderedChannelNames.size(); ++i)
+
+
+        auto* sparseFrame = new CE::Compression::SparseFrame{};
+        sparseFrame->orderedChannelsCount =  m_OrderedChannelNames.size();
+        auto* channels = new CE::Compression::ChannelInfo[m_OrderedChannelNames.size()];
+        sparseFrame->orderedChannelsCount = m_OrderedChannelNames.size();
+        for (size_t i = 0; i < sparseFrame->orderedChannelsCount; ++i)
         {
             size_t stringSizeInBytes = m_OrderedChannelNames[i].size() + 1;
-            sparseFrame.channelNames[i] = new char[stringSizeInBytes];
-            std::strncpy(sparseFrame.channelNames[i], m_OrderedChannelNames[i].c_str(), stringSizeInBytes);
+            auto* channelName = new char[stringSizeInBytes];
+            std::strncpy(channelName, m_OrderedChannelNames[i].c_str(), stringSizeInBytes);
+            channels[i].name = channelName;
         }
 
-        CompressionEngine::ZCE_AABB totalAABB{std::numeric_limits<int>::max(), std::numeric_limits<int>::max(),
-                                              std::numeric_limits<int>::max(), std::numeric_limits<int>::min(),
-                                              std::numeric_limits<int>::min(), std::numeric_limits<int>::min()};
-        std::vector<CompressionEngine::ZCE_AABB> channelAABB{size_t(channelCount)};
+        Math3D::AABB totalAABB{std::numeric_limits<int>::max(), std::numeric_limits<int>::max(),
+                               std::numeric_limits<int>::max(), std::numeric_limits<int>::min(),
+                               std::numeric_limits<int>::min(), std::numeric_limits<int>::min()};
+        std::vector<Math3D::AABB> channelAABB{static_cast<size_t>(channelCount)};
 
         for (int channelIndex = 0; channelIndex < channelCount; channelIndex++)
         {
@@ -251,7 +254,7 @@ namespace Zibra::OpenVDBSupport
             {
                 const auto& leafNode = leafIter.getLeaf();
 
-                const CompressionEngine::ZCE_AABB leafAABB = CalculateAABB(leafNode->getNodeBoundingBox());
+                const Math3D::AABB leafAABB = CalculateAABB(leafNode->getNodeBoundingBox());
 
                 totalAABB = totalAABB | leafAABB;
                 openvdb::Coord blockOrigin = openvdb::Coord(leafAABB.minX, leafAABB.minY, leafAABB.minZ);
@@ -262,9 +265,10 @@ namespace Zibra::OpenVDBSupport
 
         if (IsEmpty(totalAABB))
         {
-            sparseFrame.boundingBox = {0, 0, 0, 0, 0, 0};
+            sparseFrame->aabb = {0, 0, 0, 0, 0, 0};;
             return sparseFrame;
         }
+
 
         // Precalculate block/channel offsets and their counts.
         uint32_t spatialBlockCount = 0;
@@ -285,7 +289,7 @@ namespace Zibra::OpenVDBSupport
 
         if (spatialBlockCount == 0 || channelBlockCount == 0)
         {
-            sparseFrame.boundingBox = {0, 0, 0, 0, 0, 0};
+            sparseFrame->aabb = {0, 0, 0, 0, 0, 0};;
             return sparseFrame;
         }
 
@@ -297,61 +301,59 @@ namespace Zibra::OpenVDBSupport
             float meanNegativeValue = 0.f;
         };
 
+        sparseFrame->spatialInfoCount = spatialBlockCount;
+        auto spatialInfo = new CE::Compression::SpatialBlockInfo[sparseFrame->spatialInfoCount];
+        sparseFrame->spatialInfo = spatialInfo;
+        sparseFrame->blocksCount = channelBlockCount;
+        auto blocks = new CE::Compression::ChannelBlock[sparseFrame->blocksCount];
+        sparseFrame->blocks = blocks;
+        auto channelIndexPerBlock = new uint32_t[sparseFrame->blocksCount];
+        sparseFrame->channelIndexPerBlock = channelIndexPerBlock;
+
         std::vector<LocalVoxelStatistics> perBlockStatistics{};
+        perBlockStatistics.resize(channelBlockCount);
 
-        {
-            sparseFrame.spatialBlocks = new CompressionEngine::ZCE_SpatialBlock[spatialBlockCount];
-            sparseFrame.channelBlocks = new CompressionEngine::ZCE_ChannelBlock[channelBlockCount];
-            sparseFrame.channelIndexPerBlock = new int32_t[channelBlockCount];
-            perBlockStatistics.resize(channelBlockCount);
-            sparseFrame.spatialBlockCount = spatialBlockCount;
-            sparseFrame.channelBlockCount = channelBlockCount;
-        }
+        std::for_each(std::execution::par_unseq, channelBlockData.cbegin(), channelBlockData.cend(),
+                      [&](const std::pair<openvdb::Coord, LocalSpatialBlockData>& spatialBlockDataPair) {
+                          const auto& [blockCoord, spatialBlockData] = spatialBlockDataPair;
+                          auto& info = spatialInfo[spatialBlockData.spatialBlockOffset];
+                          info.coords[0] = blockCoord.x() - totalAABB.minX;
+                          info.coords[1] = blockCoord.y() - totalAABB.minY;
+                          info.coords[2] = blockCoord.z() - totalAABB.minZ;
+                          info.channelBlocksOffset = spatialBlockData.channelBlockOffset;
 
-        {
-            std::for_each(std::execution::par_unseq, channelBlockData.cbegin(), channelBlockData.cend(),
-                          [&](const std::pair<openvdb::Coord, LocalSpatialBlockData>& spatialBlockDataPair) {
-                              const auto& [blockCoord, spatialBlockData] = spatialBlockDataPair;
-                              CompressionEngine::ZCE_SpatialBlock& spatialInfo =
-                                  sparseFrame.spatialBlocks[spatialBlockData.spatialBlockOffset];
-                              spatialInfo.coords[0] = blockCoord.x() - totalAABB.minX;
-                              spatialInfo.coords[1] = blockCoord.y() - totalAABB.minY;
-                              spatialInfo.coords[2] = blockCoord.z() - totalAABB.minZ;
-                              spatialInfo.channelBlocksOffset = spatialBlockData.channelBlockOffset;
+                          for (const auto& [channelIndex, blockData] : spatialBlockData.channelBlockDataMap)
+                          {
+                              const auto& [channelName, grid] = orderedChannels[channelIndex];
 
-                              for (const auto& [channelIndex, blockData] : spatialBlockData.channelBlockDataMap)
+                              CE::Compression::ChannelBlock& blockVoxels = blocks[blockData.channelBlockOffset];
+                              std::memcpy(blockVoxels.voxels, blockData.voxels, sizeof(blockVoxels.voxels));
+
+                              LocalVoxelStatistics& statistics = perBlockStatistics[blockData.channelBlockOffset];
+
+                              for (const float value : blockVoxels.voxels)
                               {
-                                  const auto& [channelName, grid] = orderedChannels[channelIndex];
+                                  statistics.minValue = std::min(statistics.minValue, value);
+                                  statistics.maxValue = std::max(statistics.maxValue, value);
 
-                                  CompressionEngine::ZCE_ChannelBlock& blockVoxels =
-                                      sparseFrame.channelBlocks[blockData.channelBlockOffset];
-                                  std::memcpy(blockVoxels.voxels, blockData.voxels, sizeof(blockVoxels.voxels));
-
-                                  LocalVoxelStatistics& statistics = perBlockStatistics[blockData.channelBlockOffset];
-
-                                  for (const float value : blockVoxels.voxels)
+                                  if (value > 0.f)
                                   {
-                                      statistics.minValue = std::min(statistics.minValue, value);
-                                      statistics.maxValue = std::max(statistics.maxValue, value);
-
-                                      if (value > 0.f)
-                                      {
-                                          statistics.meanPositiveValue += value;
-                                      }
-                                      else
-                                      {
-                                          statistics.meanNegativeValue += value;
-                                      }
+                                      statistics.meanPositiveValue += value;
                                   }
-                                  statistics.meanPositiveValue /= ZIB_BLOCK_ELEMENT_COUNT;
-                                  statistics.meanNegativeValue /= ZIB_BLOCK_ELEMENT_COUNT;
-
-                                  spatialInfo.channelMask |= m_ChannelMapping[channelName];
-                                  ++spatialInfo.channelCount;
-                                  sparseFrame.channelIndexPerBlock[blockData.channelBlockOffset] = channelIndex;
+                                  else
+                                  {
+                                      statistics.meanNegativeValue += value;
+                                  }
                               }
-                          });
-        }
+                              statistics.meanPositiveValue /= CE::SPARSE_BLOCK_VOXEL_COUNT;
+                              statistics.meanNegativeValue /= CE::SPARSE_BLOCK_VOXEL_COUNT;
+
+
+                              info.channelMask |= m_ChannelMapping[channelName];
+                              ++info.channelCount;
+                              channelIndexPerBlock[blockData.channelBlockOffset] = channelIndex;
+                          }
+                      });
 
         // Calculate per channel statistics.
         float minChannelValue[8] = {FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX};
@@ -361,7 +363,7 @@ namespace Zibra::OpenVDBSupport
         uint32_t perChannelBlockCount[8] = {};
         for (int blockIndex = 0; blockIndex < channelBlockCount; ++blockIndex)
         {
-            const auto channelIndex = sparseFrame.channelIndexPerBlock[blockIndex];
+            const auto channelIndex = sparseFrame->channelIndexPerBlock[blockIndex];
             const LocalVoxelStatistics& blockStatistics = perBlockStatistics[blockIndex];
 
             minChannelValue[channelIndex] = std::min(minChannelValue[channelIndex], blockStatistics.minValue);
@@ -382,30 +384,28 @@ namespace Zibra::OpenVDBSupport
             const double meanPositiveValue = meanPositiveChannelValue[channelIndex] / perChannelBlockCount[channelIndex];
             const double meanNegativeValue = meanNegativeChannelValue[channelIndex] / perChannelBlockCount[channelIndex];
 
-            sparseFrame.perChannelGridInfo[channelIndex].statistics.minValue = minChannelValue[channelIndex];
-            sparseFrame.perChannelGridInfo[channelIndex].statistics.maxValue = maxChannelValue[channelIndex];
-            sparseFrame.perChannelGridInfo[channelIndex].statistics.meanPositiveValue = meanPositiveValue;
-            sparseFrame.perChannelGridInfo[channelIndex].statistics.meanNegativeValue = meanNegativeValue;
-            sparseFrame.perChannelGridInfo[channelIndex].statistics.voxelCount =
-                perChannelBlockCount[channelIndex] * ZIB_BLOCK_ELEMENT_COUNT;
+            channels[channelIndex].statistics.minValue = minChannelValue[channelIndex];
+            channels[channelIndex].statistics.maxValue = maxChannelValue[channelIndex];
+            channels[channelIndex].statistics.meanPositiveValue = meanPositiveValue;
+            channels[channelIndex].statistics.meanNegativeValue = meanNegativeValue;
+            channels[channelIndex].statistics.voxelCount = perChannelBlockCount[channelIndex] * CE::SPARSE_BLOCK_VOXEL_COUNT;
 
             const auto& gridTransform = orderedChannels[channelIndex].second->constTransform();
             const double volume = gridTransform.voxelVolume();
             if (!MathHelpers::IsNearlyEqual(volume, 0.))
             {
-                sparseFrame.perChannelGridInfo[channelIndex].gridTransform = CastOpenVDBTransformToTransform(GetTranslatedFrameTransform(
-                    gridTransform, openvdb::math::Vec3d(totalAABB.minX, totalAABB.minY, totalAABB.minZ) * ZIB_BLOCK_SIZE));
+                channels[channelIndex].gridTransform = CastOpenVDBTransformToTransform(GetTranslatedFrameTransform(
+                    gridTransform, openvdb::math::Vec3d(totalAABB.minX, totalAABB.minY, totalAABB.minZ) * CE::SPARSE_BLOCK_SIZE));
             }
         }
 
         decodeMetadata = {};
-        decodeMetadata.offsetX = totalAABB.minX * ZIB_BLOCK_SIZE;
-        decodeMetadata.offsetY = totalAABB.minY * ZIB_BLOCK_SIZE;
-        decodeMetadata.offsetZ = totalAABB.minZ * ZIB_BLOCK_SIZE;
+        decodeMetadata.offsetX = totalAABB.minX * CE::SPARSE_BLOCK_SIZE;
+        decodeMetadata.offsetY = totalAABB.minY * CE::SPARSE_BLOCK_SIZE;
+        decodeMetadata.offsetZ = totalAABB.minZ * CE::SPARSE_BLOCK_SIZE;
 
         // Translate aabb to positive quarter of coordinate system.
-        sparseFrame.boundingBox = CompressionEngine::ZCE_AABB{
-            0, 0, 0, totalAABB.maxX - totalAABB.minX, totalAABB.maxY - totalAABB.minY, totalAABB.maxZ - totalAABB.minZ};
+        sparseFrame->aabb = Math3D::AABB{0, 0, 0, totalAABB.maxX - totalAABB.minX, totalAABB.maxY - totalAABB.minY, totalAABB.maxZ - totalAABB.minZ};
 
         std::thread deallocThread([orderedChannels = std::move(orderedChannels)]() mutable { orderedChannels.clear(); });
         deallocThread.detach();
@@ -413,17 +413,16 @@ namespace Zibra::OpenVDBSupport
         return sparseFrame;
     }
 
-    void OpenVDBDecoder::FreeFrame(CompressionEngine::ZCE_SparseFrameData& frame)
+    void OpenVDBDecoder::FreeFrame(CE::Compression::SparseFrame* frame)
     {
-        for (size_t i = 0; i < frame.channelCount; ++i)
+        delete[] frame->blocks;
+        delete[] frame->spatialInfo;
+        delete[] frame->channelIndexPerBlock;
+        for (size_t i = 0; i < frame->orderedChannelsCount; ++i)
         {
-            delete[] frame.channelNames[i];
+            delete[] frame->orderedChannels[i].name;
         }
-        delete[] frame.channelNames;
-        delete[] frame.spatialBlocks;
-        delete[] frame.channelBlocks;
-        delete[] frame.channelIndexPerBlock;
-        delete[] frame.perChannelGridInfo;
+        delete[] frame->orderedChannels;
     }
 
 } // namespace Zibra::OpenVDBSupport

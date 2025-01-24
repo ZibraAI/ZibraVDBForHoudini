@@ -1,7 +1,5 @@
 #pragma once
 
-#include "bridge/CompressionEngine.h"
-
 namespace Zibra::OpenVDBSupport
 {
     struct EncodeMetadata
