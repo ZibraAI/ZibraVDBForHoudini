@@ -1729,6 +1729,8 @@ namespace Zibra::RHI
 
 #pragma region CAPI
 #define ZRHI_API_IMPORT __declspec(dllimport)
+#define ZRHI_CONCAT_HELPER(A, B) A##B
+#define ZRHI_PFN(name) ZRHI_CONCAT_HELPER(PFN_, name)
 #define ZRHI_NS Zibra::RHI
 
 namespace ZRHI_NS::CAPI
@@ -1896,6 +1898,112 @@ namespace ZRHI_NS::CAPI
 
 #pragma region RHIRuntime
 #define ZRHI_FNPFX(name) Zibra_RHI_RHIInterface_##name
+
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(Release)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance) noexcept;
+typedef bool (*ZRHI_PFN(ZRHI_FNPFX(GarbageCollect)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance) noexcept;
+typedef ZRHI_NS::GFXAPI (*ZRHI_PFN(ZRHI_FNPFX(GetGFXAPI)))(const ZRHI_NS::CAPI::ZRHIInterfaceHandle instance) noexcept;
+typedef bool (*ZRHI_PFN(ZRHI_FNPFX(QueryFeatureSupport)))(const ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, ZRHI_NS::Feature feature) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(SetStablePowerState)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, bool enable) noexcept;
+typedef ZRHI_NS::ComputePSO* (*ZRHI_PFN(ZRHI_FNPFX(CompileComputePSO)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance,
+                                                                                const ZRHI_NS::ComputePSODesc& desc) noexcept;
+typedef ZRHI_NS::GraphicsPSO* (*ZRHI_PFN(ZRHI_FNPFX(CompileGraphicPSO)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance,
+                                                                                 const ZRHI_NS::GraphicsPSODesc& desc) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(ReleaseComputePSO)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, ZRHI_NS::ComputePSO* pso) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(ReleaseGraphicPSO)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, ZRHI_NS::GraphicsPSO* pso) noexcept;
+typedef ZRHI_NS::Buffer* (*ZRHI_PFN(ZRHI_FNPFX(RegisterBuffer)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, void* resourceHandle,
+                                                                         const char* name) noexcept;
+typedef ZRHI_NS::Texture2D* (*ZRHI_PFN(ZRHI_FNPFX(RegisterTexture2D)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, void* resourceHandle,
+                                                                               const char* name) noexcept;
+typedef ZRHI_NS::Texture3D* (*ZRHI_PFN(ZRHI_FNPFX(RegisterTexture3D)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, void* resourceHandle,
+                                                                               const char* name) noexcept;
+typedef ZRHI_NS::Buffer* (*ZRHI_PFN(ZRHI_FNPFX(CreateBuffer)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, size_t size,
+                                                                       ZRHI_NS::ResourceHeapType heapType, ZRHI_NS::ResourceUsage usage,
+                                                                       uint32_t structuredStride, const char* name) noexcept;
+typedef ZRHI_NS::Texture2D* (*ZRHI_PFN(ZRHI_FNPFX(CreateTexture2D)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, size_t width, size_t height, size_t mips,
+                                                                             ZRHI_NS::TextureFormat format, ZRHI_NS::ResourceUsage usage,
+                                                                             const char* name) noexcept;
+typedef ZRHI_NS::Texture3D* (*ZRHI_PFN(ZRHI_FNPFX(CreateTexture3D)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, size_t width, size_t height, size_t depth,
+                                                                             size_t mips, ZRHI_NS::TextureFormat format,
+                                                                             ZRHI_NS::ResourceUsage usage, const char* name) noexcept;
+typedef ZRHI_NS::Sampler* (*ZRHI_PFN(ZRHI_FNPFX(CreateSampler)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, ZRHI_NS::SamplerAddressMode addressMode,
+                                                                         ZRHI_NS::SamplerFilter filter, size_t descriptorLocationsCount,
+                                                                         const ZRHI_NS::DescriptorLocation* descriptorLocations,
+                                                                         const char* name) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(ReleaseBuffer)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, ZRHI_NS::Buffer* buffer) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(ReleaseTexture2D)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, ZRHI_NS::Texture2D* texture) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(ReleaseTexture3D)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, ZRHI_NS::Texture3D* texture) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(ReleaseSampler)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, ZRHI_NS::Sampler* sampler) noexcept;
+typedef ZRHI_NS::DescriptorHeap* (*ZRHI_PFN(ZRHI_FNPFX(CreateDescriptorHeap)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance,
+                                                                                       ZRHI_NS::DescriptorHeapType heapType,
+                                                                                       const ZRHI_NS::PipelineLayoutDesc& pipelineLayoutDesc,
+                                                                                       const char* name) noexcept;
+typedef ZRHI_NS::DescriptorHeap* (*ZRHI_PFN(ZRHI_FNPFX(CloneDescriptorHeap)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, ZRHI_NS::DescriptorHeap* src,
+                                                                                      const char* name) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(ReleaseDescriptorHeap)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, ZRHI_NS::DescriptorHeap* heap) noexcept;
+typedef ZRHI_NS::QueryHeap* (*ZRHI_PFN(ZRHI_FNPFX(CreateQueryHeap)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, ZRHI_NS::QueryHeapType heapType,
+                                                                             uint64_t queryCount, const char* name) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(ReleaseQueryHeap)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, ZRHI_NS::QueryHeap* heap) noexcept;
+typedef ZRHI_NS::Framebuffer* (*ZRHI_PFN(ZRHI_FNPFX(CreateFramebuffer)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, size_t renderTargetsCount,
+                                                                                 ZRHI_NS::Texture2D* const* renderTargets,
+                                                                                 ZRHI_NS::Texture2D* depthStencil, const char* name) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(ReleaseFramebuffer)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, ZRHI_NS::Framebuffer* framebuffer) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(InitializeSRV_B)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, ZRHI_NS::Buffer* buffer,
+                                                           ZRHI_NS::InitializeViewDesc desc, size_t descriptorLocationsCount,
+                                                           const ZRHI_NS::DescriptorLocation* descriptorLocations) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(InitializeSRV_T2D)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, ZRHI_NS::Texture2D* texture,
+                                                             size_t descriptorLocationsCount,
+                                                             const ZRHI_NS::DescriptorLocation* descriptorLocations) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(InitializeSRV_T3D)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, ZRHI_NS::Texture3D* texture,
+                                                             size_t descriptorLocationsCount,
+                                                             const ZRHI_NS::DescriptorLocation* descriptorLocations) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(InitializeUAV_B)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, ZRHI_NS::Buffer* buffer,
+                                                           ZRHI_NS::InitializeViewDesc desc, size_t descriptorLocationsCount,
+                                                           const ZRHI_NS::DescriptorLocation* descriptorLocations) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(InitializeUAV_T2D)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, ZRHI_NS::Texture2D* texture,
+                                                             size_t descriptorLocationsCount,
+                                                             const ZRHI_NS::DescriptorLocation* descriptorLocations) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(InitializeUAV_T3D)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, ZRHI_NS::Texture3D* texture,
+                                                             size_t descriptorLocationsCount,
+                                                             const ZRHI_NS::DescriptorLocation* descriptorLocations) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(InitializeCBV)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, ZRHI_NS::Buffer* buffer, size_t descriptorLocationsCount,
+                                                         const ZRHI_NS::DescriptorLocation* descriptorLocations) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(StartRecording)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(StopRecording)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(UploadBuffer)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, ZRHI_NS::Buffer* buffer, const void* data, uint32_t size,
+                                                        uint32_t offset) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(UploadBufferSlow)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, ZRHI_NS::Buffer* buffer, const void* data, uint32_t size,
+                                                            uint32_t offset) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(UploadTextureSlow)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, ZRHI_NS::Texture3D* texture,
+                                                             const ZRHI_NS::TextureData& uploadData) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(GetBufferData)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, ZRHI_NS::Buffer* buffer, void* destination, size_t size,
+                                                         size_t srcOffset) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(GetBufferDataImmediately)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, ZRHI_NS::Buffer* buffer, void* destination,
+                                                                    size_t size, size_t srcOffset) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(Dispatch)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, const ZRHI_NS::DispatchDesc& desc) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(DrawIndexedInstanced)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance,
+                                                                const ZRHI_NS::DrawIndexedInstancedDesc& desc) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(DrawInstanced)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, const ZRHI_NS::DrawInstancedDesc& desc) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(DispatchIndirect)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, const ZRHI_NS::DispatchIndirectDesc& desc) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(DrawInstancedIndirect)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance,
+                                                                 const ZRHI_NS::DrawInstancedIndirectDesc& desc) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(DrawIndexedInstancedIndirect)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance,
+                                                                        const ZRHI_NS::DrawIndexedInstancedIndirectDesc& desc) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(CopyBufferRegion)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, ZRHI_NS::Buffer* dstBuffer, uint32_t dstOffset,
+                                                            ZRHI_NS::Buffer* srcBuffer, uint32_t srcOffset, uint32_t size) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(ClearFormattedBuffer)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, ZRHI_NS::Buffer* buffer, uint32_t bufferSize,
+                                                                uint8_t clearValue, const ZRHI_NS::DescriptorLocation& descriptorLocation) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(SubmitQuery)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, ZRHI_NS::QueryHeap* queryHeap, uint64_t queryIndex,
+                                                       const ZRHI_NS::QueryDesc& queryDesc) noexcept;
+typedef bool (*ZRHI_PFN(ZRHI_FNPFX(ResolveQuery)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, ZRHI_NS::QueryHeap* queryHeap,
+                                                        ZRHI_NS::QueryType queryType, uint64_t offset, uint64_t count, void* result,
+                                                        size_t size) noexcept;
+typedef uint64_t (*ZRHI_PFN(ZRHI_FNPFX(GetTimestampFrequency)))(const ZRHI_NS::CAPI::ZRHIInterfaceHandle instance) noexcept;
+typedef ZRHI_NS::TimestampCalibrationResult (*ZRHI_PFN(ZRHI_FNPFX(GetTimestampCalibration)))(const ZRHI_NS::CAPI::ZRHIInterfaceHandle instance) noexcept;
+typedef uint64_t (*ZRHI_PFN(ZRHI_FNPFX(GetCPUTimestamp)))(const ZRHI_NS::CAPI::ZRHIInterfaceHandle instance) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(StartDebugRegion)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, const char* regionName) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(EndDebugRegion)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(StartFrameCapture)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, const char* captureName) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(StopFrameCapture)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance) noexcept;
 
 #ifndef ZRHI_NO_STATIC_API_DECL
 ZRHI_API_IMPORT void ZRHI_FNPFX(Release)(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance) noexcept;
@@ -2347,6 +2455,16 @@ namespace ZRHI_NS::CAPI
 #pragma region RHIFactory
 #define ZRHI_FNPFX(name) Zibra_RHI_RHIFactory_##name
 
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(Destruct)))(ZRHI_NS::CAPI::ZRHIFactoryHandle instance) noexcept;
+typedef ZRHI_NS::ReturnCode (*ZRHI_PFN(ZRHI_FNPFX(SetGFXAPI)))(ZRHI_NS::CAPI::ZRHIFactoryHandle instance, ZRHI_NS::GFXAPI type) noexcept;
+typedef ZRHI_NS::ReturnCode (*ZRHI_PFN(ZRHI_FNPFX(UseEngineInterface)))(ZRHI_NS::CAPI::ZRHIFactoryHandle instance, void* engineInterfaceVTable) noexcept;
+typedef ZRHI_NS::ReturnCode (*ZRHI_PFN(ZRHI_FNPFX(UseForcedAdapter)))(ZRHI_NS::CAPI::ZRHIFactoryHandle instance, int32_t adapterIndex) noexcept;
+typedef ZRHI_NS::ReturnCode (*ZRHI_PFN(ZRHI_FNPFX(UseAutoSelectedAdapter)))(ZRHI_NS::CAPI::ZRHIFactoryHandle instance) noexcept;
+typedef ZRHI_NS::ReturnCode (*ZRHI_PFN(ZRHI_FNPFX(ForceSoftwareDevice)))(ZRHI_NS::CAPI::ZRHIFactoryHandle instance) noexcept;
+typedef ZRHI_NS::ReturnCode (*ZRHI_PFN(ZRHI_FNPFX(ForceEnableDebugLayer)))(ZRHI_NS::CAPI::ZRHIFactoryHandle instance) noexcept;
+typedef ZRHI_NS::ReturnCode (*ZRHI_PFN(ZRHI_FNPFX(Create)))(ZRHI_NS::CAPI::ZRHIFactoryHandle instance, ZRHI_NS::CAPI::ZRHIInterfaceHandle* outInstance) noexcept;
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(Release)))(ZRHI_NS::CAPI::ZRHIFactoryHandle instance) noexcept;
+
 #ifndef ZRHI_NO_STATIC_API_DECL
 ZRHI_API_IMPORT void ZRHI_FNPFX(Destruct)(ZRHI_NS::CAPI::ZRHIFactoryHandle instance) noexcept;
 ZRHI_API_IMPORT ZRHI_NS::ReturnCode ZRHI_FNPFX(SetGFXAPI)(ZRHI_NS::CAPI::ZRHIFactoryHandle instance, ZRHI_NS::GFXAPI type) noexcept;
@@ -2449,6 +2567,8 @@ namespace ZRHI_NS::CAPI
 
 #pragma region Functions
 #define ZRHI_FNPFX(name) Zibra_RHI_##name
+
+typedef ZRHI_NS::ReturnCode (*ZRHI_PFN(ZRHI_FNPFX(CreateRHIFactory)))(ZRHI_NS::CAPI::ZRHIFactoryHandle* outInstance) noexcept;
 
 #ifndef ZRHI_NO_STATIC_API_DECL
 ZRHI_API_IMPORT ZRHI_NS::ReturnCode ZRHI_FNPFX(CreateRHIFactory)(ZRHI_NS::CAPI::ZRHIFactoryHandle* outInstance) noexcept;
@@ -2951,5 +3071,7 @@ namespace ZRHI_NS::CAPI::ConsumerBridge
 #pragma endregion ConsumerBridge
 
 #undef ZRHI_NS
+#undef ZRHI_PFN
+#undef ZRHI_CONCAT_HELPER
 #undef ZRHI_API_IMPORT
 #pragma endregion CAPI
