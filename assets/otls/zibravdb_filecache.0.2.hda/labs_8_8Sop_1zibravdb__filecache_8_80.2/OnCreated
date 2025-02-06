@@ -1,0 +1,9 @@
+import platform
+
+kwargs['node'].setColor(hou.Color(0.9, 0.8, 0.55))
+
+if platform.system() != "Windows":
+    msg = "Error: ZibraVDB for Houdini is currently only supported on Windows."
+    kwargs['node'].setComment(msg)
+    kwargs['node'].setGenericFlag(hou.nodeFlag.DisplayComment, True)
+    print(msg)
