@@ -196,44 +196,6 @@ namespace Zibra::NetworkRequest
             return false;
         }
 
-        // Checks for default CAINFO/CAPATH
-        char* cainfo = nullptr;
-        char* capath = nullptr;
-        curl::easy_getinfo(curl, CURLINFO_CAINFO, &cainfo);
-        curl::easy_getinfo(curl, CURLINFO_CAPATH, &capath);
-
-        // If there are no defaults, set CAINFO
-        if (!cainfo && !capath)
-        {
-            // List of default CAINFO/CAPATH for different distros
-            const char* defaultCAINFO[] = {
-                "/etc/ssl/certs/ca-certificates.crt",
-                "/etc/pki/tls/certs/ca-bundle.crt",
-                "/etc/ssl/cert.pem",
-                "/etc/ssl/certs/ca-bundle.crt",
-            };
-
-            // Iterate ovoer the list and set the first one that exists
-            bool found = false;
-            for (const char* path : defaultCAINFO)
-            {
-                if (std::filesystem::exists(path))
-                {
-                    curl::easy_setopt(curl, CURLOPT_CAINFO, path);
-                    found = true;
-                    break;
-                }
-            }
-
-            // If no default CAINFO was found, return an error
-            if (!found)
-            {
-                curl::easy_cleanup(curl);
-                dlclose(curlLib);
-                return false;
-            }
-        }
-
         curl::easy_setopt(curl, CURLOPT_URL, url.c_str());
         curl::easy_setopt(curl, CURLOPT_WRITEFUNCTION, &WriteCallback);
         curl::easy_setopt(curl, CURLOPT_WRITEDATA, &file);
