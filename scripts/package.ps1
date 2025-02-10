@@ -3,9 +3,16 @@
 $RepositeryRoot = "$PSScriptRoot/.."
 Push-Location $RepositeryRoot
 
-if (-not $Env:ZIBRA_HOUDINI_PATH) {
-    Write-Host "ZIBRA_HOUDINI_PATH environment variable is not set. Please set it to the root of your Houdini installation."
+if (-not $Env:ZIBRA_HOUDINI_PATH -and -not $Env:HFS) {
+    Write-Host "ZIBRA_HOUDINI_PATH and HFS environment variables are not set. Please set one of those to the root of your Houdini installation."
     Exit 1
+}
+
+if (-not $Env:ZIBRA_HOUDINI_PATH) {
+    $HoudiniPath = $Env:HFS
+}
+else {
+    $HoudiniPath = $Env:ZIBRA_HOUDINI_PATH
 }
 
 if (-not $IsWindows -and -not $IsLinux)
@@ -27,7 +34,7 @@ $RepositoryRootFullPath = (Get-Item -Path $RepositeryRoot).FullName
 # Prepare the assets
 Copy-Item -Path ./assets -Destination "$($RepositeryRoot)/package/archive" -Recurse
 # Packs HDA back into binary format replacing the original
-$HOTLPath = $Env:ZIBRA_HOUDINI_PATH
+$HOTLPath = $HoudiniPath
 if ($IsWindows)
 {
     $HOTLPath = "$($HOTLPath)/bin/hotl.exe"
