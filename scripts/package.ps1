@@ -17,7 +17,7 @@ else {
 
 if (-not $IsWindows -and -not $IsLinux)
 {
-    Write-Host "This script is only supported on Windows."
+    Write-Host "This script is only supported on Windows and Linux."
     Exit 1
 }
 
@@ -31,8 +31,6 @@ $RepositoryRootFullPath = (Get-Item -Path $RepositeryRoot).FullName
 
 & ./scripts/clean-build.ps1 -DZIBRAVDB_OUTPUT_PATH="$($RepositoryRootFullPath)/package/archive" "build-package"
 
-# Prepare the assets
-Copy-Item -Path ./assets -Destination "$($RepositeryRoot)/package/archive" -Recurse
 # Packs HDA back into binary format replacing the original
 $HOTLPath = $HoudiniPath
 if ($IsWindows)
