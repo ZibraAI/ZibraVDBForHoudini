@@ -1,6 +1,7 @@
 #pragma once
 #include "Globals.h"
 #include "openvdb/OpenVDBEncoder.h"
+#include "bridge/RHIWrapper/RHIWrapper.h"
 
 namespace Zibra::ZibraVDBDecompressor
 {
@@ -30,16 +31,17 @@ namespace Zibra::ZibraVDBDecompressor
     private:
         static int DownloadLibrary(void* data, int index, fpreal32 time, const PRM_Template* tplate);
 
-        void ApplyGridMetadata(GU_PrimVDB* vdbPrim, CE::MetadataEntry* metadataBegin, CE::MetadataEntry* metadataEnd);
-        void ApplyGridAttributeMetadata(GU_PrimVDB* vdbPrim, CE::MetadataEntry* metadataBegin, CE::MetadataEntry* metadataEnd);
-        void ApplyGridVisualizationMetadata(GU_PrimVDB* vdbPrim, CE::MetadataEntry* metadataBegin, CE::MetadataEntry* metadataEnd);
-        void ApplyDetailMetadata(GU_Detail* gdp, CE::MetadataEntry* metadataBegin, CE::MetadataEntry* metadataEnd);
-        OpenVDBSupport::EncodeMetadata ReadEncodeMetadata(const CE::MetadataEntry* metadata, uint32_t metadataCount);
+        void ApplyGridMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::CompressedFrameContainer* const frameContainer);
+        void ApplyGridAttributeMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::CompressedFrameContainer* const frameContainer);
+        void ApplyGridVisualizationMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::CompressedFrameContainer* const frameContainer);
+        void ApplyDetailMetadata(GU_Detail* gdp, CE::Decompression::CompressedFrameContainer* const frameContainer);
+        OpenVDBSupport::EncodeMetadata ReadEncodeMetadata(CE::Decompression::CompressedFrameContainer* const frameContainer);
 
     private:
         CE::Decompression::DecompressorFactory* m_Factory = nullptr;
         CE::ZibraVDB::FileDecoder* m_Decoder = nullptr;
         CE::Decompression::Decompressor* m_Decompressor = nullptr;
+        RHIWrapper* m_RHIWrapper = nullptr;
     };
 
     class SOP_ZibraVDBDecompressor_Operator final : public OP_Operator

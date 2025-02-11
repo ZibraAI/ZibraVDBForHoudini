@@ -39,6 +39,9 @@ set(HeaderFiles
         src/PrecompiledHeader.h
         src/Globals.h
         src/bridge/networking/NetworkRequest.h
+        src/bridge/LibraryUtils.h
+        src/bridge/RHIWrapper/RHIWrapper.h
+        src/bridge/Licensing/Licensing.h
         src/openvdb/OpenVDBDecoder.h
         src/openvdb/OpenVDBEncoder.h
         src/openvdb/MathHelpers.h
@@ -51,6 +54,9 @@ set(HeaderFiles
 set(SourceFiles
         src/main.cpp
         src/bridge/networking/NetworkRequest.cpp
+        src/bridge/LibraryUtils.cpp
+        src/bridge/RHIWrapper/RHIWrapper.cpp
+        src/bridge/Licensing/Licensing.cpp
         src/openvdb/OpenVDBDecoder.cpp
         src/openvdb/OpenVDBEncoder.cpp
         src/openvdb/MathHelpers.cpp

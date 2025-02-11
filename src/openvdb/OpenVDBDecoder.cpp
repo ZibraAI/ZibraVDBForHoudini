@@ -206,9 +206,9 @@ namespace Zibra::OpenVDBSupport
 
 
         auto* sparseFrame = new CE::Compression::SparseFrame{};
-        sparseFrame->orderedChannelsCount =  m_OrderedChannelNames.size();
         auto* channels = new CE::Compression::ChannelInfo[m_OrderedChannelNames.size()];
         sparseFrame->orderedChannelsCount = m_OrderedChannelNames.size();
+        sparseFrame->orderedChannels = channels;
         for (size_t i = 0; i < sparseFrame->orderedChannelsCount; ++i)
         {
             size_t stringSizeInBytes = m_OrderedChannelNames[i].size() + 1;

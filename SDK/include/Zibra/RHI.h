@@ -2005,7 +2005,7 @@ typedef void (*ZRHI_PFN(ZRHI_FNPFX(EndDebugRegion)))(ZRHI_NS::CAPI::ZRHIInterfac
 typedef void (*ZRHI_PFN(ZRHI_FNPFX(StartFrameCapture)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, const char* captureName) noexcept;
 typedef void (*ZRHI_PFN(ZRHI_FNPFX(StopFrameCapture)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance) noexcept;
 
-#ifndef ZRHI_NO_STATIC_API_DECL
+#ifdef ZRHI_STATIC_API_DECL
 ZRHI_API_IMPORT void ZRHI_FNPFX(Release)(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance) noexcept;
 ZRHI_API_IMPORT bool ZRHI_FNPFX(GarbageCollect)(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance) noexcept;
 ZRHI_API_IMPORT ZRHI_NS::GFXAPI ZRHI_FNPFX(GetGFXAPI)(const ZRHI_NS::CAPI::ZRHIInterfaceHandle instance) noexcept;
@@ -2111,11 +2111,70 @@ ZRHI_API_IMPORT void ZRHI_FNPFX(StartDebugRegion)(ZRHI_NS::CAPI::ZRHIInterfaceHa
 ZRHI_API_IMPORT void ZRHI_FNPFX(EndDebugRegion)(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance) noexcept;
 ZRHI_API_IMPORT void ZRHI_FNPFX(StartFrameCapture)(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, const char* captureName) noexcept;
 ZRHI_API_IMPORT void ZRHI_FNPFX(StopFrameCapture)(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance) noexcept;
+#else
+extern ZRHI_PFN(ZRHI_FNPFX(Release)) ZRHI_FNPFX(Release);
+extern ZRHI_PFN(ZRHI_FNPFX(GarbageCollect)) ZRHI_FNPFX(GarbageCollect);
+extern ZRHI_PFN(ZRHI_FNPFX(GetGFXAPI)) ZRHI_FNPFX(GetGFXAPI);
+extern ZRHI_PFN(ZRHI_FNPFX(QueryFeatureSupport)) ZRHI_FNPFX(QueryFeatureSupport);
+extern ZRHI_PFN(ZRHI_FNPFX(SetStablePowerState)) ZRHI_FNPFX(SetStablePowerState);
+extern ZRHI_PFN(ZRHI_FNPFX(CompileComputePSO)) ZRHI_FNPFX(CompileComputePSO);
+extern ZRHI_PFN(ZRHI_FNPFX(CompileGraphicPSO)) ZRHI_FNPFX(CompileGraphicPSO);
+extern ZRHI_PFN(ZRHI_FNPFX(ReleaseComputePSO)) ZRHI_FNPFX(ReleaseComputePSO);
+extern ZRHI_PFN(ZRHI_FNPFX(ReleaseGraphicPSO)) ZRHI_FNPFX(ReleaseGraphicPSO);
+extern ZRHI_PFN(ZRHI_FNPFX(RegisterBuffer)) ZRHI_FNPFX(RegisterBuffer);
+extern ZRHI_PFN(ZRHI_FNPFX(RegisterTexture2D)) ZRHI_FNPFX(RegisterTexture2D);
+extern ZRHI_PFN(ZRHI_FNPFX(RegisterTexture3D)) ZRHI_FNPFX(RegisterTexture3D);
+extern ZRHI_PFN(ZRHI_FNPFX(CreateBuffer)) ZRHI_FNPFX(CreateBuffer);
+extern ZRHI_PFN(ZRHI_FNPFX(CreateTexture2D)) ZRHI_FNPFX(CreateTexture2D);
+extern ZRHI_PFN(ZRHI_FNPFX(CreateTexture3D)) ZRHI_FNPFX(CreateTexture3D);
+extern ZRHI_PFN(ZRHI_FNPFX(CreateSampler)) ZRHI_FNPFX(CreateSampler);
+extern ZRHI_PFN(ZRHI_FNPFX(ReleaseBuffer)) ZRHI_FNPFX(ReleaseBuffer);
+extern ZRHI_PFN(ZRHI_FNPFX(ReleaseTexture2D)) ZRHI_FNPFX(ReleaseTexture2D);
+extern ZRHI_PFN(ZRHI_FNPFX(ReleaseTexture3D)) ZRHI_FNPFX(ReleaseTexture3D);
+extern ZRHI_PFN(ZRHI_FNPFX(ReleaseSampler)) ZRHI_FNPFX(ReleaseSampler);
+extern ZRHI_PFN(ZRHI_FNPFX(CreateDescriptorHeap)) ZRHI_FNPFX(CreateDescriptorHeap);
+extern ZRHI_PFN(ZRHI_FNPFX(CloneDescriptorHeap)) ZRHI_FNPFX(CloneDescriptorHeap);
+extern ZRHI_PFN(ZRHI_FNPFX(ReleaseDescriptorHeap)) ZRHI_FNPFX(ReleaseDescriptorHeap);
+extern ZRHI_PFN(ZRHI_FNPFX(CreateQueryHeap)) ZRHI_FNPFX(CreateQueryHeap);
+extern ZRHI_PFN(ZRHI_FNPFX(ReleaseQueryHeap)) ZRHI_FNPFX(ReleaseQueryHeap);
+extern ZRHI_PFN(ZRHI_FNPFX(CreateFramebuffer)) ZRHI_FNPFX(CreateFramebuffer);
+extern ZRHI_PFN(ZRHI_FNPFX(ReleaseFramebuffer)) ZRHI_FNPFX(ReleaseFramebuffer);
+extern ZRHI_PFN(ZRHI_FNPFX(InitializeSRV_B)) ZRHI_FNPFX(InitializeSRV_B);
+extern ZRHI_PFN(ZRHI_FNPFX(InitializeSRV_T2D)) ZRHI_FNPFX(InitializeSRV_T2D);
+extern ZRHI_PFN(ZRHI_FNPFX(InitializeSRV_T3D)) ZRHI_FNPFX(InitializeSRV_T3D);
+extern ZRHI_PFN(ZRHI_FNPFX(InitializeUAV_B)) ZRHI_FNPFX(InitializeUAV_B);
+extern ZRHI_PFN(ZRHI_FNPFX(InitializeUAV_T2D)) ZRHI_FNPFX(InitializeUAV_T2D);
+extern ZRHI_PFN(ZRHI_FNPFX(InitializeUAV_T3D)) ZRHI_FNPFX(InitializeUAV_T3D);
+extern ZRHI_PFN(ZRHI_FNPFX(InitializeCBV)) ZRHI_FNPFX(InitializeCBV);
+extern ZRHI_PFN(ZRHI_FNPFX(StartRecording)) ZRHI_FNPFX(StartRecording);
+extern ZRHI_PFN(ZRHI_FNPFX(StopRecording)) ZRHI_FNPFX(StopRecording);
+extern ZRHI_PFN(ZRHI_FNPFX(UploadBuffer)) ZRHI_FNPFX(UploadBuffer);
+extern ZRHI_PFN(ZRHI_FNPFX(UploadBufferSlow)) ZRHI_FNPFX(UploadBufferSlow);
+extern ZRHI_PFN(ZRHI_FNPFX(UploadTextureSlow)) ZRHI_FNPFX(UploadTextureSlow);
+extern ZRHI_PFN(ZRHI_FNPFX(GetBufferData)) ZRHI_FNPFX(GetBufferData);
+extern ZRHI_PFN(ZRHI_FNPFX(GetBufferDataImmediately)) ZRHI_FNPFX(GetBufferDataImmediately);
+extern ZRHI_PFN(ZRHI_FNPFX(Dispatch)) ZRHI_FNPFX(Dispatch);
+extern ZRHI_PFN(ZRHI_FNPFX(DrawIndexedInstanced)) ZRHI_FNPFX(DrawIndexedInstanced);
+extern ZRHI_PFN(ZRHI_FNPFX(DrawInstanced)) ZRHI_FNPFX(DrawInstanced);
+extern ZRHI_PFN(ZRHI_FNPFX(DispatchIndirect)) ZRHI_FNPFX(DispatchIndirect);
+extern ZRHI_PFN(ZRHI_FNPFX(DrawInstancedIndirect)) ZRHI_FNPFX(DrawInstancedIndirect);
+extern ZRHI_PFN(ZRHI_FNPFX(DrawIndexedInstancedIndirect)) ZRHI_FNPFX(DrawIndexedInstancedIndirect);
+extern ZRHI_PFN(ZRHI_FNPFX(CopyBufferRegion)) ZRHI_FNPFX(CopyBufferRegion);
+extern ZRHI_PFN(ZRHI_FNPFX(ClearFormattedBuffer)) ZRHI_FNPFX(ClearFormattedBuffer);
+extern ZRHI_PFN(ZRHI_FNPFX(SubmitQuery)) ZRHI_FNPFX(SubmitQuery);
+extern ZRHI_PFN(ZRHI_FNPFX(ResolveQuery)) ZRHI_FNPFX(ResolveQuery);
+extern ZRHI_PFN(ZRHI_FNPFX(GetTimestampFrequency)) ZRHI_FNPFX(GetTimestampFrequency);
+extern ZRHI_PFN(ZRHI_FNPFX(GetTimestampCalibration)) ZRHI_FNPFX(GetTimestampCalibration);
+extern ZRHI_PFN(ZRHI_FNPFX(GetCPUTimestamp)) ZRHI_FNPFX(GetCPUTimestamp);
+extern ZRHI_PFN(ZRHI_FNPFX(StartDebugRegion)) ZRHI_FNPFX(StartDebugRegion);
+extern ZRHI_PFN(ZRHI_FNPFX(EndDebugRegion)) ZRHI_FNPFX(EndDebugRegion);
+extern ZRHI_PFN(ZRHI_FNPFX(StartFrameCapture)) ZRHI_FNPFX(StartFrameCapture);
+extern ZRHI_PFN(ZRHI_FNPFX(StopFrameCapture)) ZRHI_FNPFX(StopFrameCapture);
+#endif
 
 #ifndef ZRHI_API_CALL
 #define ZRHI_API_CALL(func, ...) func(__VA_ARGS__)
 #endif // ZRHI_API_CALL
-#endif // ZRHI_NO_STATIC_API_DECL
 
 #ifndef ZRHI_NO_CAPI_IMPL
 namespace ZRHI_NS::CAPI
@@ -2123,7 +2182,7 @@ namespace ZRHI_NS::CAPI
     // --- RHIInterface Wrapper ----------------------------------------------------------------------------------------------------------------------
 
 #ifndef ZRHI_API_CALL
-#define ZRHI_API_CALL(f, ...)
+#define ZRHI_API_CALL(func, ...) func(__VA_ARGS__)
 #endif
 
     class RHIInterfaceDLLProxy final : public RHIRuntime
@@ -2455,9 +2514,8 @@ namespace ZRHI_NS::CAPI
 #pragma region RHIFactory
 #define ZRHI_FNPFX(name) Zibra_RHI_RHIFactory_##name
 
-typedef void (*ZRHI_PFN(ZRHI_FNPFX(Destruct)))(ZRHI_NS::CAPI::ZRHIFactoryHandle instance) noexcept;
 typedef ZRHI_NS::ReturnCode (*ZRHI_PFN(ZRHI_FNPFX(SetGFXAPI)))(ZRHI_NS::CAPI::ZRHIFactoryHandle instance, ZRHI_NS::GFXAPI type) noexcept;
-typedef ZRHI_NS::ReturnCode (*ZRHI_PFN(ZRHI_FNPFX(UseEngineInterface)))(ZRHI_NS::CAPI::ZRHIFactoryHandle instance, void* engineInterfaceVTable) noexcept;
+typedef ZRHI_NS::ReturnCode (*ZRHI_PFN(ZRHI_FNPFX(UseGFXCore)))(ZRHI_NS::CAPI::ZRHIFactoryHandle instance, void* engineInterfaceVTable) noexcept;
 typedef ZRHI_NS::ReturnCode (*ZRHI_PFN(ZRHI_FNPFX(UseForcedAdapter)))(ZRHI_NS::CAPI::ZRHIFactoryHandle instance, int32_t adapterIndex) noexcept;
 typedef ZRHI_NS::ReturnCode (*ZRHI_PFN(ZRHI_FNPFX(UseAutoSelectedAdapter)))(ZRHI_NS::CAPI::ZRHIFactoryHandle instance) noexcept;
 typedef ZRHI_NS::ReturnCode (*ZRHI_PFN(ZRHI_FNPFX(ForceSoftwareDevice)))(ZRHI_NS::CAPI::ZRHIFactoryHandle instance) noexcept;
@@ -2465,17 +2523,25 @@ typedef ZRHI_NS::ReturnCode (*ZRHI_PFN(ZRHI_FNPFX(ForceEnableDebugLayer)))(ZRHI_
 typedef ZRHI_NS::ReturnCode (*ZRHI_PFN(ZRHI_FNPFX(Create)))(ZRHI_NS::CAPI::ZRHIFactoryHandle instance, ZRHI_NS::CAPI::ZRHIInterfaceHandle* outInstance) noexcept;
 typedef void (*ZRHI_PFN(ZRHI_FNPFX(Release)))(ZRHI_NS::CAPI::ZRHIFactoryHandle instance) noexcept;
 
-#ifndef ZRHI_NO_STATIC_API_DECL
-ZRHI_API_IMPORT void ZRHI_FNPFX(Destruct)(ZRHI_NS::CAPI::ZRHIFactoryHandle instance) noexcept;
+#ifdef ZRHI_STATIC_API_DECL
 ZRHI_API_IMPORT ZRHI_NS::ReturnCode ZRHI_FNPFX(SetGFXAPI)(ZRHI_NS::CAPI::ZRHIFactoryHandle instance, ZRHI_NS::GFXAPI type) noexcept;
-ZRHI_API_IMPORT ZRHI_NS::ReturnCode ZRHI_FNPFX(UseEngineInterface)(ZRHI_NS::CAPI::ZRHIFactoryHandle instance, void* engineInterfaceVTable) noexcept;
+ZRHI_API_IMPORT ZRHI_NS::ReturnCode ZRHI_FNPFX(UseGFXCore)(ZRHI_NS::CAPI::ZRHIFactoryHandle instance, void* engineInterfaceVTable) noexcept;
 ZRHI_API_IMPORT ZRHI_NS::ReturnCode ZRHI_FNPFX(UseForcedAdapter)(ZRHI_NS::CAPI::ZRHIFactoryHandle instance, int32_t adapterIndex) noexcept;
 ZRHI_API_IMPORT ZRHI_NS::ReturnCode ZRHI_FNPFX(UseAutoSelectedAdapter)(ZRHI_NS::CAPI::ZRHIFactoryHandle instance) noexcept;
 ZRHI_API_IMPORT ZRHI_NS::ReturnCode ZRHI_FNPFX(ForceSoftwareDevice)(ZRHI_NS::CAPI::ZRHIFactoryHandle instance) noexcept;
 ZRHI_API_IMPORT ZRHI_NS::ReturnCode ZRHI_FNPFX(ForceEnableDebugLayer)(ZRHI_NS::CAPI::ZRHIFactoryHandle instance) noexcept;
 ZRHI_API_IMPORT ZRHI_NS::ReturnCode ZRHI_FNPFX(Create)(ZRHI_NS::CAPI::ZRHIFactoryHandle instance, ZRHI_NS::CAPI::ZRHIInterfaceHandle* outInstance) noexcept;
 ZRHI_API_IMPORT void ZRHI_FNPFX(Release)(ZRHI_NS::CAPI::ZRHIFactoryHandle instance) noexcept;
-#endif // ZRHI_NO_STATIC_API_DECL
+#else
+extern ZRHI_PFN(ZRHI_FNPFX(SetGFXAPI)) ZRHI_FNPFX(SetGFXAPI);
+extern ZRHI_PFN(ZRHI_FNPFX(UseGFXCore)) ZRHI_FNPFX(UseGFXCore);
+extern ZRHI_PFN(ZRHI_FNPFX(UseForcedAdapter)) ZRHI_FNPFX(UseForcedAdapter);
+extern ZRHI_PFN(ZRHI_FNPFX(UseAutoSelectedAdapter)) ZRHI_FNPFX(UseAutoSelectedAdapter);
+extern ZRHI_PFN(ZRHI_FNPFX(ForceSoftwareDevice)) ZRHI_FNPFX(ForceSoftwareDevice);
+extern ZRHI_PFN(ZRHI_FNPFX(ForceEnableDebugLayer)) ZRHI_FNPFX(ForceEnableDebugLayer);
+extern ZRHI_PFN(ZRHI_FNPFX(Create)) ZRHI_FNPFX(Create);
+extern ZRHI_PFN(ZRHI_FNPFX(Release)) ZRHI_FNPFX(Release);
+#endif // ZRHI_STATIC_API_DECL
 
 #ifndef ZRHI_NO_CAPI_IMPL
 namespace ZRHI_NS::CAPI
@@ -2570,8 +2636,10 @@ namespace ZRHI_NS::CAPI
 
 typedef ZRHI_NS::ReturnCode (*ZRHI_PFN(ZRHI_FNPFX(CreateRHIFactory)))(ZRHI_NS::CAPI::ZRHIFactoryHandle* outInstance) noexcept;
 
-#ifndef ZRHI_NO_STATIC_API_DECL
+#ifdef ZRHI_STATIC_API_DECL
 ZRHI_API_IMPORT ZRHI_NS::ReturnCode ZRHI_FNPFX(CreateRHIFactory)(ZRHI_NS::CAPI::ZRHIFactoryHandle* outInstance) noexcept;
+#else
+extern ZRHI_PFN(ZRHI_FNPFX(CreateRHIFactory)) ZRHI_FNPFX(CreateRHIFactory);
 #endif
 
 #ifndef ZRHI_NO_CAPI_IMPL

@@ -235,6 +235,8 @@ namespace Zibra::CE::Compression
 #if !defined(ZCE_NO_CAPI_IMPL) && !defined(ZCE_NO_STATIC_API_DECL) && !defined(ZCE_API_CALL)
 #define ZCE_API_CALL(func, ...) func(__VA_ARGS__)
 #elif !defined(ZCE_NO_CAPI_IMPL) && defined(ZCE_NO_STATIC_API_DECL) && !defined(ZCE_API_CALL)
+#define ZCE_API_CALL(func, ...) func(__VA_ARGS__)
+#else
 #error "You must define ZCE_API_CALL(func, ...) macro before using CAPI without static function declaration."
 #endif
 
@@ -256,9 +258,12 @@ namespace ZCE_NS::CAPI
 typedef Zibra::CE::ReturnCode (*ZCE_PFN(ZCE_FNPFX(AddMetadata)))(ZCE_NS::CAPI::FrameManagerHandle instance, const char* key, const char* value);
 typedef Zibra::CE::ReturnCode (*ZCE_PFN(ZCE_FNPFX(Finish)))(ZCE_NS::CAPI::FrameManagerHandle instance);
 
-#ifndef ZCE_NO_STATIC_API_DECL
+#ifdef ZRHI_STATIC_API_DECL
 ZCE_API_IMPORT Zibra::CE::ReturnCode ZCE_FNPFX(AddMetadata)(ZCE_NS::CAPI::FrameManagerHandle instance, const char* key, const char* value) noexcept;
 ZCE_API_IMPORT Zibra::CE::ReturnCode ZCE_FNPFX(Finish)(ZCE_NS::CAPI::FrameManagerHandle instance) noexcept;
+#else
+extern ZCE_PFN(ZCE_FNPFX(AddMetadata)) ZCE_FNPFX(AddMetadata);
+extern ZCE_PFN(ZCE_FNPFX(Finish)) ZCE_FNPFX(Finish);
 #endif
 
 #ifndef ZCE_NO_CAPI_IMPL
@@ -275,7 +280,7 @@ namespace ZCE_NS::CAPI
     public:
         ReturnCode AddMetadata(const char* key, const char* value) noexcept final
         {
-            ZCE_API_CALL(ZCE_FNPFX(AddMetadata), m_NativeInstance, key, value);
+            return ZCE_API_CALL(ZCE_FNPFX(AddMetadata), m_NativeInstance, key, value);
         }
         ReturnCode Finish() noexcept final
         {
@@ -311,13 +316,20 @@ typedef Zibra::CE::ReturnCode (*ZCE_PFN(ZCE_FNPFX(AddPerSequenceMetadata)))(ZCE_
 typedef Zibra::CE::ReturnCode (*ZCE_PFN(ZCE_FNPFX(CompressFrame)))(ZCE_NS::CAPI::CompressorHandle instance, const ZCE_NS::CompressFrameDesc& desc, ZCE_NS::CAPI::FrameManagerHandle* outFrame);
 typedef Zibra::CE::ReturnCode (*ZCE_PFN(ZCE_FNPFX(FinishSequence)))(ZCE_NS::CAPI::CompressorHandle instance, Zibra::CE::CAPI::OStreamVTable vt);
 
-#ifndef ZCE_NO_STATIC_API_DECL
+#ifdef ZRHI_STATIC_API_DECL
 ZCE_API_IMPORT Zibra::CE::ReturnCode ZCE_FNPFX(Initialize)(ZCE_NS::CAPI::CompressorHandle instance) noexcept;
 ZCE_API_IMPORT void ZCE_FNPFX(Release)(ZCE_NS::CAPI::CompressorHandle instance) noexcept;
 ZCE_API_IMPORT Zibra::CE::ReturnCode ZCE_FNPFX(StartSequence)(ZCE_NS::CAPI::CompressorHandle instance) noexcept;
 ZCE_API_IMPORT Zibra::CE::ReturnCode ZCE_FNPFX(AddPerSequenceMetadata)(ZCE_NS::CAPI::CompressorHandle instance, const char* key, const char* value) noexcept;
 ZCE_API_IMPORT Zibra::CE::ReturnCode ZCE_FNPFX(CompressFrame)(ZCE_NS::CAPI::CompressorHandle instance, const ZCE_NS::CompressFrameDesc& desc, ZCE_NS::CAPI::FrameManagerHandle* outFrame) noexcept;
 ZCE_API_IMPORT Zibra::CE::ReturnCode ZCE_FNPFX(FinishSequence)(ZCE_NS::CAPI::CompressorHandle instance, Zibra::CE::CAPI::OStreamVTable vt) noexcept;
+#else
+extern ZCE_PFN(ZCE_FNPFX(Initialize)) ZCE_FNPFX(Initialize);
+extern ZCE_PFN(ZCE_FNPFX(Release)) ZCE_FNPFX(Release);
+extern ZCE_PFN(ZCE_FNPFX(StartSequence)) ZCE_FNPFX(StartSequence);
+extern ZCE_PFN(ZCE_FNPFX(AddPerSequenceMetadata)) ZCE_FNPFX(AddPerSequenceMetadata);
+extern ZCE_PFN(ZCE_FNPFX(CompressFrame)) ZCE_FNPFX(CompressFrame);
+extern ZCE_PFN(ZCE_FNPFX(FinishSequence)) ZCE_FNPFX(FinishSequence);
 #endif
 
 #ifndef ZCE_NO_CAPI_IMPL
@@ -389,13 +401,20 @@ typedef Zibra::CE::ReturnCode (*ZCE_PFN(ZCE_FNPFX(SetFrameMapping)))(ZCE_NS::CAP
 typedef Zibra::CE::ReturnCode (*ZCE_PFN(ZCE_FNPFX(Create)))(ZCE_NS::CAPI::CompressorFactoryHandle instance, ZCE_NS::CAPI::CompressorHandle* outInstance);
 typedef Zibra::CE::ReturnCode (*ZCE_PFN(ZCE_FNPFX(Release)))(ZCE_NS::CAPI::CompressorFactoryHandle instance);
 
-#ifndef ZCE_NO_STATIC_API_DECL
-ZCE_API_IMPORT Zibra::CE::ReturnCode ZCE_FNPFX(UseRHI)(ZCE_NS::CAPI::CompressorFactoryHandle instance, Zibra::RHI::CAPI::ConsumerBridge::RHIInterfaceVTable vt) noexcept;
+#ifdef ZRHI_STATIC_API_DECL
+ZCE_API_IMPORT Zibra::CE::ReturnCode ZCE_FNPFX(UseRHI)(ZCE_NS::CAPI::CompressorFactoryHandle instance, Zibra::RHI::CAPI::ConsumerBridge::RHIRuntimeVTable vt) noexcept;
 ZCE_API_IMPORT Zibra::CE::ReturnCode ZCE_FNPFX(SetQuality)(ZCE_NS::CAPI::CompressorFactoryHandle instance, float quality) noexcept;
 ZCE_API_IMPORT Zibra::CE::ReturnCode ZCE_FNPFX(OverrideChannelQuality)(ZCE_NS::CAPI::CompressorFactoryHandle instance, const char* channelName, float quality) noexcept;
 ZCE_API_IMPORT Zibra::CE::ReturnCode ZCE_FNPFX(SetFrameMapping)(ZCE_NS::CAPI::CompressorFactoryHandle instance, const ZCE_NS::FrameMappingDecs& desc) noexcept;
 ZCE_API_IMPORT Zibra::CE::ReturnCode ZCE_FNPFX(Create)(ZCE_NS::CAPI::CompressorFactoryHandle instance, ZCE_NS::CAPI::CompressorHandle* outInstance) noexcept;
 ZCE_API_IMPORT void ZCE_FNPFX(Release)(ZCE_NS::CAPI::CompressorFactoryHandle instance) noexcept;
+#else
+extern ZCE_PFN(ZCE_FNPFX(UseRHI)) ZCE_FNPFX(UseRHI);
+extern ZCE_PFN(ZCE_FNPFX(SetQuality)) ZCE_FNPFX(SetQuality);
+extern ZCE_PFN(ZCE_FNPFX(OverrideChannelQuality)) ZCE_FNPFX(OverrideChannelQuality);
+extern ZCE_PFN(ZCE_FNPFX(SetFrameMapping)) ZCE_FNPFX(SetFrameMapping);
+extern ZCE_PFN(ZCE_FNPFX(Create)) ZCE_FNPFX(Create);
+extern ZCE_PFN(ZCE_FNPFX(Release)) ZCE_FNPFX(Release);
 #endif
 
 #ifndef ZCE_NO_CAPI_IMPL
@@ -410,7 +429,7 @@ namespace ZCE_NS::CAPI
         }
 
     public:
-        ReturnCode UseRHI(RHI::RHIInterface* rhi) noexcept final
+        ReturnCode UseRHI(RHI::RHIRuntime* rhi) noexcept final
         {
             return ZCE_API_CALL(ZCE_FNPFX(UseRHI), m_NativeInstance, RHI::CAPI::ConsumerBridge::VTConvert(rhi));
         }
@@ -456,8 +475,12 @@ namespace ZCE_NS::CAPI
 
 typedef Zibra::CE::ReturnCode (*ZCE_PFN(ZCE_FNPFX(CreateCompressorFactory)))(ZCE_NS::CAPI::CompressorFactoryHandle* outInstance);
 
-#ifndef ZCE_NO_STATIC_API_DECL
+
+
+#ifdef ZRHI_STATIC_API_DECL
 ZCE_API_IMPORT Zibra::CE::ReturnCode ZCE_FNPFX(CreateCompressorFactory)(ZCE_NS::CAPI::CompressorFactoryHandle* outInstance) noexcept;
+#else
+extern ZCE_PFN(ZCE_FNPFX(CreateCompressorFactory)) ZCE_FNPFX(CreateCompressorFactory);
 #endif
 
 #ifndef ZCE_NO_CAPI_IMPL

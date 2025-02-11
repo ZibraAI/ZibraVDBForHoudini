@@ -1,5 +1,6 @@
 #pragma once
 #include "Globals.h"
+#include "bridge/RHIWrapper/RHIWrapper.h"
 
 namespace Zibra::OpenVDBSupport
 {
@@ -75,16 +76,20 @@ namespace Zibra::ZibraVDBCompressor
                                 const OpenVDBSupport::DecodeMetadata& decodeMetadata);
 
         static int DownloadLibrary(void* data, int index, fpreal32 time, const PRM_Template* tplate);
-        uint32_t CreateCompressor(fpreal tStart);
+        ROP_RENDER_CODE CreateCompressor(fpreal tStart);
 
     private:
         fpreal m_EndTime = 0;
         fpreal m_StartTime = 0;
         SOP_Node* m_InputSOP = nullptr;
 
-        uint32_t CompressorInstanceID = uint32_t(-1);
         std::vector<std::string> m_OrderedChannelNames{};
 
         ContextType m_ContextType;
+
+        CE::Compression::CompressorFactory* m_Factory = nullptr;
+        CE::Compression::Compressor* m_Compressor = nullptr;
+        RHIWrapper* m_RHIWrapper = nullptr;
+        std::ofstream m_Ofstream;
     };
 } // namespace Zibra::ZibraVDBCompressor

@@ -46,14 +46,19 @@ typedef bool (*ZCE_PFN(ZCE_FNPFX(CheckoutLicenseOffline)))(const char* licenseKe
 typedef ZCE_NS::LicenseStatus (*ZCE_PFN(ZCE_FNPFX(GetLicenseStatus)))(ZCE_NS::ProductType product);
 typedef void (*ZCE_PFN(ZCE_FNPFX(ReleaseLicense)))();
 
-#ifndef ZCE_NO_STATIC_API_DECL
+#ifdef ZRHI_STATIC_API_DECL
 ZCE_API_IMPORT bool ZCE_FNPFX(CheckoutLicenseWithKey)(const char* licenseKey) noexcept;
 ZCE_API_IMPORT bool ZCE_FNPFX(CheckoutLicenseOffline)(const char* licenseKey) noexcept;
 ZCE_API_IMPORT ZCE_NS::LicenseStatus ZCE_FNPFX(GetLicenseStatus)(ZCE_NS::ProductType product) noexcept;
 ZCE_API_IMPORT void ZCE_FNPFX(ReleaseLicense)() noexcept;
+#else
+extern ZCE_PFN(ZCE_FNPFX(CheckoutLicenseWithKey)) ZCE_FNPFX(CheckoutLicenseWithKey);
+extern ZCE_PFN(ZCE_FNPFX(CheckoutLicenseOffline)) ZCE_FNPFX(CheckoutLicenseOffline);
+extern ZCE_PFN(ZCE_FNPFX(GetLicenseStatus)) ZCE_FNPFX(GetLicenseStatus);
+extern ZCE_PFN(ZCE_FNPFX(ReleaseLicense)) ZCE_FNPFX(ReleaseLicense);
 #endif
 
-#ifndef ZCE_NO_STATIC_API_DECL
+#ifndef ZCE_NO_CAPI_IMPL
 namespace ZCE_NS::CAPI
 {
     inline bool CheckoutLicenseWithKey(const char* licenseKey) noexcept
@@ -77,7 +82,6 @@ namespace ZCE_NS::CAPI
 
 #undef ZCE_FNPFX
 #pragma endregion Funcs
-
 
 #undef ZCE_NS
 #undef ZCE_PFN
