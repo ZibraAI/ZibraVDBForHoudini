@@ -8,7 +8,7 @@
             "name": "Launch Houdini",
             "type": "cppdbg",
             "request": "launch",
-            "program": "/opt/hfs20.5.410/bin/houdini-bin",
+            "program": "/opt/hfs20.5/bin/houdini-bin",
             "args": ["-foreground", "${workspaceFolder}/HIP/HDAs.hip"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
