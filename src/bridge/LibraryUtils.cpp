@@ -182,6 +182,7 @@ ZCE_PFN(ZCE_FNPFX(RegisterResources)) ZCE_FNPFX(RegisterResources) = nullptr;
 ZCE_PFN(ZCE_FNPFX(GetResourcesRequirements)) ZCE_FNPFX(GetResourcesRequirements) = nullptr;
 ZCE_PFN(ZCE_FNPFX(GetFormatMapper)) ZCE_FNPFX(GetFormatMapper) = nullptr;
 ZCE_PFN(ZCE_FNPFX(DecompressFrame)) ZCE_FNPFX(DecompressFrame) = nullptr;
+ZCE_PFN(ZCE_FNPFX(GetMaxDimensionsPerSubmit)) ZCE_FNPFX(GetMaxDimensionsPerSubmit) = nullptr;
 
 #undef ZCE_FNPFX
 #pragma endregion Decompressor
@@ -189,6 +190,7 @@ ZCE_PFN(ZCE_FNPFX(DecompressFrame)) ZCE_FNPFX(DecompressFrame) = nullptr;
 #pragma region DecompressorFactory
 #define ZCE_FNPFX(name) Zibra_CE_Decompression_DecompressorFactory_##name
 
+ZCE_PFN(ZCE_FNPFX(SetMemoryLimitPerResource)) ZCE_FNPFX(SetMemoryLimitPerResource) = nullptr;
 ZCE_PFN(ZCE_FNPFX(UseDecoder)) ZCE_FNPFX(UseDecoder) = nullptr;
 ZCE_PFN(ZCE_FNPFX(UseRHI)) ZCE_FNPFX(UseRHI) = nullptr;
 ZCE_PFN(ZCE_FNPFX(Create)) ZCE_FNPFX(Create) = nullptr;
@@ -545,6 +547,7 @@ namespace Zibra::LibraryUtils
         ZIB_LOAD_FUNCTION_POINTER(GetResourcesRequirements);
         ZIB_LOAD_FUNCTION_POINTER(GetFormatMapper);
         ZIB_LOAD_FUNCTION_POINTER(DecompressFrame);
+        ZIB_LOAD_FUNCTION_POINTER(GetMaxDimensionsPerSubmit);
 
 #undef ZCE_FNPFX
 #pragma endregion Decompressor
@@ -552,6 +555,7 @@ namespace Zibra::LibraryUtils
 #pragma region DecompressorFactory
 #define ZCE_FNPFX(name) Zibra_CE_Decompression_DecompressorFactory_##name
 
+        ZIB_LOAD_FUNCTION_POINTER(SetMemoryLimitPerResource);
         ZIB_LOAD_FUNCTION_POINTER(UseDecoder);
         ZIB_LOAD_FUNCTION_POINTER(UseRHI);
         ZIB_LOAD_FUNCTION_POINTER(Create);

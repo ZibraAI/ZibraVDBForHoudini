@@ -30,10 +30,6 @@ namespace Zibra
             requirements.decompressionPerSpatialBlockInfoSizeInBytes, RHI::ResourceHeapType::Default,
             RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource | RHI::ResourceUsage::CopySource,
             requirements.decompressionPerSpatialBlockInfoStride, "decompressionPerSpatialBlockInfo");
-        m_decompressorResources.decompressionSpatialToChannelIndexLookup = m_RHIRuntime->CreateBuffer(
-            requirements.decompressionSpatialToChannelIndexLookupSizeInBytes, RHI::ResourceHeapType::Default,
-            RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource | RHI::ResourceUsage::CopySource,
-            requirements.decompressionSpatialToChannelIndexLookupStride, "decompressionSpatialToChannelIndexLookup");
     }
 
     void RHIWrapper::FreeExternalBuffers() noexcept
@@ -41,7 +37,6 @@ namespace Zibra
         m_RHIRuntime->ReleaseBuffer(m_decompressorResources.decompressionPerChannelBlockData);
         m_RHIRuntime->ReleaseBuffer(m_decompressorResources.decompressionPerChannelBlockInfo);
         m_RHIRuntime->ReleaseBuffer(m_decompressorResources.decompressionPerSpatialBlockInfo);
-        m_RHIRuntime->ReleaseBuffer(m_decompressorResources.decompressionSpatialToChannelIndexLookup);
     }
 
     void RHIWrapper::StartRecording() const noexcept
@@ -91,20 +86,24 @@ namespace Zibra
         return *(reinterpret_cast<float*>(&float32_value));
     }
 
-    static void UnpackBlocks(OpenVDBSupport::DecompressedFrameData& decompressedBlockData, const CE::Decompression::FrameInfo& frameInfo,
+    static void UnpackBlocks(OpenVDBSupport::DecompressedFrameData& decompressedBlockData,
                              const std::vector<uint32_t>& scratchBufferSpatialBlockData,
                              const std::vector<uint16_t>& scratchBufferChannelBlockData) noexcept
     {
-        for (size_t i = 0; i < frameInfo.channelBlockCount; ++i)
-        {
-            for (size_t j = 0; j < CE::SPARSE_BLOCK_VOXEL_COUNT; ++j)
-            {
-                size_t bufIdx = i * CE::SPARSE_BLOCK_VOXEL_COUNT + j;
-                decompressedBlockData.channelBlocks[i].voxels[j] = Float16ToFloat32(scratchBufferChannelBlockData[bufIdx]);
-            }
-        }
+        const auto channelBlockCount = scratchBufferChannelBlockData.size() / CE::SPARSE_BLOCK_VOXEL_COUNT;
+        std::for_each(std::execution::par_unseq, decompressedBlockData.channelBlocks,
+                      decompressedBlockData.channelBlocks + channelBlockCount, [&](CE::Decompression::ChannelBlock& block) noexcept {
+                          const auto blockIdx = &block - decompressedBlockData.channelBlocks;
 
-        for (size_t i = 0; i < frameInfo.spatialBlockCount; ++i)
+                          for (size_t i = 0; i < Zibra::CE::SPARSE_BLOCK_VOXEL_COUNT; ++i)
+                          {
+                              const size_t bufIdx = blockIdx * Zibra::CE::SPARSE_BLOCK_VOXEL_COUNT + i;
+                              block.voxels[i] = Float16ToFloat32(scratchBufferChannelBlockData[bufIdx]);
+                          }
+                      });
+
+        const auto spatialBlockCount = scratchBufferSpatialBlockData.size() / 3;
+        for (size_t i = 0; i < spatialBlockCount; ++i)
         {
             uint32_t packedCoords = scratchBufferSpatialBlockData[i * 3];
             decompressedBlockData.spatialBlocks[i].coords[0] = int32_t((packedCoords >> 0u) & 1023u);
@@ -115,29 +114,37 @@ namespace Zibra
         }
     }
 
-    OpenVDBSupport::DecompressedFrameData RHIWrapper::GetDecompressedFrameData(const CE::Decompression::FrameInfo& frameInfo) const noexcept
+    OpenVDBSupport::DecompressedFrameData RHIWrapper::GetDecompressedFrameData(
+        const CE::Decompression::DecompressFrameDesc& desc, const CE::Decompression::DecompressedFrameFeedback& feedback) const noexcept
     {
         m_RHIRuntime->StartRecording();
 
-        OpenVDBSupport::DecompressedFrameData decompressedFrameData;
+        OpenVDBSupport::DecompressedFrameData decompressedFrameData{};
 
-        decompressedFrameData.channelBlocks = new CE::Decompression::ChannelBlock[frameInfo.channelBlockCount];
-        decompressedFrameData.spatialBlocks = new CE::Decompression::SpatialBlock[frameInfo.spatialBlockCount];
+        decompressedFrameData.channelBlocks = new CE::Decompression::ChannelBlock[feedback.channelBlocksCount];
+        decompressedFrameData.spatialBlocks = new CE::Decompression::SpatialBlock[desc.spatialBlocksCount];
 
-        const size_t spatialBlockInfoElementCount = frameInfo.spatialBlockCount * 3;
+        const size_t spatialBlockInfoElementCount = desc.spatialBlocksCount * 3;
         std::vector<uint32_t> scratchBufferSpatialBlockData(spatialBlockInfoElementCount);
         m_RHIRuntime->GetBufferDataImmediately(m_decompressorResources.decompressionPerSpatialBlockInfo,
-                                               scratchBufferSpatialBlockData.data(), spatialBlockInfoElementCount * sizeof(uint32_t), 0);
-        const size_t channelBlockDataElementCount = frameInfo.channelBlockCount * CE::SPARSE_BLOCK_VOXEL_COUNT;
+                                               scratchBufferSpatialBlockData.data(), spatialBlockInfoElementCount * sizeof(uint32_t),
+                                               desc.decompressionPerSpatialBlockInfoOffset);
+        const size_t channelBlockDataElementCount = feedback.channelBlocksCount * CE::SPARSE_BLOCK_VOXEL_COUNT;
         std::vector<uint16_t> scratchBufferChannelBlockData(channelBlockDataElementCount);
         m_RHIRuntime->GetBufferDataImmediately(m_decompressorResources.decompressionPerChannelBlockData,
-                                               scratchBufferChannelBlockData.data(), channelBlockDataElementCount * sizeof(uint16_t), 0);
+                                               scratchBufferChannelBlockData.data(), channelBlockDataElementCount * sizeof(uint16_t),
+                                               desc.decompressionPerChannelBlockDataOffset);
 
         m_RHIRuntime->StopRecording();
 
-        UnpackBlocks(decompressedFrameData, frameInfo, scratchBufferSpatialBlockData, scratchBufferChannelBlockData);
+        UnpackBlocks(decompressedFrameData, scratchBufferSpatialBlockData, scratchBufferChannelBlockData);
 
         return decompressedFrameData;
+    }
+    void RHIWrapper::ReleaseDecompressedFrameData(OpenVDBSupport::DecompressedFrameData& decompressedFrameData) noexcept
+    {
+        delete[] decompressedFrameData.channelBlocks;
+        delete[] decompressedFrameData.spatialBlocks;
     }
 
 } // namespace Zibra
