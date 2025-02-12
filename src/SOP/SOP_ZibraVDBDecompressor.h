@@ -41,6 +41,7 @@ namespace Zibra::ZibraVDBDecompressor
         CE::Decompression::DecompressorFactory* m_Factory = nullptr;
         CE::ZibraVDB::FileDecoder* m_Decoder = nullptr;
         CE::Decompression::Decompressor* m_Decompressor = nullptr;
+        CE::Decompression::CAPI::FormatMapperCAPI* m_FormatMapper = nullptr;
         RHIWrapper* m_RHIWrapper = nullptr;
     };
 

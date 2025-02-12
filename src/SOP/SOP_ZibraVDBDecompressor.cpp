@@ -176,6 +176,7 @@ namespace Zibra::ZibraVDBDecompressor
             if (m_Decompressor)
             {
                 m_RHIWrapper->FreeExternalBuffers();
+                delete m_FormatMapper;
                 m_Decompressor->Release();
                 m_Decompressor = nullptr;
             }
@@ -194,6 +195,13 @@ namespace Zibra::ZibraVDBDecompressor
                 return error(context);
             }
 
+            m_FormatMapper = static_cast<CE::Decompression::CAPI::FormatMapperCAPI*>(m_Decompressor->GetFormatMapper());
+            if (!m_FormatMapper)
+            {
+                addError(SOP_MESSAGE, "Failed to get format mapped for sequence.");
+                return error(context);
+            }
+
             m_RHIWrapper->AllocateExternalBuffers(m_Decompressor->GetResourcesRequirements());
 
             status = m_Decompressor->RegisterResources(m_RHIWrapper->GetDecompressorResources());
@@ -207,8 +215,7 @@ namespace Zibra::ZibraVDBDecompressor
         const exint frameIndex = evalInt(FRAME_PARAM_NAME, 0, context.getTime());
 
         CE::Decompression::CompressedFrameContainer* frameContainer = nullptr;
-        CE::Decompression::FormatMapper* formatMapper = m_Decompressor->GetFormatMapper();
-        FrameRange frameRange = formatMapper->GetFrameRange();
+        FrameRange frameRange = m_FormatMapper->GetFrameRange();
 
         if (frameIndex < frameRange.start || frameIndex > frameRange.end)
         {
@@ -216,7 +223,7 @@ namespace Zibra::ZibraVDBDecompressor
             return error(context);
         }
 
-        formatMapper->FetchFrame(frameIndex, &frameContainer);
+        m_FormatMapper->FetchFrame(frameIndex, &frameContainer);
 
         if (frameContainer == nullptr)
         {
