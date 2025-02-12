@@ -21,8 +21,12 @@ namespace Zibra::UI
         void Show(const std::string& message, void (*callback)(MessageBox::Result));
 
     private:
+        static constexpr size_t MAX_CHARS_PER_LINE = 95;
+        static constexpr size_t LINE_COUNT = 3;
+
         bool ParseUIFile();
         void HandleClick(UI_Event* event);
+        std::array<std::string, LINE_COUNT> SplitMessage(const std::string& message);
 
         const char* m_UIFile;
         bool m_IsParsed = false;
@@ -43,8 +47,11 @@ namespace Zibra::UI
 
         m_Callback = callback;
 
-        (*getValueSymbol("message.val")) = message.c_str();
-        volatile const char* test2 = (*getValueSymbol("message.val"));
+        auto lines = SplitMessage(message);
+
+        (*getValueSymbol("message1.val")) = lines[0].c_str();
+        (*getValueSymbol("message2.val")) = lines[1].c_str();
+        (*getValueSymbol("message3.val")) = lines[2].c_str();
 
         (*getValueSymbol("dialog.val")) = true;
         getValueSymbol("dialog.val")->changed(this);
@@ -79,6 +86,44 @@ namespace Zibra::UI
         {
             m_Callback(static_cast<MessageBox::Result>(result));
         }
+    }
+
+    std::array<std::string, MessageBoxDialog::LINE_COUNT> MessageBoxDialog::SplitMessage(const std::string& message)
+    {
+        std::array<std::string, LINE_COUNT> result;
+
+        size_t currentOffset = 0;
+        size_t totalLength = message.size();
+
+        for (std::string& line : result)
+        {
+            if (currentOffset == totalLength)
+            {
+                break;
+            }
+
+            size_t afterSpaces = message.find_first_not_of(' ', currentOffset);
+            if (afterSpaces != std::string::npos)
+            {
+                currentOffset = afterSpaces;
+            }
+
+            if (currentOffset + MAX_CHARS_PER_LINE >= totalLength)
+            {
+                line = message.substr(currentOffset);
+                break;
+            }
+
+            size_t nextOffset = message.find_last_of(' ', currentOffset + MAX_CHARS_PER_LINE);
+            if (nextOffset == std::string::npos)
+            {
+                nextOffset = std::min(currentOffset + MAX_CHARS_PER_LINE, totalLength);
+            }
+            line = message.substr(currentOffset, nextOffset - currentOffset);
+            currentOffset = nextOffset;
+        }
+
+        return result;
     }
 
     void MessageBox::Show(Type type, const std::string& message, void (*callback)(MessageBox::Result) /*= nullptr*/)
