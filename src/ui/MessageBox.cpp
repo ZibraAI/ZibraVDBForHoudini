@@ -115,7 +115,7 @@ namespace Zibra::UI
             }
 
             size_t nextOffset = message.find_last_of(' ', currentOffset + MAX_CHARS_PER_LINE);
-            if (nextOffset == std::string::npos)
+            if (nextOffset == std::string::npos || nextOffset <= currentOffset)
             {
                 nextOffset = std::min(currentOffset + MAX_CHARS_PER_LINE, totalLength);
             }
