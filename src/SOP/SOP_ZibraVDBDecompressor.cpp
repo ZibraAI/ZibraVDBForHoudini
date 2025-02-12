@@ -167,6 +167,7 @@ namespace Zibra::ZibraVDBDecompressor
             }
 
             status = m_Factory->UseDecoder(m_Decoder);
+
             if (status != CE::ZCE_SUCCESS)
             {
                 addError(SOP_MESSAGE, "Failed to assign decoder to compressor factory.");
@@ -231,15 +232,37 @@ namespace Zibra::ZibraVDBDecompressor
             return error(context);
         }
 
+        const FrameInfo& frameInfo = frameContainer->GetInfo();
+        OpenVDBSupport::EncodeMetadata encodeMetadata = ReadEncodeMetadata(frameContainer);
+        openvdb::GridPtrVec vdbGrids = OpenVDBSupport::OpenVDBEncoder::CreateGrids(frameInfo, encodeMetadata);
+
         m_RHIWrapper->StartRecording();
-        m_Decompressor->DecompressFrame(frameContainer);
+
+        const MaxDimensionsPerSubmit maxDimensionsPerSubmit = m_Decompressor->GetMaxDimensionsPerSubmit();
+        const uint32_t maxChunkSize = maxDimensionsPerSubmit.maxSpatialBlocks;
+        const uint32_t chunksCount = (frameInfo.spatialBlockCount + maxChunkSize - 1) / maxChunkSize;
+
+        for (int chunkIdx = 0; chunkIdx < chunksCount; ++chunkIdx)
+        {
+            DecompressFrameDesc desc{};
+            desc.frameContainer = frameContainer;
+            desc.firstSpatialBlockIndex = maxChunkSize * chunkIdx;
+            desc.spatialBlocksCount = std::min(maxChunkSize, frameInfo.spatialBlockCount - maxChunkSize * chunkIdx);
+
+            DecompressedFrameFeedback feedback{};
+
+            m_Decompressor->DecompressFrame(&desc, &feedback);
+
+            // TODO VDB-1291: Implement read-back circular buffer, to optimize GPU stalls.
+            //                Implement cpu circular buffer to optimize RAM allocation for DecompressedFrameData.
+            //                Move EncodeFrame into separate thread to overlay CPU and CPU work.
+            OpenVDBSupport::DecompressedFrameData decompressedFrameData = m_RHIWrapper->GetDecompressedFrameData(desc, feedback);
+            OpenVDBSupport::OpenVDBEncoder::EncodeFrame(vdbGrids, desc, feedback, decompressedFrameData, encodeMetadata);
+            Zibra::RHIWrapper::ReleaseDecompressedFrameData(decompressedFrameData);
+        }
+
         m_RHIWrapper->StopRecording();
         m_RHIWrapper->GarbageCollect();
-
-        FrameInfo frameInfo = frameContainer->GetInfo();
-        OpenVDBSupport::EncodeMetadata encodeMetadata = ReadEncodeMetadata(frameContainer);
-        OpenVDBSupport::DecompressedFrameData decompressedFrameData = m_RHIWrapper->GetDecompressedFrameData(frameInfo);
-        auto vdbGrids = OpenVDBSupport::OpenVDBEncoder::EncodeFrame(frameInfo, decompressedFrameData, encodeMetadata);
 
         gdp->addStringTuple(GA_ATTRIB_PRIMITIVE, "name", 1);
         GA_RWHandleS nameAttr{gdp->findPrimitiveAttribute("name")};
