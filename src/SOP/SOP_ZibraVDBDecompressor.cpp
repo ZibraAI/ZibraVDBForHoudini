@@ -263,6 +263,8 @@ namespace Zibra::ZibraVDBDecompressor
         ApplyDetailMetadata(gdp, frameContainer);
 
         frameContainer->Release();
+        delete decompressedFrameData.channelBlocks;
+        delete decompressedFrameData.spatialBlocks;
 
         return error(context);
     }
