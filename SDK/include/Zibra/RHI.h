@@ -42,6 +42,19 @@
 
 namespace Zibra::RHI
 {
+    struct Version
+    {
+        uint32_t major;
+        uint32_t minor;
+        uint32_t patch;
+        uint32_t build;
+    };
+    inline bool operator==(const Version& l, const Version& r) noexcept
+    {
+        return l.major == r.major && l.minor == r.minor && l.patch == r.patch && l.build == r.build;
+    }
+    constexpr Version ZRHI_VERSION = {1, 0, 0, 0};
+
     enum class GFXAPI : int8_t
     {
         /// NULL API
@@ -1725,6 +1738,7 @@ namespace Zibra::RHI
     };
 
     ReturnCode CreateRHIFactory(RHIFactory** outFactory) noexcept;
+    Version GetVersion() noexcept;
 }
 
 #pragma region CAPI
@@ -1896,6 +1910,8 @@ namespace ZRHI_NS::CAPI
 #endif // ZRHI_SUPPORT_D3D12
 #pragma endregion D3D12GFXCore
 
+#ifndef ZRHI_NO_CAPI_IMPL
+
 #pragma region RHIRuntime
 #define ZRHI_FNPFX(name) Zibra_RHI_RHIInterface_##name
 
@@ -2005,7 +2021,7 @@ typedef void (*ZRHI_PFN(ZRHI_FNPFX(EndDebugRegion)))(ZRHI_NS::CAPI::ZRHIInterfac
 typedef void (*ZRHI_PFN(ZRHI_FNPFX(StartFrameCapture)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance, const char* captureName) noexcept;
 typedef void (*ZRHI_PFN(ZRHI_FNPFX(StopFrameCapture)))(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance) noexcept;
 
-#ifdef ZRHI_STATIC_API_DECL
+#ifndef ZRHI_NO_STATIC_API_DECL
 ZRHI_API_IMPORT void ZRHI_FNPFX(Release)(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance) noexcept;
 ZRHI_API_IMPORT bool ZRHI_FNPFX(GarbageCollect)(ZRHI_NS::CAPI::ZRHIInterfaceHandle instance) noexcept;
 ZRHI_API_IMPORT ZRHI_NS::GFXAPI ZRHI_FNPFX(GetGFXAPI)(const ZRHI_NS::CAPI::ZRHIInterfaceHandle instance) noexcept;
@@ -2172,18 +2188,10 @@ extern ZRHI_PFN(ZRHI_FNPFX(StartFrameCapture)) ZRHI_FNPFX(StartFrameCapture);
 extern ZRHI_PFN(ZRHI_FNPFX(StopFrameCapture)) ZRHI_FNPFX(StopFrameCapture);
 #endif
 
-#ifndef ZRHI_API_CALL
-#define ZRHI_API_CALL(func, ...) func(__VA_ARGS__)
-#endif // ZRHI_API_CALL
-
-#ifndef ZRHI_NO_CAPI_IMPL
 namespace ZRHI_NS::CAPI
 {
     // --- RHIInterface Wrapper ----------------------------------------------------------------------------------------------------------------------
 
-#ifndef ZRHI_API_CALL
-#define ZRHI_API_CALL(func, ...) func(__VA_ARGS__)
-#endif
 
     class RHIInterfaceDLLProxy final : public RHIRuntime
     {
@@ -2204,309 +2212,308 @@ namespace ZRHI_NS::CAPI
 
         void Release() noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(Release), m_NativeInstance);
+            ZRHI_FNPFX(Release)(m_NativeInstance);
             delete this;
         }
 
         bool GarbageCollect() noexcept final
         {
-            return ZRHI_API_CALL(ZRHI_FNPFX(GarbageCollect), m_NativeInstance);
+            return ZRHI_FNPFX(GarbageCollect)(m_NativeInstance);
         }
 
         [[nodiscard]] GFXAPI GetGFXAPI() const noexcept final
         {
-            return ZRHI_API_CALL(ZRHI_FNPFX(GetGFXAPI), m_NativeInstance);
+            return ZRHI_FNPFX(GetGFXAPI)(m_NativeInstance);
         }
 
         [[nodiscard]] bool QueryFeatureSupport(Feature feature) const noexcept final
         {
-            return ZRHI_API_CALL(ZRHI_FNPFX(QueryFeatureSupport), m_NativeInstance, feature);
+            return ZRHI_FNPFX(QueryFeatureSupport)(m_NativeInstance, feature);
         }
 
         void SetStablePowerState(bool enable) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(SetStablePowerState), m_NativeInstance, enable);
+            ZRHI_FNPFX(SetStablePowerState)(m_NativeInstance, enable);
         }
 
         [[nodiscard]] ComputePSO* CompileComputePSO(const ComputePSODesc& desc) noexcept final
         {
-            return ZRHI_API_CALL(ZRHI_FNPFX(CompileComputePSO), m_NativeInstance, desc);
+            return ZRHI_FNPFX(CompileComputePSO)(m_NativeInstance, desc);
         }
 
         [[nodiscard]] GraphicsPSO* CompileGraphicPSO(const GraphicsPSODesc& desc) noexcept final
         {
-            return ZRHI_API_CALL(ZRHI_FNPFX(CompileGraphicPSO), m_NativeInstance, desc);
+            return ZRHI_FNPFX(CompileGraphicPSO)(m_NativeInstance, desc);
         }
 
         void ReleaseComputePSO(ComputePSO* pso) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(ReleaseComputePSO), m_NativeInstance, pso);
+            ZRHI_FNPFX(ReleaseComputePSO)(m_NativeInstance, pso);
         }
 
         void ReleaseGraphicPSO(GraphicsPSO* pso) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(ReleaseGraphicPSO), m_NativeInstance, pso);
+            ZRHI_FNPFX(ReleaseGraphicPSO)(m_NativeInstance, pso);
         }
 
         [[nodiscard]] Buffer* RegisterBuffer(void* resourceHandle, const char* name) noexcept final
         {
-            return ZRHI_API_CALL(ZRHI_FNPFX(RegisterBuffer), m_NativeInstance, resourceHandle, name);
+            return ZRHI_FNPFX(RegisterBuffer)(m_NativeInstance, resourceHandle, name);
         }
 
         [[nodiscard]] Texture2D* RegisterTexture2D(void* resourceHandle, const char* name) noexcept final
         {
-            return ZRHI_API_CALL(ZRHI_FNPFX(RegisterTexture2D), m_NativeInstance, resourceHandle, name);
+            return ZRHI_FNPFX(RegisterTexture2D)(m_NativeInstance, resourceHandle, name);
         }
 
         [[nodiscard]] Texture3D* RegisterTexture3D(void* resourceHandle, const char* name) noexcept final
         {
-            return ZRHI_API_CALL(ZRHI_FNPFX(RegisterTexture3D), m_NativeInstance, resourceHandle, name);
+            return ZRHI_FNPFX(RegisterTexture3D)(m_NativeInstance, resourceHandle, name);
         }
 
         [[nodiscard]] Buffer* CreateBuffer(size_t size, ResourceHeapType heapType, ResourceUsage usage, uint32_t structuredStride,
                                            const char* name) noexcept final
         {
-            return ZRHI_API_CALL(ZRHI_FNPFX(CreateBuffer), m_NativeInstance, size, heapType, usage, structuredStride, name);
+            return ZRHI_FNPFX(CreateBuffer)(m_NativeInstance, size, heapType, usage, structuredStride, name);
         }
 
         [[nodiscard]] Texture2D* CreateTexture2D(size_t width, size_t height, size_t mips, TextureFormat format, ResourceUsage usage,
                                                  const char* name) noexcept final
         {
-            return ZRHI_API_CALL(ZRHI_FNPFX(CreateTexture2D), m_NativeInstance, width, height, mips, format, usage, name);
+            return ZRHI_FNPFX(CreateTexture2D)(m_NativeInstance, width, height, mips, format, usage, name);
         }
 
         [[nodiscard]] Texture3D* CreateTexture3D(size_t width, size_t height, size_t depth, size_t mips, TextureFormat format, ResourceUsage usage,
                                                  const char* name) noexcept final
         {
-            return ZRHI_API_CALL(ZRHI_FNPFX(CreateTexture3D), m_NativeInstance, width, height, depth, mips, format, usage, name);
+            return ZRHI_FNPFX(CreateTexture3D)(m_NativeInstance, width, height, depth, mips, format, usage, name);
         }
 
         [[nodiscard]] Sampler* CreateSampler(SamplerAddressMode addressMode, SamplerFilter filter, size_t descriptorLocationsCount,
                                              const DescriptorLocation* descriptorLocations, const char* name) noexcept final
         {
-            return ZRHI_API_CALL(ZRHI_FNPFX(CreateSampler), m_NativeInstance, addressMode, filter, descriptorLocationsCount,
+            return ZRHI_FNPFX(CreateSampler)(m_NativeInstance, addressMode, filter, descriptorLocationsCount,
                                  descriptorLocations, name);
         }
 
         void ReleaseBuffer(Buffer* buffer) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(ReleaseBuffer), m_NativeInstance, buffer);
+            ZRHI_FNPFX(ReleaseBuffer)(m_NativeInstance, buffer);
         }
 
         void ReleaseTexture2D(Texture2D* texture) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(ReleaseTexture2D), m_NativeInstance, texture);
+            ZRHI_FNPFX(ReleaseTexture2D)(m_NativeInstance, texture);
         }
 
         void ReleaseTexture3D(Texture3D* texture) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(ReleaseTexture3D), m_NativeInstance, texture);
+            ZRHI_FNPFX(ReleaseTexture3D)(m_NativeInstance, texture);
         }
 
         void ReleaseSampler(Sampler* sampler) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(ReleaseSampler), m_NativeInstance, sampler);
+            ZRHI_FNPFX(ReleaseSampler)(m_NativeInstance, sampler);
         }
 
         [[nodiscard]] DescriptorHeap* CreateDescriptorHeap(DescriptorHeapType heapType, const PipelineLayoutDesc& pipelineLayoutDesc,
                                                            const char* name) noexcept final
         {
-            return ZRHI_API_CALL(ZRHI_FNPFX(CreateDescriptorHeap), m_NativeInstance, heapType, pipelineLayoutDesc, name);
+            return ZRHI_FNPFX(CreateDescriptorHeap)(m_NativeInstance, heapType, pipelineLayoutDesc, name);
         }
 
         [[nodiscard]] DescriptorHeap* CloneDescriptorHeap(DescriptorHeap* src, const char* name) noexcept final
         {
-            return ZRHI_API_CALL(ZRHI_FNPFX(CloneDescriptorHeap), m_NativeInstance, src, name);
+            return ZRHI_FNPFX(CloneDescriptorHeap)(m_NativeInstance, src, name);
         }
 
         void ReleaseDescriptorHeap(DescriptorHeap* heap) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(ReleaseDescriptorHeap), m_NativeInstance, heap);
+            ZRHI_FNPFX(ReleaseDescriptorHeap)(m_NativeInstance, heap);
         }
 
         [[nodiscard]] QueryHeap* CreateQueryHeap(QueryHeapType heapType, uint64_t queryCount, const char* name) noexcept final
         {
-            return ZRHI_API_CALL(ZRHI_FNPFX(CreateQueryHeap), m_NativeInstance, heapType, queryCount, name);
+            return ZRHI_FNPFX(CreateQueryHeap)(m_NativeInstance, heapType, queryCount, name);
         }
 
         void ReleaseQueryHeap(QueryHeap* heap) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(ReleaseQueryHeap), m_NativeInstance, heap);
+            ZRHI_FNPFX(ReleaseQueryHeap)(m_NativeInstance, heap);
         }
 
         [[nodiscard]] Framebuffer* CreateFramebuffer(size_t renderTargetsCount, Texture2D* const* renderTargets, Texture2D* depthStencil,
                                                      const char* name) noexcept final
         {
-            return ZRHI_API_CALL(ZRHI_FNPFX(CreateFramebuffer), m_NativeInstance, renderTargetsCount, renderTargets, depthStencil, name);
+            return ZRHI_FNPFX(CreateFramebuffer)(m_NativeInstance, renderTargetsCount, renderTargets, depthStencil, name);
         }
 
         void ReleaseFramebuffer(Framebuffer* framebuffer) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(ReleaseFramebuffer), m_NativeInstance, framebuffer);
+            ZRHI_FNPFX(ReleaseFramebuffer)(m_NativeInstance, framebuffer);
         }
 
         void InitializeSRV(Buffer* buffer, InitializeViewDesc desc, size_t descriptorLocationsCount,
                            const DescriptorLocation* descriptorLocations) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(InitializeSRV_B), m_NativeInstance, buffer, desc, descriptorLocationsCount, descriptorLocations);
+            ZRHI_FNPFX(InitializeSRV_B)(m_NativeInstance, buffer, desc, descriptorLocationsCount, descriptorLocations);
         }
 
         void InitializeSRV(Texture2D* texture, size_t descriptorLocationsCount, const DescriptorLocation* descriptorLocations) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(InitializeSRV_T2D), m_NativeInstance, texture, descriptorLocationsCount, descriptorLocations);
+            ZRHI_FNPFX(InitializeSRV_T2D)(m_NativeInstance, texture, descriptorLocationsCount, descriptorLocations);
         }
 
         void InitializeSRV(Texture3D* texture, size_t descriptorLocationsCount, const DescriptorLocation* descriptorLocations) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(InitializeSRV_T3D), m_NativeInstance, texture, descriptorLocationsCount, descriptorLocations);
+            ZRHI_FNPFX(InitializeSRV_T3D)(m_NativeInstance, texture, descriptorLocationsCount, descriptorLocations);
         }
 
         void InitializeUAV(Buffer* buffer, InitializeViewDesc desc, size_t descriptorLocationsCount,
                            const DescriptorLocation* descriptorLocations) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(InitializeUAV_B), m_NativeInstance, buffer, desc, descriptorLocationsCount, descriptorLocations);
+            ZRHI_FNPFX(InitializeUAV_B)(m_NativeInstance, buffer, desc, descriptorLocationsCount, descriptorLocations);
         }
 
         void InitializeUAV(Texture2D* texture, size_t descriptorLocationsCount, const DescriptorLocation* descriptorLocations) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(InitializeUAV_T2D), m_NativeInstance, texture, descriptorLocationsCount, descriptorLocations);
+            ZRHI_FNPFX(InitializeUAV_T2D)(m_NativeInstance, texture, descriptorLocationsCount, descriptorLocations);
         }
 
         void InitializeUAV(Texture3D* texture, size_t descriptorLocationsCount, const DescriptorLocation* descriptorLocations) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(InitializeUAV_T3D), m_NativeInstance, texture, descriptorLocationsCount, descriptorLocations);
+            ZRHI_FNPFX(InitializeUAV_T3D)(m_NativeInstance, texture, descriptorLocationsCount, descriptorLocations);
         }
 
         void InitializeCBV(Buffer* buffer, size_t descriptorLocationsCount, const DescriptorLocation* descriptorLocations) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(InitializeCBV), m_NativeInstance, buffer, descriptorLocationsCount, descriptorLocations);
+            ZRHI_FNPFX(InitializeCBV)(m_NativeInstance, buffer, descriptorLocationsCount, descriptorLocations);
         }
 
         void StartRecording() noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(StartRecording), m_NativeInstance);
+            ZRHI_FNPFX(StartRecording)(m_NativeInstance);
         }
 
         void StopRecording() noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(StopRecording), m_NativeInstance);
+            ZRHI_FNPFX(StopRecording)(m_NativeInstance);
         }
 
         void UploadBuffer(Buffer* buffer, const void* data, uint32_t size, uint32_t offset) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(UploadBuffer), m_NativeInstance, buffer, data, size, offset);
+            ZRHI_FNPFX(UploadBuffer)(m_NativeInstance, buffer, data, size, offset);
         }
 
         void UploadBufferSlow(Buffer* buffer, const void* data, uint32_t size, uint32_t offset) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(UploadBufferSlow), m_NativeInstance, buffer, data, size, offset);
+            ZRHI_FNPFX(UploadBufferSlow)(m_NativeInstance, buffer, data, size, offset);
         }
 
         void UploadTextureSlow(Texture3D* texture, const TextureData& uploadData) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(UploadTextureSlow), m_NativeInstance, texture, uploadData);
+            ZRHI_FNPFX(UploadTextureSlow)(m_NativeInstance, texture, uploadData);
         }
 
         void GetBufferData(Buffer* buffer, void* destination, std::size_t size, std::size_t srcOffset) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(GetBufferData), m_NativeInstance, buffer, destination, size, srcOffset);
+            ZRHI_FNPFX(GetBufferData)(m_NativeInstance, buffer, destination, size, srcOffset);
         }
 
         void GetBufferDataImmediately(Buffer* buffer, void* destination, std::size_t size, std::size_t srcOffset) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(GetBufferDataImmediately), m_NativeInstance, buffer, destination, size, srcOffset);
+            ZRHI_FNPFX(GetBufferDataImmediately)(m_NativeInstance, buffer, destination, size, srcOffset);
         }
 
         void Dispatch(const DispatchDesc& desc) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(Dispatch), m_NativeInstance, desc);
+            ZRHI_FNPFX(Dispatch)(m_NativeInstance, desc);
         }
 
         void DrawIndexedInstanced(const DrawIndexedInstancedDesc& desc) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(DrawIndexedInstanced), m_NativeInstance, desc);
+            ZRHI_FNPFX(DrawIndexedInstanced)(m_NativeInstance, desc);
         }
 
         void DrawInstanced(const DrawInstancedDesc& desc) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(DrawInstanced), m_NativeInstance, desc);
+            ZRHI_FNPFX(DrawInstanced)(m_NativeInstance, desc);
         }
 
         void DispatchIndirect(const DispatchIndirectDesc& desc) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(DispatchIndirect), m_NativeInstance, desc);
+            ZRHI_FNPFX(DispatchIndirect)(m_NativeInstance, desc);
         }
 
         void DrawInstancedIndirect(const DrawInstancedIndirectDesc& desc) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(DrawInstancedIndirect), m_NativeInstance, desc);
+            ZRHI_FNPFX(DrawInstancedIndirect)(m_NativeInstance, desc);
         }
 
         void DrawIndexedInstancedIndirect(const DrawIndexedInstancedIndirectDesc& desc) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(DrawIndexedInstancedIndirect), m_NativeInstance, desc);
+            ZRHI_FNPFX(DrawIndexedInstancedIndirect)(m_NativeInstance, desc);
         }
 
         void CopyBufferRegion(Buffer* dstBuffer, uint32_t dstOffset, Buffer* srcBuffer, uint32_t srcOffset, uint32_t size) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(CopyBufferRegion), m_NativeInstance, dstBuffer, dstOffset, srcBuffer, srcOffset, size);
+            ZRHI_FNPFX(CopyBufferRegion)(m_NativeInstance, dstBuffer, dstOffset, srcBuffer, srcOffset, size);
         }
 
         void ClearFormattedBuffer(Buffer* buffer, uint32_t bufferSize, uint8_t clearValue, const DescriptorLocation& descriptorLocation) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(ClearFormattedBuffer), m_NativeInstance, buffer, bufferSize, clearValue, descriptorLocation);
+            ZRHI_FNPFX(ClearFormattedBuffer)(m_NativeInstance, buffer, bufferSize, clearValue, descriptorLocation);
         }
 
         void SubmitQuery(QueryHeap* queryHeap, uint64_t queryIndex, const QueryDesc& queryDesc) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(SubmitQuery), m_NativeInstance, queryHeap, queryIndex, queryDesc);
+            ZRHI_FNPFX(SubmitQuery)(m_NativeInstance, queryHeap, queryIndex, queryDesc);
         }
 
         bool ResolveQuery(QueryHeap* queryHeap, QueryType queryType, uint64_t offset, uint64_t count, void* result, size_t size) noexcept final
         {
-            return ZRHI_API_CALL(ZRHI_FNPFX(ResolveQuery), m_NativeInstance, queryHeap, queryType, offset, count, result, size);
+            return ZRHI_FNPFX(ResolveQuery)(m_NativeInstance, queryHeap, queryType, offset, count, result, size);
         }
 
         [[nodiscard]] uint64_t GetTimestampFrequency() const noexcept final
         {
-            return ZRHI_API_CALL(ZRHI_FNPFX(GetTimestampFrequency), m_NativeInstance);
+            return ZRHI_FNPFX(GetTimestampFrequency)(m_NativeInstance);
         }
 
         [[nodiscard]] TimestampCalibrationResult GetTimestampCalibration() const noexcept final
         {
-            return ZRHI_API_CALL(ZRHI_FNPFX(GetTimestampCalibration), m_NativeInstance);
+            return ZRHI_FNPFX(GetTimestampCalibration)(m_NativeInstance);
         }
 
         [[nodiscard]] uint64_t GetCPUTimestamp() const noexcept final
         {
-            return ZRHI_API_CALL(ZRHI_FNPFX(GetCPUTimestamp), m_NativeInstance);
+            return ZRHI_FNPFX(GetCPUTimestamp)(m_NativeInstance);
         }
 
         void StartDebugRegion(const char* regionName) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(StartDebugRegion), m_NativeInstance, regionName);
+            ZRHI_FNPFX(StartDebugRegion)(m_NativeInstance, regionName);
         }
 
         void EndDebugRegion() noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(EndDebugRegion), m_NativeInstance);
+            ZRHI_FNPFX(EndDebugRegion)(m_NativeInstance);
         }
 
         void StartFrameCapture(const char* captureName) noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(StartFrameCapture), m_NativeInstance, captureName);
+            ZRHI_FNPFX(StartFrameCapture)(m_NativeInstance, captureName);
         }
 
         void StopFrameCapture() noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(StopFrameCapture), m_NativeInstance);
+            ZRHI_FNPFX(StopFrameCapture)(m_NativeInstance);
         }
 
     private:
         ZRHIInterfaceHandle m_NativeInstance = nullptr;
     };
 } // namespace ZRHI_NS::CAPI
-#endif // ZRHI_NO_CAPI_IMPL
 
 #undef ZRHI_FNPFX
 #pragma endregion RHIRuntime
@@ -2514,6 +2521,7 @@ namespace ZRHI_NS::CAPI
 #pragma region RHIFactory
 #define ZRHI_FNPFX(name) Zibra_RHI_RHIFactory_##name
 
+typedef void (*ZRHI_PFN(ZRHI_FNPFX(Destruct)))(ZRHI_NS::CAPI::ZRHIFactoryHandle instance) noexcept;
 typedef ZRHI_NS::ReturnCode (*ZRHI_PFN(ZRHI_FNPFX(SetGFXAPI)))(ZRHI_NS::CAPI::ZRHIFactoryHandle instance, ZRHI_NS::GFXAPI type) noexcept;
 typedef ZRHI_NS::ReturnCode (*ZRHI_PFN(ZRHI_FNPFX(UseGFXCore)))(ZRHI_NS::CAPI::ZRHIFactoryHandle instance, void* engineInterfaceVTable) noexcept;
 typedef ZRHI_NS::ReturnCode (*ZRHI_PFN(ZRHI_FNPFX(UseForcedAdapter)))(ZRHI_NS::CAPI::ZRHIFactoryHandle instance, int32_t adapterIndex) noexcept;
@@ -2523,7 +2531,8 @@ typedef ZRHI_NS::ReturnCode (*ZRHI_PFN(ZRHI_FNPFX(ForceEnableDebugLayer)))(ZRHI_
 typedef ZRHI_NS::ReturnCode (*ZRHI_PFN(ZRHI_FNPFX(Create)))(ZRHI_NS::CAPI::ZRHIFactoryHandle instance, ZRHI_NS::CAPI::ZRHIInterfaceHandle* outInstance) noexcept;
 typedef void (*ZRHI_PFN(ZRHI_FNPFX(Release)))(ZRHI_NS::CAPI::ZRHIFactoryHandle instance) noexcept;
 
-#ifdef ZRHI_STATIC_API_DECL
+#ifndef ZRHI_NO_STATIC_API_DECL
+ZRHI_API_IMPORT void ZRHI_FNPFX(Destruct)(ZRHI_NS::CAPI::ZRHIFactoryHandle instance) noexcept;
 ZRHI_API_IMPORT ZRHI_NS::ReturnCode ZRHI_FNPFX(SetGFXAPI)(ZRHI_NS::CAPI::ZRHIFactoryHandle instance, ZRHI_NS::GFXAPI type) noexcept;
 ZRHI_API_IMPORT ZRHI_NS::ReturnCode ZRHI_FNPFX(UseGFXCore)(ZRHI_NS::CAPI::ZRHIFactoryHandle instance, void* engineInterfaceVTable) noexcept;
 ZRHI_API_IMPORT ZRHI_NS::ReturnCode ZRHI_FNPFX(UseForcedAdapter)(ZRHI_NS::CAPI::ZRHIFactoryHandle instance, int32_t adapterIndex) noexcept;
@@ -2533,6 +2542,7 @@ ZRHI_API_IMPORT ZRHI_NS::ReturnCode ZRHI_FNPFX(ForceEnableDebugLayer)(ZRHI_NS::C
 ZRHI_API_IMPORT ZRHI_NS::ReturnCode ZRHI_FNPFX(Create)(ZRHI_NS::CAPI::ZRHIFactoryHandle instance, ZRHI_NS::CAPI::ZRHIInterfaceHandle* outInstance) noexcept;
 ZRHI_API_IMPORT void ZRHI_FNPFX(Release)(ZRHI_NS::CAPI::ZRHIFactoryHandle instance) noexcept;
 #else
+extern ZRHI_PFN(ZRHI_FNPFX(Destruct)) ZRHI_FNPFX(Destruct);
 extern ZRHI_PFN(ZRHI_FNPFX(SetGFXAPI)) ZRHI_FNPFX(SetGFXAPI);
 extern ZRHI_PFN(ZRHI_FNPFX(UseGFXCore)) ZRHI_FNPFX(UseGFXCore);
 extern ZRHI_PFN(ZRHI_FNPFX(UseForcedAdapter)) ZRHI_FNPFX(UseForcedAdapter);
@@ -2541,9 +2551,9 @@ extern ZRHI_PFN(ZRHI_FNPFX(ForceSoftwareDevice)) ZRHI_FNPFX(ForceSoftwareDevice)
 extern ZRHI_PFN(ZRHI_FNPFX(ForceEnableDebugLayer)) ZRHI_FNPFX(ForceEnableDebugLayer);
 extern ZRHI_PFN(ZRHI_FNPFX(Create)) ZRHI_FNPFX(Create);
 extern ZRHI_PFN(ZRHI_FNPFX(Release)) ZRHI_FNPFX(Release);
-#endif // ZRHI_STATIC_API_DECL
+#endif
 
-#ifndef ZRHI_NO_CAPI_IMPL
+
 namespace ZRHI_NS::CAPI
 {
     class RHIFactoryDLLProxy final : public RHIFactory
@@ -2558,7 +2568,7 @@ namespace ZRHI_NS::CAPI
     public:
         ReturnCode SetGFXAPI(GFXAPI type) noexcept final
         {
-            return ZRHI_API_CALL(ZRHI_FNPFX(SetGFXAPI), m_NativeInstance, type);
+            return ZRHI_FNPFX(SetGFXAPI)(m_NativeInstance, type);
         }
         ReturnCode UseGFXCore(Integration::GFXCore* engineInterface) noexcept final
         {
@@ -2568,19 +2578,19 @@ namespace ZRHI_NS::CAPI
 #if ZRHI_SUPPORT_D3D11
             case GFXAPI::D3D11: {
                 auto vtable = VTConvert(static_cast<D3D11GFXCore*>(engineInterface));
-                return ZRHI_API_CALL(ZRHI_FNPFX(UseEngineInterface), m_NativeInstance, &vtable);
+                return ZRHI_FNPFX(UseGFXCore)(m_NativeInstance, &vtable);
             }
 #endif // ZRHI_SUPPORT_D3D11
 #if ZRHI_SUPPORT_D3D12
             case GFXAPI::D3D12: {
                 auto vtable = VTConvert(static_cast<D3D12GFXCore*>(engineInterface));
-                return ZRHI_API_CALL(ZRHI_FNPFX(UseEngineInterface), m_NativeInstance, &vtable);
+                return ZRHI_FNPFX(UseGFXCore)(m_NativeInstance, &vtable);
             }
 #endif // ZRHI_SUPPORT_D3D12
 #if ZRHI_SUPPORT_VULKAN
             case GFXAPI::Vulkan: {
                 auto vtable = VTConvert(static_cast<VulkanGFXCore*>(engineInterface));
-                return ZRHI_API_CALL(ZRHI_FNPFX(UseEngineInterface), m_NativeInstance, &vtable);
+                return ZRHI_FNPFX(UseGFXCore)(m_NativeInstance, &vtable);
             }
 #endif // ZRHI_SUPPORT_D3D12
 #if ZRHI_SUPPORT_METAL
@@ -2593,24 +2603,24 @@ namespace ZRHI_NS::CAPI
         }
         ReturnCode UseForcedAdapter(int32_t adapterIndex) noexcept final
         {
-            return ZRHI_API_CALL(ZRHI_FNPFX(UseForcedAdapter), m_NativeInstance, adapterIndex);
+            return ZRHI_FNPFX(UseForcedAdapter)(m_NativeInstance, adapterIndex);
         }
         ReturnCode UseAutoSelectedAdapter() noexcept final
         {
-            return ZRHI_API_CALL(ZRHI_FNPFX(UseAutoSelectedAdapter), m_NativeInstance);
+            return ZRHI_FNPFX(UseAutoSelectedAdapter)(m_NativeInstance);
         }
         ReturnCode ForceSoftwareDevice() noexcept final
         {
-            return ZRHI_API_CALL(ZRHI_FNPFX(ForceSoftwareDevice), m_NativeInstance);
+            return ZRHI_FNPFX(ForceSoftwareDevice)(m_NativeInstance);
         }
         ReturnCode ForceEnableDebugLayer() noexcept final
         {
-            return ZRHI_API_CALL(ZRHI_FNPFX(ForceEnableDebugLayer), m_NativeInstance);
+            return ZRHI_FNPFX(ForceEnableDebugLayer)(m_NativeInstance);
         }
         ReturnCode Create(RHIRuntime** outInstance) noexcept final
         {
             ZRHIInterfaceHandle nativeHandle;
-            auto status = ZRHI_API_CALL(ZRHI_FNPFX(Create), m_NativeInstance, &nativeHandle);
+            auto status = ZRHI_FNPFX(Create)(m_NativeInstance, &nativeHandle);
             if (status != ZRHI_SUCCESS)
                 return status;
             *outInstance = new RHIInterfaceDLLProxy{nativeHandle};
@@ -2618,7 +2628,7 @@ namespace ZRHI_NS::CAPI
         }
         void Release() noexcept final
         {
-            ZRHI_API_CALL(ZRHI_FNPFX(Release), m_NativeInstance);
+            ZRHI_FNPFX(Release)(m_NativeInstance);
             delete this;
         }
 
@@ -2626,7 +2636,6 @@ namespace ZRHI_NS::CAPI
         ZRHIFactoryHandle m_NativeInstance;
     };
 } // namespace ZRHI_NS::CAPI
-#endif // ZRHI_NO_CAPI_IMPL
 
 #undef ZRHI_FNPFX
 #pragma endregion RHIFactory
@@ -2634,36 +2643,41 @@ namespace ZRHI_NS::CAPI
 #pragma region Functions
 #define ZRHI_FNPFX(name) Zibra_RHI_##name
 
+typedef ZRHI_NS::Version (*ZRHI_PFN(ZRHI_FNPFX(GetVersion)))() noexcept;
 typedef ZRHI_NS::ReturnCode (*ZRHI_PFN(ZRHI_FNPFX(CreateRHIFactory)))(ZRHI_NS::CAPI::ZRHIFactoryHandle* outInstance) noexcept;
 
-#ifdef ZRHI_STATIC_API_DECL
+#ifndef ZRHI_NO_STATIC_API_DECL
+ZRHI_API_IMPORT ZRHI_NS::Version ZRHI_FNPFX(GetVersion)() noexcept;
 ZRHI_API_IMPORT ZRHI_NS::ReturnCode ZRHI_FNPFX(CreateRHIFactory)(ZRHI_NS::CAPI::ZRHIFactoryHandle* outInstance) noexcept;
 #else
+extern ZRHI_PFN(ZRHI_FNPFX(GetVersion)) ZRHI_FNPFX(GetVersion);
 extern ZRHI_PFN(ZRHI_FNPFX(CreateRHIFactory)) ZRHI_FNPFX(CreateRHIFactory);
 #endif
 
-#ifndef ZRHI_NO_CAPI_IMPL
 namespace ZRHI_NS::CAPI
 {
+    inline Version GetVersion()
+    {
+        return ZRHI_FNPFX(GetVersion)();
+    }
+
     inline ReturnCode CreateRHIFactory(RHIFactory** outFactory) noexcept
     {
         if (!outFactory)
             return ZRHI_ERROR_INVALID_ARGUMENTS;
         ZRHIFactoryHandle nativeHandle;
-        auto status = ZRHI_API_CALL(ZRHI_FNPFX(CreateRHIFactory), &nativeHandle);
+        auto status = ZRHI_FNPFX(CreateRHIFactory)(&nativeHandle);
         if (status != ZRHI_SUCCESS)
             return status;
         *outFactory = new RHIFactoryDLLProxy{nativeHandle};
         return ZRHI_SUCCESS;
     }
 } // namespace ZRHI_NS::CAPI
-#endif
 
 #undef ZRHI_FNPFX
 #pragma endregion Functions
 
 #pragma region ConsumerBridge
-#ifndef ZRHI_NO_CAPI_IMPL
 namespace ZRHI_NS::CAPI::ConsumerBridge
 {
     struct RHIRuntimeVTable
@@ -3135,8 +3149,9 @@ namespace ZRHI_NS::CAPI::ConsumerBridge
         RHIRuntimeVTable m_VT;
     };
 } // namespace ZRHI_NS::CAPI::ConsumerBridge
-#endif // ZRHI_NO_CAPI_IMPL
 #pragma endregion ConsumerBridge
+
+#endif //ZRHI_NO_CAPI_IMPL
 
 #undef ZRHI_NS
 #undef ZRHI_PFN

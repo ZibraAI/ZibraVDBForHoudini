@@ -7,6 +7,18 @@ namespace Zibra::CE {
     static constexpr int SPARSE_BLOCK_SIZE = 8;
     static constexpr int SPARSE_BLOCK_VOXEL_COUNT = SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE;
 
+    struct Version
+    {
+        uint32_t major;
+        uint32_t minor;
+        uint32_t patch;
+        uint32_t build;
+    };
+    inline bool operator==(const Version& l, const Version& r) noexcept
+    {
+        return l.major == r.major && l.minor == r.minor && l.patch == r.patch && l.build == r.build;
+    }
+
     enum ReturnCode
     {
         // Successfully finished operation
