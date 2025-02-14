@@ -208,6 +208,7 @@ namespace Zibra::CE::Decompression
          * @return pair StartFrame - EndFrame
          */
         virtual FrameRange GetFrameRange() noexcept = 0;
+        virtual void Release() noexcept = 0;
     };
 
     class Decompressor
@@ -374,6 +375,7 @@ typedef ZCE_NS::ReturnCode (*ZCE_PFN(ZCE_FNPFX(FetchFrame)))(ZCE_NS::CAPI::Forma
 typedef ZCE_NS::ReturnCode (*ZCE_PFN(ZCE_FNPFX(FetchFrameInfo)))(ZCE_NS::CAPI::FormatMapperHandle instance, float frame,
                                                                  ZCE_NS::FrameInfo* outInfo);
 typedef ZCE_NS::FrameRange (*ZCE_PFN(ZCE_FNPFX(GetFrameRange)))(ZCE_NS::CAPI::FormatMapperHandle instance);
+typedef void (*ZCE_PFN(ZCE_FNPFX(Release)))(ZCE_NS::CAPI::FormatMapperHandle instance);
 
 #ifndef ZCE_NO_STATIC_API_DECL
 ZCE_API_IMPORT ZCE_NS::ReturnCode ZCE_FNPFX(FetchFrame)(ZCE_NS::CAPI::FormatMapperHandle instance, float frame,
@@ -381,10 +383,12 @@ ZCE_API_IMPORT ZCE_NS::ReturnCode ZCE_FNPFX(FetchFrame)(ZCE_NS::CAPI::FormatMapp
 ZCE_API_IMPORT ZCE_NS::ReturnCode ZCE_FNPFX(FetchFrameInfo)(ZCE_NS::CAPI::FormatMapperHandle instance, float frame,
                                                             ZCE_NS::FrameInfo* outInfo) noexcept;
 ZCE_API_IMPORT ZCE_NS::FrameRange ZCE_FNPFX(GetFrameRange)(ZCE_NS::CAPI::FormatMapperHandle instance) noexcept;
+ZCE_API_IMPORT void ZCE_FNPFX(Release)(ZCE_NS::CAPI::FormatMapperHandle instance) noexcept;
 #else
 extern ZCE_PFN(ZCE_FNPFX(FetchFrame)) ZCE_FNPFX(FetchFrame);
 extern ZCE_PFN(ZCE_FNPFX(FetchFrameInfo)) ZCE_FNPFX(FetchFrameInfo);
 extern ZCE_PFN(ZCE_FNPFX(GetFrameRange)) ZCE_FNPFX(GetFrameRange);
+extern ZCE_PFN(ZCE_FNPFX(Release)) ZCE_FNPFX(Release);
 #endif
 
 namespace ZCE_NS::CAPI
@@ -412,6 +416,11 @@ namespace ZCE_NS::CAPI
         FrameRange GetFrameRange() noexcept final
         {
             return ZCE_FNPFX(GetFrameRange)(m_NativeInstance);
+        }
+        void Release() noexcept final
+        {
+            return ZCE_FNPFX(Release)(m_NativeInstance);
+            delete this;
         }
 
     private:

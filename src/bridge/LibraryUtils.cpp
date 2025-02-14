@@ -10,7 +10,7 @@
 #define STRINGIFY(x) STRINGIFY_HELPER(x)
 
 #pragma region RHIRuntime
-#define ZRHI_FNPFX(name) Zibra_RHI_RHIInterface_##name
+#define ZRHI_FNPFX(name) Zibra_RHI_RHIRuntime_##name
 
 ZRHI_PFN(ZRHI_FNPFX(Release)) ZRHI_FNPFX(Release) = nullptr;
 ZRHI_PFN(ZRHI_FNPFX(GarbageCollect)) ZRHI_FNPFX(GarbageCollect) = nullptr;
@@ -167,6 +167,7 @@ ZCE_PFN(ZCE_FNPFX(Release)) ZCE_FNPFX(Release) = nullptr;
 ZCE_PFN(ZCE_FNPFX(FetchFrame)) ZCE_FNPFX(FetchFrame) = nullptr;
 ZCE_PFN(ZCE_FNPFX(FetchFrameInfo)) ZCE_FNPFX(FetchFrameInfo) = nullptr;
 ZCE_PFN(ZCE_FNPFX(GetFrameRange)) ZCE_FNPFX(GetFrameRange) = nullptr;
+ZCE_PFN(ZCE_FNPFX(Release)) ZCE_FNPFX(Release) = nullptr;
 
 #undef ZCE_FNPFX
 #pragma endregion FormatMapper
@@ -343,7 +344,7 @@ namespace Zibra::LibraryUtils
         return false;                                                                                                                 \
     }
 #pragma region RHIRuntime
-#define ZRHI_FNPFX(name) Zibra_RHI_RHIInterface_##name
+#define ZRHI_FNPFX(name) Zibra_RHI_RHIRuntime_##name
 
         ZIB_LOAD_FUNCTION_POINTER(Release);
         ZIB_LOAD_FUNCTION_POINTER(GarbageCollect);
@@ -530,6 +531,7 @@ namespace Zibra::LibraryUtils
         ZIB_LOAD_FUNCTION_POINTER(FetchFrame);
         ZIB_LOAD_FUNCTION_POINTER(FetchFrameInfo);
         ZIB_LOAD_FUNCTION_POINTER(GetFrameRange);
+        ZIB_LOAD_FUNCTION_POINTER(Release);
 
 #undef ZCE_FNPFX
 #pragma endregion FormatMapper

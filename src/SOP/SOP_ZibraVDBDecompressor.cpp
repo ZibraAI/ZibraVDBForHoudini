@@ -176,7 +176,7 @@ namespace Zibra::ZibraVDBDecompressor
             if (m_Decompressor)
             {
                 m_RHIWrapper->FreeExternalBuffers();
-                delete m_FormatMapper;
+                m_FormatMapper->Release();
                 m_Decompressor->Release();
                 m_Decompressor = nullptr;
             }
