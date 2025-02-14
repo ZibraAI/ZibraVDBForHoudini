@@ -101,13 +101,13 @@ namespace Zibra::OpenVDBSupport
 
         const auto isAlmostZero = [](float v) { return std::abs(v) < std::numeric_limits<float>::epsilon(); };
 
-        return std::all_of(std::begin(gridTransform.matrix), std::end(gridTransform.matrix), isAlmostZero);
+        return std::all_of(std::begin(gridTransform.raw), std::end(gridTransform.raw), isAlmostZero);
     }
 
     openvdb::math::Transform::Ptr OpenVDBEncoder::OpenVDBTransformFromMatrix(const Math3D::Transform& gridTransform)
     {
         return openvdb::math::Transform::createLinearTransform(IsTransformEmpty(gridTransform) ? openvdb::Mat4d::identity()
-                                                                                               : openvdb::Mat4d{gridTransform.matrix});
+                                                                                               : openvdb::Mat4d{gridTransform.raw});
     }
 
     void OpenVDBEncoder::OffsetTransform(openvdb::math::Transform::Ptr openVDBTransform, const EncodeMetadata& encodeMetadata)

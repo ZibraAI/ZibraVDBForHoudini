@@ -4,8 +4,6 @@
 
 #include "networking/NetworkRequest.h"
 
-#include "Zibra/RHI.h"
-
 #define ZRHI_CONCAT_HELPER(A, B) A##B
 #define ZRHI_PFN(name) ZRHI_CONCAT_HELPER(PFN_, name)
 #define STRINGIFY_HELPER(x) #x
