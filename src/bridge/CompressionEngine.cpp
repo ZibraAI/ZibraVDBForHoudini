@@ -46,10 +46,15 @@ namespace Zibra::CompressionEngine
     std::vector<std::string> GetHoudiniEnvironmentVariable(UT_StrControl envVarEnum, const char* envVarName)
     {
         std::vector<std::string> result;
-        const char* envVarHoudini = UT_EnvControl::getString(envVarEnum);
-        if (envVarHoudini != nullptr)
+
+        const char* envVarHoudini = nullptr; 
+        if (envVarEnum != ENV_MAX_STR_CONTROLS)
         {
-            result.push_back(envVarHoudini);
+            envVarHoudini = UT_EnvControl::getString(envVarEnum);
+            if (envVarHoudini != nullptr)
+            {
+                result.push_back(envVarHoudini);
+            }
         }
 
         const char* envVarSTL = std::getenv(envVarName);
@@ -73,6 +78,7 @@ namespace Zibra::CompressionEngine
         const std::pair<UT_StrControl, const char*> basePathEnvVars[] = {
             {ENV_HOUDINI_USER_PREF_DIR, "HOUDINI_USER_PREF_DIR"},
             {ENV_HSITE, "HSITE"},
+            {ENV_MAX_STR_CONTROLS, "HQROOT"},
         };
 
         for (const auto& [envVarEnum, envVarName] : basePathEnvVars)
