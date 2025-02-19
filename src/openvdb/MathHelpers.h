@@ -1,5 +1,5 @@
 #pragma once
-#include "bridge/CompressionEngine.h"
+#include <Zibra/CE/Math3D.h>
 
 namespace Zibra::OpenVDBSupport::MathHelpers
 {
@@ -17,8 +17,6 @@ namespace Zibra::OpenVDBSupport::MathHelpers
     int ComputeChannelCountFromMask(uint8 mask) noexcept;
     float Lerp(float a, float b, float t) noexcept;
     double Lerp(double a, double b, double t) noexcept;
-    CompressionEngine::ZCE_AABB operator|(const CompressionEngine::ZCE_AABB& a, const CompressionEngine::ZCE_AABB& b) noexcept;
-    bool IsEmpty(const CompressionEngine::ZCE_AABB& a) noexcept;
     uint32_t CountBits(uint32_t x) noexcept;
 
     template <class T>

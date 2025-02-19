@@ -2,8 +2,6 @@
 
 #include "MathHelpers.h"
 
-#include "bridge/CompressionEngine.h"
-
 namespace Zibra::OpenVDBSupport::MathHelpers
 {
 
@@ -50,7 +48,7 @@ namespace Zibra::OpenVDBSupport::MathHelpers
 
     int ModBlockSize(int value) noexcept
     {
-        return value & (ZIB_BLOCK_SIZE - 1);
+        return value & (Zibra::CE::SPARSE_BLOCK_SIZE - 1);
     }
 
     int FloorToBlockSize(int value) noexcept
@@ -60,7 +58,7 @@ namespace Zibra::OpenVDBSupport::MathHelpers
 
     int CeilToBlockSize(int value) noexcept
     {
-        return FloorToBlockSize(value + ZIB_BLOCK_SIZE - 1);
+        return FloorToBlockSize(value + Zibra::CE::SPARSE_BLOCK_SIZE - 1);
     }
 
     int ComputeChannelCountFromMask(uint8 mask) noexcept
@@ -82,23 +80,6 @@ namespace Zibra::OpenVDBSupport::MathHelpers
     double Lerp(double a, double b, double t) noexcept
     {
         return a + t * (b - a);
-    }
-
-    Zibra::CompressionEngine::ZCE_AABB operator|(const CompressionEngine::ZCE_AABB& a, const CompressionEngine::ZCE_AABB& b) noexcept
-    {
-        CompressionEngine::ZCE_AABB result = {};
-        result.minX = std::min(a.minX, b.minX);
-        result.minY = std::min(a.minY, b.minY);
-        result.minZ = std::min(a.minZ, b.minZ);
-        result.maxX = std::max(a.maxX, b.maxX);
-        result.maxY = std::max(a.maxY, b.maxY);
-        result.maxZ = std::max(a.maxZ, b.maxZ);
-        return result;
-    }
-
-    bool IsEmpty(const CompressionEngine::ZCE_AABB& a) noexcept
-    {
-        return a.minX >= a.maxX || a.minY >= a.maxY || a.minZ >= a.maxZ;
     }
 
     uint32_t CountBits(uint32_t x) noexcept
