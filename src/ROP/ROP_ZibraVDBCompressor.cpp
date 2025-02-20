@@ -2,7 +2,7 @@
 
 #include "ROP_ZibraVDBCompressor.h"
 
-#include "bridge//Licensing/Licensing.h"
+#include "licensing/LicenseManager.h"
 #include "bridge/LibraryUtils.h"
 #include "openvdb/OpenVDBDecoder.h"
 #include "ui/MessageBox.h"
@@ -313,8 +313,7 @@ namespace Zibra::ZibraVDBCompressor
             return ROP_ABORT_RENDER;
         }
 
-        if (!CE::Licensing::CAPI::CheckoutLicenseWithKey(LicenseManager::GetKey().c_str()) &&
-            !CE::Licensing::CAPI::CheckoutLicenseOffline(LicenseManager::GetOfflineLicense().c_str()))
+        if (!LicenseManager::GetInstance().CheckLicense())
         {
             addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR);
             return ROP_ABORT_RENDER;

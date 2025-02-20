@@ -3,10 +3,10 @@
 #include "SOP_ZibraVDBDecompressor.h"
 
 #include "bridge/LibraryUtils.h"
-#include "bridge/Licensing/Licensing.h"
 #include "openvdb/OpenVDBEncoder.h"
 #include "ui/MessageBox.h"
 #include "utils/GAAttributesDump.h"
+#include "licensing/LicenseManager.h"
 
 #ifdef _DEBUG
 #define DBG_NAME(expression) expression
@@ -76,8 +76,7 @@ namespace Zibra::ZibraVDBDecompressor
             return;
         }
 
-        if (!CE::Licensing::CAPI::CheckoutLicenseWithKey(LicenseManager::GetKey().c_str()) &&
-            !CE::Licensing::CAPI::CheckoutLicenseOffline(LicenseManager::GetOfflineLicense().c_str()))
+        if (!LicenseManager::GetInstance().CheckLicense())
         {
             addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR);
             return;

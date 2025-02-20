@@ -3,6 +3,7 @@
 #include <UT/UT_EnvControl.h>
 
 #include "networking/NetworkRequest.h"
+#include "utils/Helpers.h"
 
 #define ZRHI_CONCAT_HELPER(A, B) A##B
 #define ZRHI_PFN(name) ZRHI_CONCAT_HELPER(PFN_, name)
@@ -253,26 +254,6 @@ namespace Zibra::LibraryUtils
     bool g_IsLibraryLoaded = false;
     ///Zibra::CE g_LoadedLibraryVersion = {0, 0, 0, 0};
 
-    std::vector<std::string> GetHoudiniEnvironmentVariable(UT_StrControl envVarEnum, const char* envVarName)
-    {
-        std::vector<std::string> result;
-        const char* envVarHoudini = UT_EnvControl::getString(envVarEnum);
-        if (envVarHoudini != nullptr)
-        {
-            result.push_back(envVarHoudini);
-        }
-
-        const char* envVarSTL = std::getenv(envVarName);
-        if (envVarSTL != nullptr)
-        {
-            if (envVarHoudini == nullptr || strcmp(envVarHoudini, envVarSTL) != 0)
-            {
-                result.push_back(envVarSTL);
-            }
-        }
-        return result;
-    }
-
     // Returns vector of paths that can be used to search for the library
     // First element is the path used for downloading the library
     // Other elements are alternative load paths for manual library installation
@@ -287,7 +268,7 @@ namespace Zibra::LibraryUtils
 
         for (const auto& [envVarEnum, envVarName] : basePathEnvVars)
         {
-            const std::vector<std::string> baseDirs = GetHoudiniEnvironmentVariable(envVarEnum, envVarName);
+            const std::vector<std::string> baseDirs = Helpers::GetHoudiniEnvironmentVariable(envVarEnum, envVarName);
             for (const std::string& baseDir : baseDirs)
             {
                 std::filesystem::path libraryPath = std::filesystem::path(baseDir) / g_LibraryPath;
