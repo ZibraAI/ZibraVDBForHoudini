@@ -32,25 +32,26 @@ Content-Type: text/plain
 
 sopflags sopflags = 
 comment ""
-position 9.71445e-17 -9.44683
-connectornextid 1
-flags =  lock off model off template off footprint off xray off bypass off display on render on highlight off unload off savedata off compress on colordefault off exposed on
+position -1.09502 -0.65358
+connectornextid 2
+flags =  lock off model off template off footprint off xray off bypass off display off render off highlight off unload off savedata off compress on colordefault off exposed on
 outputsNamed3
 {
+1 "output1"
 }
 inputsNamed3
 {
-0 	blast1 1 1 "input1"
+0 	BEFORE_CACHE 1 1 "input1"
 }
 inputs
 {
-0 	blast1 0 1
+0 	BEFORE_CACHE 0 1
 }
 stat
 {
   create -1
   modify -1
-  author aomai@DESKTOP-RBQDURK
+  author dmytr@BOOLKA_LAPTOP
   access 0777
 }
 color UT_Color RGB 0.9 0.8 0.55 

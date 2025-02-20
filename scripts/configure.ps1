@@ -1,11 +1,18 @@
+#!/usr/bin/pwsh
+
 param (
-   [string]$additionalArgs, 
-   [string]$targetFolder = "build"
+   [string]$AdditionalArgs, 
+   [string]$TargetFolder = "build"
 )
 
 $RepositeryRoot = "$PSScriptRoot/.."
 Push-Location $RepositeryRoot
 
-cmake -S . -B $targetFolder -T "v143,host=x64,version=14.35" $additionalArgs
+if ($IsWindows)
+{
+   $AdditionalArgs += " -T v143,host=x64,version=14.35"
+}
+
+Invoke-Expression "cmake -S . -B $TargetFolder $AdditionalArgs"
 
 Pop-Location

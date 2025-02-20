@@ -15,12 +15,18 @@ namespace Zibra::CompressionEngine
 #if ZIB_PLATFORM_WIN
 #define ZIB_PLATFORM_NAME "Windows"
 #define ZIB_DYNAMIC_LIB_EXTENSION ".dll"
-#elif ZIB_PLATFORM_MAX
+#define ZIB_DYNAMIC_LIB_PREFIX ""
+#define ZIB_CALL_CONV __cdecl
+#elif ZIB_PLATFORM_MAC
 #define ZIB_PLATFORM_NAME "macOS"
 #define ZIB_DYNAMIC_LIB_EXTENSION ".dylib"
+#define ZIB_DYNAMIC_LIB_PREFIX "lib"
+#define ZIB_CALL_CONV
 #elif ZIB_PLATFORM_LINUX
 #define ZIB_PLATFORM_NAME "Linux"
 #define ZIB_DYNAMIC_LIB_EXTENSION ".so"
+#define ZIB_DYNAMIC_LIB_PREFIX "lib"
+#define ZIB_CALL_CONV
 #else
 #error Unuspported platform
 #endif
@@ -28,15 +34,14 @@ namespace Zibra::CompressionEngine
     static constexpr ZCE_VersionNumber g_SupportedVersion = {ZIB_COMPRESSION_ENGINE_BRIDGE_MAJOR_VERSION,
                                                              ZIB_COMPRESSION_ENGINE_BRIDGE_MINOR_VERSION};
 
-    static constexpr const char* g_BaseDirEnv = "HOUDINI_USER_PREF_DIR";
-    static constexpr const char* g_AltDirEnv = "HSITE";
-    const char* g_LibraryPath = "zibra/" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING "/ZibraVDBHoudiniBridge" ZIB_DYNAMIC_LIB_EXTENSION;
+    const char* g_LibraryPath = "zibra/" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING "/" ZIB_DYNAMIC_LIB_PREFIX "ZibraVDBHoudiniBridge" ZIB_DYNAMIC_LIB_EXTENSION;
     static constexpr const char* g_LibraryDownloadURL =
         "https://storage.googleapis.com/zibra-storage/ZibraVDBHoudiniBridge_" ZIB_PLATFORM_NAME
         "_" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING ZIB_DYNAMIC_LIB_EXTENSION;
 
     bool g_IsLibraryLoaded = false;
     ZCE_VersionNumber g_LoadedLibraryVersion = {0, 0, 0, 0};
+    bool g_IsLibraryInitialized = false;
 
     // May return 0-2 elements
     // 0 elements - environment variable is not set
@@ -117,7 +122,7 @@ namespace Zibra::CompressionEngine
     }
 
 #define ZIB_DECLARE_FUNCTION_POINTER(functionName, returnType, ...) \
-    typedef returnType (*functionName##Type)(__VA_ARGS__);          \
+    typedef returnType(ZIB_CALL_CONV * functionName##Type)(__VA_ARGS__);          \
     functionName##Type Bridge##functionName = nullptr;
 
     ZIB_DECLARE_FUNCTION_POINTER(GetVersion, ZCE_VersionNumber);
@@ -145,8 +150,11 @@ namespace Zibra::CompressionEngine
 
 #if ZIB_PLATFORM_WIN
     HMODULE g_LibraryHandle = NULL;
+#elif ZIB_PLATFORM_LINUX
+    void* g_LibraryHandle = nullptr;
 #else
-// TODO cross-platform support
+// TODO macOS support
+#error Unimplemented
 #endif
 
     bool LoadFunctions() noexcept
@@ -182,15 +190,53 @@ namespace Zibra::CompressionEngine
         ZIB_LOAD_FUNCTION_POINTER(FreeFrameData);
 
 #undef ZIB_LOAD_FUNCTION_POINTER
+#elif ZIB_PLATFORM_LINUX
+#define ZIB_LOAD_FUNCTION_POINTER(functionName)                                                         \
+    Bridge##functionName = reinterpret_cast<functionName##Type>(dlsym(g_LibraryHandle, #functionName)); \
+    if (Bridge##functionName == nullptr)                                                                \
+    {                                                                                                   \
+        return false;                                                                                   \
+    }
+
+        ZIB_LOAD_FUNCTION_POINTER(GetVersion);
+        ZIB_LOAD_FUNCTION_POINTER(InitializeCompressionEngine);
+        ZIB_LOAD_FUNCTION_POINTER(DeinitializeCompressionEngine);
+
+        ZIB_LOAD_FUNCTION_POINTER(IsLicenseValid);
+
+        ZIB_LOAD_FUNCTION_POINTER(CreateCompressorInstance);
+        ZIB_LOAD_FUNCTION_POINTER(ReleaseCompressorInstance);
+
+        ZIB_LOAD_FUNCTION_POINTER(StartSequence);
+        ZIB_LOAD_FUNCTION_POINTER(CompressFrame);
+        ZIB_LOAD_FUNCTION_POINTER(FinishSequence);
+        ZIB_LOAD_FUNCTION_POINTER(AbortSequence);
+
+        ZIB_LOAD_FUNCTION_POINTER(CreateDecompressorInstance);
+        ZIB_LOAD_FUNCTION_POINTER(ReleaseDecompressorInstance);
+
+        ZIB_LOAD_FUNCTION_POINTER(GetSequenceInfo);
+        ZIB_LOAD_FUNCTION_POINTER(SetInputFile);
+        ZIB_LOAD_FUNCTION_POINTER(DecompressFrame);
+        ZIB_LOAD_FUNCTION_POINTER(FreeFrameData);
+
+#undef ZIB_LOAD_FUNCTION_POINTER
 #else
-        // TODO cross-platform support
+// TODO macOS support
+#error Unimplemented
 #endif
         return true;
     }
 
     bool LoadLibraryByPath(const std::string& libraryPath) noexcept
     {
+        assert(!g_IsLibraryLoaded);
+
 #if ZIB_PLATFORM_WIN
+        static_assert(IsPlatformSupported());
+
+        assert(g_LibraryHandle == NULL);
+
         if (libraryPath == "")
         {
             return false;
@@ -221,16 +267,54 @@ namespace Zibra::CompressionEngine
         }
 
         return true;
+#elif ZIB_PLATFORM_LINUX
+        static_assert(IsPlatformSupported());
+
+        assert(g_LibraryHandle == nullptr);
+
+        if (libraryPath == "")
+        {
+            return false;
+        }
+
+        g_LibraryHandle = dlopen(libraryPath.c_str(), RTLD_LAZY);
+
+        if (g_LibraryHandle == nullptr)
+        {
+            return false;
+        }
+
+        if (!LoadFunctions())
+        {
+            dlclose(g_LibraryHandle);
+            g_LibraryHandle = nullptr;
+            return false;
+        }
+
+        g_LoadedLibraryVersion = BridgeGetVersion();
+        if (!IsLibrarySupported(g_LoadedLibraryVersion))
+        {
+            dlclose(g_LibraryHandle);
+            g_LibraryHandle = nullptr;
+            return false;
+        }
+
+        g_IsLibraryLoaded = true;
+        return true;
 #else
         // TODO cross-platform support
+        assert(0);
+        return false;
 #endif
     }
 
     void LoadLibrary() noexcept
     {
-#if ZIB_PLATFORM_WIN
-        static_assert(IsPlatformSupported());
-        assert(g_IsLibraryLoaded == (g_LibraryHandle != NULL));
+        if (!IsPlatformSupported())
+        {
+            assert(0);
+            return;
+        }
 
         if (g_IsLibraryLoaded)
         {
@@ -254,11 +338,9 @@ namespace Zibra::CompressionEngine
         }
 
         g_IsLibraryLoaded = true;
-#else
-        // TODO cross-platform support
-#endif
+
         ZCE_Result result = BridgeInitializeCompressionEngine();
-        assert(result == ZCE_Result::SUCCESS);
+        g_IsLibraryInitialized = (result == ZCE_Result::SUCCESS);
     }
 
     void DownloadLibrary() noexcept
@@ -277,6 +359,11 @@ namespace Zibra::CompressionEngine
     bool IsLibraryLoaded() noexcept
     {
         return g_IsLibraryLoaded;
+    }
+
+    bool IsLibraryInitialized() noexcept
+    {
+        return g_IsLibraryInitialized;
     }
 
     bool IsLicenseValid(ZCE_Product product) noexcept
@@ -317,7 +404,7 @@ namespace Zibra::CompressionEngine
 
     uint32_t CreateCompressorInstance(const ZCE_CompressionSettings* settings) noexcept
     {
-        if (!IsLibraryLoaded())
+        if (!IsLibraryInitialized())
         {
             assert(0);
             return UINT32_MAX;
@@ -329,21 +416,21 @@ namespace Zibra::CompressionEngine
         return compressorID;
     }
 
-    void CompressFrame(uint32_t instanceID, ZCE_FrameContainer* frameData) noexcept
+    bool CompressFrame(uint32_t instanceID, ZCE_FrameContainer* frameData) noexcept
     {
-        if (!IsLibraryLoaded())
+        if (!IsLibraryInitialized())
         {
             assert(0);
-            return;
+            return false;
         }
 
         ZCE_Result result = BridgeCompressFrame(instanceID, frameData);
-        assert(result == ZCE_Result::SUCCESS);
+        return result == ZCE_Result::SUCCESS;
     }
 
     void FinishSequence(uint32_t instanceID) noexcept
     {
-        if (!IsLibraryLoaded())
+        if (!IsLibraryInitialized())
         {
             assert(0);
             return;
@@ -355,7 +442,7 @@ namespace Zibra::CompressionEngine
 
     void AbortSequence(uint32_t instanceID) noexcept
     {
-        if (!IsLibraryLoaded())
+        if (!IsLibraryInitialized())
         {
             assert(0);
             return;
@@ -367,7 +454,7 @@ namespace Zibra::CompressionEngine
 
     void ReleaseCompressorInstance(uint32_t instanceID) noexcept
     {
-        if (!IsLibraryLoaded())
+        if (!IsLibraryInitialized())
         {
             assert(0);
             return;
@@ -379,7 +466,7 @@ namespace Zibra::CompressionEngine
 
     void StartSequence(uint32_t instanceID) noexcept
     {
-        if (!IsLibraryLoaded())
+        if (!IsLibraryInitialized())
         {
             assert(0);
             return;
@@ -391,7 +478,7 @@ namespace Zibra::CompressionEngine
 
     uint32_t CreateDecompressorInstance() noexcept
     {
-        if (!IsLibraryLoaded())
+        if (!IsLibraryInitialized())
         {
             assert(0);
             return UINT32_MAX;
@@ -405,7 +492,7 @@ namespace Zibra::CompressionEngine
 
     bool SetInputFile(uint32_t instanceID, const char* inputFilePath) noexcept
     {
-        if (!IsLibraryLoaded())
+        if (!IsLibraryInitialized())
         {
             assert(0);
             return false;
@@ -417,7 +504,7 @@ namespace Zibra::CompressionEngine
 
     void DecompressFrame(uint32_t instanceID, uint32_t frameIndex, ZCE_DecompressedFrameContainer** frameData) noexcept
     {
-        if (!IsLibraryLoaded())
+        if (!IsLibraryInitialized())
         {
             assert(0);
             return;
@@ -429,7 +516,7 @@ namespace Zibra::CompressionEngine
 
     void ReleaseDecompressorInstance(uint32_t instanceID) noexcept
     {
-        if (!IsLibraryLoaded())
+        if (!IsLibraryInitialized())
         {
             assert(0);
             return;
@@ -441,7 +528,7 @@ namespace Zibra::CompressionEngine
 
     void FreeFrameData(ZCE_DecompressedFrameContainer* frameData) noexcept
     {
-        if (!IsLibraryLoaded())
+        if (!IsLibraryInitialized())
         {
             assert(0);
             return;
@@ -453,7 +540,7 @@ namespace Zibra::CompressionEngine
 
     void GetSequenceInfo(uint32_t instanceID, ZCE_SequenceInfo* sequenceInfo) noexcept
     {
-        if (!IsLibraryLoaded())
+        if (!IsLibraryInitialized())
         {
             assert(0);
             return;
