@@ -7,6 +7,7 @@
 #include "ui/MessageBox.h"
 #include "utils/GAAttributesDump.h"
 #include "licensing/LicenseManager.h"
+#include "ui/PluginManagementWindow.h"
 
 #ifdef _DEBUG
 #define DBG_NAME(expression) expression
@@ -58,11 +59,15 @@ namespace Zibra::ZibraVDBDecompressor
 
         static PRM_Name theDownloadLibraryButtonName(DOWNLOAD_LIBRARY_BUTTON_NAME, "Download Library");
 
+        static PRM_Name theOpenPluginManagementButtonName(OPEN_PLUGIN_MANAGEMENT_BUTTON_NAME, "Open Plugin Management");
+
         static PRM_Template templateList[] = {
             PRM_Template(PRM_FILE, 1, &theFileName, &theFileDefault), PRM_Template(PRM_INT, 1, &theFrameName, &theFrameDefault),
             PRM_Template(PRM_CALLBACK, 1, &theReloadCacheName, nullptr, nullptr, nullptr, theReloadCallback),
             PRM_Template(PRM_CALLBACK, 1, &theDownloadLibraryButtonName, nullptr, nullptr, nullptr,
                          &SOP_ZibraVDBDecompressor::DownloadLibrary),
+            PRM_Template(PRM_CALLBACK, 1, &theOpenPluginManagementButtonName, nullptr, nullptr, nullptr,
+                         &SOP_ZibraVDBDecompressor::OpenManagementWindow),
             PRM_Template()};
         return templateList;
     }
@@ -304,6 +309,12 @@ namespace Zibra::ZibraVDBDecompressor
         // }
         // MessageBox::Show(MessageBox::Type::OK, ZVDB_MSG_LIB_DOWNLOADED_SUCCESSFULLY_WITH_LICENSE, "ZibraVDB");
         // return 0;
+    }
+
+    int SOP_ZibraVDBDecompressor::OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate)
+    {
+        Zibra::PluginManagementWindow::ShowWindow();
+        return 0;
     }
 
     void SOP_ZibraVDBDecompressor::ApplyGridMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::CompressedFrameContainer* const frameContainer)

@@ -48,6 +48,7 @@ set(HeaderFiles
         src/ROP/ROP_ZibraVDBCompressor.h
         src/SOP/SOP_ZibraVDBDecompressor.h
         src/ui/MessageBox.h
+        src/ui/PluginManagementWindow.h
         src/utils/Helpers.h
         src/utils/GAAttributesDump.h
 )
@@ -64,6 +65,7 @@ set(SourceFiles
         src/ROP/ROP_ZibraVDBCompressor.cpp
         src/SOP/SOP_ZibraVDBDecompressor.cpp
         src/ui/MessageBox.cpp
+        src/ui/PluginManagementWindow.cpp
         src/utils/Helpers.cpp
         src/utils/GAAttributesDump.cpp
 )
@@ -88,22 +90,35 @@ else()
 endif()
 cmake_print_variables(HOUDINI_PATH)
 
-if (DEFINED H_OUTPUT_INSTDIR)
+
+if(DEFINED ZIBRAVDB_OUTPUT_PATH)
     message(STATUS "Using specified install directory")
-    set(HOUDINI_INSTDIR ${H_OUTPUT_INSTDIR})
+    set(OUTPUT_PATH ${ZIBRAVDB_OUTPUT_PATH})
 else()
     # Manually finding install dir so houdini_configure_target
     # doesn't need to check out license when querying it with hython
     message(STATUS "Querying hconfig for HOUDINI_USER_PREF_DIR")
-    execute_process(COMMAND "${HOUDINI_PATH}/bin/hconfig${CMAKE_HOST_EXECUTABLE_SUFFIX}"
-                    OUTPUT_VARIABLE HOUDINI_ENV_VARS
-    )
+    if(UNIX)
+        execute_process(COMMAND bash -c "cd ${HOUDINI_PATH}; source ./houdini_setup; ${HOUDINI_PATH}/bin/hconfig${CMAKE_HOST_EXECUTABLE_SUFFIX}"
+            OUTPUT_VARIABLE HOUDINI_ENV_VARS
+        )
+    else()
+        execute_process(COMMAND "${HOUDINI_PATH}/bin/hconfig${CMAKE_HOST_EXECUTABLE_SUFFIX}"
+            OUTPUT_VARIABLE HOUDINI_ENV_VARS
+        )
+    endif()
     string(REGEX MATCH "HOUDINI_USER_PREF_DIR := '([^\n]*)'" _ ${HOUDINI_ENV_VARS})
-    set(HOUDINI_USER_PREF_DIR ${CMAKE_MATCH_1})
-    cmake_print_variables(HOUDINI_USER_PREF_DIR)
-    set(HOUDINI_INSTDIR "${HOUDINI_USER_PREF_DIR}/dso")
+    set(OUTPUT_PATH ${CMAKE_MATCH_1})
 endif()
+cmake_print_variables(OUTPUT_PATH)
+set(HOUDINI_INSTDIR "${OUTPUT_PATH}/dso")
 cmake_print_variables(HOUDINI_INSTDIR)
+
+add_custom_command(TARGET ZibraVDBForHoudini POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/assets
+    ${OUTPUT_PATH}
+)
 
 list(APPEND CMAKE_PREFIX_PATH "${HOUDINI_PATH}/toolkit/cmake")
 find_package(Houdini REQUIRED)

@@ -47,6 +47,7 @@ namespace Zibra::ZibraVDBCompressor
         static constexpr const char* PER_CHANNEL_COMPRESSION_SETTINGS_QUALITY_PARAM_NAME = "perchquality";
         static constexpr const char* FILENAME_PARAM_NAME = "filename";
         static constexpr const char* DOWNLOAD_LIBRARY_BUTTON_NAME = "downloadlibrary";
+        static constexpr const char* OPEN_PLUGIN_MANAGEMENT_BUTTON_NAME = "openmanagement";
         static constexpr const char* CORE_LIB_PATH_FIELD_NAME = "corelibpath";
 
     public:
@@ -76,6 +77,8 @@ namespace Zibra::ZibraVDBCompressor
                                 const OpenVDBSupport::DecodeMetadata& decodeMetadata);
 
         static int DownloadLibrary(void* data, int index, fpreal32 time, const PRM_Template* tplate);
+        static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate);
+
         ROP_RENDER_CODE CreateCompressor(fpreal tStart);
 
     private:

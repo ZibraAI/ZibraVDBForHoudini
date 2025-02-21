@@ -2,10 +2,11 @@
 
 #include "ROP_ZibraVDBCompressor.h"
 
-#include "licensing/LicenseManager.h"
 #include "bridge/LibraryUtils.h"
+#include "licensing/LicenseManager.h"
 #include "openvdb/OpenVDBDecoder.h"
 #include "ui/MessageBox.h"
+#include "ui/PluginManagementWindow.h"
 #include "utils/GAAttributesDump.h"
 
 namespace Zibra::ZibraVDBCompressor
@@ -252,6 +253,11 @@ namespace Zibra::ZibraVDBCompressor
         static PRM_Name theDownloadLibraryButtonName(DOWNLOAD_LIBRARY_BUTTON_NAME, "Download Library");
         templateList.emplace_back(PRM_CALLBACK, 1, &theDownloadLibraryButtonName, nullptr, nullptr, nullptr,
                                   &ROP_ZibraVDBCompressor::DownloadLibrary);
+
+        static PRM_Name theOpenPluginManagementButtonName(OPEN_PLUGIN_MANAGEMENT_BUTTON_NAME, "Open Plugin Management");
+
+        templateList.emplace_back(PRM_CALLBACK, 1, &theOpenPluginManagementButtonName, nullptr, nullptr, nullptr,
+                                  &ROP_ZibraVDBCompressor::OpenManagementWindow);
 
         templateList.emplace_back();
         return templateList.data();
@@ -763,6 +769,12 @@ namespace Zibra::ZibraVDBCompressor
             return 0;
         }
         MessageBox::Show(MessageBox::Type::OK, ZVDB_MSG_LIB_DOWNLOADED_SUCCESSFULLY_WITH_LICENSE, "ZibraVDB");
+        return 0;
+    }
+
+    int ROP_ZibraVDBCompressor::OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate)
+    {
+        Zibra::PluginManagementWindow::ShowWindow();
         return 0;
     }
 
