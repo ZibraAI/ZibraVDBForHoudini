@@ -43,7 +43,7 @@ window.gad = NORMAL_WINDOW "ZibraVDB"
     {
         JUSTIFY(left, center)
 
-        LABEL "Activated components: " WIDTH(1.15);
+        LABEL "Components: " WIDTH(1.15);
         LABEL VALUE(activated_components.val);
     }
 
