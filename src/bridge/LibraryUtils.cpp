@@ -232,26 +232,34 @@ namespace Zibra::LibraryUtils
 #if ZIB_PLATFORM_WIN
 #define ZIB_PLATFORM_NAME "Windows"
 #define ZIB_DYNAMIC_LIB_EXTENSION ".dll"
-#elif ZIB_PLATFORM_MAX
+#define ZIB_DYNAMIC_LIB_PREFIX ""
+#define ZIB_CALL_CONV __cdecl
+#elif ZIB_PLATFORM_MAC
 #define ZIB_PLATFORM_NAME "macOS"
 #define ZIB_DYNAMIC_LIB_EXTENSION ".dylib"
+#define ZIB_DYNAMIC_LIB_PREFIX "lib"
+#define ZIB_CALL_CONV
 #elif ZIB_PLATFORM_LINUX
 #define ZIB_PLATFORM_NAME "Linux"
 #define ZIB_DYNAMIC_LIB_EXTENSION ".so"
+#define ZIB_DYNAMIC_LIB_PREFIX "lib"
+#define ZIB_CALL_CONV
 #else
-#error Unsupported platform
+#error Unuspported platform
 #endif
 
 
     static constexpr const char* g_BaseDirEnv = "HOUDINI_USER_PREF_DIR";
     static constexpr const char* g_AltDirEnv = "HSITE";
-    const char* g_LibraryPath = "zibra/" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING "/ZibraVDBSDK" ZIB_DYNAMIC_LIB_EXTENSION;
-    //static constexpr const char* g_LibraryDownloadURL =
-    //    "https://storage.googleapis.com/zibra-storage/ZibraVDBHoudiniBridge_" ZIB_PLATFORM_NAME
-    //    "_" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING ZIB_DYNAMIC_LIB_EXTENSION;
+    const char* g_LibraryPath =
+        "zibra/" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING "/" ZIB_DYNAMIC_LIB_PREFIX "ZibraVDBHoudiniBridge" ZIB_DYNAMIC_LIB_EXTENSION;
+    static constexpr const char* g_LibraryDownloadURL =
+        "https://storage.googleapis.com/zibra-storage/ZibraVDBHoudiniBridge_" ZIB_PLATFORM_NAME
+        "_" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING ZIB_DYNAMIC_LIB_EXTENSION;
 
     bool g_IsLibraryLoaded = false;
-    ///Zibra::CE g_LoadedLibraryVersion = {0, 0, 0, 0};
+    Zibra::CE::Version g_LoadedLibraryVersion = {0, 0, 0, 0};
+    bool g_IsLibraryInitialized = false;
 
     std::vector<std::string> GetHoudiniEnvironmentVariable(UT_StrControl envVarEnum, const char* envVarName)
     {
@@ -654,18 +662,18 @@ namespace Zibra::LibraryUtils
 #endif
     }
 
-    //void DownloadLibrary() noexcept
-    //{
-    //    const std::string downloadURL = GetDownloadURL();
-    //    const std::string libraryPath = GetLibraryPaths()[0];
-    //    bool success = NetworkRequest::DownloadFile(downloadURL, libraryPath);
-    //    if (!success)
-    //    {
-    //        return;
-    //    }
+    void DownloadLibrary() noexcept
+    {
+        //const std::string downloadURL = GetDownloadURL();
+        //const std::string libraryPath = GetLibraryPaths()[0];
+        //bool success = NetworkRequest::DownloadFile(downloadURL, libraryPath);
+        //if (!success)
+        //{
+        //    return;
+        //}
 
-    //    LoadLibrary();
-    //}
+        //LoadLibrary();
+    }
 
     bool IsLibraryLoaded() noexcept
     {

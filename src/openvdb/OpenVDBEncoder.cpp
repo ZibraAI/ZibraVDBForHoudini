@@ -90,6 +90,8 @@ namespace Zibra::OpenVDBSupport
                     acc.addLeaf(leaf);
                 }
             }
+
+            grid->pruneGrid();
         });
 
         return grids;
