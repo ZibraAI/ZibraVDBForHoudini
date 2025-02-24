@@ -250,10 +250,6 @@ namespace Zibra::ZibraVDBCompressor
         templateList.push_back(theRopTemplates[ROP_POSTRENDER_TPLATE]);
         templateList.push_back(theRopTemplates[ROP_LPOSTRENDER_TPLATE]);
 
-        static PRM_Name theDownloadLibraryButtonName(DOWNLOAD_LIBRARY_BUTTON_NAME, "Download Library");
-        templateList.emplace_back(PRM_CALLBACK, 1, &theDownloadLibraryButtonName, nullptr, nullptr, nullptr,
-                                  &ROP_ZibraVDBCompressor::DownloadLibrary);
-
         static PRM_Name theOpenPluginManagementButtonName(OPEN_PLUGIN_MANAGEMENT_BUTTON_NAME, "Open Plugin Management");
 
         templateList.emplace_back(PRM_CALLBACK, 1, &theOpenPluginManagementButtonName, nullptr, nullptr, nullptr,
@@ -319,7 +315,7 @@ namespace Zibra::ZibraVDBCompressor
             return ROP_ABORT_RENDER;
         }
 
-        if (!LicenseManager::GetInstance().CheckLicense())
+        if (!LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Compression))
         {
             addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR);
             return ROP_ABORT_RENDER;
@@ -733,12 +729,6 @@ namespace Zibra::ZibraVDBCompressor
         std::string keyVisLod = keyPrefix + "_lod";
         std::string valueVisLod = std::to_string(static_cast<int>(vdbPrim->getVisLod()));
         attributes.emplace_back(std::move(keyVisLod), std::move(valueVisLod));
-    }
-
-    int ROP_ZibraVDBCompressor::DownloadLibrary(void* data, int index, fpreal32 time, const PRM_Template* tplate)
-    {
-        Zibra::UI::LibraryDownloadManager::DownloadLibrary();
-        return 0;
     }
 
     int ROP_ZibraVDBCompressor::OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate)

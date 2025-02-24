@@ -57,15 +57,11 @@ namespace Zibra::ZibraVDBDecompressor
             return 1;
         }};
 
-        static PRM_Name theDownloadLibraryButtonName(DOWNLOAD_LIBRARY_BUTTON_NAME, "Download Library");
-
         static PRM_Name theOpenPluginManagementButtonName(OPEN_PLUGIN_MANAGEMENT_BUTTON_NAME, "Open Plugin Management");
 
         static PRM_Template templateList[] = {
             PRM_Template(PRM_FILE, 1, &theFileName, &theFileDefault), PRM_Template(PRM_INT, 1, &theFrameName, &theFrameDefault),
             PRM_Template(PRM_CALLBACK, 1, &theReloadCacheName, nullptr, nullptr, nullptr, theReloadCallback),
-            PRM_Template(PRM_CALLBACK, 1, &theDownloadLibraryButtonName, nullptr, nullptr, nullptr,
-                         &SOP_ZibraVDBDecompressor::DownloadLibrary),
             PRM_Template(PRM_CALLBACK, 1, &theOpenPluginManagementButtonName, nullptr, nullptr, nullptr,
                          &SOP_ZibraVDBDecompressor::OpenManagementWindow),
             PRM_Template()};
@@ -81,7 +77,7 @@ namespace Zibra::ZibraVDBDecompressor
             return;
         }
 
-        if (!LicenseManager::GetInstance().CheckLicense())
+        if (!LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Decompression))
         {
             addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR);
             return;
@@ -271,12 +267,6 @@ namespace Zibra::ZibraVDBDecompressor
         delete decompressedFrameData.spatialBlocks;
 
         return error(context);
-    }
-
-    int SOP_ZibraVDBDecompressor::DownloadLibrary(void* data, int index, fpreal32 time, const PRM_Template* tplate)
-    {
-        Zibra::UI::LibraryDownloadManager::DownloadLibrary();
-        return 0;
     }
 
     int SOP_ZibraVDBDecompressor::OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate)

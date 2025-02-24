@@ -3,8 +3,10 @@
 #include <SI/AP_Interface.h>
 #include <UI/UI_Value.h>
 
+#include "MessageBox.h"
 #include "bridge/LibraryUtils.h"
 #include "licensing/LicenseManager.h"
+#include "utils/Helpers.h"
 
 namespace Zibra
 {
@@ -30,12 +32,39 @@ namespace Zibra
         void HandleRetryLicenseCheck(UI_Event* event);
         void HandleRemoveLicense(UI_Event* event);
         void HandleCopyLicenseToHSITE(UI_Event* event);
+        static void HandleCopyLicenseToHSITECalback(UI::MessageBox::Result);
         void HandleCopyLicenseToHQROOT(UI_Event* event);
         void HandleDownloadLibraryToHSITE(UI_Event* event);
         void HandleDownloadLibraryToHQROOT(UI_Event* event);
         void UpdateUI();
         void SetStringField(const char* fieldName, const char* value);
     };
+
+    bool PluginManagementWindowImpl::m_IsParsed = false;
+
+    class CopyLicenseToHQROOTWindow : public AP_Interface
+    {
+    public:
+        const char* className() const final
+        {
+            return "ZibraVDBCopyLicenseToHQROOT";
+        }
+
+        void Show();
+
+    private:
+        static constexpr const char* UI_FILE = "ZibraVDBCopyLicenseToHQROOT.ui";
+
+        static bool m_IsParsed;
+
+        bool ParseUIFile();
+        void SetDefaultPath();
+
+        void HandleClick(UI_Event* event);
+        void CloseWindow();
+    };
+
+    bool CopyLicenseToHQROOTWindow::m_IsParsed = false;
 
     void PluginManagementWindowImpl::Show()
     {
@@ -88,7 +117,7 @@ namespace Zibra
 
     void PluginManagementWindowImpl::HandleDownloadLibrary(UI_Event* event)
     {
-        // LibraryUtils::DownloadLibrary();
+        LibraryUtils::DownloadLibrary();
         UpdateUI();
     }
 
@@ -117,19 +146,57 @@ namespace Zibra
     void PluginManagementWindowImpl::HandleRemoveLicense(UI_Event* event)
     {
         LicenseManager::GetInstance().RemoveLicense();
+        LicenseManager::GetInstance().CheckoutLicense();
+
+        for (size_t i = 0; i < size_t(LicenseManager::Product::Count); ++i)
+        {
+            if (LicenseManager::GetInstance().GetLicenseStatus(LicenseManager::Product(i)) == LicenseManager::Status::OK)
+            {
+                UI::MessageBox::Show(UI::MessageBox::Type::OK, "Can not automatically remove license. If you wish to remove license from "
+                                                               "HSITE or HQROOT please remove the file manually.");
+            }
+        }
+
         UpdateUI();
     }
 
     void PluginManagementWindowImpl::HandleCopyLicenseToHSITE(UI_Event* event)
     {
-        // DONT SUBMIT
-        // TODO
+        std::vector<std::string> hsitePath = Helpers::GetHoudiniEnvironmentVariable(ENV_HSITE, "HSITE");
+        if (hsitePath.empty())
+        {
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, "HSITE environment variable is not set.");
+            return;
+        }
+
+        UI::MessageBox::Show(UI::MessageBox::Type::YesNo,
+                             "This will copy your license key or your offline license to HSITE. This is intended for site-wide "
+                             "installation of the license. Note that \"Remove License\" button can not remove license from HSITE. In case "
+                             "you'll want to remove it, please manually remove the file. Do you wish to proceed?",
+                             &PluginManagementWindowImpl::HandleCopyLicenseToHSITECalback);
+    }
+
+    void PluginManagementWindowImpl::HandleCopyLicenseToHSITECalback(UI::MessageBox::Result result)
+    {
+        if (result == UI::MessageBox::Result::No)
+        {
+            return;
+        }
+
+        std::vector<std::string> hsitePath = Helpers::GetHoudiniEnvironmentVariable(ENV_HSITE, "HSITE");
+        if (hsitePath.empty())
+        {
+            assert(0);
+            return;
+        }
+
+        LicenseManager::GetInstance().CopyLicenseFile(hsitePath[0]);
     }
 
     void PluginManagementWindowImpl::HandleCopyLicenseToHQROOT(UI_Event* event)
     {
-        // DONT SUBMIT
-        // TODO
+        static CopyLicenseToHQROOTWindow dialog;
+        dialog.Show();
     }
 
     void PluginManagementWindowImpl::HandleDownloadLibraryToHSITE(UI_Event* event)
@@ -176,14 +243,28 @@ namespace Zibra
         }
         {
             std::string activationStatus;
-            auto status = LicenseManager::GetInstance().GetLicenseStatus();
+            LicenseManager::Status status = LicenseManager::Status::Uninitialized;
+            for (size_t i = 0; i < size_t(LicenseManager::Product::Count); ++i)
+            {
+                auto productStatus = LicenseManager::GetInstance().GetLicenseStatus(LicenseManager::Product(i));
+                if (productStatus < status)
+                {
+                    status = productStatus;
+                }
+            }
             switch (status)
             {
             case LicenseManager::Status::OK:
                 activationStatus = "Activated";
                 break;
-            case LicenseManager::Status::ActivationError:
-                activationStatus = "Activation Error";
+            case LicenseManager::Status::ValidationError:
+                activationStatus = "Validation Error";
+                break;
+            case LicenseManager::Status::NetworkError:
+                activationStatus = "Network Error";
+                break;
+            case LicenseManager::Status::InvalidKeyFormat:
+                activationStatus = "Invalid Key Format";
                 break;
             case LicenseManager::Status::NoLicense:
                 activationStatus = "License not found";
@@ -200,6 +281,44 @@ namespace Zibra
             }
 
             SetStringField("activation_status.val", activationStatus.c_str());
+        }
+        {
+            std::vector<std::string> activatedComponents;
+            for (size_t i = 0; i < size_t(LicenseManager::Product::Count); ++i)
+            {
+                auto product = LicenseManager::Product(i);
+                if (LicenseManager::GetInstance().GetLicenseStatus(product) == LicenseManager::Status::OK)
+                {
+                    switch (product)
+                    {
+                    case Zibra::LicenseManager::Product::Compression:
+                        activatedComponents.push_back("Compression");
+                        break;
+                    case Zibra::LicenseManager::Product::Decompression:
+                        activatedComponents.push_back("Decompression");
+                        break;
+                    default:
+                        assert(0);
+                        break;
+                    }
+                }
+            }
+            if (activatedComponents.empty())
+            {
+                activatedComponents.push_back("None");
+            }
+            std::string activatedComponentsString;
+            // Join activatedComponents with ", "
+            for (size_t i = 0; i < activatedComponents.size(); ++i)
+            {
+                activatedComponentsString += activatedComponents[i];
+                if (i != activatedComponents.size() - 1)
+                {
+                    activatedComponentsString += ", ";
+                }
+            }
+
+            SetStringField("activated_components.val", activatedComponentsString.c_str());
         }
         {
             std::string licenseType;
@@ -261,12 +380,83 @@ namespace Zibra
         getValueSymbol(fieldName)->changed(this);
     }
 
-    bool PluginManagementWindowImpl::m_IsParsed = false;
+    void CopyLicenseToHQROOTWindow::Show()
+    {
+        if (!ParseUIFile())
+        {
+            return;
+        }
+
+        SetDefaultPath();
+
+        (*getValueSymbol("dialog.val")) = true;
+        getValueSymbol("dialog.val")->changed(this);
+    }
+
+    bool CopyLicenseToHQROOTWindow::ParseUIFile()
+    {
+        if (m_IsParsed)
+        {
+            return true;
+        }
+
+        if (!readUIFile(UI_FILE))
+        {
+            return false;
+        }
+
+        getValueSymbol("result.val")->addInterest(this, static_cast<UI_EventMethod>(&CopyLicenseToHQROOTWindow::HandleClick));
+
+        m_IsParsed = true;
+
+        return true;
+    }
+
+    void CopyLicenseToHQROOTWindow::SetDefaultPath()
+    {
+        std::string defaultPath = "H:";
+
+        std::vector<std::string> hqrootPath = Helpers::GetHoudiniEnvironmentVariable(ENV_MAX_STR_CONTROLS, "HQROOT");
+        if (!hqrootPath.empty())
+        {
+            defaultPath = hqrootPath[0];
+        }
+
+        (*getValueSymbol("path.val")) = defaultPath.c_str();
+        getValueSymbol("path.val")->changed(this);
+    }
+
+    void CopyLicenseToHQROOTWindow::HandleClick(UI_Event* event)
+    {
+        int32 result = (*getValueSymbol("result.val"));
+        if (result == 1)
+        {
+            CloseWindow();
+            return;
+        }
+
+        const char* path = getValueSymbol("path.val")->getString();
+
+        if (path == nullptr)
+        {
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Please enter valid path.");
+            return;
+        }
+
+        CloseWindow();
+
+        LicenseManager::GetInstance().CopyLicenseFile(path);
+    }
+
+    void CopyLicenseToHQROOTWindow::CloseWindow()
+    {
+        (*getValueSymbol("dialog.val")) = false;
+        getValueSymbol("dialog.val")->changed(this);
+    }
 
     void PluginManagementWindow::ShowWindow()
     {
         static PluginManagementWindowImpl impl;
         impl.Show();
     }
-
 } // namespace Zibra

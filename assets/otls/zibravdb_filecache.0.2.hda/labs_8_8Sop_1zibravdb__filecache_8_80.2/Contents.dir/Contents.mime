@@ -32,20 +32,17 @@ Content-Type: text/plain
 
 sopflags sopflags = 
 comment ""
-position -1.09502 -0.65358
-connectornextid 2
+position -1.09502 -0.715245
+connectornextid 0
 flags =  lock off model off template off footprint off xray off bypass off display off render off highlight off unload off savedata off compress on colordefault off exposed on
 outputsNamed3
 {
-1 "output1"
 }
 inputsNamed3
 {
-0 	BEFORE_CACHE 1 1 "input1"
 }
 inputs
 {
-0 	BEFORE_CACHE 0 1
 }
 stat
 {
@@ -712,6 +709,192 @@ perchname# ../perchname#
 perchquality# ../perchquality#
 
 --HOUDINIMIMEBOUNDARY0xD3ADD339-0x00000F49-0x56B122C9-0x00000001HOUDINIMIMEBOUNDARY
+Content-Disposition: attachment; filename="hdaroot/rop_zibravdb_compress1.spareparmdef"
+Content-Type: text/plain
+
+    parm {
+        name    "execute"
+        baseparm
+        label   "Render to Disk"
+        joinnext
+        export  none
+    }
+    parm {
+        name    "executebackground"
+        baseparm
+        label   "Background Render"
+        joinnext
+        export  none
+    }
+    parm {
+        name    "renderpreview"
+        baseparm
+        label   "Render to MPlay"
+        joinnext
+        export  none
+    }
+    parm {
+        name    "renderdialog"
+        baseparm
+        label   "Controls..."
+        nolabel
+        export  none
+    }
+    parm {
+        name    "trange"
+        baseparm
+        label   "Valid Frame Range"
+        export  none
+    }
+    parm {
+        name    "f"
+        baseparm
+        label   "Start/End/Inc"
+        export  none
+    }
+    parm {
+        name    "take"
+        baseparm
+        label   "Render with Take"
+        export  none
+    }
+    parm {
+        name    "filename"
+        baseparm
+        label   "Out File"
+        export  none
+    }
+    parm {
+        name    "quality"
+        baseparm
+        label   "Quality"
+        export  none
+    }
+    parm {
+        name    "useperchsettings"
+        baseparm
+        label   "Use per Channel Compression Settings"
+        export  none
+    }
+    multiparm {
+        name    "perch_settings"
+        label    "Number of Channels"
+        baseparm
+        disablewhen "{ useperchsettings == off }"
+
+        parm {
+            name    "perchname#"
+            baseparm
+            label   "Channel Name"
+            export  none
+        }
+        parm {
+            name    "perchquality#"
+            baseparm
+            label   "Channel Quality"
+            export  none
+        }
+    }
+
+    parm {
+        name    "tprerender"
+        baseparm
+        label   "Pre-Render Script"
+        joinnext
+        export  none
+    }
+    parm {
+        name    "prerender"
+        baseparm
+        label   "Pre-Render Script"
+        joinnext
+        export  none
+    }
+    parm {
+        name    "lprerender"
+        baseparm
+        label   "Pre-Render Script Language"
+        nolabel
+        export  none
+    }
+    parm {
+        name    "tpreframe"
+        baseparm
+        label   "Pre-Frame Script"
+        joinnext
+        export  none
+    }
+    parm {
+        name    "preframe"
+        baseparm
+        label   "Pre-Frame Script"
+        joinnext
+        export  none
+    }
+    parm {
+        name    "lpreframe"
+        baseparm
+        label   "Pre-Frame Script Language"
+        nolabel
+        export  none
+    }
+    parm {
+        name    "tpostframe"
+        baseparm
+        label   "Post-Frame Script"
+        joinnext
+        export  none
+    }
+    parm {
+        name    "postframe"
+        baseparm
+        label   "Post-Frame Script"
+        joinnext
+        export  none
+    }
+    parm {
+        name    "lpostframe"
+        baseparm
+        label   "Post-Frame Script Language"
+        nolabel
+        export  none
+    }
+    parm {
+        name    "tpostrender"
+        baseparm
+        label   "Post-Render Script"
+        joinnext
+        export  none
+    }
+    parm {
+        name    "postrender"
+        baseparm
+        label   "Post-Render Script"
+        joinnext
+        export  none
+    }
+    parm {
+        name    "lpostrender"
+        baseparm
+        label   "Post-Render Script Language"
+        nolabel
+        export  none
+    }
+    parm {
+        name    "openmanagement"
+        baseparm
+        label   "Open Plugin Management"
+        export  none
+    }
+    parm {
+        name    "downloadlibrary"
+        label   "downloadlibrary"
+        type    float
+        default { "0" }
+        range   { 0 10 }
+    }
+
+--HOUDINIMIMEBOUNDARY0xD3ADD339-0x00000F49-0x56B122C9-0x00000001HOUDINIMIMEBOUNDARY
 Content-Disposition: attachment; filename="hdaroot/rop_zibravdb_compress1.chn"
 Content-Type: text/plain
 
@@ -768,12 +951,6 @@ Content-Type: text/plain
       righttype = extend
       flags = 0
       segment { length = 0 expr = ch(\"../perch_settings\") }
-    }
-    channel downloadlibrary {
-      lefttype = extend
-      righttype = extend
-      flags = 0
-      segment { length = 0 expr = ch(\"../downloadlibrary\") }
     }
     channel take {
       lefttype = extend
@@ -897,7 +1074,8 @@ lpostframe	[ 0	locks=0 ]	(	[ lpostframe	hscript ] 	)
 tpostrender	[ 0	locks=0 ]	(	[ tpostrender	1 ] 	)
 postrender	[ 0	locks=0 ]	(	[ postrender	"" ] 	)
 lpostrender	[ 0	locks=0 ]	(	[ lpostrender	hscript ] 	)
-downloadlibrary	[ 0	locks=0 ]	(	[ downloadlibrary	0 ] 	)
+openmanagement	[ 0	locks=0 ]	(	0	)
+downloadlibrary	[ 0	locks=0 ]	(	0	)
 }
 
 --HOUDINIMIMEBOUNDARY0xD3ADD339-0x00000F49-0x56B122C9-0x00000001HOUDINIMIMEBOUNDARY
@@ -966,6 +1144,12 @@ Content-Type: text/plain
       flags = 0
       segment { length = 0 expr = ch(\"../refresh\") }
     }
+    channel openmanagement {
+      lefttype = extend
+      righttype = extend
+      flags = 0
+      segment { length = 0 expr = ch(\"../openmanagement\") }
+    }
   }
 
 --HOUDINIMIMEBOUNDARY0xD3ADD339-0x00000F49-0x56B122C9-0x00000001HOUDINIMIMEBOUNDARY
@@ -977,7 +1161,7 @@ version 0.8
 filename	[ 0	locks=0 ]	(	`chs(\"../rop_zibravdb_compress1/filename\")`	)
 frame	[ 0	locks=0 ]	(	[ frame	0 ] 	)
 reload	[ 0	locks=0 ]	(	[ reload	0 ] 	)
-downloadlibrary	[ 0	locks=0 ]	(	0	)
+openmanagement	[ 0	locks=0 ]	(	[ openmanagement	0 ] 	)
 }
 
 --HOUDINIMIMEBOUNDARY0xD3ADD339-0x00000F49-0x56B122C9-0x00000001HOUDINIMIMEBOUNDARY

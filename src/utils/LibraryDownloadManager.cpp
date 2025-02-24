@@ -38,12 +38,6 @@ namespace Zibra::UI
             return;
         }
 
-        if (!LicenseManager::GetInstance().CheckLicense())
-        {
-            MessageBox::Show(MessageBox::Type::OK, ZVDB_MSG_LIB_DOWNLOADED_SUCCESSFULLY_WITH_NO_LICENSE);
-            return;
-        }
-
-        MessageBox::Show(MessageBox::Type::OK, ZVDB_MSG_LIB_DOWNLOADED_SUCCESSFULLY_WITH_LICENSE);
+        MessageBox::Show(MessageBox::Type::OK, ZVDB_MSG_LIB_DOWNLOADED_SUCCESSFULLY);
     }
 } // namespace Zibra::UI

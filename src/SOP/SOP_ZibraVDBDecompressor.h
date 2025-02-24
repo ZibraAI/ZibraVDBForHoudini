@@ -14,7 +14,6 @@ namespace Zibra::ZibraVDBDecompressor
         static constexpr const char* FILENAME_PARAM_NAME = "filename";
         static constexpr const char* FRAME_PARAM_NAME = "frame";
         static constexpr const char* REFRESH_CALLBACK_PARAM_NAME = "reload";
-        static constexpr const char* DOWNLOAD_LIBRARY_BUTTON_NAME = "downloadlibrary";
         static constexpr const char* OPEN_PLUGIN_MANAGEMENT_BUTTON_NAME = "openmanagement";
         static constexpr const char* CORE_LIB_PATH_FIELD_NAME = "corelibpath";
 
@@ -30,7 +29,6 @@ namespace Zibra::ZibraVDBDecompressor
         OP_ERROR cookMySop(OP_Context& context) final;
 
     private:
-        static int DownloadLibrary(void* data, int index, fpreal32 time, const PRM_Template* tplate);
         static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate);
 
         void ApplyGridMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::CompressedFrameContainer* const frameContainer);

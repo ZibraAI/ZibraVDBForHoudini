@@ -1,0 +1,17 @@
+dialog.gad = DIALOG "ZibraVDB: Copying license to HQROOT"
+{
+    LAYOUT(vertical) WIDTH(7) MARGIN(0.2) SPACING(0.1) LOOK(plain) EXCLUSIVE
+    VALUE(dialog.val)
+
+    LABEL "Please enter path to HQROOT." HSTRETCH;
+
+    SEPARATOR;
+
+    STRING_FIELD "HQROOT Path " VALUE(path.val) WIDTH(3.3);
+
+    ROW 
+    {
+        ACTION_BUTTON "Proceed" SENDS(0) VALUE(result.val);
+        ACTION_BUTTON "Cancel" SENDS(1) VALUE(result.val);
+    }
+}
