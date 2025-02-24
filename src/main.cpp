@@ -1,5 +1,8 @@
 #include "PrecompiledHeader.h"
 
+// This header must be included exactly once in the plugin!
+#include <UT/UT_DSOVersion.h>
+
 #include "ROP/ROP_ZibraVDBCompressor.h"
 #include "SOP/SOP_ZibraVDBDecompressor.h"
 

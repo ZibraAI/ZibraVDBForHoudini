@@ -5,9 +5,9 @@
 #include "bridge/LibraryUtils.h"
 #include "licensing/LicenseManager.h"
 #include "openvdb/OpenVDBDecoder.h"
-#include "ui/MessageBox.h"
 #include "ui/PluginManagementWindow.h"
 #include "utils/GAAttributesDump.h"
+#include "utils/LibraryDownloadManager.h"
 
 namespace Zibra::ZibraVDBCompressor
 {
@@ -737,38 +737,7 @@ namespace Zibra::ZibraVDBCompressor
 
     int ROP_ZibraVDBCompressor::DownloadLibrary(void* data, int index, fpreal32 time, const PRM_Template* tplate)
     {
-        using namespace Zibra::UI;
-
-        auto node = static_cast<ROP_ZibraVDBCompressor*>(data);
-
-        if (Zibra::LibraryUtils::IsLibraryLoaded())
-        {
-            MessageBox::Result result = MessageBox::Show(MessageBox::Type::OK, "Library is already downloaded.", "ZibraVDB");
-            return 0;
-        }
-        MessageBox::Result result = MessageBox::Show(MessageBox::Type::YesNo,
-                                                     "By downloading ZibraVDB library you agree to ZibraVDB for Houdini Terms of Service - "
-                                                     "https://effects.zibra.ai/vdb-terms-of-services-trial. Do you wish to proceed?",
-                                                     "ZibraVDB");
-        if (result == MessageBox::Result::No)
-        {
-            return 0;
-        }
-        // Zibra::CE::DownloadLibrary();
-        if (!Zibra::LibraryUtils::IsLibraryLoaded())
-        {
-            node->addError(ROP_MESSAGE, ZVDB_ERR_MSG_FAILED_TO_DOWNLOAD_LIBRARY);
-            MessageBox::Show(MessageBox::Type::OK, ZVDB_ERR_MSG_FAILED_TO_DOWNLOAD_LIBRARY, "ZibraVDB");
-            return 0;
-        }
-
-        if (CE::Licensing::CAPI::GetLicenseStatus(CE::Licensing::ProductType::Compression) != CE::Licensing::LicenseStatus::OK)
-        {
-            node->addWarning(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_NO_LICENSE_AFTER_DOWNLOAD);
-            MessageBox::Show(MessageBox::Type::OK, ZVDB_MSG_LIB_DOWNLOADED_SUCCESSFULLY_WITH_NO_LICENSE, "ZibraVDB");
-            return 0;
-        }
-        MessageBox::Show(MessageBox::Type::OK, ZVDB_MSG_LIB_DOWNLOADED_SUCCESSFULLY_WITH_LICENSE, "ZibraVDB");
+        Zibra::UI::LibraryDownloadManager::DownloadLibrary();
         return 0;
     }
 

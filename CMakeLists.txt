@@ -10,9 +10,9 @@ project(ZibraVDBForHoudini)
 
 # Target platform identification
 cmake_print_variables(CMAKE_SYSTEM_NAME)
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     set(OS_NAME "Win")
-elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
     set(OS_NAME "Mac")
 elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set(OS_NAME "Linux")
@@ -27,47 +27,55 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-if (MSVC)
+cmake_print_variables(CMAKE_CXX_COMPILER_VERSION)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     cmake_print_variables(CMAKE_VS_PLATFORM_TOOLSET_VERSION)
     # Disable Microsoft extensions and enable correct __cplusplus macro
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive- /Zc:__cplusplus")
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    # Check that major GCC version is exactly 11
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 11 OR CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12)
+        message(FATAL_ERROR "GCC version must be 11. Houdini will not load plugins built with other versions.")
+    endif()
 else()
-    # TODO cross-platform support
+    message(FATAL_ERROR "Unsupported compiler")
 endif()
 
 set(HeaderFiles
-        src/PrecompiledHeader.h
-        src/Globals.h
-        src/bridge/networking/NetworkRequest.h
-        src/bridge/LibraryUtils.h
-        src/bridge/RHIWrapper/RHIWrapper.h
-        src/licensing/LicenseManager.h
-        src/openvdb/OpenVDBDecoder.h
-        src/openvdb/OpenVDBEncoder.h
-        src/openvdb/MathHelpers.h
-        src/ROP/ROP_ZibraVDBCompressor.h
-        src/SOP/SOP_ZibraVDBDecompressor.h
-        src/ui/MessageBox.h
-        src/ui/PluginManagementWindow.h
-        src/utils/Helpers.h
-        src/utils/GAAttributesDump.h
+    src/PrecompiledHeader.h
+    src/Globals.h
+    src/bridge/networking/NetworkRequest.h
+    src/bridge/LibraryUtils.h
+    src/bridge/RHIWrapper/RHIWrapper.h
+    src/licensing/LicenseManager.h
+    src/openvdb/OpenVDBDecoder.h
+    src/openvdb/OpenVDBEncoder.h
+    src/openvdb/MathHelpers.h
+    src/ROP/ROP_ZibraVDBCompressor.h
+    src/SOP/SOP_ZibraVDBDecompressor.h
+    src/ui/MessageBox.h
+    src/ui/PluginManagementWindow.h
+    src/utils/Helpers.h
+    src/utils/GAAttributesDump.h
+    src/utils/LibraryDownloadManager.h
 )
 
 set(SourceFiles
-        src/main.cpp
-        src/bridge/networking/NetworkRequest.cpp
-        src/bridge/LibraryUtils.cpp
-        src/bridge/RHIWrapper/RHIWrapper.cpp
-        src/licensing/LicenseManager.cpp
-        src/openvdb/OpenVDBDecoder.cpp
-        src/openvdb/OpenVDBEncoder.cpp
-        src/openvdb/MathHelpers.cpp
-        src/ROP/ROP_ZibraVDBCompressor.cpp
-        src/SOP/SOP_ZibraVDBDecompressor.cpp
-        src/ui/MessageBox.cpp
-        src/ui/PluginManagementWindow.cpp
-        src/utils/Helpers.cpp
-        src/utils/GAAttributesDump.cpp
+    src/main.cpp
+    src/bridge/networking/NetworkRequest.cpp
+    src/bridge/LibraryUtils.cpp
+    src/bridge/RHIWrapper/RHIWrapper.cpp
+    src/licensing/LicenseManager.cpp
+    src/openvdb/OpenVDBDecoder.cpp
+    src/openvdb/OpenVDBEncoder.cpp
+    src/openvdb/MathHelpers.cpp
+    src/ROP/ROP_ZibraVDBCompressor.cpp
+    src/SOP/SOP_ZibraVDBDecompressor.cpp
+    src/ui/MessageBox.cpp
+    src/ui/PluginManagementWindow.cpp
+    src/utils/Helpers.cpp
+    src/utils/GAAttributesDump.cpp
+    src/utils/LibraryDownloadManager.cpp
 )
 
 add_library(ZibraVDBForHoudini SHARED ${HeaderFiles} ${SourceFiles})
@@ -89,7 +97,6 @@ else()
     message(FATAL_ERROR "ZIBRA_HOUDINI_PATH and HFS environment variables are not set. Can't find Houdini installation.")
 endif()
 cmake_print_variables(HOUDINI_PATH)
-
 
 if(DEFINED ZIBRAVDB_OUTPUT_PATH)
     message(STATUS "Using specified install directory")
@@ -127,10 +134,11 @@ target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini Houdini::Dep::openvdb_s
 houdini_configure_target(ZibraVDBForHoudini INSTDIR ${HOUDINI_INSTDIR})
 install(TARGETS ZibraVDBForHoudini DESTINATION ${HOUDINI_INSTDIR})
 
-if (MSVC)
+if(MSVC)
     set_target_properties(ZibraVDBForHoudini PROPERTIES
         VS_DEBUGGER_COMMAND "${HOUDINI_PATH}/bin/houdini${CMAKE_EXECUTABLE_SUFFIX}"
         VS_DEBUGGER_COMMAND_ARGUMENTS "${CMAKE_CURRENT_SOURCE_DIR}/HIP/HDAs.hip"
+        VS_DEBUGGER_ENVIRONMENT "HOUDINI_OTLSCAN_PATH=${CMAKE_CURRENT_SOURCE_DIR}/assets/otls"
         )
     set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         PROPERTY VS_STARTUP_PROJECT ZibraVDBForHoudini)

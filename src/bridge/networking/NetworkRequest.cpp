@@ -4,8 +4,30 @@
 
 #if ZIB_PLATFORM_WIN
 #pragma comment(lib, "winhttp.lib")
+#elif ZIB_PLATFORM_LINUX
+#define ZIB_CURL_FUNCTIONS(MACRO_TO_APPLY) \
+    MACRO_TO_APPLY(easy_init)              \
+    MACRO_TO_APPLY(easy_getinfo)           \
+    MACRO_TO_APPLY(easy_setopt)            \
+    MACRO_TO_APPLY(easy_perform)           \
+    MACRO_TO_APPLY(easy_cleanup)
+
+namespace curl
+{
+#define ZIB_CURL_FUNCTIONS_DECLARE(FUNCTION) static decltype(&curl_##FUNCTION) FUNCTION = nullptr;
+    ZIB_CURL_FUNCTIONS(ZIB_CURL_FUNCTIONS_DECLARE)
+#undef ZIB_CURL_FUNCTIONS_DECLARE
+} // namespace curl
+
+static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userData)
+{
+    std::ofstream* file = static_cast<std::ofstream*>(userData);
+    file->write(static_cast<const char*>(contents), size * nmemb);
+    return size * nmemb;
+}
 #else
-// TODO cross-platform support
+// TODO macOS support
+#error Unimplemented
 #endif
 
 namespace Zibra::NetworkRequest
@@ -148,9 +170,80 @@ namespace Zibra::NetworkRequest
         ::WinHttpCloseHandle(hRequest);
         ::WinHttpCloseHandle(hConnect);
         ::WinHttpCloseHandle(hSession);
+#elif ZIB_PLATFORM_LINUX
+        // Dynamically load libcurl and load functions
+        void* curlLib = dlopen("libcurl.so.4", RTLD_LAZY);
+        if (!curlLib)
+        {
+            return false;
+        }
+
+#define ZIB_CURL_FUNCTIONS_LOAD(FUNCTION)                                                           \
+    curl::FUNCTION = reinterpret_cast<decltype(curl::FUNCTION)>(dlsym(curlLib, "curl_" #FUNCTION)); \
+    if (!curl::FUNCTION)                                                                            \
+    {                                                                                               \
+        dlclose(curlLib);                                                                           \
+        return false;                                                                               \
+    }
+        ZIB_CURL_FUNCTIONS(ZIB_CURL_FUNCTIONS_LOAD)
+#undef ZIB_CURL_FUNCTIONS_LOAD
+
+        CURL* curl;
+        curl = curl::easy_init();
+        if (!curl)
+        {
+            dlclose(curlLib);
+            return false;
+        }
+
+        // List of default CAINFO/CAPATH for different distros
+        const char* defaultCAINFO[] = {
+            "/etc/ssl/certs/ca-certificates.crt",
+            "/etc/pki/tls/certs/ca-bundle.crt",
+            "/etc/ssl/cert.pem",
+            "/etc/ssl/certs/ca-bundle.crt",
+        };
+
+        // Iterate ovoer the list and set the first one that exists
+        bool found = false;
+        for (const char* path : defaultCAINFO)
+        {
+            if (std::filesystem::exists(path))
+            {
+                curl::easy_setopt(curl, CURLOPT_CAINFO, path);
+                found = true;
+                break;
+            }
+        }
+
+        // If no default CAINFO was found, return an error
+        if (!found)
+        {
+            curl::easy_cleanup(curl);
+            dlclose(curlLib);
+            return false;
+        }
+
+        curl::easy_setopt(curl, CURLOPT_URL, url.c_str());
+        curl::easy_setopt(curl, CURLOPT_WRITEFUNCTION, &WriteCallback);
+        curl::easy_setopt(curl, CURLOPT_WRITEDATA, &file);
+
+        CURLcode res = curl::easy_perform(curl);
+
+        long http_code = 0;
+        curl::easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+
+        curl::easy_cleanup(curl);
+
+        dlclose(curlLib);
+
+        if (res != CURLE_OK || http_code != 200)
+        {
+            return false;
+        }
 #else
-        // TODO cross-platform support
-        return false;
+// TODO macOS support
+#error Unimplemented
 #endif
 
         file.close();
