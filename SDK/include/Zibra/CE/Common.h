@@ -3,6 +3,9 @@
 #include <istream>
 #include <ostream>
 
+#define ZCE_CONCAT_HELPER(A, B) A##B
+#define ZCE_PFN(name) ZCE_CONCAT_HELPER(PFN_, name)
+
 namespace Zibra::CE {
     static constexpr int SPARSE_BLOCK_SIZE = 8;
     static constexpr int SPARSE_BLOCK_VOXEL_COUNT = SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE;

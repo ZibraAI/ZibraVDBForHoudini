@@ -32,17 +32,19 @@ Content-Type: text/plain
 
 sopflags sopflags = 
 comment ""
-position -1.09502 -0.715245
-connectornextid 0
-flags =  lock off model off template off footprint off xray off bypass off display off render off highlight off unload off savedata off compress on colordefault off exposed on
+position 2.022 -0.669022
+connectornextid 1
+flags =  lock off model off template off footprint off xray off bypass off display on render on highlight off unload off savedata off compress on colordefault off exposed on
 outputsNamed3
 {
 }
 inputsNamed3
 {
+0 	BEFORE_CACHE 1 1 "input1"
 }
 inputs
 {
+0 	BEFORE_CACHE 0 1
 }
 stat
 {
@@ -1136,7 +1138,7 @@ Content-Type: text/plain
       lefttype = extend
       righttype = extend
       flags = 0
-      segment { length = 0 expr = "$F - ch(\"../f1\")" }
+      segment { length = 0 expr = $F }
     }
     channel reload {
       lefttype = extend

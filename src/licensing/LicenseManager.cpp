@@ -156,7 +156,7 @@ namespace Zibra
     {
         if (offlineLicense == nullptr)
         {
-            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Please enter license key.");
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Please enter offline license.");
             return;
         }
 

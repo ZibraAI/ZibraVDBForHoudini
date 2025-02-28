@@ -13,6 +13,7 @@
 #pragma region RHIRuntime
 #define ZRHI_FNPFX(name) Zibra_RHI_RHIRuntime_##name
 
+ZRHI_PFN(ZRHI_FNPFX(Initialize)) ZRHI_FNPFX(Initialize) = nullptr;
 ZRHI_PFN(ZRHI_FNPFX(Release)) ZRHI_FNPFX(Release) = nullptr;
 ZRHI_PFN(ZRHI_FNPFX(GarbageCollect)) ZRHI_FNPFX(GarbageCollect) = nullptr;
 ZRHI_PFN(ZRHI_FNPFX(GetGFXAPI)) ZRHI_FNPFX(GetGFXAPI) = nullptr;
@@ -335,6 +336,7 @@ namespace Zibra::LibraryUtils
 #pragma region RHIRuntime
 #define ZRHI_FNPFX(name) Zibra_RHI_RHIRuntime_##name
 
+        ZIB_LOAD_FUNCTION_POINTER(Initialize);
         ZIB_LOAD_FUNCTION_POINTER(Release);
         ZIB_LOAD_FUNCTION_POINTER(GarbageCollect);
         ZIB_LOAD_FUNCTION_POINTER(GetGFXAPI);

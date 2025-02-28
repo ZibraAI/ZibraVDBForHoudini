@@ -565,21 +565,13 @@ namespace Zibra::ZibraVDBCompressor
 
         if (m_Compressor)
         {
-            if (error() < UT_ERROR_ABORT)
-            {
-                Zibra::CE::STDOStreamWrapper ostream(m_Ofstream);
-                m_Compressor->FinishSequence(&ostream);
-            }
-            else
-            {
-                // TODO
-                throw std::exception("Abort not implemented");
-            }
-
+            Zibra::CE::STDOStreamWrapper ostream(m_Ofstream);
+            m_Compressor->FinishSequence(&ostream);
             m_Compressor->Release();
+            // On error, intentionally saving partial sequence.
         }
-
         m_Ofstream.close();
+
         if (error() < UT_ERROR_ABORT)
         {
             executePostRenderScript(m_EndTime);

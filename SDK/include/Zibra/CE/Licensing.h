@@ -27,9 +27,7 @@ namespace Zibra::CE::Licensing
 
 #pragma region CAPI
 
-#define ZCE_API_IMPORT __declspec(dllimport)
-#define ZCE_CONCAT_HELPER(A, B) A##B
-#define ZCE_PFN(name) ZCE_CONCAT_HELPER(PFN_, name)
+#define ZCE_API_IMPORT extern "C" __declspec(dllimport)
 #define ZCE_NS Zibra::CE::Licensing
 
 #ifndef ZCE_NO_CAPI_IMPL
@@ -80,8 +78,6 @@ namespace ZCE_NS::CAPI
 #endif //ZCE_NO_CAPI_IMPL
 
 #undef ZCE_NS
-#undef ZCE_PFN
-#undef ZCE_CONCAT_HELPER
 #undef ZCE_API_IMPORT
 
 #pragma endregion CAPI
