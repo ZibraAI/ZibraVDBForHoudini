@@ -3,6 +3,7 @@
 #include <UT/UT_EnvControl.h>
 
 #include "networking/NetworkRequest.h"
+#include "utils/Helpers.h"
 
 #define ZRHI_CONCAT_HELPER(A, B) A##B
 #define ZRHI_PFN(name) ZRHI_CONCAT_HELPER(PFN_, name)
@@ -12,6 +13,7 @@
 #pragma region RHIRuntime
 #define ZRHI_FNPFX(name) Zibra_RHI_RHIRuntime_##name
 
+ZRHI_PFN(ZRHI_FNPFX(Initialize)) ZRHI_FNPFX(Initialize) = nullptr;
 ZRHI_PFN(ZRHI_FNPFX(Release)) ZRHI_FNPFX(Release) = nullptr;
 ZRHI_PFN(ZRHI_FNPFX(GarbageCollect)) ZRHI_FNPFX(GarbageCollect) = nullptr;
 ZRHI_PFN(ZRHI_FNPFX(GetGFXAPI)) ZRHI_FNPFX(GetGFXAPI) = nullptr;
@@ -261,26 +263,6 @@ namespace Zibra::LibraryUtils
     Zibra::CE::Version g_LoadedLibraryVersion = {0, 0, 0, 0};
     bool g_IsLibraryInitialized = false;
 
-    std::vector<std::string> GetHoudiniEnvironmentVariable(UT_StrControl envVarEnum, const char* envVarName)
-    {
-        std::vector<std::string> result;
-        const char* envVarHoudini = UT_EnvControl::getString(envVarEnum);
-        if (envVarHoudini != nullptr)
-        {
-            result.push_back(envVarHoudini);
-        }
-
-        const char* envVarSTL = std::getenv(envVarName);
-        if (envVarSTL != nullptr)
-        {
-            if (envVarHoudini == nullptr || strcmp(envVarHoudini, envVarSTL) != 0)
-            {
-                result.push_back(envVarSTL);
-            }
-        }
-        return result;
-    }
-
     // Returns vector of paths that can be used to search for the library
     // First element is the path used for downloading the library
     // Other elements are alternative load paths for manual library installation
@@ -295,7 +277,7 @@ namespace Zibra::LibraryUtils
 
         for (const auto& [envVarEnum, envVarName] : basePathEnvVars)
         {
-            const std::vector<std::string> baseDirs = GetHoudiniEnvironmentVariable(envVarEnum, envVarName);
+            const std::vector<std::string> baseDirs = Helpers::GetHoudiniEnvironmentVariable(envVarEnum, envVarName);
             for (const std::string& baseDir : baseDirs)
             {
                 std::filesystem::path libraryPath = std::filesystem::path(baseDir) / g_LibraryPath;
@@ -354,6 +336,7 @@ namespace Zibra::LibraryUtils
 #pragma region RHIRuntime
 #define ZRHI_FNPFX(name) Zibra_RHI_RHIRuntime_##name
 
+        ZIB_LOAD_FUNCTION_POINTER(Initialize);
         ZIB_LOAD_FUNCTION_POINTER(Release);
         ZIB_LOAD_FUNCTION_POINTER(GarbageCollect);
         ZIB_LOAD_FUNCTION_POINTER(GetGFXAPI);

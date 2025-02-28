@@ -1,6 +1,7 @@
 message1.val := "You should never see this";
 message2.val := "You should never see this";
 message3.val := "You should never see this";
+message4.val := "You should never see this";
 
 dialog.gad = DIALOG "ZibraVDB"
 {
@@ -10,6 +11,7 @@ dialog.gad = DIALOG "ZibraVDB"
     LABEL VALUE(message1.val) HSTRETCH;
     LABEL VALUE(message2.val) HSTRETCH;
     LABEL VALUE(message3.val) HSTRETCH;
+    LABEL VALUE(message4.val) HSTRETCH;
 
     SEPARATOR;
 

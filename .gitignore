@@ -5,5 +5,8 @@ build-*/
 # ZibraVDB Houdini packages
 package/
 
+# Backups for HDAs
+/assets/otls/backup/
+
 # CLion build directories
 /**/cmake-build-*

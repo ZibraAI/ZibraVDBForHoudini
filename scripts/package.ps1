@@ -29,7 +29,14 @@ if (Test-Path package) {
 
 $RepositoryRootFullPath = (Get-Item -Path $RepositeryRoot).FullName
 
-& ./scripts/clean-build.ps1 -DZIBRAVDB_OUTPUT_PATH="$($RepositoryRootFullPath)/package/archive" "build-package"
+$TargetFolder = "build-package"
+if ($IsWindows) {
+    $TargetFolder += "-windows"
+} else {
+    $TargetFolder += "-linux"
+}
+
+& ./scripts/clean-build.ps1 -DZIBRAVDB_OUTPUT_PATH="$($RepositoryRootFullPath)/package/archive" "$TargetFolder"
 
 # Packs HDA back into binary format replacing the original
 $HOTLPath = $HoudiniPath
