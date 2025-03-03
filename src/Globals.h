@@ -27,21 +27,12 @@ namespace Zibra
                                                                       "decompression settings.";
     constexpr auto* ZIBRAVDB_ERROR_MESSAGE_FRAME_INDEX_OUT_OF_RANGE = "Trying to decompress frame out of range of "
                                                                       "input sequence.";
-    constexpr auto* ZIBRAVDB_ERROR_MESSAGE_NO_LICENSE_AFTER_DOWNLOAD = "Library downloaded successfully, but no valid license found. Visit "
-                                                                       "'https://effects.zibra.ai/zibravdbhoudini', set up your license "
-                                                                       "and restart Houdini.";
 
     constexpr auto* ZVDB_MSG_FAILED_TO_DOWNLOAD_LIBRARY = "Failed to download ZibraVDB library.";
     constexpr auto* ZVDB_MSG_LIB_DOWNLOADED_SUCCESSFULLY_INITIALIZATION_FAILED =
         "Library downloaded successfully to $HOUDINI_USER_PREF_DIR/zibra/, but initialization failed. Please make sure you have supported "
         "hardware or software implementation of graphics API installed";
-    constexpr auto* ZVDB_MSG_LIB_DOWNLOADED_SUCCESSFULLY_WITH_NO_LICENSE = "Library downloaded successfully to "
-                                                                           "$HOUDINI_USER_PREF_DIR/zibra/, "
-                                                                           "but no valid license found. Visit "
-                                                                           "http://effects.zibra.ai/zibravdbhoudini, set up your license, "
-                                                                           "and then restart Houdini. (See the node help page for more "
-                                                                           "information.)";
-    constexpr auto* ZVDB_MSG_LIB_DOWNLOADED_SUCCESSFULLY_WITH_LICENSE = "Library downloaded successfully to "
+    constexpr auto* ZVDB_MSG_LIB_DOWNLOADED_SUCCESSFULLY = "Library downloaded successfully to "
                                                                         "$HOUDINI_USER_PREF_DIR/zibra/. "
                                                                         "(See the node help page for more information.)";
 

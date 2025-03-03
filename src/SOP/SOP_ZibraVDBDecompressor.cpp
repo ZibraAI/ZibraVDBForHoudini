@@ -3,9 +3,10 @@
 #include "SOP_ZibraVDBDecompressor.h"
 
 #include "bridge/LibraryUtils.h"
-#include "bridge/Licensing/Licensing.h"
 #include "openvdb/OpenVDBEncoder.h"
 #include "utils/GAAttributesDump.h"
+#include "licensing/LicenseManager.h"
+#include "ui/PluginManagementWindow.h"
 #include "utils/LibraryDownloadManager.h"
 
 #ifdef _DEBUG
@@ -56,13 +57,13 @@ namespace Zibra::ZibraVDBDecompressor
             return 1;
         }};
 
-        static PRM_Name theDownloadLibraryButtonName(DOWNLOAD_LIBRARY_BUTTON_NAME, "Download Library");
+        static PRM_Name theOpenPluginManagementButtonName(OPEN_PLUGIN_MANAGEMENT_BUTTON_NAME, "Open Plugin Management");
 
         static PRM_Template templateList[] = {
             PRM_Template(PRM_FILE, 1, &theFileName, &theFileDefault), PRM_Template(PRM_INT, 1, &theFrameName, &theFrameDefault),
             PRM_Template(PRM_CALLBACK, 1, &theReloadCacheName, nullptr, nullptr, nullptr, theReloadCallback),
-            PRM_Template(PRM_CALLBACK, 1, &theDownloadLibraryButtonName, nullptr, nullptr, nullptr,
-                         &SOP_ZibraVDBDecompressor::DownloadLibrary),
+            PRM_Template(PRM_CALLBACK, 1, &theOpenPluginManagementButtonName, nullptr, nullptr, nullptr,
+                         &SOP_ZibraVDBDecompressor::OpenManagementWindow),
             PRM_Template()};
         return templateList;
     }
@@ -76,8 +77,7 @@ namespace Zibra::ZibraVDBDecompressor
             return;
         }
 
-        if (!CE::Licensing::CAPI::CheckoutLicenseWithKey(LicenseManager::GetKey().c_str()) &&
-            !CE::Licensing::CAPI::CheckoutLicenseOffline(LicenseManager::GetOfflineLicense().c_str()))
+        if (!LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Decompression))
         {
             addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR);
             return;
@@ -269,9 +269,9 @@ namespace Zibra::ZibraVDBDecompressor
         return error(context);
     }
 
-    int SOP_ZibraVDBDecompressor::DownloadLibrary(void* data, int index, fpreal32 time, const PRM_Template* tplate)
+    int SOP_ZibraVDBDecompressor::OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate)
     {
-        Zibra::UI::LibraryDownloadManager::DownloadLibrary();
+        Zibra::PluginManagementWindow::ShowWindow();
         return 0;
     }
 

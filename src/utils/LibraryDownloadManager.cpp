@@ -4,7 +4,7 @@
 
 #include "Zibra/CE/Licensing.h"
 #include "bridge/LibraryUtils.h"
-#include "bridge/Licensing/Licensing.h"
+#include "licensing/LicenseManager.h"
 #include "ui/MessageBox.h"
 
 namespace Zibra::UI
@@ -38,13 +38,6 @@ namespace Zibra::UI
             return;
         }
 
-        if (!CE::Licensing::CAPI::CheckoutLicenseWithKey(LicenseManager::GetKey().c_str()) &&
-            !CE::Licensing::CAPI::CheckoutLicenseOffline(LicenseManager::GetOfflineLicense().c_str()))
-        {
-            MessageBox::Show(MessageBox::Type::OK, ZVDB_MSG_LIB_DOWNLOADED_SUCCESSFULLY_WITH_NO_LICENSE);
-            return;
-        }
-
-        MessageBox::Show(MessageBox::Type::OK, ZVDB_MSG_LIB_DOWNLOADED_SUCCESSFULLY_WITH_LICENSE);
+        MessageBox::Show(MessageBox::Type::OK, ZVDB_MSG_LIB_DOWNLOADED_SUCCESSFULLY);
     }
 } // namespace Zibra::UI
