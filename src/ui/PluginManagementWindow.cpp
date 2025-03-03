@@ -230,15 +230,7 @@ namespace Zibra
             SetStringField("library_status.val", libraryStatus.c_str());
         }
         {
-            std::string libraryVersion;
-            if (!LibraryUtils::IsLibraryLoaded())
-            {
-                libraryVersion = "Unavailable";
-            }
-            else
-            {
-                libraryVersion = "TODO IMPLEMENT";
-            }
+            std::string libraryVersion = LibraryUtils::GetLibraryVersionString();
             SetStringField("library_version.val", libraryVersion.c_str());
         }
         {
