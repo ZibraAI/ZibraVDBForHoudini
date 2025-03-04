@@ -7,7 +7,6 @@
 #include "openvdb/OpenVDBDecoder.h"
 #include "ui/PluginManagementWindow.h"
 #include "utils/GAAttributesDump.h"
-#include "utils/LibraryDownloadManager.h"
 
 namespace Zibra::ZibraVDBCompressor
 {

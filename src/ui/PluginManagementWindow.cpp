@@ -73,6 +73,7 @@ namespace Zibra
             return;
         }
 
+        LicenseManager::GetInstance().CheckoutLicense();
         UpdateUI();
 
         (*getValueSymbol("window.val")) = true;
@@ -117,7 +118,9 @@ namespace Zibra
 
     void PluginManagementWindowImpl::HandleDownloadLibrary(UI_Event* event)
     {
-        LibraryUtils::DownloadLibrary();
+        // DONT SUBMIT
+        // URL is placeholder
+        Helpers::OpenInBrowser("https://zibra.ai/download");
         UpdateUI();
     }
 

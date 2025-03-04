@@ -7,7 +7,6 @@
 #include "utils/GAAttributesDump.h"
 #include "licensing/LicenseManager.h"
 #include "ui/PluginManagementWindow.h"
-#include "utils/LibraryDownloadManager.h"
 
 #ifdef _DEBUG
 #define DBG_NAME(expression) expression

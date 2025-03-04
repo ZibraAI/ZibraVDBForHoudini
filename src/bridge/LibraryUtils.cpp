@@ -179,9 +179,6 @@ namespace Zibra::LibraryUtils
     static constexpr const char* g_AltDirEnv = "HSITE";
     const char* g_LibraryPath =
         "zibra/" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING "/" ZIB_DYNAMIC_LIB_PREFIX "ZibraVDBSDK" ZIB_DYNAMIC_LIB_EXTENSION;
-    static constexpr const char* g_LibraryDownloadURL =
-        "https://storage.googleapis.com/zibra-storage/ZibraVDB_Houdini_" ZIB_PLATFORM_NAME
-        "_" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING ZIB_DYNAMIC_LIB_EXTENSION;
 
     bool g_IsLibraryLoaded = false;
     bool g_IsLibraryInitialized = false;
@@ -219,11 +216,6 @@ namespace Zibra::LibraryUtils
         }
 
         return result;
-    }
-
-    std::string GetDownloadURL()
-    {
-        return g_LibraryDownloadURL;
     }
 
     bool ValidateLoadedVersion()
@@ -386,19 +378,6 @@ namespace Zibra::LibraryUtils
         }
 
         g_IsLibraryLoaded = true;
-    }
-
-    void DownloadLibrary() noexcept
-    {
-        const std::string downloadURL = GetDownloadURL();
-        const std::string libraryPath = GetLibraryPaths()[0];
-        bool success = NetworkRequest::DownloadFile(downloadURL, libraryPath);
-        if (!success)
-        {
-            return;
-        }
-
-        LoadLibrary();
     }
 
     bool IsLibraryLoaded() noexcept

@@ -2,6 +2,8 @@
 
 #include <filesystem>
 
+#include <PY/PY_Python.h>
+
 namespace Zibra::Helpers
 {
     std::vector<std::string> GetHoudiniEnvironmentVariable(UT_StrControl envVarEnum, const char* envVarName)
@@ -36,6 +38,16 @@ namespace Zibra::Helpers
             fsPath /= relativePath;
             path = fsPath.string();
         }
+    }
+
+    void OpenInBrowser(std::string url)
+    {
+        // Opens the URL in the browser via Python
+        PYrunPythonStatementsAndExpectNoErrors(("import webbrowser\n"
+                                                "webbrowser.open('" +
+                                                url + "')")
+                                                   .c_str(),
+                                               "Failed to open URL in browser");
     }
 
 } // namespace Zibra::Helpers

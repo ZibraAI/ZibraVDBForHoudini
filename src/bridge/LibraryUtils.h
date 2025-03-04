@@ -5,7 +5,6 @@
 namespace Zibra::LibraryUtils {
 
     void LoadLibrary() noexcept;
-    void DownloadLibrary() noexcept;
     bool IsLibraryLoaded() noexcept;
 
     constexpr bool IsPlatformSupported() noexcept
