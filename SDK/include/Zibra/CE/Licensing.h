@@ -15,7 +15,6 @@ namespace Zibra::CE::Licensing
     enum class ProductType
     {
         Compression,
-        Decompression,
         Count
     };
 

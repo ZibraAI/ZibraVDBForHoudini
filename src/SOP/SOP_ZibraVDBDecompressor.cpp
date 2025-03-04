@@ -77,12 +77,6 @@ namespace Zibra::ZibraVDBDecompressor
             return;
         }
 
-        if (!LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Decompression))
-        {
-            addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR);
-            return;
-        }
-
         m_RHIWrapper = new RHIWrapper();
         m_RHIWrapper->Initialize();
 
@@ -93,10 +87,6 @@ namespace Zibra::ZibraVDBDecompressor
     SOP_ZibraVDBDecompressor::~SOP_ZibraVDBDecompressor() noexcept
     {
         if (!Zibra::LibraryUtils::IsLibraryLoaded())
-        {
-            return;
-        }
-        if (CE::Licensing::CAPI::GetLicenseStatus(CE::Licensing::ProductType::Decompression) != CE::Licensing::LicenseStatus::OK)
         {
             return;
         }
@@ -132,11 +122,6 @@ namespace Zibra::ZibraVDBDecompressor
         if (!Zibra::LibraryUtils::IsLibraryLoaded())
         {
             addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_COMPRESSION_ENGINE_MISSING);
-            return error(context);
-        }
-        if (CE::Licensing::CAPI::GetLicenseStatus(CE::Licensing::ProductType::Decompression) != CE::Licensing::LicenseStatus::OK)
-        {
-            addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR);
             return error(context);
         }
 

@@ -275,44 +275,6 @@ namespace Zibra
             SetStringField("activation_status.val", activationStatus.c_str());
         }
         {
-            std::vector<std::string> activatedComponents;
-            for (size_t i = 0; i < size_t(LicenseManager::Product::Count); ++i)
-            {
-                auto product = LicenseManager::Product(i);
-                if (LicenseManager::GetInstance().GetLicenseStatus(product) == LicenseManager::Status::OK)
-                {
-                    switch (product)
-                    {
-                    case Zibra::LicenseManager::Product::Compression:
-                        activatedComponents.push_back("Compression");
-                        break;
-                    case Zibra::LicenseManager::Product::Decompression:
-                        activatedComponents.push_back("Decompression");
-                        break;
-                    default:
-                        assert(0);
-                        break;
-                    }
-                }
-            }
-            if (activatedComponents.empty())
-            {
-                activatedComponents.push_back("None");
-            }
-            std::string activatedComponentsString;
-            // Join activatedComponents with ", "
-            for (size_t i = 0; i < activatedComponents.size(); ++i)
-            {
-                activatedComponentsString += activatedComponents[i];
-                if (i != activatedComponents.size() - 1)
-                {
-                    activatedComponentsString += ", ";
-                }
-            }
-
-            SetStringField("activated_components.val", activatedComponentsString.c_str());
-        }
-        {
             std::string licenseType;
             auto type = LicenseManager::GetInstance().GetLicenceType();
             switch (type)

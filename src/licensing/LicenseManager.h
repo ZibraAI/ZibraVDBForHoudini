@@ -12,7 +12,6 @@ namespace Zibra
         enum class Product
         {
             Compression,
-            Decompression,
             Count
         };
 
@@ -76,7 +75,7 @@ namespace Zibra
         static const char* const ms_DefaultLicenseKeyFileName;
         static const char* const ms_DefaultOfflineLicenseFileName;
 
-        Status m_Status[size_t(Product::Count)] = {Status::Uninitialized, Status::Uninitialized};
+        Status m_Status[size_t(Product::Count)] = {Status::Uninitialized};
         ActivationType m_Type = ActivationType::None;
         LicensePathType m_LicensePathType = LicensePathType::None;
         std::string m_LicensePath;
