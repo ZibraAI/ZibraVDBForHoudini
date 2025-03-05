@@ -32,7 +32,15 @@ namespace Zibra::CE::Licensing
 #ifndef ZCE_NO_CAPI_IMPL
 
 #pragma region Funcs
-#define ZCE_FNPFX(name) Zibra_CE_Licensing_##name
+#define ZCE_LICENSING_FUNCS_EXPORT_FNPFX(name) Zibra_CE_Licensing_##name
+
+#define ZCE_LICENSING_FUNCS_API_APPLY(macro)                         \
+    macro(ZCE_LICENSING_FUNCS_EXPORT_FNPFX(CheckoutLicenseWithKey)); \
+    macro(ZCE_LICENSING_FUNCS_EXPORT_FNPFX(CheckoutLicenseOffline)); \
+    macro(ZCE_LICENSING_FUNCS_EXPORT_FNPFX(GetLicenseStatus));       \
+    macro(ZCE_LICENSING_FUNCS_EXPORT_FNPFX(ReleaseLicense))
+
+#define ZCE_FNPFX(name) ZCE_LICENSING_FUNCS_EXPORT_FNPFX(name)
 
 typedef bool (*ZCE_PFN(ZCE_FNPFX(CheckoutLicenseWithKey)))(const char* licenseKey);
 typedef bool (*ZCE_PFN(ZCE_FNPFX(CheckoutLicenseOffline)))(const char* licenseKey);
@@ -45,10 +53,9 @@ ZCE_API_IMPORT bool ZCE_FNPFX(CheckoutLicenseOffline)(const char* licenseKey) no
 ZCE_API_IMPORT ZCE_NS::LicenseStatus ZCE_FNPFX(GetLicenseStatus)(ZCE_NS::ProductType product) noexcept;
 ZCE_API_IMPORT void ZCE_FNPFX(ReleaseLicense)() noexcept;
 #else
-extern ZCE_PFN(ZCE_FNPFX(CheckoutLicenseWithKey)) ZCE_FNPFX(CheckoutLicenseWithKey);
-extern ZCE_PFN(ZCE_FNPFX(CheckoutLicenseOffline)) ZCE_FNPFX(CheckoutLicenseOffline);
-extern ZCE_PFN(ZCE_FNPFX(GetLicenseStatus)) ZCE_FNPFX(GetLicenseStatus);
-extern ZCE_PFN(ZCE_FNPFX(ReleaseLicense)) ZCE_FNPFX(ReleaseLicense);
+#define ZCE_DECLARE_API_EXTERN_FUNCS(name) extern ZRHI_PFN(name) name;
+ZCE_LICENSING_FUNCS_API_APPLY(ZCE_DECLARE_API_EXTERN_FUNCS);
+#undef ZCE_DECLARE_API_EXTERN_FUNCS
 #endif
 
 namespace ZCE_NS::CAPI
@@ -73,6 +80,8 @@ namespace ZCE_NS::CAPI
 
 #undef ZCE_FNPFX
 #pragma endregion Funcs
+
+#define ZRHI_LICENSING_API_APPLY(macro) ZCE_LICENSING_FUNCS_API_APPLY(macro)
 
 #endif //ZCE_NO_CAPI_IMPL
 

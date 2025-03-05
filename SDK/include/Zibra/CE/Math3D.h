@@ -1,8 +1,8 @@
 #pragma once
 
-#include <cstdint>
 #include <climits>
 #include <cmath>
+#include <cstdint>
 
 namespace Zibra::Math3D
 {
@@ -11,149 +11,276 @@ namespace Zibra::Math3D
 
     using uint = uint32_t;
 
-    struct float2
+    template <typename T>
+    struct Vector2
     {
-        float32_t x;
-        float32_t y;
-
-        float2();
-        float2(float _x);
-        float2(float _x, float _y);
-        float2(const std::array<float, 2>& v);
-        float2 operator-();
-        float2 operator-(const float2& v);
-        float2 operator*(float scalar);
-        float2 operator*(const float2& v);
-        float2 operator/(float scalar);
-        float2 operator/(const float2& v);
-        float2 operator+();
-        float2 operator+(const float2& v);
-        operator std::array<float, 2>() const;
+        T x, y;
+        Vector2()
+            : x(0)
+            , y(0)
+        {
+        }
+        explicit Vector2(T val)
+            : x(val)
+            , y(val)
+        {
+        }
+        Vector2(T _x, T _y)
+            : x(_x)
+            , y(_y)
+        {
+        }
+        explicit Vector2(const std::array<T, 2>& arr)
+            : x(arr[0])
+            , y(arr[1])
+        {
+        }
+        Vector2 operator-() const
+        {
+            return {-x, -y};
+        }
+        Vector2 operator-(const Vector2& v) const
+        {
+            return {x - v.x, y - v.y};
+        }
+        Vector2 operator*(T scalar) const
+        {
+            return {x * scalar, y * scalar};
+        }
+        Vector2 operator*(const Vector2& v) const
+        {
+            return {x * v.x, y * v.y};
+        }
+        Vector2 operator/(T scalar) const
+        {
+            assert(scalar != 0);
+            return {x / scalar, y / scalar};
+        }
+        Vector2 operator/(const Vector2& v) const
+        {
+            assert(v.x != 0 && v.y != 0);
+            return {x / v.x, y / v.y};
+        }
+        Vector2 operator+() const
+        {
+            return *this;
+        }
+        Vector2 operator+(const Vector2& v) const
+        {
+            return {x + v.x, y + v.y};
+        }
+        explicit operator std::array<T, 2>() const
+        {
+            return {x, y};
+        }
     };
 
-    struct int2
+    template <typename T>
+    struct Vector3
     {
-        int32_t x;
-        int32_t y;
-
-        int2();
-        int2(int _x);
-        int2(int _x, int _y);
+        T x, y, z;
+        Vector3()
+            : x(0)
+            , y(0)
+            , z(0)
+        {
+        }
+        explicit Vector3(T val)
+            : x(val)
+            , y(val)
+            , z(val)
+        {
+        }
+        Vector3(T _x, T _y, T _z)
+            : x(_x)
+            , y(_y)
+            , z(_z)
+        {
+        }
+        explicit Vector3(const std::array<T, 3>& arr)
+            : x(arr[0])
+            , y(arr[1])
+            , z(arr[2])
+        {
+        }
+        Vector3 operator-() const
+        {
+            return {-x, -y, -z};
+        }
+        Vector3 operator-(const Vector3& v) const
+        {
+            return {x - v.x, y - v.y, z - v.z};
+        }
+        Vector3 operator*(T scalar) const
+        {
+            return {x * scalar, y * scalar, z * scalar};
+        }
+        Vector3 operator*(const Vector3& v) const
+        {
+            return {x * v.x, y * v.y, z * v.z};
+        }
+        Vector3 operator/(T scalar) const
+        {
+            assert(scalar != 0);
+            return {x / scalar, y / scalar, z / scalar};
+        }
+        Vector3 operator/(const Vector3& v) const
+        {
+            assert(v.x != 0 && v.y != 0 && v.z != 0);
+            return {x / v.x, y / v.y, z / v.z};
+        }
+        Vector3 operator+() const
+        {
+            return *this;
+        }
+        Vector3 operator+(const Vector3& v) const
+        {
+            return {x + v.x, y + v.y, z + v.z};
+        }
+        explicit operator std::array<T, 3>() const
+        {
+            return {x, y, z};
+        }
     };
 
-    struct float3
+    template <typename T>
+    struct Vector4
     {
-        float32_t x;
-        float32_t y;
-        float32_t z;
-
-        float3();
-        float3(float _x);
-        float3(float _x, float _y, float _z);
-        float3(const std::array<float, 3>& v);
-        float3 operator-() const;
-        float3 operator-(const float3& v) const;
-        float3 operator*(float scalar) const;
-        float3 operator*(const float3& v) const;
-        float3 operator/(float scalar) const;
-        float3 operator/(const float3& v) const;
-        float3 operator+() const;
-        float3 operator+(const float3& v) const;
-        operator std::array<float, 3>() const;
+        T x, y, z, w;
+        Vector4()
+            : x(0)
+            , y(0)
+            , z(0)
+            , w(0)
+        {
+        }
+        explicit Vector4(T val)
+            : x(val)
+            , y(val)
+            , z(val)
+            , w(val)
+        {
+        }
+        Vector4(T _x, T _y, T _z, T _w)
+            : x(_x)
+            , y(_y)
+            , z(_z)
+            , w(_w)
+        {
+        }
+        explicit Vector4(const std::array<T, 4>& arr)
+            : x(arr[0])
+            , y(arr[1])
+            , z(arr[2])
+            , w(arr[3])
+        {
+        }
+        Vector4 operator-() const
+        {
+            return {-x, -y, -z, -w};
+        }
+        Vector4 operator-(const Vector4& v) const
+        {
+            return {x - v.x, y - v.y, z - v.z, w - v.w};
+        }
+        Vector4 operator*(T scalar) const
+        {
+            return {x * scalar, y * scalar, z * scalar, w * scalar};
+        }
+        Vector4 operator*(const Vector4& v) const
+        {
+            return {x * v.x, y * v.y, z * v.z, w * v.w};
+        }
+        Vector4 operator/(T scalar) const
+        {
+            assert(scalar != 0);
+            return {x / scalar, y / scalar, z / scalar, w / scalar};
+        }
+        Vector4 operator/(const Vector4& v) const
+        {
+            assert(v.x != 0 && v.y != 0 && v.z != 0 && v.w != 0);
+            return {x / v.x, y / v.y, z / v.z, w / v.w};
+        }
+        Vector4 operator+() const
+        {
+            return *this;
+        }
+        Vector4 operator+(const Vector4& v) const
+        {
+            return {x + v.x, y + v.y, z + v.z, w + v.w};
+        }
+        explicit operator std::array<T, 4>() const
+        {
+            return {x, y, z, w};
+        }
     };
 
-    struct int3
+    using float2 = Vector2<float32_t>;
+    using double2 = Vector2<float64_t>;
+    using int2 = Vector2<int32_t>;
+    using uint2 = Vector2<uint32_t>;
+    using float3 = Vector3<float32_t>;
+    using double3 = Vector3<float64_t>;
+    using int3 = Vector3<int32_t>;
+    using uint3 = Vector3<uint32_t>;
+    using float4 = Vector4<float32_t>;
+    using double4 = Vector4<float64_t>;
+    using int4 = Vector4<int32_t>;
+    using uint4 = Vector4<uint32_t>;
+
+    template <typename T>
+    struct Matrix2x2
     {
-        int32_t x;
-        int32_t y;
-        int32_t z;
-
-        int3();
-        int3(int _x);
-        int3(int _x, int _y, int _z);
+        Vector2<T> x;
+        Vector2<T> y;
+        Matrix2x2() = default;
+        Matrix2x2(Vector2<T> _x, Vector2<T> _y)
+            : x(_x)
+            , y(_y){};
     };
-
-    struct float4
+    template <typename T>
+    struct Matrix3x3
     {
-        float32_t x;
-        float32_t y;
-        float32_t z;
-        float32_t w;
-
-        float4();
-        float4(float _x);
-        float4(float _x, float _y, float _z, float _w);
-        float4(const std::array<float, 4>& v);
-        float4 operator-() const;
-        float4 operator-(const float4& v) const;
-        float4 operator*(float scalar) const;
-        float4 operator*(const float4& v) const;
-        float4 operator/(float scalar) const;
-        float4 operator/(const float4& v) const;
-        float4 operator+() const;
-        float4 operator+(const float4& v) const;
-        operator std::array<float, 4>() const;
+        Vector3<T> x;
+        Vector3<T> y;
+        Vector3<T> z;
+        Matrix3x3() = default;
+        Matrix3x3(Vector3<T> _x, Vector3<T> _y, Vector3<T> _z)
+            : x(_x)
+            , y(_y)
+            , z(_z){};
     };
-
-    struct int4
+    template <typename T>
+    struct Matrix4x4
     {
-        int32_t x;
-        int32_t y;
-        int32_t z;
-        int32_t w;
-
-        int4();
-        int4(int _x);
-        int4(int _x, int _y, int _z, int _w);
+        Vector4<T> x;
+        Vector4<T> y;
+        Vector4<T> z;
+        Vector4<T> w;
+        Matrix4x4() = default;
+        Matrix4x4(Vector4<T> _x, Vector4<T> _y, Vector4<T> _z, Vector4<T> _w)
+            : x(_x)
+            , y(_y)
+            , z(_z)
+            , w(_w)
+                  {};
     };
-
-    struct uint2
-    {
-        uint32_t x;
-        uint32_t y;
-
-        uint2();
-        uint2(uint32_t _x);
-        uint2(uint32_t _x, uint32_t _y);
-    };
-
-    struct uint3
-    {
-        uint32_t x;
-        uint32_t y;
-        uint32_t z;
-
-        uint3();
-        uint3(uint32_t _x);
-        uint3(uint32_t _x, uint32_t _y, uint32_t _z);
-    };
-
-    struct uint4
-    {
-        uint32_t x;
-        uint32_t y;
-        uint32_t z;
-        uint32_t w;
-
-        uint4();
-        uint4(uint32_t _x);
-        uint4(uint32_t _x, uint32_t _y, uint32_t _z, uint32_t _w);
-    };
-
-    struct float4x4
-    {
-        float4 x;
-        float4 y;
-        float4 z;
-        float4 w;
-
-        float4x4();
-        float4x4(float4 _x, float4 _y, float4 _z, float4 _w);
-    };
+    using float2x2 = Matrix2x2<float32_t>;
+    using double2x2 = Matrix2x2<float64_t>;
+    using int2x2 = Matrix2x2<int32_t>;
+    using uint2x2 = Matrix2x2<uint32_t>;
+    using float3x3 = Matrix3x3<float32_t>;
+    using double3x3 = Matrix3x3<float64_t>;
+    using int3x3 = Matrix3x3<int32_t>;
+    using uint3x3 = Matrix3x3<uint32_t>;
+    using float4x4 = Matrix4x4<float32_t>;
+    using double4x4 = Matrix4x4<float64_t>;
+    using int4x4 = Matrix4x4<int32_t>;
+    using uint4x4 = Matrix4x4<uint32_t>;
 
     union Transform
     {
-        float raw[16];
+        float raw[16]{};
         float4x4 matrix;
     };
     static constexpr Transform Ident = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
@@ -219,7 +346,7 @@ namespace Zibra::Math3D
         return volA < volB;
     }
 
-    inline  bool operator==(const AABB& a, const AABB& b) noexcept
+    inline bool operator==(const AABB& a, const AABB& b) noexcept
     {
         const bool lowerBound = a.minX == b.minX && a.minY == b.minY && a.minZ == b.minZ;
         const bool upperBound = a.maxX == b.maxX && a.maxY == b.maxY && a.maxZ == b.maxZ;
