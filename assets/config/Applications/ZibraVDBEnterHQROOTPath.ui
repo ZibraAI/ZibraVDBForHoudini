@@ -1,4 +1,4 @@
-dialog.gad = DIALOG "ZibraVDB: Copying license to HQROOT"
+dialog.gad = DIALOG "ZibraVDB: Enter HQROOT path"
 {
     LAYOUT(vertical) WIDTH(7) MARGIN(0.2) SPACING(0.1) LOOK(plain) EXCLUSIVE
     VALUE(dialog.val)

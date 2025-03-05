@@ -27,7 +27,11 @@ window.gad = NORMAL_WINDOW "ZibraVDB"
         LABEL VALUE(library_version.val);
     }
 
-    ACTION_BUTTON "Download Library" VALUE(download_library.val) WIDTH(1.7);
+    ROW
+    {
+        ACTION_BUTTON "Download Library" VALUE(download_library.val) WIDTH(2.9);
+        ACTION_BUTTON "Load Library" VALUE(load_library.val) WIDTH(2.9);
+    }
 
     SEPARATOR;
 
@@ -105,8 +109,8 @@ window.gad = NORMAL_WINDOW "ZibraVDB"
 
         ROW
         {
-            ACTION_BUTTON "Download library to HSITE" VALUE(download_library_to_hsite.val) WIDTH(2.9);
-            ACTION_BUTTON "Download library to HQROOT" VALUE(download_library_to_hqroot.val) WIDTH(2.9);
+            ACTION_BUTTON "Copy library to HSITE" VALUE(copy_library_to_hsite.val) WIDTH(2.9);
+            ACTION_BUTTON "Copy library to HQROOT" VALUE(copy_library_to_hqroot.val) WIDTH(2.9);
         }
     }
 }

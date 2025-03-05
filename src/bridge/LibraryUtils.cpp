@@ -151,14 +151,6 @@ ZSDK_RUNTIME_FUNCTION_LIST_APPLY(ZSDK_DEFINE_FUNCTION_POINTER)
 
 namespace Zibra::LibraryUtils
 {
-
-#define ZIB_COMPRESSION_MAJOR_VERSION 0
-#define ZIB_DECOMPRESSION_MAJOR_VERSION 0
-#define ZIB_RHI_MAJOR_VERSION 1
-
-#define ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING \
-    ZIB_STRINGIFY(ZIB_COMPRESSION_MAJOR_VERSION) "_" ZIB_STRINGIFY(ZIB_DECOMPRESSION_MAJOR_VERSION) "_" ZIB_STRINGIFY(ZIB_RHI_MAJOR_VERSION)
-
 #if ZIB_PLATFORM_WIN
 #define ZIB_PLATFORM_NAME "Windows"
 #define ZIB_DYNAMIC_LIB_EXTENSION ".dll"
@@ -175,10 +167,7 @@ namespace Zibra::LibraryUtils
 #error Unuspported platform
 #endif
 
-    static constexpr const char* g_BaseDirEnv = "HOUDINI_USER_PREF_DIR";
-    static constexpr const char* g_AltDirEnv = "HSITE";
-    const char* g_LibraryPath =
-        "zibra/" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING "/" ZIB_DYNAMIC_LIB_PREFIX "ZibraVDBSDK" ZIB_DYNAMIC_LIB_EXTENSION;
+    const char* g_LibraryPath = ZIB_LIBRARY_FOLDER "/" ZIB_DYNAMIC_LIB_PREFIX "ZibraVDBSDK" ZIB_DYNAMIC_LIB_EXTENSION;
 
     bool g_IsLibraryLoaded = false;
     bool g_IsLibraryInitialized = false;

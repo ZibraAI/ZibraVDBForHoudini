@@ -27,6 +27,7 @@ namespace Zibra
 
         bool ParseUIFile();
         void HandleDownloadLibrary(UI_Event* event);
+        void HandleLoadLibrary(UI_Event* event);
         void HandleSetLicenseKey(UI_Event* event);
         void HandleSetOfflineLicense(UI_Event* event);
         void HandleRetryLicenseCheck(UI_Event* event);
@@ -34,37 +35,39 @@ namespace Zibra
         void HandleCopyLicenseToHSITE(UI_Event* event);
         static void HandleCopyLicenseToHSITECalback(UI::MessageBox::Result);
         void HandleCopyLicenseToHQROOT(UI_Event* event);
-        void HandleDownloadLibraryToHSITE(UI_Event* event);
-        void HandleDownloadLibraryToHQROOT(UI_Event* event);
+        static void HandleCopyLicenseToHQROOTCallback(const char* path);
+        void HandleCopyLibraryToHSITE(UI_Event* event);
+        void HandleCopyLibraryToHQROOT(UI_Event* event);
+        static void HandleCopyLibraryToHQROOTCallback(const char* path);
         void UpdateUI();
         void SetStringField(const char* fieldName, const char* value);
     };
 
     bool PluginManagementWindowImpl::m_IsParsed = false;
 
-    class CopyLicenseToHQROOTWindow : public AP_Interface
+    class EnterHQROOTPathWindow : public AP_Interface
     {
     public:
+        EnterHQROOTPathWindow(void (*callback)(const char*));
         const char* className() const final
         {
-            return "ZibraVDBCopyLicenseToHQROOT";
+            return "ZibraVDBEnterHQROOTPath";
         }
 
         void Show();
 
     private:
-        static constexpr const char* UI_FILE = "ZibraVDBCopyLicenseToHQROOT.ui";
-
-        static bool m_IsParsed;
+        static constexpr const char* UI_FILE = "ZibraVDBEnterHQROOTPath.ui";
 
         bool ParseUIFile();
         void SetDefaultPath();
 
         void HandleClick(UI_Event* event);
         void CloseWindow();
-    };
 
-    bool CopyLicenseToHQROOTWindow::m_IsParsed = false;
+        bool m_IsParsed = false;
+        void (*m_Callback)(const char*);
+    };
 
     void PluginManagementWindowImpl::Show()
     {
@@ -94,6 +97,7 @@ namespace Zibra
 
         getValueSymbol("download_library.val")
             ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleDownloadLibrary));
+        getValueSymbol("load_library.val")->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleLoadLibrary));
         getValueSymbol("set_license_key.val")
             ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleSetLicenseKey));
         getValueSymbol("set_offline_license.val")
@@ -106,10 +110,10 @@ namespace Zibra
             ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleCopyLicenseToHSITE));
         getValueSymbol("copy_license_to_hqroot.val")
             ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleCopyLicenseToHQROOT));
-        getValueSymbol("download_library_to_hsite.val")
-            ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleDownloadLibraryToHSITE));
-        getValueSymbol("download_library_to_hqroot.val")
-            ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleDownloadLibraryToHQROOT));
+        getValueSymbol("copy_library_to_hsite.val")
+            ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleCopyLibraryToHSITE));
+        getValueSymbol("copy_library_to_hqroot.val")
+            ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleCopyLibraryToHQROOT));
 
         m_IsParsed = true;
 
@@ -118,10 +122,39 @@ namespace Zibra
 
     void PluginManagementWindowImpl::HandleDownloadLibrary(UI_Event* event)
     {
+        if (LibraryUtils::IsLibraryLoaded())
+        {
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Library is already downloaded.");
+            return;
+        }
+
         // DONT SUBMIT
         // URL is placeholder
         Helpers::OpenInBrowser("https://zibra.ai/download");
         UpdateUI();
+    }
+
+    void PluginManagementWindowImpl::HandleLoadLibrary(UI_Event* event)
+    {
+        if (LibraryUtils::IsLibraryLoaded())
+        {
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Library is already loaded.");
+            return;
+        }
+
+        LibraryUtils::LoadLibrary();
+        UpdateUI();
+
+        if (!LibraryUtils::IsLibraryLoaded())
+        {
+            UI::MessageBox::Show(UI::MessageBox::Type::OK,
+                                 "Could not load library. Please make sure that you have copied library to the correct folder.");
+            return;
+        }
+        else
+        {
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Library loaded successfully. You can now use ZibraVDB.");
+        }
     }
 
     void PluginManagementWindowImpl::HandleSetLicenseKey(UI_Event* event)
@@ -165,6 +198,12 @@ namespace Zibra
 
     void PluginManagementWindowImpl::HandleCopyLicenseToHSITE(UI_Event* event)
     {
+        if (!LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Compression))
+        {
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, "No license found to copy.");
+            return;
+        }
+
         std::vector<std::string> hsitePath = Helpers::GetHoudiniEnvironmentVariable(ENV_HSITE, "HSITE");
         if (hsitePath.empty())
         {
@@ -198,20 +237,119 @@ namespace Zibra
 
     void PluginManagementWindowImpl::HandleCopyLicenseToHQROOT(UI_Event* event)
     {
-        static CopyLicenseToHQROOTWindow dialog;
+        static EnterHQROOTPathWindow dialog(&HandleCopyLicenseToHQROOTCallback);
+
+        if (!LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Compression))
+        {
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, "No license found to copy.");
+            return;
+        }
+
         dialog.Show();
     }
 
-    void PluginManagementWindowImpl::HandleDownloadLibraryToHSITE(UI_Event* event)
+    void PluginManagementWindowImpl::HandleCopyLicenseToHQROOTCallback(const char* path)
     {
-        // DONT SUBMIT
-        // TODO
+        if (path == nullptr)
+        {
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Please enter valid path.");
+            return;
+        }
+
+        LicenseManager::GetInstance().CopyLicenseFile(path);
     }
 
-    void PluginManagementWindowImpl::HandleDownloadLibraryToHQROOT(UI_Event* event)
+    void PluginManagementWindowImpl::HandleCopyLibraryToHSITE(UI_Event* event)
     {
-        // DONT SUBMIT
-        // TODO
+        std::vector<std::string> userPrefDirPaths =
+            Helpers::GetHoudiniEnvironmentVariable(ENV_HOUDINI_USER_PREF_DIR, "HOUDINI_USER_PREF_DIR");
+        if (userPrefDirPaths.empty())
+        {
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Could not find User Preference Directory path.");
+            return;
+        }
+        std::filesystem::path source = userPrefDirPaths[0];
+        source /= ZIB_LIBRARY_FOLDER;
+
+        std::vector<std::string> hsitePathVector = Helpers::GetHoudiniEnvironmentVariable(ENV_HSITE, "HSITE");
+        if (hsitePathVector.empty())
+        {
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, "HSITE environment variable is not set.");
+            return;
+        }
+        std::filesystem::path destination = hsitePathVector[0];
+        destination = destination / ZIB_LIBRARY_FOLDER;
+
+        std::error_code ec;
+        std::filesystem::create_directories(destination, ec);
+        if (ec)
+        {
+            std::string message = "Failed to create target directory. Error: ";
+            message += ec.message();
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, message);
+        }
+
+        std::filesystem::copy(source, destination, std::filesystem::copy_options::recursive, ec);
+        if (ec)
+        {
+            std::string message = "Failed to copy library to HSITE. Error: ";
+            message += ec.message();
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, message);
+        }
+        else
+        {
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Library copied to HSITE.");
+        }
+    }
+
+    void PluginManagementWindowImpl::HandleCopyLibraryToHQROOT(UI_Event* event)
+    {
+        static EnterHQROOTPathWindow dialog(&HandleCopyLibraryToHQROOTCallback);
+        dialog.Show();
+    }
+
+    void PluginManagementWindowImpl::HandleCopyLibraryToHQROOTCallback(const char* path)
+    {
+        if (path == nullptr)
+        {
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Please enter valid path.");
+            return;
+        }
+
+        std::vector<std::string> userPrefDirPaths =
+            Helpers::GetHoudiniEnvironmentVariable(ENV_HOUDINI_USER_PREF_DIR, "HOUDINI_USER_PREF_DIR");
+        if (userPrefDirPaths.empty())
+        {
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Could not find User Preference Directory path.");
+            return;
+        }
+        std::filesystem::path source = userPrefDirPaths[0];
+        source /= ZIB_LIBRARY_FOLDER;
+
+        std::filesystem::path destination = path;
+        destination /= ZIB_LIBRARY_FOLDER;
+
+        std::error_code ec;
+        std::filesystem::create_directories(destination, ec);
+        if (ec)
+        {
+            std::string message = "Failed to create target directory. Error: ";
+            message += ec.message();
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, message);
+            return;
+        }
+
+        std::filesystem::copy(source, destination, std::filesystem::copy_options::recursive, ec);
+        if (ec)
+        {
+            std::string message = "Failed to copy library to HQROOT. Error: ";
+            message += ec.message();
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, message);
+        }
+        else
+        {
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Library copied to HQROOT.");
+        }
     }
 
     void PluginManagementWindowImpl::UpdateUI()
@@ -337,7 +475,12 @@ namespace Zibra
         getValueSymbol(fieldName)->changed(this);
     }
 
-    void CopyLicenseToHQROOTWindow::Show()
+    EnterHQROOTPathWindow::EnterHQROOTPathWindow(void (*callback)(const char*))
+        : m_Callback(callback)
+    {
+    }
+
+    void EnterHQROOTPathWindow::Show()
     {
         if (!ParseUIFile())
         {
@@ -350,7 +493,7 @@ namespace Zibra
         getValueSymbol("dialog.val")->changed(this);
     }
 
-    bool CopyLicenseToHQROOTWindow::ParseUIFile()
+    bool EnterHQROOTPathWindow::ParseUIFile()
     {
         if (m_IsParsed)
         {
@@ -362,14 +505,14 @@ namespace Zibra
             return false;
         }
 
-        getValueSymbol("result.val")->addInterest(this, static_cast<UI_EventMethod>(&CopyLicenseToHQROOTWindow::HandleClick));
+        getValueSymbol("result.val")->addInterest(this, static_cast<UI_EventMethod>(&EnterHQROOTPathWindow::HandleClick));
 
         m_IsParsed = true;
 
         return true;
     }
 
-    void CopyLicenseToHQROOTWindow::SetDefaultPath()
+    void EnterHQROOTPathWindow::SetDefaultPath()
     {
         std::string defaultPath = "H:";
 
@@ -383,7 +526,7 @@ namespace Zibra
         getValueSymbol("path.val")->changed(this);
     }
 
-    void CopyLicenseToHQROOTWindow::HandleClick(UI_Event* event)
+    void EnterHQROOTPathWindow::HandleClick(UI_Event* event)
     {
         int32 result = (*getValueSymbol("result.val"));
         if (result == 1)
@@ -394,18 +537,12 @@ namespace Zibra
 
         const char* path = getValueSymbol("path.val")->getString();
 
-        if (path == nullptr)
-        {
-            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Please enter valid path.");
-            return;
-        }
-
         CloseWindow();
 
-        LicenseManager::GetInstance().CopyLicenseFile(path);
+        m_Callback(path);
     }
 
-    void CopyLicenseToHQROOTWindow::CloseWindow()
+    void EnterHQROOTPathWindow::CloseWindow()
     {
         (*getValueSymbol("dialog.val")) = false;
         getValueSymbol("dialog.val")->changed(this);
