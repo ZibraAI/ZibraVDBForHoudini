@@ -185,6 +185,7 @@ namespace Zibra::LibraryUtils
         const std::pair<UT_StrControl, const char*> basePathEnvVars[] = {
             {ENV_HOUDINI_USER_PREF_DIR, "HOUDINI_USER_PREF_DIR"},
             {ENV_HSITE, "HSITE"},
+            {ENV_MAX_STR_CONTROLS, "HQROOT"},
         };
 
         for (const auto& [envVarEnum, envVarName] : basePathEnvVars)
