@@ -1,9 +1,17 @@
 #!/usr/bin/pwsh
 
 param (
-   [string]$TargetFolder = "build"
+   [string]$TargetFolder = ""
 )
 
+if ($TargetFolder -eq "") {
+    $TargetFolder = "build"
+    if ($IsWindows) {
+        $TargetFolder += "-windows"
+    } else {
+        $TargetFolder = "-linux"
+    }
+}
 $RepositeryRoot = "$PSScriptRoot/.."
 Push-Location $RepositeryRoot
 

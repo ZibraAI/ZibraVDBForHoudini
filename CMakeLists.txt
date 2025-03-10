@@ -44,19 +44,19 @@ endif()
 set(HeaderFiles
     src/PrecompiledHeader.h
     src/Globals.h
-    src/bridge/CompressionEngine.h
     src/bridge/networking/NetworkRequest.h
     src/bridge/LibraryUtils.h
     src/bridge/RHIWrapper/RHIWrapper.h
-    src/bridge/Licensing/Licensing.h
+    src/licensing/LicenseManager.h
     src/openvdb/OpenVDBDecoder.h
     src/openvdb/OpenVDBEncoder.h
     src/openvdb/MathHelpers.h
     src/ROP/ROP_ZibraVDBCompressor.h
     src/SOP/SOP_ZibraVDBDecompressor.h
     src/ui/MessageBox.h
+    src/ui/PluginManagementWindow.h
+    src/utils/Helpers.h
     src/utils/GAAttributesDump.h
-    src/utils/LibraryDownloadManager.h
 )
 
 set(SourceFiles
@@ -64,15 +64,16 @@ set(SourceFiles
     src/bridge/networking/NetworkRequest.cpp
     src/bridge/LibraryUtils.cpp
     src/bridge/RHIWrapper/RHIWrapper.cpp
-    src/bridge/Licensing/Licensing.cpp
+    src/licensing/LicenseManager.cpp
     src/openvdb/OpenVDBDecoder.cpp
     src/openvdb/OpenVDBEncoder.cpp
     src/openvdb/MathHelpers.cpp
     src/ROP/ROP_ZibraVDBCompressor.cpp
     src/SOP/SOP_ZibraVDBDecompressor.cpp
     src/ui/MessageBox.cpp
+    src/ui/PluginManagementWindow.cpp
+    src/utils/Helpers.cpp
     src/utils/GAAttributesDump.cpp
-    src/utils/LibraryDownloadManager.cpp
 )
 
 add_library(ZibraVDBForHoudini SHARED ${HeaderFiles} ${SourceFiles})

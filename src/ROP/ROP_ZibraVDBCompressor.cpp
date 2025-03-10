@@ -2,11 +2,11 @@
 
 #include "ROP_ZibraVDBCompressor.h"
 
-#include "bridge//Licensing/Licensing.h"
 #include "bridge/LibraryUtils.h"
+#include "licensing/LicenseManager.h"
 #include "openvdb/OpenVDBDecoder.h"
+#include "ui/PluginManagementWindow.h"
 #include "utils/GAAttributesDump.h"
-#include "utils/LibraryDownloadManager.h"
 
 namespace Zibra::ZibraVDBCompressor
 {
@@ -249,9 +249,10 @@ namespace Zibra::ZibraVDBCompressor
         templateList.push_back(theRopTemplates[ROP_POSTRENDER_TPLATE]);
         templateList.push_back(theRopTemplates[ROP_LPOSTRENDER_TPLATE]);
 
-        static PRM_Name theDownloadLibraryButtonName(DOWNLOAD_LIBRARY_BUTTON_NAME, "Download Library");
-        templateList.emplace_back(PRM_CALLBACK, 1, &theDownloadLibraryButtonName, nullptr, nullptr, nullptr,
-                                  &ROP_ZibraVDBCompressor::DownloadLibrary);
+        static PRM_Name theOpenPluginManagementButtonName(OPEN_PLUGIN_MANAGEMENT_BUTTON_NAME, "Open Plugin Management");
+
+        templateList.emplace_back(PRM_CALLBACK, 1, &theOpenPluginManagementButtonName, nullptr, nullptr, nullptr,
+                                  &ROP_ZibraVDBCompressor::OpenManagementWindow);
 
         templateList.emplace_back();
         return templateList.data();
@@ -313,8 +314,7 @@ namespace Zibra::ZibraVDBCompressor
             return ROP_ABORT_RENDER;
         }
 
-        if (!CE::Licensing::CAPI::CheckoutLicenseWithKey(LicenseManager::GetKey().c_str()) &&
-            !CE::Licensing::CAPI::CheckoutLicenseOffline(LicenseManager::GetOfflineLicense().c_str()))
+        if (!LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Compression))
         {
             addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR);
             return ROP_ABORT_RENDER;
@@ -564,21 +564,13 @@ namespace Zibra::ZibraVDBCompressor
 
         if (m_Compressor)
         {
-            if (error() < UT_ERROR_ABORT)
-            {
-                Zibra::CE::STDOStreamWrapper ostream(m_Ofstream);
-                m_Compressor->FinishSequence(&ostream);
-            }
-            else
-            {
-                // TODO
-                throw std::exception("Abort not implemented");
-            }
-
+            Zibra::CE::STDOStreamWrapper ostream(m_Ofstream);
+            m_Compressor->FinishSequence(&ostream);
             m_Compressor->Release();
+            // On error, intentionally saving partial sequence.
         }
-
         m_Ofstream.close();
+
         if (error() < UT_ERROR_ABORT)
         {
             executePostRenderScript(m_EndTime);
@@ -730,9 +722,9 @@ namespace Zibra::ZibraVDBCompressor
         attributes.emplace_back(std::move(keyVisLod), std::move(valueVisLod));
     }
 
-    int ROP_ZibraVDBCompressor::DownloadLibrary(void* data, int index, fpreal32 time, const PRM_Template* tplate)
+    int ROP_ZibraVDBCompressor::OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate)
     {
-        Zibra::UI::LibraryDownloadManager::DownloadLibrary();
+        Zibra::PluginManagementWindow::ShowWindow();
         return 0;
     }
 

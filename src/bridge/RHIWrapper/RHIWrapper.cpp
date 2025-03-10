@@ -8,6 +8,7 @@ namespace Zibra
     {
         RHI::CAPI::CreateRHIFactory(&m_RHIFactory);
         m_RHIFactory->Create(&m_RHIRuntime);
+        m_RHIRuntime->Initialize();
     }
 
     void RHIWrapper::Release() noexcept
@@ -18,22 +19,26 @@ namespace Zibra
 
     void RHIWrapper::AllocateExternalBuffers(CE::Decompression::DecompressorResourcesRequirements requirements) noexcept
     {
-        m_decompressorResources.decompressionPerChannelBlockData = m_RHIRuntime->CreateBuffer(
-            requirements.decompressionPerChannelBlockDataSizeInBytes, RHI::ResourceHeapType::Default,
-            RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource | RHI::ResourceUsage::CopySource,
-            requirements.decompressionPerChannelBlockDataStride, "decompressionPerChannelBlockData");
-        m_decompressorResources.decompressionPerChannelBlockInfo = m_RHIRuntime->CreateBuffer(
-            requirements.decompressionPerChannelBlockInfoSizeInBytes, RHI::ResourceHeapType::Default,
-            RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource | RHI::ResourceUsage::CopySource,
-            requirements.decompressionPerChannelBlockInfoStride, "decompressionPerChannelBlockInfo");
-        m_decompressorResources.decompressionPerSpatialBlockInfo = m_RHIRuntime->CreateBuffer(
-            requirements.decompressionPerSpatialBlockInfoSizeInBytes, RHI::ResourceHeapType::Default,
-            RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource | RHI::ResourceUsage::CopySource,
-            requirements.decompressionPerSpatialBlockInfoStride, "decompressionPerSpatialBlockInfo");
-        m_decompressorResources.decompressionSpatialToChannelIndexLookup = m_RHIRuntime->CreateBuffer(
+        m_RHIRuntime->CreateBuffer(requirements.decompressionPerChannelBlockDataSizeInBytes, RHI::ResourceHeapType::Default,
+                                   RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource |
+                                       RHI::ResourceUsage::CopySource,
+                                   requirements.decompressionPerChannelBlockDataStride, "decompressionPerChannelBlockData",
+                                   &m_decompressorResources.decompressionPerChannelBlockData);
+        m_RHIRuntime->CreateBuffer(requirements.decompressionPerChannelBlockInfoSizeInBytes, RHI::ResourceHeapType::Default,
+                                   RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource |
+                                       RHI::ResourceUsage::CopySource,
+                                   requirements.decompressionPerChannelBlockInfoStride, "decompressionPerChannelBlockInfo",
+                                   &m_decompressorResources.decompressionPerChannelBlockInfo);
+        m_RHIRuntime->CreateBuffer(requirements.decompressionPerSpatialBlockInfoSizeInBytes, RHI::ResourceHeapType::Default,
+                                   RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource |
+                                       RHI::ResourceUsage::CopySource,
+                                   requirements.decompressionPerSpatialBlockInfoStride, "decompressionPerSpatialBlockInfo",
+                                   &m_decompressorResources.decompressionPerSpatialBlockInfo);
+        m_RHIRuntime->CreateBuffer(
             requirements.decompressionSpatialToChannelIndexLookupSizeInBytes, RHI::ResourceHeapType::Default,
             RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource | RHI::ResourceUsage::CopySource,
-            requirements.decompressionSpatialToChannelIndexLookupStride, "decompressionSpatialToChannelIndexLookup");
+                                   requirements.decompressionSpatialToChannelIndexLookupStride, "decompressionSpatialToChannelIndexLookup",
+                                   &m_decompressorResources.decompressionSpatialToChannelIndexLookup);
     }
 
     void RHIWrapper::FreeExternalBuffers() noexcept
