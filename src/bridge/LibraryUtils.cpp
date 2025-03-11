@@ -14,7 +14,7 @@
     ZRHI_API_APPLY(macro) \
     ZCE_COMPRESSOR_API_APPLY(macro) \
     ZCE_DECOMPRESSION_API_APPLY(macro) \
-    ZRHI_LICENSING_API_APPLY(macro) \
+    ZRHI_LICENSING_API_APPLY(macro)
 
 // clang-format on
 
@@ -48,8 +48,8 @@ namespace Zibra::LibraryUtils
 
     bool g_IsLibraryLoaded = false;
     bool g_IsLibraryInitialized = false;
-    Zibra::CE::Version g_CompressionLibraryVersion = {};
-    Zibra::CE::Version g_DecompressionLibraryVersion = {};
+    Zibra::Version g_CompressionLibraryVersion = {};
+    Zibra::Version g_DecompressionLibraryVersion = {};
     Zibra::RHI::Version g_RHILibraryVersion = {};
 
     // Returns vector of paths that can be used to search for the library
@@ -114,20 +114,20 @@ namespace Zibra::LibraryUtils
     {
 #define ZIB_STRINGIZE(x) #x
 #if ZIB_PLATFORM_WIN
-#define ZIB_LOAD_FUNCTION_POINTER(functionName)                                                                          \
+#define ZIB_LOAD_FUNCTION_POINTER(functionName)                                                                             \
     functionName = reinterpret_cast<ZCE_PFN(functionName)>(::GetProcAddress(g_LibraryHandle, ZIB_STRINGIZE(functionName))); \
-    if (functionName == nullptr)                                                                                         \
-    {                                                                                                                    \
-        return false;                                                                                                    \
+    if (functionName == nullptr)                                                                                            \
+    {                                                                                                                       \
+        return false;                                                                                                       \
     }
         ZSDK_RUNTIME_FUNCTION_LIST_APPLY(ZIB_LOAD_FUNCTION_POINTER)
 #undef ZIB_LOAD_FUNCTION_POINTER
 #elif ZIB_PLATFORM_LINUX
-#define ZIB_LOAD_FUNCTION_POINTER(functionName)                                                    \
+#define ZIB_LOAD_FUNCTION_POINTER(functionName)                                                                  \
     functionName = reinterpret_cast<ZCE_PFN(functionName)>(dlsym(g_LibraryHandle, ZIB_STRINGIZE(functionName))); \
-    if (functionName == nullptr)                                                                   \
-    {                                                                                              \
-        return false;                                                                              \
+    if (functionName == nullptr)                                                                                 \
+    {                                                                                                            \
+        return false;                                                                                            \
     }
         ZSDK_RUNTIME_FUNCTION_LIST_APPLY(ZIB_LOAD_FUNCTION_POINTER)
 #undef ZIB_LOAD_FUNCTION_POINTER
@@ -175,7 +175,7 @@ namespace Zibra::LibraryUtils
         }
 
         return true;
-#elif ZIB_PLATFORM_LINUX 
+#elif ZIB_PLATFORM_LINUX
         static_assert(IsPlatformSupported());
 
         assert(g_LibraryHandle == nullptr);
@@ -258,8 +258,9 @@ namespace Zibra::LibraryUtils
         {
             return "";
         }
-        std::string result= std::to_string(g_CompressionLibraryVersion.major) + "." + std::to_string(g_CompressionLibraryVersion.minor) + "." +
-                  std::to_string(g_CompressionLibraryVersion.patch) + "." + std::to_string(g_CompressionLibraryVersion.build);
+        std::string result = std::to_string(g_CompressionLibraryVersion.major) + "." + std::to_string(g_CompressionLibraryVersion.minor) +
+                             "." + std::to_string(g_CompressionLibraryVersion.patch) + "." +
+                             std::to_string(g_CompressionLibraryVersion.build);
         result += " / ";
         result += std::to_string(g_DecompressionLibraryVersion.major) + "." + std::to_string(g_DecompressionLibraryVersion.minor) + "." +
                   std::to_string(g_DecompressionLibraryVersion.patch) + "." + std::to_string(g_DecompressionLibraryVersion.build);
@@ -267,6 +268,48 @@ namespace Zibra::LibraryUtils
         result += std::to_string(g_RHILibraryVersion.major) + "." + std::to_string(g_RHILibraryVersion.minor) + "." +
                   std::to_string(g_RHILibraryVersion.patch) + "." + std::to_string(g_RHILibraryVersion.build);
         return result;
+    }
+
+    Version ToLibraryUtilsVersion(const Zibra::Version& version) noexcept
+    {
+        return Version{version.major, version.minor, version.patch, version.build};
+    }
+
+    Version GetLibraryVersion() noexcept
+    {
+        assert(g_IsLibraryLoaded);
+        const auto& compression = g_CompressionLibraryVersion;
+        const auto& decompression = g_DecompressionLibraryVersion;
+
+        // Return newer out of compression and decompression library versions
+        if (compression.major > decompression.major)
+        {
+            return ToLibraryUtilsVersion(compression);
+        }
+        else if (g_CompressionLibraryVersion.major < g_DecompressionLibraryVersion.major)
+        {
+            return ToLibraryUtilsVersion(decompression);
+        }
+
+        if (compression.minor > decompression.minor)
+        {
+            return ToLibraryUtilsVersion(compression);
+        }
+        else if (compression.minor < decompression.minor)
+        {
+            return ToLibraryUtilsVersion(decompression);
+        }
+
+        if (compression.patch > decompression.patch)
+        {
+            return ToLibraryUtilsVersion(compression);
+        }
+        else if (compression.patch < decompression.patch)
+        {
+            return ToLibraryUtilsVersion(decompression);
+        }
+
+        return compression.build > decompression.build ? ToLibraryUtilsVersion(compression) : ToLibraryUtilsVersion(decompression);
     }
 
 } // namespace Zibra::LibraryUtils

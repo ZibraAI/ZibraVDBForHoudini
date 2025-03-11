@@ -21,8 +21,8 @@ namespace curl
 
 static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userData)
 {
-    std::ofstream* file = static_cast<std::ofstream*>(userData);
-    file->write(static_cast<const char*>(contents), size * nmemb);
+    std::vector<char>* output = static_cast<std::vector<char>*>(userData);
+    output->insert(output->end(), static_cast<char*>(contents), static_cast<char*>(contents) + size * nmemb);
     return size * nmemb;
 }
 #else
@@ -44,15 +44,9 @@ namespace Zibra::NetworkRequest
         std::filesystem::create_directories(path.parent_path());
     }
 
-    bool DownloadFile(const std::string& url, const std::string& filepath)
+    std::optional<std::vector<char>> GetImpl(const std::string& url)
     {
-        CreateFolderStructure(filepath);
-
-        std::ofstream file(filepath, std::ios::binary);
-        if (!file.is_open())
-        {
-            return false;
-        }
+        std::vector<char> result;
 
 #if ZIB_PLATFORM_WIN
         std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
@@ -63,7 +57,7 @@ namespace Zibra::NetworkRequest
         if (!hSession)
         {
             assert(0);
-            return false;
+            return std::nullopt;
         }
 
         // Parse the URL
@@ -81,7 +75,7 @@ namespace Zibra::NetworkRequest
         if (!::WinHttpCrackUrl(wideCharURL.c_str(), (DWORD)url.length(), 0, &urlComponents))
         {
             ::WinHttpCloseHandle(hSession);
-            return false;
+            return std::nullopt;
         }
 
         HINTERNET hConnect = ::WinHttpConnect(hSession, urlComponents.lpszHostName, INTERNET_DEFAULT_HTTPS_PORT, 0);
@@ -89,7 +83,7 @@ namespace Zibra::NetworkRequest
         if (!hConnect)
         {
             ::WinHttpCloseHandle(hSession);
-            return false;
+            return std::nullopt;
         }
 
         const wchar_t* acceptTypes[] = {L"*/*", nullptr};
@@ -100,7 +94,7 @@ namespace Zibra::NetworkRequest
         {
             ::WinHttpCloseHandle(hConnect);
             ::WinHttpCloseHandle(hSession);
-            return false;
+            return std::nullopt;
         }
 
         if (!::WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, NULL, 0, 0, 0))
@@ -108,7 +102,7 @@ namespace Zibra::NetworkRequest
             ::WinHttpCloseHandle(hRequest);
             ::WinHttpCloseHandle(hConnect);
             ::WinHttpCloseHandle(hSession);
-            return false;
+            return std::nullopt;
         }
 
         if (!::WinHttpReceiveResponse(hRequest, NULL))
@@ -116,7 +110,7 @@ namespace Zibra::NetworkRequest
             ::WinHttpCloseHandle(hRequest);
             ::WinHttpCloseHandle(hConnect);
             ::WinHttpCloseHandle(hSession);
-            return false;
+            return std::nullopt;
         }
 
         DWORD statusCode = 0;
@@ -127,7 +121,7 @@ namespace Zibra::NetworkRequest
             ::WinHttpCloseHandle(hRequest);
             ::WinHttpCloseHandle(hConnect);
             ::WinHttpCloseHandle(hSession);
-            return false;
+            return std::nullopt;
         }
 
         // Saves response body to a buffer
@@ -153,17 +147,10 @@ namespace Zibra::NetworkRequest
                 ::WinHttpCloseHandle(hRequest);
                 ::WinHttpCloseHandle(hConnect);
                 ::WinHttpCloseHandle(hSession);
-                return false;
+                return std::nullopt;
             }
 
-            file.write(responseBuffer.data(), bytesRead);
-            if (file.fail())
-            {
-                ::WinHttpCloseHandle(hRequest);
-                ::WinHttpCloseHandle(hConnect);
-                ::WinHttpCloseHandle(hSession);
-                return false;
-            }
+            result.insert(result.end(), responseBuffer.begin(), responseBuffer.begin() + bytesRead);
 
         } while (bytesRead > 0);
 
@@ -175,7 +162,7 @@ namespace Zibra::NetworkRequest
         void* curlLib = dlopen("libcurl.so.4", RTLD_LAZY);
         if (!curlLib)
         {
-            return false;
+            return std::nullopt;
         }
 
 #define ZIB_CURL_FUNCTIONS_LOAD(FUNCTION)                                                           \
@@ -183,7 +170,7 @@ namespace Zibra::NetworkRequest
     if (!curl::FUNCTION)                                                                            \
     {                                                                                               \
         dlclose(curlLib);                                                                           \
-        return false;                                                                               \
+        return std::nullopt;                                                                               \
     }
         ZIB_CURL_FUNCTIONS(ZIB_CURL_FUNCTIONS_LOAD)
 #undef ZIB_CURL_FUNCTIONS_LOAD
@@ -193,7 +180,7 @@ namespace Zibra::NetworkRequest
         if (!curl)
         {
             dlclose(curlLib);
-            return false;
+            return std::nullopt;
         }
 
         // List of default CAINFO/CAPATH for different distros
@@ -221,12 +208,12 @@ namespace Zibra::NetworkRequest
         {
             curl::easy_cleanup(curl);
             dlclose(curlLib);
-            return false;
+            return std::nullopt;
         }
 
         curl::easy_setopt(curl, CURLOPT_URL, url.c_str());
         curl::easy_setopt(curl, CURLOPT_WRITEFUNCTION, &WriteCallback);
-        curl::easy_setopt(curl, CURLOPT_WRITEDATA, &file);
+        curl::easy_setopt(curl, CURLOPT_WRITEDATA, &result);
 
         CURLcode res = curl::easy_perform(curl);
 
@@ -239,12 +226,43 @@ namespace Zibra::NetworkRequest
 
         if (res != CURLE_OK || http_code != 200)
         {
-            return false;
+            return std::nullopt;
         }
 #else
 // TODO macOS support
 #error Unimplemented
 #endif
+        return result;
+    }
+
+    std::string Get(const std::string& url)
+    {
+        auto response = GetImpl(url);
+        if (!response)
+        {
+            return "";
+        }
+        return std::string(response->data(), response->size());
+    }
+
+    bool DownloadFile(const std::string& url, const std::string& filepath)
+    {
+        CreateFolderStructure(filepath);
+
+        std::ofstream file(filepath, std::ios::binary);
+        if (!file.is_open())
+        {
+            return false;
+        }
+
+        auto response = GetImpl(url);
+
+        if (!response)
+        {
+            return false;
+        }
+
+        file.write(response->data(), response->size());
 
         file.close();
         if (file.fail())

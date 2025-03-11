@@ -1,5 +1,5 @@
 #pragma once
-#include <Zibra/CE/Math3D.h>
+#include <Zibra/Math3D.h>
 
 namespace Zibra::OpenVDBSupport::MathHelpers
 {

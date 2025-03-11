@@ -53,7 +53,7 @@ ZCE_API_IMPORT bool ZCE_FNPFX(CheckoutLicenseOffline)(const char* licenseKey) no
 ZCE_API_IMPORT ZCE_NS::LicenseStatus ZCE_FNPFX(GetLicenseStatus)(ZCE_NS::ProductType product) noexcept;
 ZCE_API_IMPORT void ZCE_FNPFX(ReleaseLicense)() noexcept;
 #else
-#define ZCE_DECLARE_API_EXTERN_FUNCS(name) extern ZRHI_PFN(name) name;
+#define ZCE_DECLARE_API_EXTERN_FUNCS(name) extern ZCE_PFN(name) name;
 ZCE_LICENSING_FUNCS_API_APPLY(ZCE_DECLARE_API_EXTERN_FUNCS);
 #undef ZCE_DECLARE_API_EXTERN_FUNCS
 #endif

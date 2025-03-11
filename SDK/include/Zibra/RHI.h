@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstddef>
 
 #if ZRHI_SUPPORT_D3D11
 #include <d3d11.h>
@@ -53,7 +54,7 @@ namespace Zibra::RHI
     {
         return l.major == r.major && l.minor == r.minor && l.patch == r.patch && l.build == r.build;
     }
-    constexpr Version ZRHI_VERSION = {1, 0, 0, 0};
+    constexpr Version ZRHI_VERSION = {1, 0, 2, 0};
 
     enum class GFXAPI : int8_t
     {
