@@ -79,7 +79,7 @@ namespace Zibra::ZibraVDBDecompressor
         m_RHIWrapper = new RHIWrapper();
         m_RHIWrapper->Initialize();
 
-        CAPI::CreateDecompressorFactory(&m_Factory);
+        CE::Decompression::CAPI::CreateDecompressorFactory(&m_Factory);
         m_Factory->UseRHI(m_RHIWrapper->GetRHIRuntime());
     }
 

@@ -564,7 +564,7 @@ namespace Zibra::ZibraVDBCompressor
 
         if (m_Compressor)
         {
-            Zibra::CE::STDOStreamWrapper ostream(m_Ofstream);
+            Zibra::STDOStreamWrapper ostream(m_Ofstream);
             m_Compressor->FinishSequence(&ostream);
             m_Compressor->Release();
             // On error, intentionally saving partial sequence.

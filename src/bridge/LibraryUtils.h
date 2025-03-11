@@ -3,14 +3,15 @@
 #include "../PrecompiledHeader.h"
 
 namespace Zibra::LibraryUtils {
-
-#define ZIB_COMPRESSION_MAJOR_VERSION 0
-#define ZIB_DECOMPRESSION_MAJOR_VERSION 0
-#define ZIB_RHI_MAJOR_VERSION 1
-
-#define ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING \
-    ZIB_STRINGIFY(ZIB_COMPRESSION_MAJOR_VERSION) "_" ZIB_STRINGIFY(ZIB_DECOMPRESSION_MAJOR_VERSION) "_" ZIB_STRINGIFY(ZIB_RHI_MAJOR_VERSION)
 #define ZIB_LIBRARY_FOLDER "zibra/" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING
+
+    struct Version
+    {
+        uint32_t major;
+        uint32_t minor;
+        uint32_t patch;
+        uint32_t build;
+    };
 
     void LoadLibrary() noexcept;
     bool IsLibraryLoaded() noexcept;
@@ -25,5 +26,6 @@ namespace Zibra::LibraryUtils {
     }
 
     std::string GetLibraryVersionString() noexcept;
+    Version GetLibraryVersion() noexcept;
 
 } // namespace Zibra::LibraryUtils
