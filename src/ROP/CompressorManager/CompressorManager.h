@@ -11,7 +11,7 @@ namespace Zibra::CE::Compression
         ReturnCode Initialize(FrameMappingDecs frameMappingDesc, float defaultQuality,
                               std::unordered_map<const char*, float> perChannelCompressionSettings) noexcept;
         ReturnCode StartSequence(const UT_String& filename) noexcept;
-        ReturnCode CompressFrame(const CompressFrameDesc& compressFrameDesc, FrameManager* frameManager) noexcept;
+        ReturnCode CompressFrame(const CompressFrameDesc& compressFrameDesc, FrameManager** frameManager) noexcept;
         ReturnCode FinishSequence() noexcept;
         void Release() noexcept;
 

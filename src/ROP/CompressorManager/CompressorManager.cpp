@@ -58,11 +58,11 @@ namespace Zibra::CE::Compression
         }
     }
 
-    ReturnCode CompressorManager::CompressFrame(const CompressFrameDesc& compressFrameDesc, FrameManager* frameManager) noexcept
+    ReturnCode CompressorManager::CompressFrame(const CompressFrameDesc& compressFrameDesc, FrameManager** frameManager) noexcept
     {
         m_RHIRuntime->StartRecording();
 
-        auto status = m_Compressor->CompressFrame(compressFrameDesc, &frameManager);
+        auto status = m_Compressor->CompressFrame(compressFrameDesc, frameManager);
         if (status != CE::ReturnCode::ZCE_SUCCESS)
         {
             return status;

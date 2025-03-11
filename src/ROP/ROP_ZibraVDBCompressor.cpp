@@ -501,13 +501,13 @@ namespace Zibra::ZibraVDBCompressor
         compressFrameDesc.channelsCount = orderedChannelNames.size();
         compressFrameDesc.channels = orderedChannelNames.data();
 
-        Zibra::CE::Compression::FrameManager* frameManager;
+        Zibra::CE::Compression::FrameManager* frameManager = nullptr;
 
         OpenVDBSupport::OpenVDBDecoder reader{volumes.data(), orderedChannelNames.data(), orderedChannelNames.size()};
         OpenVDBSupport::DecodeMetadata decodeMetadata{};
         compressFrameDesc.frame = reader.DecodeFrame(decodeMetadata);
 
-        auto status = m_CompressorManager.CompressFrame(compressFrameDesc, frameManager);
+        auto status = m_CompressorManager.CompressFrame(compressFrameDesc, &frameManager);
 
         auto attrDump = DumpAttributes(gdp, decodeMetadata);
         for (const auto& [key, val] : attrDump)
@@ -536,7 +536,12 @@ namespace Zibra::ZibraVDBCompressor
             return ROP_ABORT_RENDER;
         }
 
-        m_CompressorManager.FinishSequence();
+        auto status = m_CompressorManager.FinishSequence();
+        if (status != CE::ZCE_SUCCESS)
+        {
+            addError(ROP_MESSAGE, "Failed to finish compressing sequence.");
+            return ROP_ABORT_RENDER;
+        }
         m_CompressorManager.Release();
 
         if (error() < UT_ERROR_ABORT)
@@ -553,33 +558,14 @@ namespace Zibra::ZibraVDBCompressor
         evalString(filename, FILENAME_PARAM_NAME, nullptr, 0, tStart);
         std::filesystem::create_directories(std::filesystem::path{filename.c_str()}.parent_path());
 
-        // if (!m_Factory)
-        //{
-        //     m_Factory = Zibra::CE::Compression::CAPI::CreateCompressorFactory();
-        //     if (m_Factory == nullptr)
-        //     {
-        //         addError(ROP_MESSAGE, "Failed to create compressor factory.");
-        //         return ROP_ABORT_RENDER;
-        //     }
-
-        //    auto status = m_Factory->UseRHI(m_RHIWrapper->GetRHIRuntime());
-        //    if (status != CE::ReturnCode::ZCE_SUCCESS)
-        //    {
-        //        addError(ROP_MESSAGE, "Failed assign RHI to compressor factory.");
-        //        return ROP_ABORT_RENDER;
-        //    }
-        //}
-
         const int renderMode = evalInt("trange", 0, ctx.getTime());
         const float startFrame = renderMode == 0 ? ctx.getFrame() : evalFloat("f", 0, tStart);
         const float frameInc = renderMode == 0 ? 1 : evalFloat("f", 2, tStart);
         CE::Compression::FrameMappingDecs frameMappingDesc;
         frameMappingDesc.sequenceStartIndex = startFrame;
         frameMappingDesc.sequenceIndexIncrement = frameInc;
-        // m_Factory->SetFrameMapping(frameMappingDesc);
 
         float defaultQuality = static_cast<float>(evalFloat(QUALITY_PARAM_NAME, 0, tStart));
-        // m_Factory->SetQuality(defaultQuality);
 
         UT_String usePerChannelCompressionSettingsString;
         evalString(usePerChannelCompressionSettingsString, USE_PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME, 0, tStart);
@@ -618,7 +604,6 @@ namespace Zibra::ZibraVDBCompressor
                 const char* channelName = channelNameStr.c_str();
                 float quality = static_cast<float>(evalFloat(qualityParamNameStr.c_str(), 0, tStart));
 
-                // m_Factory->OverrideChannelQuality(channelName, quality);
                 perChannelCompressionSettings[channelName] = quality;
             }
         }
@@ -629,19 +614,6 @@ namespace Zibra::ZibraVDBCompressor
             addError(ROP_MESSAGE, "Failed to initialize compressor.");
             return ROP_ABORT_RENDER;
         }
-        // auto status = m_Factory->Create(&m_Compressor);
-        // if (status != Zibra::CE::ReturnCode::ZCE_SUCCESS)
-        //{
-        //     addError(ROP_MESSAGE, "Failed to create compressor instance.");
-        //     return ROP_ABORT_RENDER;
-        // }
-
-        // status = m_Compressor->Initialize();
-        // if (status != Zibra::CE::ReturnCode::ZCE_SUCCESS)
-        //{
-        //     addError(ROP_MESSAGE, "Failed to initialize compressor.");
-        //     return ROP_ABORT_RENDER;
-        // }
 
         return ROP_CONTINUE_RENDER;
     }
