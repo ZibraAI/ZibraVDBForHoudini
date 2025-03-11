@@ -3,10 +3,10 @@
 #include "SOP_ZibraVDBDecompressor.h"
 
 #include "bridge/LibraryUtils.h"
-#include "openvdb/OpenVDBEncoder.h"
-#include "utils/GAAttributesDump.h"
 #include "licensing/LicenseManager.h"
+#include "openvdb/OpenVDBEncoder.h"
 #include "ui/PluginManagementWindow.h"
+#include "utils/GAAttributesDump.h"
 
 #ifdef _DEBUG
 #define DBG_NAME(expression) expression
@@ -75,12 +75,7 @@ namespace Zibra::ZibraVDBDecompressor
         {
             return;
         }
-
-        m_RHIWrapper = new RHIWrapper();
-        m_RHIWrapper->Initialize();
-
-        CAPI::CreateDecompressorFactory(&m_Factory);
-        m_Factory->UseRHI(m_RHIWrapper->GetRHIRuntime());
+        m_DecompressorManager.Initialize();
     }
 
     SOP_ZibraVDBDecompressor::~SOP_ZibraVDBDecompressor() noexcept
@@ -89,22 +84,7 @@ namespace Zibra::ZibraVDBDecompressor
         {
             return;
         }
-        if (m_Decompressor)
-        {
-            m_Decompressor->Release();
-            m_Decompressor = nullptr;
-        }
-        if (m_Factory)
-        {
-            m_Factory->Release();
-            m_Factory = nullptr;
-        }
-        if (m_RHIWrapper)
-        {
-            m_RHIWrapper->Release();
-            delete m_RHIWrapper;
-            m_RHIWrapper = nullptr;
-        }
+        m_DecompressorManager.Release();
     }
 
     OP_ERROR SOP_ZibraVDBDecompressor::cookMySop(OP_Context& context)
@@ -129,12 +109,6 @@ namespace Zibra::ZibraVDBDecompressor
         // getCookedData() used as a hack for Reload Cache detection
         if (filenameIsDirty || getCookedData(context) == nullptr)
         {
-            if (m_Decoder)
-            {
-                CE::Decompression::CAPI::ReleaseDecoder(m_Decoder);
-                m_Decoder = nullptr;
-            }
-
             UT_String filename = "";
             evalString(filename, "filename", nullptr, 0, context.getTime());
             if (filename == "")
@@ -143,55 +117,10 @@ namespace Zibra::ZibraVDBDecompressor
                 return error(context);
             }
 
-            auto status = CE::Decompression::CAPI::CreateDecoder(filename.c_str(), &m_Decoder);
+            ReturnCode status = m_DecompressorManager.RegisterDecompressor(filename);
             if (status != CE::ZCE_SUCCESS)
             {
-                addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_COULDNT_OPEN_FILE);
-                return error(context);
-            }
-
-            status = m_Factory->UseDecoder(m_Decoder);
-            if (status != CE::ZCE_SUCCESS)
-            {
-                addError(SOP_MESSAGE, "Failed to assign decoder to compressor factory.");
-                return error(context);
-            }
-
-            if (m_Decompressor)
-            {
-                m_RHIWrapper->FreeExternalBuffers();
-                m_FormatMapper->Release();
-                m_Decompressor->Release();
-                m_Decompressor = nullptr;
-            }
-
-            status = m_Factory->Create(&m_Decompressor);
-            if (status != CE::ZCE_SUCCESS)
-            {
-                addError(SOP_MESSAGE, "Failed to create decompressor instance.");
-                return error(context);
-            }
-
-            status = m_Decompressor->Initialize();
-            if (status != CE::ZCE_SUCCESS)
-            {
-                addError(SOP_MESSAGE, "Failed to initialize decompressor instance.");
-                return error(context);
-            }
-
-            m_FormatMapper = static_cast<CE::Decompression::CAPI::FormatMapperCAPI*>(m_Decompressor->GetFormatMapper());
-            if (!m_FormatMapper)
-            {
-                addError(SOP_MESSAGE, "Failed to get format mapped for sequence.");
-                return error(context);
-            }
-
-            m_RHIWrapper->AllocateExternalBuffers(m_Decompressor->GetResourcesRequirements());
-
-            status = m_Decompressor->RegisterResources(m_RHIWrapper->GetDecompressorResources());
-            if (status != CE::ZCE_SUCCESS)
-            {
-                addError(SOP_MESSAGE, "Failed to register external decompressor resources.");
+                addError(SOP_MESSAGE, "Failed to create a decompressor.");
                 return error(context);
             }
         }
@@ -199,7 +128,7 @@ namespace Zibra::ZibraVDBDecompressor
         const exint frameIndex = evalInt(FRAME_PARAM_NAME, 0, context.getTime());
 
         CE::Decompression::CompressedFrameContainer* frameContainer = nullptr;
-        FrameRange frameRange = m_FormatMapper->GetFrameRange();
+        FrameRange frameRange = m_DecompressorManager.GetFrameRange();
 
         if (frameIndex < frameRange.start || frameIndex > frameRange.end)
         {
@@ -207,7 +136,7 @@ namespace Zibra::ZibraVDBDecompressor
             return error(context);
         }
 
-        m_FormatMapper->FetchFrame(frameIndex, &frameContainer);
+        frameContainer = m_DecompressorManager.FetchFrame(frameIndex);
 
         if (frameContainer == nullptr)
         {
@@ -215,14 +144,16 @@ namespace Zibra::ZibraVDBDecompressor
             return error(context);
         }
 
-        m_RHIWrapper->StartRecording();
-        m_Decompressor->DecompressFrame(frameContainer);
-        m_RHIWrapper->StopRecording();
-        m_RHIWrapper->GarbageCollect();
+        ReturnCode status = m_DecompressorManager.DecompressFrame(frameContainer);
+        if (status != CE::ZCE_SUCCESS)
+        {
+            addError(SOP_MESSAGE, "Error when trying to fetch frame");
+            return error(context);
+        }
 
         FrameInfo frameInfo = frameContainer->GetInfo();
         OpenVDBSupport::EncodeMetadata encodeMetadata = ReadEncodeMetadata(frameContainer);
-        OpenVDBSupport::DecompressedFrameData decompressedFrameData = m_RHIWrapper->GetDecompressedFrameData(frameInfo);
+        OpenVDBSupport::DecompressedFrameData decompressedFrameData = m_DecompressorManager.GetDecompressedFrameData(frameInfo);
         auto vdbGrids = OpenVDBSupport::OpenVDBEncoder::EncodeFrame(frameInfo, decompressedFrameData, encodeMetadata);
 
         gdp->addStringTuple(GA_ATTRIB_PRIMITIVE, "name", 1);
@@ -343,15 +274,15 @@ namespace Zibra::ZibraVDBDecompressor
     OpenVDBSupport::EncodeMetadata SOP_ZibraVDBDecompressor::ReadEncodeMetadata(
         CE::Decompression::CompressedFrameContainer* const frameContainer)
     {
-        OpenVDBSupport::EncodeMetadata encodeMetadata{};
         const char* metadataKey = "houdiniDecodeMetadata";
         const char* metadataValue = frameContainer->GetMetadataByKey(metadataKey);
-        if (metadataValue)
+        if (!metadataValue)
         {
-            std::istringstream metadataStream(metadataValue);
-            metadataStream >> encodeMetadata.offsetX >> encodeMetadata.offsetY >> encodeMetadata.offsetZ;
+            return {};
         }
-
+        OpenVDBSupport::EncodeMetadata encodeMetadata{};
+        std::istringstream metadataStream(metadataValue);
+        metadataStream >> encodeMetadata.offsetX >> encodeMetadata.offsetY >> encodeMetadata.offsetZ;
         return encodeMetadata;
     }
 

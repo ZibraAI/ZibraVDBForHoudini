@@ -46,7 +46,8 @@ set(HeaderFiles
     src/Globals.h
     src/bridge/networking/NetworkRequest.h
     src/bridge/LibraryUtils.h
-    src/bridge/RHIWrapper/RHIWrapper.h
+    src/ROP/CompressorManager/CompressorManager.h
+    src/SOP/DecompressorManager/DecompressorManager.h
     src/licensing/LicenseManager.h
     src/openvdb/OpenVDBDecoder.h
     src/openvdb/OpenVDBEncoder.h
@@ -63,7 +64,8 @@ set(SourceFiles
     src/main.cpp
     src/bridge/networking/NetworkRequest.cpp
     src/bridge/LibraryUtils.cpp
-    src/bridge/RHIWrapper/RHIWrapper.cpp
+    src/ROP/CompressorManager/CompressorManager.cpp
+    src/SOP/DecompressorManager/DecompressorManager.cpp
     src/licensing/LicenseManager.cpp
     src/openvdb/OpenVDBDecoder.cpp
     src/openvdb/OpenVDBEncoder.cpp

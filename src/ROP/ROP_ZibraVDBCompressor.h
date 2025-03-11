@@ -1,6 +1,6 @@
 #pragma once
 #include "Globals.h"
-#include "bridge/RHIWrapper/RHIWrapper.h"
+#include "ROP/CompressorManager/CompressorManager.h"
 
 namespace Zibra::OpenVDBSupport
 {
@@ -88,9 +88,10 @@ namespace Zibra::ZibraVDBCompressor
 
         ContextType m_ContextType;
 
-        CE::Compression::CompressorFactory* m_Factory = nullptr;
-        CE::Compression::Compressor* m_Compressor = nullptr;
-        RHIWrapper* m_RHIWrapper = nullptr;
+        //CE::Compression::CompressorFactory* m_Factory = nullptr;
+        //CE::Compression::Compressor* m_Compressor = nullptr;
+        //RHIWrapper* m_RHIWrapper = nullptr;
         std::ofstream m_Ofstream;
+        CE::Compression::CompressorManager m_CompressorManager;
     };
 } // namespace Zibra::ZibraVDBCompressor

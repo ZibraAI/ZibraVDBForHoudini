@@ -1,7 +1,7 @@
 #pragma once
 #include "Globals.h"
 #include "openvdb/OpenVDBEncoder.h"
-#include "bridge/RHIWrapper/RHIWrapper.h"
+#include "SOP/DecompressorManager/DecompressorManager.h"
 
 namespace Zibra::ZibraVDBDecompressor
 {
@@ -38,11 +38,7 @@ namespace Zibra::ZibraVDBDecompressor
         OpenVDBSupport::EncodeMetadata ReadEncodeMetadata(CE::Decompression::CompressedFrameContainer* const frameContainer);
 
     private:
-        CE::Decompression::DecompressorFactory* m_Factory = nullptr;
-        CE::ZibraVDB::FileDecoder* m_Decoder = nullptr;
-        CE::Decompression::Decompressor* m_Decompressor = nullptr;
-        CE::Decompression::CAPI::FormatMapperCAPI* m_FormatMapper = nullptr;
-        RHIWrapper* m_RHIWrapper = nullptr;
+        CE::Decompression::DecompressorManager m_DecompressorManager;
     };
 
     class SOP_ZibraVDBDecompressor_Operator final : public OP_Operator
