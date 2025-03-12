@@ -1,16 +1,42 @@
+#include "PrecompiledHeader.h"
+
 #include "DecompressorManager.h"
 
 namespace Zibra::CE::Decompression
 {
 
-    void DecompressorManager::Initialize() noexcept
+    ReturnCode DecompressorManager::Initialize() noexcept
     {
-        RHI::CAPI::CreateRHIFactory(&m_RHIFactory);
-        m_RHIFactory->Create(&m_RHIRuntime);
-        m_RHIRuntime->Initialize();
+        RHI::RHIFactory* RHIFactory = nullptr;
+        auto RHIstatus = RHI::CAPI::CreateRHIFactory(&RHIFactory);
+        if (RHIstatus != RHI::ZRHI_SUCCESS)
+        {
+            return CE::ZCE_ERROR;
+        }
 
-        CAPI::CreateDecompressorFactory(&m_Factory);
-        m_Factory->UseRHI(m_RHIRuntime);
+        RHIstatus = RHIFactory->Create(&m_RHIRuntime);
+        if (RHIstatus != RHI::ZRHI_SUCCESS)
+        {
+            return CE::ZCE_ERROR;
+        }
+
+        RHIstatus = m_RHIRuntime->Initialize();
+        if (RHIstatus != RHI::ZRHI_SUCCESS)
+        {
+            return CE::ZCE_ERROR;
+        }
+
+        auto status = CAPI::CreateDecompressorFactory(&m_DecompressorFactory);
+        if (status != CE::ZCE_SUCCESS)
+        {
+            return status;
+        }
+        status = m_DecompressorFactory->UseRHI(m_RHIRuntime);
+        if (status != CE::ZCE_SUCCESS)
+        {
+            return status;
+        }
+        return CE::ZCE_SUCCESS;
     }
 
     ReturnCode DecompressorManager::RegisterDecompressor(const UT_String& filename) noexcept
@@ -27,7 +53,7 @@ namespace Zibra::CE::Decompression
             return status;
         }
 
-        status = m_Factory->UseDecoder(m_Decoder);
+        status = m_DecompressorFactory->UseDecoder(m_Decoder);
         if (status != CE::ZCE_SUCCESS)
         {
             return status;
@@ -35,13 +61,18 @@ namespace Zibra::CE::Decompression
 
         if (m_Decompressor)
         {
-            FreeExternalBuffers();
+            status = FreeExternalBuffers();
+            if (status != CE::ZCE_SUCCESS)
+            {
+                return status;
+            }
             m_FormatMapper->Release();
+            m_FormatMapper = nullptr;
             m_Decompressor->Release();
             m_Decompressor = nullptr;
         }
 
-        status = m_Factory->Create(&m_Decompressor);
+        status = m_DecompressorFactory->Create(&m_Decompressor);
         if (status != CE::ZCE_SUCCESS)
         {
             return status;
@@ -59,7 +90,11 @@ namespace Zibra::CE::Decompression
             return status;
         }
 
-        AllocateExternalBuffers();
+        status = AllocateExternalBuffers();
+        if (status != CE::ZCE_SUCCESS)
+        {
+            return status;
+        }
 
         status = m_Decompressor->RegisterResources(m_DecompressorResources);
         if (status != CE::ZCE_SUCCESS)
@@ -166,60 +201,103 @@ namespace Zibra::CE::Decompression
         return m_FormatMapper->GetFrameRange();
     }
 
-    void DecompressorManager::AllocateExternalBuffers()
+    ReturnCode DecompressorManager::AllocateExternalBuffers()
     {
         DecompressorResourcesRequirements requirements = m_Decompressor->GetResourcesRequirements();
-        m_RHIRuntime->CreateBuffer(requirements.decompressionPerChannelBlockDataSizeInBytes, RHI::ResourceHeapType::Default,
-                                   RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource |
-                                       RHI::ResourceUsage::CopySource,
-                                   requirements.decompressionPerChannelBlockDataStride, "decompressionPerChannelBlockData",
-                                   &m_DecompressorResources.decompressionPerChannelBlockData);
-        m_RHIRuntime->CreateBuffer(requirements.decompressionPerChannelBlockInfoSizeInBytes, RHI::ResourceHeapType::Default,
-                                   RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource |
-                                       RHI::ResourceUsage::CopySource,
-                                   requirements.decompressionPerChannelBlockInfoStride, "decompressionPerChannelBlockInfo",
-                                   &m_DecompressorResources.decompressionPerChannelBlockInfo);
-        m_RHIRuntime->CreateBuffer(requirements.decompressionPerSpatialBlockInfoSizeInBytes, RHI::ResourceHeapType::Default,
-                                   RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource |
-                                       RHI::ResourceUsage::CopySource,
-                                   requirements.decompressionPerSpatialBlockInfoStride, "decompressionPerSpatialBlockInfo",
-                                   &m_DecompressorResources.decompressionPerSpatialBlockInfo);
-        m_RHIRuntime->CreateBuffer(requirements.decompressionSpatialToChannelIndexLookupSizeInBytes, RHI::ResourceHeapType::Default,
-                                   RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource |
-                                       RHI::ResourceUsage::CopySource,
-                                   requirements.decompressionSpatialToChannelIndexLookupStride, "decompressionSpatialToChannelIndexLookup",
-                                   &m_DecompressorResources.decompressionSpatialToChannelIndexLookup);
+        auto RHIstatus = m_RHIRuntime->CreateBuffer(
+            requirements.decompressionPerChannelBlockDataSizeInBytes, RHI::ResourceHeapType::Default,
+            RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource | RHI::ResourceUsage::CopySource,
+            requirements.decompressionPerChannelBlockDataStride, "decompressionPerChannelBlockData",
+            &m_DecompressorResources.decompressionPerChannelBlockData);
+        if (RHIstatus != RHI::ZRHI_SUCCESS)
+        {
+            return CE::ZCE_ERROR;
+        }
+        RHIstatus = m_RHIRuntime->CreateBuffer(requirements.decompressionPerChannelBlockInfoSizeInBytes, RHI::ResourceHeapType::Default,
+                                               RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource |
+                                                   RHI::ResourceUsage::CopySource,
+                                               requirements.decompressionPerChannelBlockInfoStride, "decompressionPerChannelBlockInfo",
+                                               &m_DecompressorResources.decompressionPerChannelBlockInfo);
+        if (RHIstatus != RHI::ZRHI_SUCCESS)
+        {
+            return CE::ZCE_ERROR;
+        }
+        RHIstatus = m_RHIRuntime->CreateBuffer(requirements.decompressionPerSpatialBlockInfoSizeInBytes, RHI::ResourceHeapType::Default,
+                                               RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource |
+                                                   RHI::ResourceUsage::CopySource,
+                                               requirements.decompressionPerSpatialBlockInfoStride, "decompressionPerSpatialBlockInfo",
+                                               &m_DecompressorResources.decompressionPerSpatialBlockInfo);
+        if (RHIstatus != RHI::ZRHI_SUCCESS)
+        {
+            return CE::ZCE_ERROR;
+        }
+        RHIstatus = m_RHIRuntime->CreateBuffer(
+            requirements.decompressionSpatialToChannelIndexLookupSizeInBytes, RHI::ResourceHeapType::Default,
+            RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource | RHI::ResourceUsage::CopySource,
+            requirements.decompressionSpatialToChannelIndexLookupStride, "decompressionSpatialToChannelIndexLookup",
+            &m_DecompressorResources.decompressionSpatialToChannelIndexLookup);
+        if (RHIstatus != RHI::ZRHI_SUCCESS)
+        {
+            return CE::ZCE_ERROR;
+        }
+        return CE::ZCE_SUCCESS;
     }
 
-    void DecompressorManager::FreeExternalBuffers()
+    ReturnCode DecompressorManager::FreeExternalBuffers()
     {
-        m_RHIRuntime->ReleaseBuffer(m_DecompressorResources.decompressionPerChannelBlockData);
-        m_RHIRuntime->ReleaseBuffer(m_DecompressorResources.decompressionPerChannelBlockInfo);
-        m_RHIRuntime->ReleaseBuffer(m_DecompressorResources.decompressionPerSpatialBlockInfo);
-        m_RHIRuntime->ReleaseBuffer(m_DecompressorResources.decompressionSpatialToChannelIndexLookup);
+        RHI::ReturnCode RHIstatus;
+        if (m_DecompressorResources.decompressionPerChannelBlockData)
+        {
+            RHIstatus = m_RHIRuntime->ReleaseBuffer(m_DecompressorResources.decompressionPerChannelBlockData);
+            if (RHIstatus != RHI::ZRHI_SUCCESS)
+            {
+                return CE::ZCE_ERROR;
+            }
+        }
+        if (m_DecompressorResources.decompressionPerChannelBlockInfo)
+        {
+            RHIstatus = m_RHIRuntime->ReleaseBuffer(m_DecompressorResources.decompressionPerChannelBlockInfo);
+            if (RHIstatus != RHI::ZRHI_SUCCESS)
+            {
+                return CE::ZCE_ERROR;
+            }
+        }
+        if (m_DecompressorResources.decompressionPerSpatialBlockInfo)
+        {
+            RHIstatus = m_RHIRuntime->ReleaseBuffer(m_DecompressorResources.decompressionPerSpatialBlockInfo);
+            if (RHIstatus != RHI::ZRHI_SUCCESS)
+            {
+                return CE::ZCE_ERROR;
+            }
+        }
+        if (m_DecompressorResources.decompressionSpatialToChannelIndexLookup)
+        {
+            RHIstatus = m_RHIRuntime->ReleaseBuffer(m_DecompressorResources.decompressionSpatialToChannelIndexLookup);
+            if (RHIstatus != RHI::ZRHI_SUCCESS)
+            {
+                return CE::ZCE_ERROR;
+            }
+        }
+        return CE::ZCE_SUCCESS;
     }
 
     void DecompressorManager::Release() noexcept
     {
+        FreeExternalBuffers();
         if (m_Decompressor)
         {
             m_Decompressor->Release();
             m_Decompressor = nullptr;
         }
-        if (m_Factory)
+        if (m_DecompressorFactory)
         {
-            m_Factory->Release();
-            m_Factory = nullptr;
+            m_DecompressorFactory->Release();
+            m_DecompressorFactory = nullptr;
         }
         if (m_RHIRuntime)
         {
             m_RHIRuntime->Release();
             m_RHIRuntime = nullptr;
-        }
-        if (m_RHIFactory)
-        {
-            m_RHIFactory->Release();
-            m_RHIFactory = nullptr;
         }
     }
 

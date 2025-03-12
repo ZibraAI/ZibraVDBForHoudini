@@ -1,12 +1,11 @@
+#include "PrecompiledHeader.h"
+
 #include "LibraryUtils.h"
 
 #include <UT/UT_EnvControl.h>
 
 #include "networking/NetworkRequest.h"
 #include "utils/Helpers.h"
-
-#define STRINGIFY_HELPER(x) #x
-#define STRINGIFY(x) STRINGIFY_HELPER(x)
 
 // clang-format off
 
@@ -112,10 +111,9 @@ namespace Zibra::LibraryUtils
 
     bool LoadFunctions() noexcept
     {
-#define ZIB_STRINGIZE(x) #x
 #if ZIB_PLATFORM_WIN
 #define ZIB_LOAD_FUNCTION_POINTER(functionName)                                                                          \
-    functionName = reinterpret_cast<ZCE_PFN(functionName)>(::GetProcAddress(g_LibraryHandle, ZIB_STRINGIZE(functionName))); \
+    functionName = reinterpret_cast<ZCE_PFN(functionName)>(::GetProcAddress(g_LibraryHandle, ZIB_STRINGIFY(functionName))); \
     if (functionName == nullptr)                                                                                         \
     {                                                                                                                    \
         return false;                                                                                                    \
@@ -124,7 +122,7 @@ namespace Zibra::LibraryUtils
 #undef ZIB_LOAD_FUNCTION_POINTER
 #elif ZIB_PLATFORM_LINUX
 #define ZIB_LOAD_FUNCTION_POINTER(functionName)                                                    \
-    functionName = reinterpret_cast<ZCE_PFN(functionName)>(dlsym(g_LibraryHandle, ZIB_STRINGIZE(functionName))); \
+    functionName = reinterpret_cast<ZCE_PFN(functionName)>(dlsym(g_LibraryHandle, ZIB_STRINGIFY(functionName))); \
     if (functionName == nullptr)                                                                   \
     {                                                                                              \
         return false;                                                                              \
@@ -134,7 +132,6 @@ namespace Zibra::LibraryUtils
 #else
 #error Unuspported platform
 #endif
-#undef ZIB_STRINGIZE
         return true;
     }
 
@@ -271,7 +268,5 @@ namespace Zibra::LibraryUtils
 
 } // namespace Zibra::LibraryUtils
 
-#undef STRINGIFY
-#undef STRINGIFY_HELPER
 #undef ZCE_CONCAT_HELPER
 #undef ZRHI_CONCAT_HELPER

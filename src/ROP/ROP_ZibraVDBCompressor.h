@@ -88,9 +88,6 @@ namespace Zibra::ZibraVDBCompressor
 
         ContextType m_ContextType;
 
-        //CE::Compression::CompressorFactory* m_Factory = nullptr;
-        //CE::Compression::Compressor* m_Compressor = nullptr;
-        //RHIWrapper* m_RHIWrapper = nullptr;
         std::ofstream m_Ofstream;
         CE::Compression::CompressorManager m_CompressorManager;
     };

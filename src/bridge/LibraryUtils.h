@@ -1,7 +1,5 @@
 #pragma once
 
-#include "../PrecompiledHeader.h"
-
 namespace Zibra::LibraryUtils {
 
 #define ZIB_COMPRESSION_MAJOR_VERSION 0

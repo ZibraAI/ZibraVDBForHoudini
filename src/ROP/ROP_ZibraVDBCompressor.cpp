@@ -299,6 +299,8 @@ namespace Zibra::ZibraVDBCompressor
 
     int ROP_ZibraVDBCompressor::startRender(const int nFrames, const fpreal tStart, const fpreal tEnd)
     {
+
+        return ROP_ABORT_RENDER;
         using namespace std::string_literals;
         if (!Zibra::LibraryUtils::IsPlatformSupported())
         {
@@ -413,7 +415,12 @@ namespace Zibra::ZibraVDBCompressor
         UT_String filename = "";
         evalString(filename, FILENAME_PARAM_NAME, nullptr, 0, tStart);
 
-        m_CompressorManager.StartSequence(filename);
+        auto status = m_CompressorManager.StartSequence(filename);
+        if (status != CE::ZCE_SUCCESS)
+        {
+            addError(ROP_MESSAGE, "Failed to start sequence compresion.");
+            return ROP_ABORT_RENDER;
+        }
 
         if (error() < UT_ERROR_ABORT)
             executePreRenderScript(tStart);
@@ -426,6 +433,8 @@ namespace Zibra::ZibraVDBCompressor
         using namespace std::literals;
 
         assert(Zibra::LibraryUtils::IsLibraryLoaded());
+
+        return ROP_ABORT_RENDER;
 
         if (CE::Licensing::CAPI::GetLicenseStatus(CE::Licensing::ProductType::Compression) != CE::Licensing::LicenseStatus::OK)
         {
@@ -445,7 +454,7 @@ namespace Zibra::ZibraVDBCompressor
         const GU_Detail* gdp = m_InputSOP->getCookedGeoHandle(ctx, 0).gdp();
         if (!gdp)
         {
-            addError(ROP_MESSAGE, "Failed to cook input SOP geometry");
+            addError(ROP_MESSAGE, "Failed to cook input SOP geometry.");
             return ROP_ABORT_RENDER;
         }
 
@@ -508,6 +517,11 @@ namespace Zibra::ZibraVDBCompressor
         compressFrameDesc.frame = reader.DecodeFrame(decodeMetadata);
 
         auto status = m_CompressorManager.CompressFrame(compressFrameDesc, &frameManager);
+        if (status != CE::ZCE_SUCCESS)
+        {
+            addError(ROP_MESSAGE, "Failed to compress sequence frame.");
+            return ROP_ABORT_RENDER;
+        }
 
         auto attrDump = DumpAttributes(gdp, decodeMetadata);
         for (const auto& [key, val] : attrDump)
@@ -528,6 +542,8 @@ namespace Zibra::ZibraVDBCompressor
         }
         return ROP_CONTINUE_RENDER;
     }
+
+
 
     ROP_RENDER_CODE ROP_ZibraVDBCompressor::endRender()
     {
@@ -569,7 +585,7 @@ namespace Zibra::ZibraVDBCompressor
 
         UT_String usePerChannelCompressionSettingsString;
         evalString(usePerChannelCompressionSettingsString, USE_PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME, 0, tStart);
-        std::unordered_map<const char*, float> perChannelCompressionSettings;
+        std::vector<std::pair<UT_String, float>> perChannelCompressionSettings;
 
         if (usePerChannelCompressionSettingsString == "on")
         {
@@ -601,10 +617,9 @@ namespace Zibra::ZibraVDBCompressor
                     continue;
                 }
 
-                const char* channelName = channelNameStr.c_str();
                 float quality = static_cast<float>(evalFloat(qualityParamNameStr.c_str(), 0, tStart));
 
-                perChannelCompressionSettings[channelName] = quality;
+                perChannelCompressionSettings.emplace_back(channelNameStr, quality);
             }
         }
 
