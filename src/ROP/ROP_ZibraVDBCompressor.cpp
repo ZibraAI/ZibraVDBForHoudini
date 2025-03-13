@@ -299,8 +299,6 @@ namespace Zibra::ZibraVDBCompressor
 
     int ROP_ZibraVDBCompressor::startRender(const int nFrames, const fpreal tStart, const fpreal tEnd)
     {
-
-        return ROP_ABORT_RENDER;
         using namespace std::string_literals;
         if (!Zibra::LibraryUtils::IsPlatformSupported())
         {
@@ -433,8 +431,6 @@ namespace Zibra::ZibraVDBCompressor
         using namespace std::literals;
 
         assert(Zibra::LibraryUtils::IsLibraryLoaded());
-
-        return ROP_ABORT_RENDER;
 
         if (CE::Licensing::CAPI::GetLicenseStatus(CE::Licensing::ProductType::Compression) != CE::Licensing::LicenseStatus::OK)
         {

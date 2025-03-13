@@ -2,6 +2,7 @@
 
 namespace Zibra::LibraryUtils {
 
+//TODO: Replace with Foundation struct
 #define ZIB_COMPRESSION_MAJOR_VERSION 0
 #define ZIB_DECOMPRESSION_MAJOR_VERSION 0
 #define ZIB_RHI_MAJOR_VERSION 2

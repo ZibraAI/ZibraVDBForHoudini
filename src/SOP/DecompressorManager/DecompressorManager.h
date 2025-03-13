@@ -28,6 +28,7 @@ namespace Zibra::CE::Decompression
         CAPI::FormatMapperCAPI* m_FormatMapper = nullptr;
         RHI::RHIRuntime* m_RHIRuntime = nullptr;
 
-        CE::Decompression::DecompressorResources m_DecompressorResources{};
+        DecompressorResourcesRequirements m_CachedRequirements{};
+        DecompressorResources m_DecompressorResources{};
     };
 } // namespace Zibra

@@ -104,25 +104,19 @@ namespace Zibra::ZibraVDBDecompressor
             return error(context);
         }
 
-        const bool filenameIsDirty = isParmDirty("filename", context.getTime());
-
-        // getCookedData() used as a hack for Reload Cache detection
-        if (filenameIsDirty || getCookedData(context) == nullptr)
+        UT_String filename = "";
+        evalString(filename, "filename", nullptr, 0, context.getTime());
+        if (filename == "")
         {
-            UT_String filename = "";
-            evalString(filename, "filename", nullptr, 0, context.getTime());
-            if (filename == "")
-            {
-                addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_NO_FILE_SELECTED);
-                return error(context);
-            }
+            addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_NO_FILE_SELECTED);
+            return error(context);
+        }
 
-            ReturnCode status = m_DecompressorManager.RegisterDecompressor(filename);
-            if (status != CE::ZCE_SUCCESS)
-            {
-                addError(SOP_MESSAGE, "Failed to create a decompressor.");
-                return error(context);
-            }
+        auto status = m_DecompressorManager.RegisterDecompressor(filename);
+        if (status != CE::ZCE_SUCCESS)
+        {
+            addError(SOP_MESSAGE, "Failed to create a decompressor.");
+            return error(context);
         }
 
         const exint frameIndex = evalInt(FRAME_PARAM_NAME, 0, context.getTime());
@@ -144,7 +138,7 @@ namespace Zibra::ZibraVDBDecompressor
             return error(context);
         }
 
-        ReturnCode status = m_DecompressorManager.DecompressFrame(frameContainer);
+        status = m_DecompressorManager.DecompressFrame(frameContainer);
         if (status != CE::ZCE_SUCCESS)
         {
             addError(SOP_MESSAGE, "Error when trying to decompress frame");

@@ -61,11 +61,6 @@ namespace Zibra::CE::Decompression
 
         if (m_Decompressor)
         {
-            status = FreeExternalBuffers();
-            if (status != CE::ZCE_SUCCESS)
-            {
-                return status;
-            }
             m_FormatMapper->Release();
             m_FormatMapper = nullptr;
             m_Decompressor->Release();
@@ -90,10 +85,35 @@ namespace Zibra::CE::Decompression
             return status;
         }
 
-        status = AllocateExternalBuffers();
-        if (status != CE::ZCE_SUCCESS)
+        DecompressorResourcesRequirements newRequirements = m_Decompressor->GetResourcesRequirements();
+        bool requirementsChanged =
+            newRequirements.decompressionPerChannelBlockDataSizeInBytes !=
+                m_CachedRequirements.decompressionPerChannelBlockDataSizeInBytes ||
+            newRequirements.decompressionPerChannelBlockDataStride != m_CachedRequirements.decompressionPerChannelBlockDataStride ||
+            newRequirements.decompressionPerChannelBlockInfoSizeInBytes !=
+                m_CachedRequirements.decompressionPerChannelBlockInfoSizeInBytes ||
+            newRequirements.decompressionPerChannelBlockInfoStride != m_CachedRequirements.decompressionPerChannelBlockInfoStride ||
+            newRequirements.decompressionPerSpatialBlockInfoSizeInBytes !=
+                m_CachedRequirements.decompressionPerSpatialBlockInfoSizeInBytes ||
+            newRequirements.decompressionPerSpatialBlockInfoStride != m_CachedRequirements.decompressionPerSpatialBlockInfoStride ||
+            newRequirements.decompressionSpatialToChannelIndexLookupSizeInBytes !=
+                m_CachedRequirements.decompressionSpatialToChannelIndexLookupSizeInBytes ||
+            newRequirements.decompressionSpatialToChannelIndexLookupStride !=
+                m_CachedRequirements.decompressionSpatialToChannelIndexLookupStride;
+
+        if (requirementsChanged)
         {
-            return status;
+            m_CachedRequirements = newRequirements;
+            status = FreeExternalBuffers();
+            if (status != CE::ZCE_SUCCESS)
+            {
+                return status;
+            }
+            status = AllocateExternalBuffers();
+            if (status != CE::ZCE_SUCCESS)
+            {
+                return status;
+            }
         }
 
         status = m_Decompressor->RegisterResources(m_DecompressorResources);
@@ -203,38 +223,37 @@ namespace Zibra::CE::Decompression
 
     ReturnCode DecompressorManager::AllocateExternalBuffers()
     {
-        DecompressorResourcesRequirements requirements = m_Decompressor->GetResourcesRequirements();
         auto RHIstatus = m_RHIRuntime->CreateBuffer(
-            requirements.decompressionPerChannelBlockDataSizeInBytes, RHI::ResourceHeapType::Default,
+            m_CachedRequirements.decompressionPerChannelBlockDataSizeInBytes, RHI::ResourceHeapType::Default,
             RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource | RHI::ResourceUsage::CopySource,
-            requirements.decompressionPerChannelBlockDataStride, "decompressionPerChannelBlockData",
+            m_CachedRequirements.decompressionPerChannelBlockDataStride, "decompressionPerChannelBlockData",
             &m_DecompressorResources.decompressionPerChannelBlockData);
         if (RHIstatus != RHI::ZRHI_SUCCESS)
         {
             return CE::ZCE_ERROR;
         }
-        RHIstatus = m_RHIRuntime->CreateBuffer(requirements.decompressionPerChannelBlockInfoSizeInBytes, RHI::ResourceHeapType::Default,
-                                               RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource |
-                                                   RHI::ResourceUsage::CopySource,
-                                               requirements.decompressionPerChannelBlockInfoStride, "decompressionPerChannelBlockInfo",
-                                               &m_DecompressorResources.decompressionPerChannelBlockInfo);
-        if (RHIstatus != RHI::ZRHI_SUCCESS)
-        {
-            return CE::ZCE_ERROR;
-        }
-        RHIstatus = m_RHIRuntime->CreateBuffer(requirements.decompressionPerSpatialBlockInfoSizeInBytes, RHI::ResourceHeapType::Default,
-                                               RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource |
-                                                   RHI::ResourceUsage::CopySource,
-                                               requirements.decompressionPerSpatialBlockInfoStride, "decompressionPerSpatialBlockInfo",
-                                               &m_DecompressorResources.decompressionPerSpatialBlockInfo);
+        RHIstatus = m_RHIRuntime->CreateBuffer(
+            m_CachedRequirements.decompressionPerChannelBlockInfoSizeInBytes, RHI::ResourceHeapType::Default,
+            RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource | RHI::ResourceUsage::CopySource,
+            m_CachedRequirements.decompressionPerChannelBlockInfoStride, "decompressionPerChannelBlockInfo",
+            &m_DecompressorResources.decompressionPerChannelBlockInfo);
         if (RHIstatus != RHI::ZRHI_SUCCESS)
         {
             return CE::ZCE_ERROR;
         }
         RHIstatus = m_RHIRuntime->CreateBuffer(
-            requirements.decompressionSpatialToChannelIndexLookupSizeInBytes, RHI::ResourceHeapType::Default,
+            m_CachedRequirements.decompressionPerSpatialBlockInfoSizeInBytes, RHI::ResourceHeapType::Default,
             RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource | RHI::ResourceUsage::CopySource,
-            requirements.decompressionSpatialToChannelIndexLookupStride, "decompressionSpatialToChannelIndexLookup",
+            m_CachedRequirements.decompressionPerSpatialBlockInfoStride, "decompressionPerSpatialBlockInfo",
+            &m_DecompressorResources.decompressionPerSpatialBlockInfo);
+        if (RHIstatus != RHI::ZRHI_SUCCESS)
+        {
+            return CE::ZCE_ERROR;
+        }
+        RHIstatus = m_RHIRuntime->CreateBuffer(
+            m_CachedRequirements.decompressionSpatialToChannelIndexLookupSizeInBytes, RHI::ResourceHeapType::Default,
+            RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource | RHI::ResourceUsage::CopySource,
+            m_CachedRequirements.decompressionSpatialToChannelIndexLookupStride, "decompressionSpatialToChannelIndexLookup",
             &m_DecompressorResources.decompressionSpatialToChannelIndexLookup);
         if (RHIstatus != RHI::ZRHI_SUCCESS)
         {
