@@ -141,13 +141,21 @@ namespace Zibra::ZibraVDBDecompressor
         status = m_DecompressorManager.DecompressFrame(frameContainer);
         if (status != CE::ZCE_SUCCESS)
         {
+            frameContainer->Release();
             addError(SOP_MESSAGE, "Error when trying to decompress frame");
             return error(context);
         }
 
         FrameInfo frameInfo = frameContainer->GetInfo();
         OpenVDBSupport::EncodeMetadata encodeMetadata = ReadEncodeMetadata(frameContainer);
-        OpenVDBSupport::DecompressedFrameData decompressedFrameData = m_DecompressorManager.GetDecompressedFrameData(frameInfo);
+        OpenVDBSupport::DecompressedFrameData decompressedFrameData;
+        status = m_DecompressorManager.GetDecompressedFrameData(decompressedFrameData, frameInfo);
+        if (status != CE::ZCE_SUCCESS)
+        {
+            addError(SOP_MESSAGE, "Error when trying readback frame data.");
+            return error(context);
+        }
+
         auto vdbGrids = OpenVDBSupport::OpenVDBEncoder::EncodeFrame(frameInfo, decompressedFrameData, encodeMetadata);
 
         gdp->addStringTuple(GA_ATTRIB_PRIMITIVE, "name", 1);

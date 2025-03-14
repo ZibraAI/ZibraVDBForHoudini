@@ -2,11 +2,17 @@
 
 #include "DecompressorManager.h"
 
+#include "bridge/LibraryUtils.h"
+
 namespace Zibra::CE::Decompression
 {
-
     ReturnCode DecompressorManager::Initialize() noexcept
     {
+        if (!Zibra::LibraryUtils::IsLibraryLoaded())
+        {
+            return CE::ZCE_ERROR;
+        }
+
         RHI::RHIFactory* RHIFactory = nullptr;
         auto RHIstatus = RHI::CAPI::CreateRHIFactory(&RHIFactory);
         if (RHIstatus != RHI::ZRHI_SUCCESS)
@@ -19,10 +25,13 @@ namespace Zibra::CE::Decompression
         {
             return CE::ZCE_ERROR;
         }
+        RHIFactory->Release();
 
         RHIstatus = m_RHIRuntime->Initialize();
         if (RHIstatus != RHI::ZRHI_SUCCESS)
         {
+            m_RHIRuntime->Release();
+            m_RHIRuntime = nullptr;
             return CE::ZCE_ERROR;
         }
 
@@ -34,7 +43,35 @@ namespace Zibra::CE::Decompression
         status = m_DecompressorFactory->UseRHI(m_RHIRuntime);
         if (status != CE::ZCE_SUCCESS)
         {
+            m_DecompressorFactory->Release();
+            m_DecompressorFactory = nullptr;
             return status;
+        }
+        return CE::ZCE_SUCCESS;
+    }
+
+    ReturnCode DecompressorManager::AllocateExternalBuffer(BufferDesc& bufferDesc, size_t newSizeInBytes, size_t newStride) noexcept
+    {
+        if (bufferDesc.sizeInBytes != newSizeInBytes || bufferDesc.stride != newStride)
+        {
+            if (bufferDesc.buffer)
+            {
+                auto RHIstatus = m_RHIRuntime->ReleaseBuffer(bufferDesc.buffer);
+                if (RHIstatus != RHI::ZRHI_SUCCESS)
+                {
+                    return CE::ZCE_ERROR;
+                }
+            }
+            auto RHIstatus = m_RHIRuntime->CreateBuffer(newSizeInBytes, RHI::ResourceHeapType::Default,
+                                                        RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource |
+                                                            RHI::ResourceUsage::CopySource,
+                                                        newStride, "decompressionPerChannelBlockData", &bufferDesc.buffer);
+            if (RHIstatus != RHI::ZRHI_SUCCESS)
+            {
+                return CE::ZCE_ERROR;
+            }
+            bufferDesc.sizeInBytes = newSizeInBytes;
+            bufferDesc.stride = newStride;
         }
         return CE::ZCE_SUCCESS;
     }
@@ -53,16 +90,26 @@ namespace Zibra::CE::Decompression
             return status;
         }
 
+        if (!m_DecompressorFactory)
+        {
+            return CE::ZCE_ERROR;
+        }
+
         status = m_DecompressorFactory->UseDecoder(m_Decoder);
         if (status != CE::ZCE_SUCCESS)
         {
             return status;
         }
 
-        if (m_Decompressor)
+        if (m_FormatMapper)
         {
             m_FormatMapper->Release();
             m_FormatMapper = nullptr;
+        }
+
+        if (m_Decompressor)
+        {
+
             m_Decompressor->Release();
             m_Decompressor = nullptr;
         }
@@ -86,37 +133,40 @@ namespace Zibra::CE::Decompression
         }
 
         DecompressorResourcesRequirements newRequirements = m_Decompressor->GetResourcesRequirements();
-        bool requirementsChanged =
-            newRequirements.decompressionPerChannelBlockDataSizeInBytes !=
-                m_CachedRequirements.decompressionPerChannelBlockDataSizeInBytes ||
-            newRequirements.decompressionPerChannelBlockDataStride != m_CachedRequirements.decompressionPerChannelBlockDataStride ||
-            newRequirements.decompressionPerChannelBlockInfoSizeInBytes !=
-                m_CachedRequirements.decompressionPerChannelBlockInfoSizeInBytes ||
-            newRequirements.decompressionPerChannelBlockInfoStride != m_CachedRequirements.decompressionPerChannelBlockInfoStride ||
-            newRequirements.decompressionPerSpatialBlockInfoSizeInBytes !=
-                m_CachedRequirements.decompressionPerSpatialBlockInfoSizeInBytes ||
-            newRequirements.decompressionPerSpatialBlockInfoStride != m_CachedRequirements.decompressionPerSpatialBlockInfoStride ||
-            newRequirements.decompressionSpatialToChannelIndexLookupSizeInBytes !=
-                m_CachedRequirements.decompressionSpatialToChannelIndexLookupSizeInBytes ||
-            newRequirements.decompressionSpatialToChannelIndexLookupStride !=
-                m_CachedRequirements.decompressionSpatialToChannelIndexLookupStride;
-
-        if (requirementsChanged)
+        status =
+            AllocateExternalBuffer(m_DecompressionPerChannelBlockDataBuffer, newRequirements.decompressionPerChannelBlockDataSizeInBytes,
+                                   newRequirements.decompressionPerChannelBlockDataStride);
+        if (status != CE::ZCE_SUCCESS)
         {
-            m_CachedRequirements = newRequirements;
-            status = FreeExternalBuffers();
-            if (status != CE::ZCE_SUCCESS)
-            {
-                return status;
-            }
-            status = AllocateExternalBuffers();
-            if (status != CE::ZCE_SUCCESS)
-            {
-                return status;
-            }
+            return status;
+        }
+        status =
+            AllocateExternalBuffer(m_DecompressionPerChannelBlockInfoBuffer, newRequirements.decompressionPerChannelBlockInfoSizeInBytes,
+                                   newRequirements.decompressionPerChannelBlockInfoStride);
+        if (status != CE::ZCE_SUCCESS)
+        {
+            return status;
+        }
+        status =
+            AllocateExternalBuffer(m_DecompressionPerSpatialBlockInfoBuffer, newRequirements.decompressionPerSpatialBlockInfoSizeInBytes,
+                                   newRequirements.decompressionPerSpatialBlockInfoStride);
+        if (status != CE::ZCE_SUCCESS)
+        {
+            return status;
+        }
+        status = AllocateExternalBuffer(m_DecompressionSpatialToChannelIndexLookupBuffer,
+                                        newRequirements.decompressionSpatialToChannelIndexLookupSizeInBytes,
+                                        newRequirements.decompressionSpatialToChannelIndexLookupStride);
+        if (status != CE::ZCE_SUCCESS)
+        {
+            return status;
         }
 
-        status = m_Decompressor->RegisterResources(m_DecompressorResources);
+        DecompressorResources decompressorResources = {
+            m_DecompressionPerChannelBlockDataBuffer.buffer, m_DecompressionPerChannelBlockInfoBuffer.buffer,
+            m_DecompressionPerSpatialBlockInfoBuffer.buffer, m_DecompressionSpatialToChannelIndexLookupBuffer.buffer};
+
+        status = m_Decompressor->RegisterResources(decompressorResources);
         if (status != CE::ZCE_SUCCESS)
         {
             return status;
@@ -126,13 +176,25 @@ namespace Zibra::CE::Decompression
 
     ReturnCode DecompressorManager::DecompressFrame(CE::Decompression::CompressedFrameContainer* frameContainer) noexcept
     {
-        m_RHIRuntime->StartRecording();
+        if (!m_RHIRuntime || !m_Decompressor)
+        {
+            return CE::ZCE_ERROR;
+        }
+        auto RHIstatus = m_RHIRuntime->StartRecording();
+        if (RHIstatus != RHI::ZRHI_SUCCESS)
+        {
+            return CE::ZCE_ERROR;
+        }
         ReturnCode status = m_Decompressor->DecompressFrame(frameContainer);
         if (status != CE::ZCE_SUCCESS)
         {
             return status;
         }
-        m_RHIRuntime->StopRecording();
+        RHIstatus = m_RHIRuntime->StopRecording();
+        if (RHIstatus != RHI::ZRHI_SUCCESS)
+        {
+            return CE::ZCE_ERROR;
+        }
         m_RHIRuntime->GarbageCollect();
         return CE::ZCE_SUCCESS;
     }
@@ -183,11 +245,19 @@ namespace Zibra::CE::Decompression
         }
     }
 
-    OpenVDBSupport::DecompressedFrameData DecompressorManager::GetDecompressedFrameData(
-        const CE::Decompression::FrameInfo& frameInfo) const noexcept
+    ReturnCode DecompressorManager::GetDecompressedFrameData(OpenVDBSupport::DecompressedFrameData& outDecompressedFrameData,
+                                                             const CE::Decompression::FrameInfo& frameInfo) const noexcept
     {
-        m_RHIRuntime->StartRecording();
+        if (!m_RHIRuntime)
+        {
+            return CE::ZCE_ERROR;
+        }
 
+        auto RHIstatus = m_RHIRuntime->StartRecording();
+        if (RHIstatus != RHI::ZRHI_SUCCESS)
+        {
+            return CE::ZCE_ERROR;
+        }
         OpenVDBSupport::DecompressedFrameData decompressedFrameData;
 
         decompressedFrameData.channelBlocks = new CE::Decompression::ChannelBlock[frameInfo.channelBlockCount];
@@ -195,103 +265,89 @@ namespace Zibra::CE::Decompression
 
         const size_t spatialBlockInfoElementCount = frameInfo.spatialBlockCount * 3;
         std::vector<uint32_t> scratchBufferSpatialBlockData(spatialBlockInfoElementCount);
-        m_RHIRuntime->GetBufferDataImmediately(m_DecompressorResources.decompressionPerSpatialBlockInfo,
-                                               scratchBufferSpatialBlockData.data(), spatialBlockInfoElementCount * sizeof(uint32_t), 0);
+        RHIstatus =
+            m_RHIRuntime->GetBufferDataImmediately(m_DecompressionPerSpatialBlockInfoBuffer.buffer, scratchBufferSpatialBlockData.data(),
+                                                   spatialBlockInfoElementCount * sizeof(uint32_t), 0);
+        if (RHIstatus != RHI::ZRHI_SUCCESS)
+        {
+            return CE::ZCE_ERROR;
+        }
         const size_t channelBlockDataElementCount = frameInfo.channelBlockCount * CE::SPARSE_BLOCK_VOXEL_COUNT;
         std::vector<uint16_t> scratchBufferChannelBlockData(channelBlockDataElementCount);
-        m_RHIRuntime->GetBufferDataImmediately(m_DecompressorResources.decompressionPerChannelBlockData,
-                                               scratchBufferChannelBlockData.data(), channelBlockDataElementCount * sizeof(uint16_t), 0);
+        RHIstatus =
+            m_RHIRuntime->GetBufferDataImmediately(m_DecompressionPerChannelBlockDataBuffer.buffer, scratchBufferChannelBlockData.data(),
+                                                   channelBlockDataElementCount * sizeof(uint16_t), 0);
+        if (RHIstatus != RHI::ZRHI_SUCCESS)
+        {
+            return CE::ZCE_ERROR;
+        }
 
-        m_RHIRuntime->StopRecording();
+        RHIstatus = m_RHIRuntime->StopRecording();
+        if (RHIstatus != RHI::ZRHI_SUCCESS)
+        {
+            return CE::ZCE_ERROR;
+        }
 
         UnpackBlocks(decompressedFrameData, frameInfo, scratchBufferSpatialBlockData, scratchBufferChannelBlockData);
 
-        return decompressedFrameData;
+        outDecompressedFrameData = decompressedFrameData;
+        return CE::ZCE_SUCCESS;
     }
 
     CompressedFrameContainer* DecompressorManager::FetchFrame(const exint& frameIndex) const noexcept
     {
+        if (!m_FormatMapper)
+        {
+            return nullptr;
+        }
         CompressedFrameContainer* frameContainer = nullptr;
-        m_FormatMapper->FetchFrame(frameIndex, &frameContainer);
+        auto status = m_FormatMapper->FetchFrame(frameIndex, &frameContainer);
+        if (status != CE::ZCE_SUCCESS)
+        {
+            return nullptr;
+        }
         return frameContainer;
     }
 
     FrameRange DecompressorManager::GetFrameRange() const noexcept
     {
+        if (!m_FormatMapper)
+        {
+            return {};
+        }
         return m_FormatMapper->GetFrameRange();
     }
 
-    ReturnCode DecompressorManager::AllocateExternalBuffers()
-    {
-        auto RHIstatus = m_RHIRuntime->CreateBuffer(
-            m_CachedRequirements.decompressionPerChannelBlockDataSizeInBytes, RHI::ResourceHeapType::Default,
-            RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource | RHI::ResourceUsage::CopySource,
-            m_CachedRequirements.decompressionPerChannelBlockDataStride, "decompressionPerChannelBlockData",
-            &m_DecompressorResources.decompressionPerChannelBlockData);
-        if (RHIstatus != RHI::ZRHI_SUCCESS)
-        {
-            return CE::ZCE_ERROR;
-        }
-        RHIstatus = m_RHIRuntime->CreateBuffer(
-            m_CachedRequirements.decompressionPerChannelBlockInfoSizeInBytes, RHI::ResourceHeapType::Default,
-            RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource | RHI::ResourceUsage::CopySource,
-            m_CachedRequirements.decompressionPerChannelBlockInfoStride, "decompressionPerChannelBlockInfo",
-            &m_DecompressorResources.decompressionPerChannelBlockInfo);
-        if (RHIstatus != RHI::ZRHI_SUCCESS)
-        {
-            return CE::ZCE_ERROR;
-        }
-        RHIstatus = m_RHIRuntime->CreateBuffer(
-            m_CachedRequirements.decompressionPerSpatialBlockInfoSizeInBytes, RHI::ResourceHeapType::Default,
-            RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource | RHI::ResourceUsage::CopySource,
-            m_CachedRequirements.decompressionPerSpatialBlockInfoStride, "decompressionPerSpatialBlockInfo",
-            &m_DecompressorResources.decompressionPerSpatialBlockInfo);
-        if (RHIstatus != RHI::ZRHI_SUCCESS)
-        {
-            return CE::ZCE_ERROR;
-        }
-        RHIstatus = m_RHIRuntime->CreateBuffer(
-            m_CachedRequirements.decompressionSpatialToChannelIndexLookupSizeInBytes, RHI::ResourceHeapType::Default,
-            RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource | RHI::ResourceUsage::CopySource,
-            m_CachedRequirements.decompressionSpatialToChannelIndexLookupStride, "decompressionSpatialToChannelIndexLookup",
-            &m_DecompressorResources.decompressionSpatialToChannelIndexLookup);
-        if (RHIstatus != RHI::ZRHI_SUCCESS)
-        {
-            return CE::ZCE_ERROR;
-        }
-        return CE::ZCE_SUCCESS;
-    }
-
-    ReturnCode DecompressorManager::FreeExternalBuffers()
+    ReturnCode DecompressorManager::FreeExternalBuffers() noexcept
     {
         RHI::ReturnCode RHIstatus;
-        if (m_DecompressorResources.decompressionPerChannelBlockData)
+        if (m_DecompressionPerChannelBlockDataBuffer.buffer)
         {
-            RHIstatus = m_RHIRuntime->ReleaseBuffer(m_DecompressorResources.decompressionPerChannelBlockData);
+            RHIstatus = m_RHIRuntime->ReleaseBuffer(m_DecompressionPerChannelBlockDataBuffer.buffer);
             if (RHIstatus != RHI::ZRHI_SUCCESS)
             {
                 return CE::ZCE_ERROR;
             }
         }
-        if (m_DecompressorResources.decompressionPerChannelBlockInfo)
+        if (m_DecompressionPerChannelBlockInfoBuffer.buffer)
         {
-            RHIstatus = m_RHIRuntime->ReleaseBuffer(m_DecompressorResources.decompressionPerChannelBlockInfo);
+            RHIstatus = m_RHIRuntime->ReleaseBuffer(m_DecompressionPerChannelBlockInfoBuffer.buffer);
             if (RHIstatus != RHI::ZRHI_SUCCESS)
             {
                 return CE::ZCE_ERROR;
             }
         }
-        if (m_DecompressorResources.decompressionPerSpatialBlockInfo)
+        if (m_DecompressionPerSpatialBlockInfoBuffer.buffer)
         {
-            RHIstatus = m_RHIRuntime->ReleaseBuffer(m_DecompressorResources.decompressionPerSpatialBlockInfo);
+            RHIstatus = m_RHIRuntime->ReleaseBuffer(m_DecompressionPerSpatialBlockInfoBuffer.buffer);
             if (RHIstatus != RHI::ZRHI_SUCCESS)
             {
                 return CE::ZCE_ERROR;
             }
         }
-        if (m_DecompressorResources.decompressionSpatialToChannelIndexLookup)
+        if (m_DecompressionPerSpatialBlockInfoBuffer.buffer)
         {
-            RHIstatus = m_RHIRuntime->ReleaseBuffer(m_DecompressorResources.decompressionSpatialToChannelIndexLookup);
+            RHIstatus = m_RHIRuntime->ReleaseBuffer(m_DecompressionPerSpatialBlockInfoBuffer.buffer);
             if (RHIstatus != RHI::ZRHI_SUCCESS)
             {
                 return CE::ZCE_ERROR;
