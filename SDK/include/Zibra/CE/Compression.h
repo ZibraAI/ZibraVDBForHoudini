@@ -12,7 +12,7 @@ namespace Zibra::CE::ZibraVDB
 
 namespace Zibra::CE::Compression
 {
-    constexpr Version ZCE_COMPRESSION_VERSION = {0, 9, 2, 0};
+    constexpr Version ZCE_COMPRESSION_VERSION = {0, 9, 3, 0};
 
     struct ChannelBlock
     {
@@ -189,7 +189,7 @@ namespace Zibra::CE::Compression
         /**
          * Sets RHI instance to use in spawned objects.
          * @param [in] rhi RHI instance.
-         * @return ZCE_SUCCESS in case of success or error code otherwise.
+         * @return ZCE_SUCCESS in case of success, ZCE_ERROR_NOT_SUPPORTED if GFXAPI is not supported or error code otherwise.
          */
         virtual ReturnCode UseRHI(RHI::RHIRuntime* rhi) noexcept = 0;
         /**

@@ -3,21 +3,21 @@
 #include <cstdint>
 #include <cstddef>
 
-#if ZRHI_SUPPORT_D3D11
+#ifdef ZRHI_USE_D3D11_INTEGRATION
 #include <d3d11.h>
-#endif // ZRHI_SUPPORT_D3D11
+#endif // ZRHI_USE_D3D11_INTEGRATION
 
-#if ZRHI_SUPPORT_D3D12
+#ifdef ZRHI_USE_D3D12_INTEGRATION
 #include <d3d12.h>
-#endif // ZRHI_SUPPORT_D3D12
+#endif // ZRHI_USE_D3D12_INTEGRATION
 
-#if ZRHI_SUPPORT_VULKAN
+#ifdef ZRHI_USE_VULKAN_INTEGRATION
 #include <vulkan/vulkan.h>
-#endif
+#endif // ZRHI_USE_VULKAN_INTEGRATION
 
-#if ZRHI_SUPPORT_METAL
+#ifdef ZRHI_USE_METAL_INTEGRATION
 #import <Metal/Metal.h>
-#endif // ZRHI_SUPPORT_METAL
+#endif // ZRHI_USE_METAL_INTEGRATION
 
 #define ZRHI_DEFINE_BITMASK_ENUM(enumType)                                                 \
     inline enumType operator&(enumType a, enumType b) noexcept                             \
@@ -54,7 +54,7 @@ namespace Zibra::RHI
     {
         return l.major == r.major && l.minor == r.minor && l.patch == r.patch && l.build == r.build;
     }
-    constexpr Version ZRHI_VERSION = {1, 0, 2, 0};
+    constexpr Version ZRHI_VERSION = {1, 0, 3, 0};
 
     enum class GFXAPI : int8_t
     {
@@ -108,8 +108,8 @@ namespace Zibra::RHI
             [[nodiscard]] virtual GFXAPI GetGFXAPI() const noexcept = 0;
         };
 
-#pragma region D3D11 Engine Interface
-#if ZRHI_SUPPORT_D3D11
+#pragma region D3D11 GFXCore
+#ifdef ZRHI_USE_D3D11_INTEGRATION
         struct D3D11Texture2DDesc
         {
             ID3D11Texture2D* texture;
@@ -133,11 +133,11 @@ namespace Zibra::RHI
             virtual ReturnCode AccessTexture2D(void* resourceHandle, D3D11Texture2DDesc& texture2dDesc) noexcept = 0;
             virtual ReturnCode AccessTexture3D(void* resourceHandle, D3D11Texture3DDesc& texture3dDesc) noexcept = 0;
         };
-#endif // ZRHI_SUPPORT_D3D11
-#pragma endregion D3D11 Engine Interface
+#endif // ZRHI_USE_D3D11_INTEGRATION
+#pragma endregion D3D11 GFXCore
 
-#pragma region D3D12 Engine Interface
-#if ZRHI_SUPPORT_D3D12
+#pragma region D3D12 GFXCore
+#ifdef ZRHI_USE_D3D12_INTEGRATION
         struct D3D12Texture2DDesc
         {
             ID3D12Resource* texture;
@@ -182,11 +182,11 @@ namespace Zibra::RHI
              */
             virtual ReturnCode StopRecording(size_t statesCount, const D3D12TrackedResourceState* states, HANDLE* finishEvent) noexcept = 0;
         };
-#endif // ZRHI_SUPPORT_D3D12
-#pragma endregion D3D12 Engine Interface
+#endif // ZRHI_USE_D3D12_INTEGRATION
+#pragma endregion D3D12 GFXCore
 
-#pragma region Vulkan Engine Interface
-#if ZRHI_SUPPORT_VULKAN
+#pragma region Vulkan GFXCore
+#ifdef ZRHI_USE_VULKAN_INTEGRATION
         struct VulkanMemoryDesc
         {
             VkDeviceMemory memory;
@@ -241,11 +241,11 @@ namespace Zibra::RHI
              */
             virtual ReturnCode StopRecording(VkFence* finishFence) noexcept = 0;
         };
-#endif ZRHI_SUPPORT_VULKAN
-#pragma endregion Vulkan Engine Interface
+#endif // ZRHI_USE_VULKAN_INTEGRATION
+#pragma endregion Vulkan GFXCore
 
-#pragma region Metal Engine Interface
-#if ZRHI_SUPPORT_METAL
+#pragma region Metal GFXCore
+#ifdef ZRHI_USE_METAL_INTEGRATION
         struct MetalBufferDesc
         {
             id<MTLBuffer> buffer = nil;
@@ -272,8 +272,8 @@ namespace Zibra::RHI
             virtual ReturnCode StartRecording() noexcept = 0;
             virtual ReturnCode StopRecording() noexcept = 0;
         };
-#endif // ZRHI_SUPPORT_METAL
-#pragma endregion Metal Engine Interface
+#endif // ZRHI_USE_METAL_INTEGRATION
+#pragma endregion Metal GFXCore
 
     } // namespace Integration
 
@@ -937,14 +937,9 @@ namespace Zibra::RHI
     struct DescriptorLocation
     {
         /// Descriptor set in DescriptorHeap.
-        /// @note Used with Vulkan
         uint32_t descriptorSet;
-        /// Descriptor offset in corresponding set in DescriptorHeap.
-        /// @note Used with Vulkan
-        uint32_t offsetInSet;
-        /// Descriptor offset in DescriptorHeap space.
-        /// @note Used with D3D12
-        uint32_t offsetInHeap;
+        /// Descriptor binding slot in corresponding set in DescriptorHeap.
+        uint32_t bindingSlot;
         /// Target descriptor heap.
         DescriptorHeap* heap;
     };

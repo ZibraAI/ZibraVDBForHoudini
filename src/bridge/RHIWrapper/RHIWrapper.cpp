@@ -7,6 +7,7 @@ namespace Zibra
     void RHIWrapper::Initialize() noexcept
     {
         RHI::CAPI::CreateRHIFactory(&m_RHIFactory);
+        m_RHIFactory->SetGFXAPI(RHI::GFXAPI::Auto);
         m_RHIFactory->Create(&m_RHIRuntime);
         m_RHIRuntime->Initialize();
     }
