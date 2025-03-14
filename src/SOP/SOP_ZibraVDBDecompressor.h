@@ -1,11 +1,7 @@
 #pragma once
 #include "Globals.h"
 #include "openvdb/OpenVDBEncoder.h"
-
-namespace Zibra::CompressionEngine
-{
-    struct ZCE_MetadataEntry;
-}
+#include "SOP/DecompressorManager/DecompressorManager.h"
 
 namespace Zibra::ZibraVDBDecompressor
 {
@@ -18,7 +14,7 @@ namespace Zibra::ZibraVDBDecompressor
         static constexpr const char* FILENAME_PARAM_NAME = "filename";
         static constexpr const char* FRAME_PARAM_NAME = "frame";
         static constexpr const char* REFRESH_CALLBACK_PARAM_NAME = "reload";
-        static constexpr const char* DOWNLOAD_LIBRARY_BUTTON_NAME = "downloadlibrary";
+        static constexpr const char* OPEN_PLUGIN_MANAGEMENT_BUTTON_NAME = "openmanagement";
         static constexpr const char* CORE_LIB_PATH_FIELD_NAME = "corelibpath";
 
     public:
@@ -33,19 +29,16 @@ namespace Zibra::ZibraVDBDecompressor
         OP_ERROR cookMySop(OP_Context& context) final;
 
     private:
-        static int DownloadLibrary(void* data, int index, fpreal32 time, const PRM_Template* tplate);
+        static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate);
 
-        void ApplyGridMetadata(GU_PrimVDB* vdbPrim, CompressionEngine::ZCE_MetadataEntry* metadataBegin,
-                               CompressionEngine::ZCE_MetadataEntry* metadataEnd);
-        void ApplyGridAttributeMetadata(GU_PrimVDB* vdbPrim, CompressionEngine::ZCE_MetadataEntry* metadataBegin,
-                                        CompressionEngine::ZCE_MetadataEntry* metadataEnd);
-        void ApplyGridVisualizationMetadata(GU_PrimVDB* vdbPrim, CompressionEngine::ZCE_MetadataEntry* metadataBegin,
-                                            CompressionEngine::ZCE_MetadataEntry* metadataEnd);
-        void ApplyDetailMetadata(GU_Detail* gdp, CompressionEngine::ZCE_MetadataEntry* metadataBegin,
-                                 CompressionEngine::ZCE_MetadataEntry* metadataEnd);
-        OpenVDBSupport::EncodeMetadata ReadEncodeMetadata(const CompressionEngine::ZCE_MetadataEntry* metadata, uint32_t metadataCount);
+        void ApplyGridMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::CompressedFrameContainer* const frameContainer);
+        void ApplyGridAttributeMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::CompressedFrameContainer* const frameContainer);
+        void ApplyGridVisualizationMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::CompressedFrameContainer* const frameContainer);
+        void ApplyDetailMetadata(GU_Detail* gdp, CE::Decompression::CompressedFrameContainer* const frameContainer);
+        OpenVDBSupport::EncodeMetadata ReadEncodeMetadata(CE::Decompression::CompressedFrameContainer* const frameContainer);
 
-        uint32_t m_DecompressorInstanceID = uint32_t(-1);
+    private:
+        CE::Decompression::DecompressorManager m_DecompressorManager;
     };
 
     class SOP_ZibraVDBDecompressor_Operator final : public OP_Operator

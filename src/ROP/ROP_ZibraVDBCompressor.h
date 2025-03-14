@@ -1,5 +1,6 @@
 #pragma once
 #include "Globals.h"
+#include "ROP/CompressorManager/CompressorManager.h"
 
 namespace Zibra::OpenVDBSupport
 {
@@ -45,7 +46,7 @@ namespace Zibra::ZibraVDBCompressor
         static constexpr const char* PER_CHANNEL_COMPRESSION_SETTINGS_CHANNEL_NAME_PARAM_NAME = "perchname";
         static constexpr const char* PER_CHANNEL_COMPRESSION_SETTINGS_QUALITY_PARAM_NAME = "perchquality";
         static constexpr const char* FILENAME_PARAM_NAME = "filename";
-        static constexpr const char* DOWNLOAD_LIBRARY_BUTTON_NAME = "downloadlibrary";
+        static constexpr const char* OPEN_PLUGIN_MANAGEMENT_BUTTON_NAME = "openmanagement";
         static constexpr const char* CORE_LIB_PATH_FIELD_NAME = "corelibpath";
 
     public:
@@ -74,17 +75,20 @@ namespace Zibra::ZibraVDBCompressor
         void DumpDecodeMetadata(std::vector<std::pair<std::string, std::string>>& result,
                                 const OpenVDBSupport::DecodeMetadata& decodeMetadata);
 
-        static int DownloadLibrary(void* data, int index, fpreal32 time, const PRM_Template* tplate);
-        uint32_t CreateCompressor(fpreal tStart);
+        static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate);
+
+        ROP_RENDER_CODE CreateCompressor(fpreal tStart);
 
     private:
         fpreal m_EndTime = 0;
         fpreal m_StartTime = 0;
         SOP_Node* m_InputSOP = nullptr;
 
-        uint32_t CompressorInstanceID = uint32_t(-1);
         std::vector<std::string> m_OrderedChannelNames{};
 
         ContextType m_ContextType;
+
+        std::ofstream m_Ofstream;
+        CE::Compression::CompressorManager m_CompressorManager;
     };
 } // namespace Zibra::ZibraVDBCompressor

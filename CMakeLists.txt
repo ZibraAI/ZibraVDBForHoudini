@@ -44,30 +44,38 @@ endif()
 set(HeaderFiles
     src/PrecompiledHeader.h
     src/Globals.h
-    src/bridge/CompressionEngine.h
     src/bridge/networking/NetworkRequest.h
+    src/bridge/LibraryUtils.h
+    src/ROP/CompressorManager/CompressorManager.h
+    src/SOP/DecompressorManager/DecompressorManager.h
+    src/licensing/LicenseManager.h
     src/openvdb/OpenVDBDecoder.h
     src/openvdb/OpenVDBEncoder.h
     src/openvdb/MathHelpers.h
     src/ROP/ROP_ZibraVDBCompressor.h
     src/SOP/SOP_ZibraVDBDecompressor.h
     src/ui/MessageBox.h
+    src/ui/PluginManagementWindow.h
+    src/utils/Helpers.h
     src/utils/GAAttributesDump.h
-    src/utils/LibraryDownloadManager.h
 )
 
 set(SourceFiles
     src/main.cpp
-    src/bridge/CompressionEngine.cpp
     src/bridge/networking/NetworkRequest.cpp
+    src/bridge/LibraryUtils.cpp
+    src/ROP/CompressorManager/CompressorManager.cpp
+    src/SOP/DecompressorManager/DecompressorManager.cpp
+    src/licensing/LicenseManager.cpp
     src/openvdb/OpenVDBDecoder.cpp
     src/openvdb/OpenVDBEncoder.cpp
     src/openvdb/MathHelpers.cpp
     src/ROP/ROP_ZibraVDBCompressor.cpp
     src/SOP/SOP_ZibraVDBDecompressor.cpp
     src/ui/MessageBox.cpp
+    src/ui/PluginManagementWindow.cpp
+    src/utils/Helpers.cpp
     src/utils/GAAttributesDump.cpp
-    src/utils/LibraryDownloadManager.cpp
 )
 
 add_library(ZibraVDBForHoudini SHARED ${HeaderFiles} ${SourceFiles})
@@ -76,6 +84,8 @@ target_include_directories(ZibraVDBForHoudini
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/Include)
 target_precompile_headers(ZibraVDBForHoudini PRIVATE src/PrecompiledHeader.h)
 target_compile_definitions(ZibraVDBForHoudini PRIVATE ZIB_PLATFORM_${OS_NAME_CAPITALIZED}=1)
+
+target_include_directories(ZibraVDBForHoudini PRIVATE SDK/include)
 
 if(DEFINED ENV{ZIBRA_HOUDINI_PATH})
     message(STATUS "ENV{ZIBRA_HOUDINI_PATH}: $ENV{ZIBRA_HOUDINI_PATH}")

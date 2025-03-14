@@ -407,8 +407,8 @@
         parmtag { "sidefx::look" "blank" }
     }
     parm {
-        name    "downloadlibrary"
-        label   "Download Library"
+        name    "openmanagement"
+        label   "Open Plugin Management"
         type    button
         default { "0" }
         parmtag { "autoscope" "0000000000000000" }

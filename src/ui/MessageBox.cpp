@@ -22,7 +22,7 @@ namespace Zibra::UI
 
     private:
         static constexpr size_t MAX_CHARS_PER_LINE = 95;
-        static constexpr size_t LINE_COUNT = 3;
+        static constexpr size_t LINE_COUNT = 4;
 
         bool ParseUIFile();
         void HandleClick(UI_Event* event);
@@ -52,6 +52,7 @@ namespace Zibra::UI
         (*getValueSymbol("message1.val")) = lines[0].c_str();
         (*getValueSymbol("message2.val")) = lines[1].c_str();
         (*getValueSymbol("message3.val")) = lines[2].c_str();
+        (*getValueSymbol("message4.val")) = lines[3].c_str();
 
         (*getValueSymbol("dialog.val")) = true;
         getValueSymbol("dialog.val")->changed(this);

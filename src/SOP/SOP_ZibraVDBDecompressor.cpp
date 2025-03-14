@@ -2,10 +2,11 @@
 
 #include "SOP_ZibraVDBDecompressor.h"
 
-#include "bridge/CompressionEngine.h"
+#include "bridge/LibraryUtils.h"
+#include "licensing/LicenseManager.h"
 #include "openvdb/OpenVDBEncoder.h"
+#include "ui/PluginManagementWindow.h"
 #include "utils/GAAttributesDump.h"
-#include "utils/LibraryDownloadManager.h"
 
 #ifdef _DEBUG
 #define DBG_NAME(expression) expression
@@ -16,6 +17,7 @@
 namespace Zibra::ZibraVDBDecompressor
 {
     using namespace std::literals;
+    using namespace CE::Decompression;
 
     class StreamAutorelease
     {
@@ -54,13 +56,13 @@ namespace Zibra::ZibraVDBDecompressor
             return 1;
         }};
 
-        static PRM_Name theDownloadLibraryButtonName(DOWNLOAD_LIBRARY_BUTTON_NAME, "Download Library");
+        static PRM_Name theOpenPluginManagementButtonName(OPEN_PLUGIN_MANAGEMENT_BUTTON_NAME, "Open Plugin Management");
 
         static PRM_Template templateList[] = {
             PRM_Template(PRM_FILE, 1, &theFileName, &theFileDefault), PRM_Template(PRM_INT, 1, &theFrameName, &theFrameDefault),
             PRM_Template(PRM_CALLBACK, 1, &theReloadCacheName, nullptr, nullptr, nullptr, theReloadCallback),
-            PRM_Template(PRM_CALLBACK, 1, &theDownloadLibraryButtonName, nullptr, nullptr, nullptr,
-                         &SOP_ZibraVDBDecompressor::DownloadLibrary),
+            PRM_Template(PRM_CALLBACK, 1, &theOpenPluginManagementButtonName, nullptr, nullptr, nullptr,
+                         &SOP_ZibraVDBDecompressor::OpenManagementWindow),
             PRM_Template()};
         return templateList;
     }
@@ -68,112 +70,93 @@ namespace Zibra::ZibraVDBDecompressor
     SOP_ZibraVDBDecompressor::SOP_ZibraVDBDecompressor(OP_Network* net, const char* name, OP_Operator* entry) noexcept
         : SOP_Node(net, name, entry)
     {
-        CompressionEngine::LoadLibrary();
-        if (!CompressionEngine::IsLibraryInitialized())
+        Zibra::LibraryUtils::LoadLibrary();
+        if (!Zibra::LibraryUtils::IsLibraryLoaded())
         {
             return;
         }
-
-        if (!CompressionEngine::IsLicenseValid(CompressionEngine::ZCE_Product::Render))
-        {
-            return;
-        }
-        m_DecompressorInstanceID = CompressionEngine::CreateDecompressorInstance();
+        m_DecompressorManager.Initialize();
     }
 
     SOP_ZibraVDBDecompressor::~SOP_ZibraVDBDecompressor() noexcept
     {
-        if (m_DecompressorInstanceID == uint32_t(-1))
+        if (!Zibra::LibraryUtils::IsLibraryLoaded())
         {
             return;
         }
-        if (!CompressionEngine::IsLibraryInitialized())
-        {
-            return;
-        }
-        if (!CompressionEngine::IsLicenseValid(CompressionEngine::ZCE_Product::Render))
-        {
-            return;
-        }
-        CompressionEngine::ReleaseDecompressorInstance(m_DecompressorInstanceID);
+        m_DecompressorManager.Release();
     }
 
     OP_ERROR SOP_ZibraVDBDecompressor::cookMySop(OP_Context& context)
     {
         gdp->clearAndDestroy();
 
-        if (!CompressionEngine::IsPlatformSupported())
+        if (!Zibra::LibraryUtils::IsPlatformSupported())
         {
             addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_PLATFORM_NOT_SUPPORTED);
             return error(context);
         }
 
-        CompressionEngine::LoadLibrary();
-        if (!CompressionEngine::IsLibraryLoaded())
+        Zibra::LibraryUtils::LoadLibrary();
+        if (!Zibra::LibraryUtils::IsLibraryLoaded())
         {
             addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_COMPRESSION_ENGINE_MISSING);
             return error(context);
         }
 
-        if (!CompressionEngine::IsLibraryInitialized())
-        {
-            addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LIBRARY_NOT_INITIALIZED);
-            return error(context);
-        }
-
-        if (!CompressionEngine::IsLicenseValid(CompressionEngine::ZCE_Product::Render))
-        {
-            addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR);
-            return error(context);
-        }
-
-        if (m_DecompressorInstanceID == uint32_t(-1))
-        {
-            m_DecompressorInstanceID = CompressionEngine::CreateDecompressorInstance();
-        }
-
         UT_String filename = "";
         evalString(filename, "filename", nullptr, 0, context.getTime());
-
         if (filename == "")
         {
             addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_NO_FILE_SELECTED);
             return error(context);
         }
 
-        bool isFileOpened = CompressionEngine::SetInputFile(m_DecompressorInstanceID, filename.c_str());
-        if (!isFileOpened)
+        auto status = m_DecompressorManager.RegisterDecompressor(filename);
+        if (status != CE::ZCE_SUCCESS)
         {
-            addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_COULDNT_OPEN_FILE);
+            addError(SOP_MESSAGE, "Failed to create a decompressor.");
             return error(context);
         }
-
-        CompressionEngine::ZCE_SequenceInfo sequenceInfo{};
-        CompressionEngine::GetSequenceInfo(m_DecompressorInstanceID, &sequenceInfo);
 
         const exint frameIndex = evalInt(FRAME_PARAM_NAME, 0, context.getTime());
 
-        if (frameIndex < sequenceInfo.frameRangeBegin || frameIndex > sequenceInfo.frameRangeEnd)
+        CE::Decompression::CompressedFrameContainer* frameContainer = nullptr;
+        FrameRange frameRange = m_DecompressorManager.GetFrameRange();
+
+        if (frameIndex < frameRange.start || frameIndex > frameRange.end)
         {
-            addWarning(SOP_MESSAGE, "Frame index is out of range.");
+            addWarning(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_FRAME_INDEX_OUT_OF_RANGE);
             return error(context);
         }
 
-        CompressionEngine::ZCE_DecompressedFrameContainer* frameContainer = nullptr;
-        CompressionEngine::DecompressFrame(m_DecompressorInstanceID, frameIndex, &frameContainer);
+        frameContainer = m_DecompressorManager.FetchFrame(frameIndex);
 
         if (frameContainer == nullptr)
         {
-            addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_FRAME_INDEX_OUT_OF_RANGE);
+            addError(SOP_MESSAGE, "Error when trying to fetch frame");
             return error(context);
         }
 
-        OpenVDBSupport::EncodeMetadata encodeMetadata = ReadEncodeMetadata(frameContainer->metadata, frameContainer->metadataCount);
+        status = m_DecompressorManager.DecompressFrame(frameContainer);
+        if (status != CE::ZCE_SUCCESS)
+        {
+            frameContainer->Release();
+            addError(SOP_MESSAGE, "Error when trying to decompress frame");
+            return error(context);
+        }
 
-        auto vdbGrids = OpenVDBSupport::OpenVDBEncoder::EncodeFrame(frameContainer->frameInfo, frameContainer->frameData, encodeMetadata);
+        FrameInfo frameInfo = frameContainer->GetInfo();
+        OpenVDBSupport::EncodeMetadata encodeMetadata = ReadEncodeMetadata(frameContainer);
+        OpenVDBSupport::DecompressedFrameData decompressedFrameData;
+        status = m_DecompressorManager.GetDecompressedFrameData(decompressedFrameData, frameInfo);
+        if (status != CE::ZCE_SUCCESS)
+        {
+            addError(SOP_MESSAGE, "Error when trying readback frame data.");
+            return error(context);
+        }
 
-        auto metadataBegin = frameContainer->metadata;
-        auto metadataEnd = frameContainer->metadata + frameContainer->metadataCount;
+        auto vdbGrids = OpenVDBSupport::OpenVDBEncoder::EncodeFrame(frameInfo, decompressedFrameData, encodeMetadata);
 
         gdp->addStringTuple(GA_ATTRIB_PRIMITIVE, "name", 1);
         GA_RWHandleS nameAttr{gdp->findPrimitiveAttribute("name")};
@@ -183,7 +166,7 @@ namespace Zibra::ZibraVDBDecompressor
 
             if (!grid)
             {
-                addError(SOP_MESSAGE, ("Failed to decompress channel: "s + frameContainer->frameInfo.channelNames[i]).c_str());
+                addError(SOP_MESSAGE, ("Failed to decompress channel: "s + frameInfo.channels[i].name).c_str());
                 continue;
             }
 
@@ -191,40 +174,40 @@ namespace Zibra::ZibraVDBDecompressor
             nameAttr.set(vdbPrim->getMapOffset(), grid->getName());
             vdbPrim->setGrid(*grid);
 
-            ApplyGridMetadata(vdbPrim, metadataBegin, metadataEnd);
+            ApplyGridMetadata(vdbPrim, frameContainer);
         }
 
-        ApplyDetailMetadata(gdp, metadataBegin, metadataEnd);
+        ApplyDetailMetadata(gdp, frameContainer);
 
-        CompressionEngine::FreeFrameData(frameContainer);
+        frameContainer->Release();
+        delete[] decompressedFrameData.channelBlocks;
+        delete[] decompressedFrameData.spatialBlocks;
 
         return error(context);
     }
 
-    int SOP_ZibraVDBDecompressor::DownloadLibrary(void* data, int index, fpreal32 time, const PRM_Template* tplate)
+    int SOP_ZibraVDBDecompressor::OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate)
     {
-        Zibra::UI::LibraryDownloadManager::DownloadLibrary();
+        Zibra::PluginManagementWindow::ShowWindow();
         return 0;
     }
 
-    void SOP_ZibraVDBDecompressor::ApplyGridMetadata(GU_PrimVDB* vdbPrim, CompressionEngine::ZCE_MetadataEntry* metadataBegin,
-                                                     CompressionEngine::ZCE_MetadataEntry* metadataEnd)
+    void SOP_ZibraVDBDecompressor::ApplyGridMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::CompressedFrameContainer* const frameContainer)
     {
-        ApplyGridAttributeMetadata(vdbPrim, metadataBegin, metadataEnd);
-        ApplyGridVisualizationMetadata(vdbPrim, metadataBegin, metadataEnd);
+        ApplyGridAttributeMetadata(vdbPrim, frameContainer);
+        ApplyGridVisualizationMetadata(vdbPrim, frameContainer);
     }
 
-    void SOP_ZibraVDBDecompressor::ApplyGridAttributeMetadata(GU_PrimVDB* vdbPrim, CompressionEngine::ZCE_MetadataEntry* metadataBegin,
-                                                              CompressionEngine::ZCE_MetadataEntry* metadataEnd)
+    void SOP_ZibraVDBDecompressor::ApplyGridAttributeMetadata(GU_PrimVDB* vdbPrim,
+                                                              CE::Decompression::CompressedFrameContainer* const frameContainer)
     {
         const std::string attributeMetadataName = "houdiniPrimitiveAttributes_"s + vdbPrim->getGridName();
-        auto primMetaIt =
-            std::find_if(metadataBegin, metadataEnd, [&attributeMetadataName](const CompressionEngine::ZCE_MetadataEntry& entry) {
-                return entry.key == attributeMetadataName;
-            });
-        if (primMetaIt != metadataEnd)
+
+        const char* metadataEntry = frameContainer->GetMetadataByKey(attributeMetadataName.c_str());
+
+        if (metadataEntry)
         {
-            auto primAttribMeta = nlohmann::json::parse(primMetaIt->value);
+            auto primAttribMeta = nlohmann::json::parse(metadataEntry);
             switch (Utils::LoadEntityAttributesFromMeta(gdp, GA_ATTRIB_PRIMITIVE, vdbPrim->getMapOffset(), primAttribMeta))
             {
             case Utils::MetaAttributesLoadStatus::SUCCESS:
@@ -239,50 +222,44 @@ namespace Zibra::ZibraVDBDecompressor
         }
     }
 
-    void SOP_ZibraVDBDecompressor::ApplyGridVisualizationMetadata(GU_PrimVDB* vdbPrim, CompressionEngine::ZCE_MetadataEntry* metadataBegin,
-                                                                  CompressionEngine::ZCE_MetadataEntry* metadataEnd)
+    void SOP_ZibraVDBDecompressor::ApplyGridVisualizationMetadata(GU_PrimVDB* vdbPrim,
+                                                                  CE::Decompression::CompressedFrameContainer* const frameContainer)
     {
         const std::string keyPrefix = "houdiniVisualizationAttributes_"s + vdbPrim->getGridName();
 
         const std::string keyVisMode = keyPrefix + "_mode";
-        auto visModeIt = std::find_if(metadataBegin, metadataEnd,
-                                      [&keyVisMode](const CompressionEngine::ZCE_MetadataEntry& entry) { return entry.key == keyVisMode; });
+        const char* visModeMetadata = frameContainer->GetMetadataByKey(keyVisMode.c_str());
 
         const std::string keyVisIso = keyPrefix + "_iso";
-        auto visIsoIt = std::find_if(metadataBegin, metadataEnd,
-                                     [&keyVisIso](const CompressionEngine::ZCE_MetadataEntry& entry) { return entry.key == keyVisIso; });
-        const std::string keyVisDensity = keyPrefix + "_density";
-        auto visDensityIt = std::find_if(metadataBegin, metadataEnd, [&keyVisDensity](const CompressionEngine::ZCE_MetadataEntry& entry) {
-            return entry.key == keyVisDensity;
-        });
-        const std::string keyVisLod = keyPrefix + "_lod";
-        auto visLodIt = std::find_if(metadataBegin, metadataEnd,
-                                     [&keyVisLod](const CompressionEngine::ZCE_MetadataEntry& entry) { return entry.key == keyVisLod; });
+        const char* visIsoMetadata = frameContainer->GetMetadataByKey(keyVisIso.c_str());
 
-        if (visModeIt != metadataEnd && visIsoIt != metadataEnd && visDensityIt != metadataEnd && visLodIt != metadataEnd)
+        const std::string keyVisDensity = keyPrefix + "_density";
+        const char* visDensityMetadata = frameContainer->GetMetadataByKey(keyVisDensity.c_str());
+
+        const std::string keyVisLod = keyPrefix + "_lod";
+        const char* visLodMetadata = frameContainer->GetMetadataByKey(keyVisLod.c_str());
+
+        if (visModeMetadata && visIsoMetadata && visDensityMetadata && visLodMetadata)
         {
             GEO_VolumeOptions visOptions{};
-            visOptions.myMode = static_cast<GEO_VolumeVis>(std::stoi(visModeIt->value));
-            visOptions.myIso = std::stof(visIsoIt->value);
-            visOptions.myDensity = std::stof(visDensityIt->value);
-            visOptions.myLod = static_cast<GEO_VolumeVisLod>(std::stoi(visLodIt->value));
+            visOptions.myMode = static_cast<GEO_VolumeVis>(std::stoi(visModeMetadata));
+            visOptions.myIso = std::stof(visIsoMetadata);
+            visOptions.myDensity = std::stof(visDensityMetadata);
+            visOptions.myLod = static_cast<GEO_VolumeVisLod>(std::stoi(visLodMetadata));
             vdbPrim->setVisOptions(visOptions);
         }
     }
 
-    void SOP_ZibraVDBDecompressor::ApplyDetailMetadata(GU_Detail* gdp, CompressionEngine::ZCE_MetadataEntry* metadataBegin,
-                                                       CompressionEngine::ZCE_MetadataEntry* metadataEnd)
+    void SOP_ZibraVDBDecompressor::ApplyDetailMetadata(GU_Detail* gdp, CE::Decompression::CompressedFrameContainer* const frameContainer)
     {
-        auto detailMetaIt = std::find_if(metadataBegin, metadataEnd, [](const CompressionEngine::ZCE_MetadataEntry& entry) {
-            return entry.key == "houdiniDetailAttributes"s;
-        });
+        const char* detailMetadata = frameContainer->GetMetadataByKey("houdiniDetailAttributes");
 
-        if (detailMetaIt == metadataEnd)
+        if (!detailMetadata)
         {
             return;
         }
 
-        auto detailAttribMeta = nlohmann::json::parse(detailMetaIt->value);
+        auto detailAttribMeta = nlohmann::json::parse(detailMetadata);
         switch (Utils::LoadEntityAttributesFromMeta(gdp, GA_ATTRIB_DETAIL, 0, detailAttribMeta))
         {
         case Utils::MetaAttributesLoadStatus::SUCCESS:
@@ -296,20 +273,17 @@ namespace Zibra::ZibraVDBDecompressor
         }
     }
 
-    OpenVDBSupport::EncodeMetadata SOP_ZibraVDBDecompressor::ReadEncodeMetadata(const CompressionEngine::ZCE_MetadataEntry* metadata,
-                                                                                uint32_t metadataCount)
+    OpenVDBSupport::EncodeMetadata SOP_ZibraVDBDecompressor::ReadEncodeMetadata(
+        CE::Decompression::CompressedFrameContainer* const frameContainer)
     {
-        const CompressionEngine::ZCE_MetadataEntry* metadataEnd = metadata + metadataCount;
-        auto detailMetaIt = std::find_if(
-            metadata, metadataEnd, [](const CompressionEngine::ZCE_MetadataEntry& entry) { return entry.key == "houdiniDecodeMetadata"s; });
-
-        if (detailMetaIt == metadataEnd)
+        const char* metadataKey = "houdiniDecodeMetadata";
+        const char* metadataValue = frameContainer->GetMetadataByKey(metadataKey);
+        if (!metadataValue)
         {
             return {};
         }
-
-        std::istringstream metadataStream(detailMetaIt->value);
         OpenVDBSupport::EncodeMetadata encodeMetadata{};
+        std::istringstream metadataStream(metadataValue);
         metadataStream >> encodeMetadata.offsetX >> encodeMetadata.offsetY >> encodeMetadata.offsetZ;
         return encodeMetadata;
     }

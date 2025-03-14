@@ -7,26 +7,26 @@
 namespace Zibra::OpenVDBSupport
 {
 
-    openvdb::GridPtrVec OpenVDBEncoder::EncodeFrame(const CompressionEngine::ZCE_FrameInfo& frameInfo,
-                                                    const CompressionEngine::ZCE_DecompressedFrameData& frameData,
+    openvdb::GridPtrVec OpenVDBEncoder::EncodeFrame(const CE::Decompression::FrameInfo& frameInfo,
+                                                    const DecompressedFrameData& frameData,
                                                     const EncodeMetadata& encodeMetadata) noexcept
     {
-        if (frameInfo.channelCount == 0 || frameInfo.spatialBlockCount == 0 || frameInfo.channelBlockCount == 0)
+        if (frameInfo.channelsCount == 0 || frameInfo.spatialBlockCount == 0 || frameInfo.channelBlockCount == 0)
         {
             return {};
         }
 
-        const uint32_t gridsCount = frameInfo.channelCount;
+        const uint32_t gridsCount = frameInfo.channelsCount;
 
         // Create grids.
         openvdb::GridPtrVec grids{};
         grids.reserve(gridsCount);
-        for (uint32_t i = 0; i < frameInfo.channelCount; ++i)
+        for (uint32_t i = 0; i < frameInfo.channelsCount; ++i)
         {
             openvdb::FloatGrid::Ptr grid = openvdb::FloatGrid::create(0.f);
-            grid->setName(frameInfo.channelNames[i]);
+            grid->setName(frameInfo.channels[i].name);
 
-            CompressionEngine::ZCE_Transform gridTransform = frameInfo.perChannelInfo[i].gridTransform;
+            Math3D::Transform gridTransform = frameInfo.channels[i].gridTransform;
             openvdb::math::Transform::Ptr openVDBTransform = OpenVDBTransformFromMatrix(gridTransform);
             OffsetTransform(openVDBTransform, encodeMetadata);
             grid->setTransform(openVDBTransform);
@@ -50,28 +50,25 @@ namespace Zibra::OpenVDBSupport
             using LeafT = typename TreeT::LeafNodeType;
             std::vector<LeafT*> leafs(frameInfo.spatialBlockCount);
 
-            const auto sparseBlockSizeLog2 = ZIB_BLOCK_SIZE_LOG_2;
-            const auto totalSparseBlockSize = ZIB_BLOCK_ELEMENT_COUNT;
-            const auto totalSparseBlockSizeLog2 = 3 * sparseBlockSizeLog2;
+            const auto totalSparseBlockSize = CE::SPARSE_BLOCK_VOXEL_COUNT;
 
             std::transform(std::execution::par_unseq, frameData.spatialBlocks, frameData.spatialBlocks + frameInfo.spatialBlockCount,
-                           leafs.begin(), [&](const CompressionEngine::ZCE_SpatialBlock& blockInfo) -> LeafT* {
+                           leafs.begin(), [&](const CE::Decompression::SpatialBlock& blockInfo) -> LeafT* {
                                const int activeChannelOffset = countActiveChannelOffset(blockInfo.channelMask);
                                if (activeChannelOffset == -1)
                                {
                                    return nullptr;
                                }
 
-                               const CompressionEngine::ZCE_ChannelBlock& block =
-                                   frameData.channelBlocks[blockInfo.channelBlocksOffset + activeChannelOffset];
+                               const CE::Decompression::ChannelBlock& block = frameData.channelBlocks[blockInfo.channelBlocksOffset + activeChannelOffset];
 
                                const auto x = blockInfo.coords[0];
                                const auto y = blockInfo.coords[1];
                                const auto z = blockInfo.coords[2];
 
-                               const openvdb::Coord blockMin = {x * ZIB_BLOCK_SIZE + encodeMetadata.offsetX,
-                                                                y * ZIB_BLOCK_SIZE + encodeMetadata.offsetY,
-                                                                z * ZIB_BLOCK_SIZE + encodeMetadata.offsetZ};
+                               const openvdb::Coord blockMin = {x * CE::SPARSE_BLOCK_SIZE + encodeMetadata.offsetX,
+                                                                y * CE::SPARSE_BLOCK_SIZE + encodeMetadata.offsetY,
+                                                                z * CE::SPARSE_BLOCK_SIZE + encodeMetadata.offsetZ};
 
                                auto* leaf = new LeafT{openvdb::PartialCreate{}, blockMin, 0.f, true};
                                leaf->allocate();
@@ -98,19 +95,19 @@ namespace Zibra::OpenVDBSupport
         return grids;
     }
 
-    bool OpenVDBEncoder::IsTransformEmpty(const CompressionEngine::ZCE_Transform& gridTransform)
+    bool OpenVDBEncoder::IsTransformEmpty(const Math3D::Transform& gridTransform)
     {
         static_assert(sizeof(gridTransform.matrix) != sizeof(void*));
 
         const auto isAlmostZero = [](float v) { return std::abs(v) < std::numeric_limits<float>::epsilon(); };
 
-        return std::all_of(std::begin(gridTransform.matrix), std::end(gridTransform.matrix), isAlmostZero);
+        return std::all_of(std::begin(gridTransform.raw), std::end(gridTransform.raw), isAlmostZero);
     }
 
-    openvdb::math::Transform::Ptr OpenVDBEncoder::OpenVDBTransformFromMatrix(const CompressionEngine::ZCE_Transform& gridTransform)
+    openvdb::math::Transform::Ptr OpenVDBEncoder::OpenVDBTransformFromMatrix(const Math3D::Transform& gridTransform)
     {
         return openvdb::math::Transform::createLinearTransform(IsTransformEmpty(gridTransform) ? openvdb::Mat4d::identity()
-                                                                                               : openvdb::Mat4d{gridTransform.matrix});
+                                                                                               : openvdb::Mat4d{gridTransform.raw});
     }
 
     void OpenVDBEncoder::OffsetTransform(openvdb::math::Transform::Ptr openVDBTransform, const EncodeMetadata& encodeMetadata)
