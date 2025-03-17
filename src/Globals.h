@@ -8,6 +8,13 @@ namespace Zibra
 
 #define ZIB_ZIBRAVDB_VERSION_SHORT "0.2"
 
+#define ZIB_COMPRESSION_MAJOR_VERSION 0
+#define ZIB_DECOMPRESSION_MAJOR_VERSION 0
+#define ZIB_RHI_MAJOR_VERSION 1
+
+#define ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING \
+    ZIB_STRINGIFY(ZIB_COMPRESSION_MAJOR_VERSION) "_" ZIB_STRINGIFY(ZIB_DECOMPRESSION_MAJOR_VERSION) "_" ZIB_STRINGIFY(ZIB_RHI_MAJOR_VERSION)
+
     constexpr auto* ZIBRAVDB_NODES_TAB_NAME = "ZibraVDB, Labs/FX/Pyro";
     constexpr auto* ZIBRAVDB_ICON_PATH = "zibravdb.svg";
 
@@ -35,6 +42,8 @@ namespace Zibra
     constexpr auto* ZVDB_MSG_LIB_DOWNLOADED_SUCCESSFULLY = "Library downloaded successfully to "
                                                                         "$HOUDINI_USER_PREF_DIR/zibra/. "
                                                                         "(See the node help page for more information.)";
+
+    constexpr auto* LIBRARY_DOWNLOAD_URL = "https://zibra.ai/zibravdb_for_houdini_library_download?version=" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING;
 
     enum class ContextType
     {
