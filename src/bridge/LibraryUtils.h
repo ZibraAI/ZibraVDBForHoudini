@@ -1,7 +1,5 @@
 #pragma once
 
-#include "../PrecompiledHeader.h"
-
 namespace Zibra::LibraryUtils {
 #define ZIB_LIBRARY_FOLDER "zibra/" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING
 

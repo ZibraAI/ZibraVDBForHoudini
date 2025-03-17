@@ -2,7 +2,6 @@ library_status.val := "You should never see this";
 library_version.val := "You should never see this";
 
 update_status.val := "You should never see this";
-
 activation_status.val := "You should never see this";
 license_type.val := "You should never see this";
 license_file_loaded_via.val := "You should never see this";

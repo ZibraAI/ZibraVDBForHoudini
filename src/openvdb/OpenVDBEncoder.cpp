@@ -50,9 +50,7 @@ namespace Zibra::OpenVDBSupport
             using LeafT = typename TreeT::LeafNodeType;
             std::vector<LeafT*> leafs(frameInfo.spatialBlockCount);
 
-            const auto sparseBlockSizeLog2 = std::log2(CE::SPARSE_BLOCK_SIZE);
             const auto totalSparseBlockSize = CE::SPARSE_BLOCK_VOXEL_COUNT;
-            const auto totalSparseBlockSizeLog2 = 3 * sparseBlockSizeLog2;
 
             std::transform(std::execution::par_unseq, frameData.spatialBlocks, frameData.spatialBlocks + frameInfo.spatialBlockCount,
                            leafs.begin(), [&](const CE::Decompression::SpatialBlock& blockInfo) -> LeafT* {
