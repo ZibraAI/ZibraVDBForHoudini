@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Zibra/CE/Common.h>
-#include <Zibra/CE/Math3D.h>
+#include <Zibra/Math3D.h>
 #include <Zibra/RHI.h>
 #include <cassert>
 #include <cstdint>
@@ -191,6 +191,7 @@ namespace Zibra::CE::Decompression
         uint64_t fileUUID[2];
         Math3D::uint3 maxAABBSize;
         uint64_t originalSize;
+        uint8_t channelCount;
         const char* channels[ZCE_MAX_CHANNEL_COUNT];
     };
 
@@ -360,7 +361,7 @@ ZCE_API_IMPORT ZCE_NS::ReturnCode ZCE_CALL_CONV ZCE_FNPFX(GetMetadataByIndex)(ZC
     ZCE_NS::MetadataEntry* outEntry) noexcept;
 ZCE_API_IMPORT void ZCE_CALL_CONV ZCE_FNPFX(Release)(ZCE_NS::CAPI::CompressedFrameContainerHandle instance) noexcept;
 #else
-#define ZCE_DECLARE_API_EXTERN_FUNCS(name) extern ZRHI_PFN(name) name;
+#define ZCE_DECLARE_API_EXTERN_FUNCS(name) extern ZCE_PFN(name) name;
 ZCE_DECOMPRESSION_COMPRESSEDFRAMECONTAINER_API_APPLY(ZCE_DECLARE_API_EXTERN_FUNCS);
 #undef ZCE_DECLARE_API_EXTERN_FUNCS
 #endif
@@ -451,7 +452,7 @@ ZCE_API_IMPORT ZCE_NS::ReturnCode ZCE_CALL_CONV ZCE_FNPFX(GetMetadataByIndex)(ZC
     ZCE_NS::MetadataEntry* outEntry) noexcept;
 ZCE_API_IMPORT void ZCE_CALL_CONV ZCE_FNPFX(Release)(ZCE_NS::CAPI::FormatMapperHandle instance) noexcept;
 #else
-#define ZCE_DECLARE_API_EXTERN_FUNCS(name) extern ZRHI_PFN(name) name;
+#define ZCE_DECLARE_API_EXTERN_FUNCS(name) extern ZCE_PFN(name) name;
 ZCE_DECOMPRESSION_FORMATMAPPER_API_APPLY(ZCE_DECLARE_API_EXTERN_FUNCS);
 #undef ZCE_DECLARE_API_EXTERN_FUNCS
 #endif
@@ -550,7 +551,7 @@ ZCE_API_IMPORT ZCE_NS::CAPI::FormatMapperHandle ZCE_CALL_CONV ZCE_FNPFX(GetForma
 ZCE_API_IMPORT ZCE_NS::ReturnCode ZCE_CALL_CONV ZCE_FNPFX(DecompressFrame)(ZCE_NS::CAPI::DecompressorHandle instance,
     ZCE_NS::CAPI::CompressedFrameContainerHandle frame) noexcept;
 #else
-#define ZCE_DECLARE_API_EXTERN_FUNCS(name) extern ZRHI_PFN(name) name;
+#define ZCE_DECLARE_API_EXTERN_FUNCS(name) extern ZCE_PFN(name) name;
 ZCE_DECOMPRESSION_DECOMPRESSOR_API_APPLY(ZCE_DECLARE_API_EXTERN_FUNCS);
 #undef ZCE_DECLARE_API_EXTERN_FUNCS
 #endif
@@ -630,7 +631,7 @@ ZCE_API_IMPORT ZCE_NS::ReturnCode ZCE_CALL_CONV ZCE_FNPFX(Create)(ZCE_NS::CAPI::
     ZCE_NS::CAPI::DecompressorHandle* outInstanceHnd) noexcept;
 ZCE_API_IMPORT void ZCE_CALL_CONV ZCE_FNPFX(Release)(ZCE_NS::CAPI::DecompressorFactoryHandle instance) noexcept;
 #else
-#define ZCE_DECLARE_API_EXTERN_FUNCS(name) extern ZRHI_PFN(name) name;
+#define ZCE_DECLARE_API_EXTERN_FUNCS(name) extern ZCE_PFN(name) name;
 ZCE_DECOMPRESSION_DECOMPRESSORFACTORY_API_APPLY(ZCE_DECLARE_API_EXTERN_FUNCS);
 #undef ZCE_DECLARE_API_EXTERN_FUNCS
 #endif
@@ -683,7 +684,7 @@ namespace ZCE_NS::CAPI
     macro(ZCE_DECOMPRESSION_FUNCS_EXPORT_FNPFX(CreateDecompressorFactory)); \
     macro(ZCE_DECOMPRESSION_FUNCS_EXPORT_FNPFX(CreateDecoder));             \
     macro(ZCE_DECOMPRESSION_FUNCS_EXPORT_FNPFX(GetFileFormatVersion));      \
-    macro(ZCE_DECOMPRESSION_FUNCS_EXPORT_FNPFX(ReleaseDecoder));
+    macro(ZCE_DECOMPRESSION_FUNCS_EXPORT_FNPFX(ReleaseDecoder))
 
 #define ZCE_FNPFX(name) ZCE_DECOMPRESSION_FUNCS_EXPORT_FNPFX(name)
 
@@ -694,13 +695,13 @@ typedef uint64_t(ZCE_CALL_CONV* ZCE_PFN(ZCE_FNPFX(GetFileFormatVersion)))(Zibra:
 typedef void (ZCE_CALL_CONV* ZCE_PFN(ZCE_FNPFX(ReleaseDecoder)))(Zibra::CE::ZibraVDB::FileDecoder* decoder);
 
 #ifndef ZCE_NO_STATIC_API_DECL
-ZCE_API_IMPORT Zibra::CE::Version ZCE_CALL_CONV ZCE_FNPFX(GetVersion)() noexcept;
+ZCE_API_IMPORT Zibra::Version ZCE_CALL_CONV ZCE_FNPFX(GetVersion)() noexcept;
 ZCE_API_IMPORT ZCE_NS::ReturnCode ZCE_CALL_CONV ZCE_FNPFX(CreateDecompressorFactory)(ZCE_NS::CAPI::DecompressorFactoryHandle* outFactory) noexcept;
 ZCE_API_IMPORT ZCE_NS::ReturnCode ZCE_CALL_CONV ZCE_FNPFX(CreateDecoder)(const char* filepath, Zibra::CE::ZibraVDB::FileDecoder** outInstance) noexcept;
 ZCE_API_IMPORT uint64_t ZCE_CALL_CONV ZCE_FNPFX(GetFileFormatVersion)(Zibra::CE::ZibraVDB::FileDecoder* decoder) noexcept;
 ZCE_API_IMPORT void ZCE_CALL_CONV ZCE_FNPFX(ReleaseDecoder)(Zibra::CE::ZibraVDB::FileDecoder* decoder) noexcept;
 #else
-#define ZCE_DECLARE_API_EXTERN_FUNCS(name) extern ZRHI_PFN(name) name;
+#define ZCE_DECLARE_API_EXTERN_FUNCS(name) extern ZCE_PFN(name) name;
 ZCE_DECOMPRESSION_FUNCS_API_APPLY(ZCE_DECLARE_API_EXTERN_FUNCS);
 #undef ZCE_DECLARE_API_EXTERN_FUNCS
 #endif
