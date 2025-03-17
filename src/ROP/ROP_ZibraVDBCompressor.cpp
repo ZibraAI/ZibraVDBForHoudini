@@ -320,12 +320,6 @@ namespace Zibra::ZibraVDBCompressor
             return ROP_ABORT_RENDER;
         }
 
-        if (!m_RHIWrapper)
-        {
-            m_RHIWrapper = new RHIWrapper();
-            m_RHIWrapper->Initialize();
-        }
-
         m_EndTime = tEnd;
         m_StartTime = tStart;
 
@@ -544,8 +538,6 @@ namespace Zibra::ZibraVDBCompressor
         }
         return ROP_CONTINUE_RENDER;
     }
-
-
 
     ROP_RENDER_CODE ROP_ZibraVDBCompressor::endRender()
     {
