@@ -47,9 +47,9 @@ namespace Zibra::LibraryUtils
 
     bool g_IsLibraryLoaded = false;
     bool g_IsLibraryInitialized = false;
-    Zibra::CE::Version g_CompressionLibraryVersion = {};
-    Zibra::CE::Version g_DecompressionLibraryVersion = {};
-    Zibra::RHI::Version g_RHILibraryVersion = {};
+    Zibra::Version g_CompressionLibraryVersion = {};
+    Zibra::Version g_DecompressionLibraryVersion = {};
+    Zibra::Version g_RHILibraryVersion = {};
 
     // Returns vector of paths that can be used to search for the library
     // First element is the path used for downloading the library
