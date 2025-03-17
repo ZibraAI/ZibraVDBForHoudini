@@ -88,7 +88,6 @@ namespace Zibra::ZibraVDBCompressor
 
         ContextType m_ContextType;
 
-        std::ofstream m_Ofstream;
         CE::Compression::CompressorManager m_CompressorManager;
     };
 } // namespace Zibra::ZibraVDBCompressor

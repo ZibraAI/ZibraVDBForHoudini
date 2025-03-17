@@ -539,8 +539,6 @@ namespace Zibra::ZibraVDBCompressor
         return ROP_CONTINUE_RENDER;
     }
 
-
-
     ROP_RENDER_CODE ROP_ZibraVDBCompressor::endRender()
     {
         if (!Zibra::LibraryUtils::IsLibraryLoaded())
@@ -612,7 +610,6 @@ namespace Zibra::ZibraVDBCompressor
                 {
                     continue;
                 }
-
                 float quality = static_cast<float>(evalFloat(qualityParamNameStr.c_str(), 0, tStart));
 
                 perChannelCompressionSettings.emplace_back(channelNameStr, quality);

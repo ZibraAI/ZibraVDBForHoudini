@@ -7,6 +7,7 @@
 #include "bridge/LibraryUtils.h"
 #include "licensing/LicenseManager.h"
 #include "utils/Helpers.h"
+#include "bridge/UpdateCheck.h"
 
 namespace Zibra
 {
@@ -28,12 +29,14 @@ namespace Zibra
         bool ParseUIFile();
         void HandleDownloadLibrary(UI_Event* event);
         void HandleLoadLibrary(UI_Event* event);
+        void HandleUpdateLibrary(UI_Event* event);
+        static void HandleUpdateLibraryCalback(UI::MessageBox::Result result);
         void HandleSetLicenseKey(UI_Event* event);
         void HandleSetOfflineLicense(UI_Event* event);
         void HandleRetryLicenseCheck(UI_Event* event);
         void HandleRemoveLicense(UI_Event* event);
         void HandleCopyLicenseToHSITE(UI_Event* event);
-        static void HandleCopyLicenseToHSITECalback(UI::MessageBox::Result);
+        static void HandleCopyLicenseToHSITECalback(UI::MessageBox::Result result);
         void HandleCopyLicenseToHQROOT(UI_Event* event);
         static void HandleCopyLicenseToHQROOTCallback(const char* path);
         void HandleCopyLibraryToHSITE(UI_Event* event);
@@ -98,6 +101,8 @@ namespace Zibra
         getValueSymbol("download_library.val")
             ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleDownloadLibrary));
         getValueSymbol("load_library.val")->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleLoadLibrary));
+        getValueSymbol("update_library.val")
+            ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleUpdateLibrary));
         getValueSymbol("set_license_key.val")
             ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleSetLicenseKey));
         getValueSymbol("set_offline_license.val")
@@ -128,9 +133,7 @@ namespace Zibra
             return;
         }
 
-        // DONT SUBMIT
-        // URL is placeholder
-        Helpers::OpenInBrowser("https://zibra.ai/download");
+        Helpers::OpenInBrowser(LIBRARY_DOWNLOAD_URL);
         UpdateUI();
     }
 
@@ -155,6 +158,31 @@ namespace Zibra
         {
             UI::MessageBox::Show(UI::MessageBox::Type::OK, "Library loaded successfully. You can now use ZibraVDB.");
         }
+    }
+
+    void PluginManagementWindowImpl::HandleUpdateLibrary(UI_Event* event)
+    {
+        auto updateStatus = UpdateCheck::Run();
+
+        if (updateStatus == UpdateCheck::Status::Latest)
+        {
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Library is already up to date.");
+            return;
+        }
+        else if (updateStatus == UpdateCheck::Status::NotInstalled)
+        {
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Library is not yet installed.");
+            return;
+        }
+
+        UI::MessageBox::Show(UI::MessageBox::Type::OK, "You will be directed to download page. To update ZibraVDB Library, first close Houdini, then proceed with normal installation flow and when prompted overwrite old version files.",
+                             &PluginManagementWindowImpl::HandleUpdateLibraryCalback);
+        UpdateUI();
+    }
+
+    void PluginManagementWindowImpl::HandleUpdateLibraryCalback(UI::MessageBox::Result result)
+    {
+        Helpers::OpenInBrowser(LIBRARY_DOWNLOAD_URL);
     }
 
     void PluginManagementWindowImpl::HandleSetLicenseKey(UI_Event* event)
@@ -373,6 +401,29 @@ namespace Zibra
         {
             std::string libraryVersion = LibraryUtils::GetLibraryVersionString();
             SetStringField("library_version.val", libraryVersion.c_str());
+        }
+        {
+            std::string updateStatusString;
+            auto updateStatus = UpdateCheck::Run();
+            switch (updateStatus)
+            {
+            case UpdateCheck::Status::Latest:
+                updateStatusString = "Up to date";
+                break;
+            case UpdateCheck::Status::UpdateAvailable:
+                updateStatusString = "Update available";
+                break;
+            case UpdateCheck::Status::UpdateCheckFailed:
+                updateStatusString = "Update check failed";
+                break;
+            case UpdateCheck::Status::NotInstalled:
+                updateStatusString = "Library not installed";
+                break;
+            default:
+                assert(0);
+                break;
+            }
+            SetStringField("update_status.val", updateStatusString.c_str());
         }
         {
             std::string activationStatus;

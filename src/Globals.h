@@ -43,6 +43,8 @@ namespace Zibra
                                                                         "$HOUDINI_USER_PREF_DIR/zibra/. "
                                                                         "(See the node help page for more information.)";
 
+    constexpr auto* LIBRARY_DOWNLOAD_URL = "https://zibra.ai/zibravdb_for_houdini_library_download?version=" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING;
+
     enum class ContextType
     {
         SOP,

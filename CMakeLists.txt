@@ -46,6 +46,7 @@ set(HeaderFiles
     src/Globals.h
     src/bridge/networking/NetworkRequest.h
     src/bridge/LibraryUtils.h
+    src/bridge/UpdateCheck.h
     src/ROP/CompressorManager/CompressorManager.h
     src/SOP/DecompressorManager/DecompressorManager.h
     src/licensing/LicenseManager.h
@@ -64,6 +65,7 @@ set(SourceFiles
     src/main.cpp
     src/bridge/networking/NetworkRequest.cpp
     src/bridge/LibraryUtils.cpp
+    src/bridge/UpdateCheck.cpp
     src/ROP/CompressorManager/CompressorManager.cpp
     src/SOP/DecompressorManager/DecompressorManager.cpp
     src/licensing/LicenseManager.cpp
@@ -138,7 +140,7 @@ if(MSVC)
     set_target_properties(ZibraVDBForHoudini PROPERTIES
         VS_DEBUGGER_COMMAND "${HOUDINI_PATH}/bin/houdini${CMAKE_EXECUTABLE_SUFFIX}"
         VS_DEBUGGER_COMMAND_ARGUMENTS "${CMAKE_CURRENT_SOURCE_DIR}/HIP/HDAs.hip"
-        VS_DEBUGGER_ENVIRONMENT "HOUDINI_OTLSCAN_PATH=${CMAKE_CURRENT_SOURCE_DIR}/assets/otls"
+        VS_DEBUGGER_ENVIRONMENT "HOUDINI_OTLSCAN_PATH=${CMAKE_CURRENT_SOURCE_DIR}/assets/otls\nHOUDINI_TEXT_CONSOLE=1"
         )
     set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         PROPERTY VS_STARTUP_PROJECT ZibraVDBForHoudini)

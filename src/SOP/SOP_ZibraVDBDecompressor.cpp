@@ -2,11 +2,11 @@
 
 #include "SOP_ZibraVDBDecompressor.h"
 
+#include "utils/GAAttributesDump.h"
 #include "bridge/LibraryUtils.h"
 #include "licensing/LicenseManager.h"
 #include "openvdb/OpenVDBEncoder.h"
 #include "ui/PluginManagementWindow.h"
-#include "utils/GAAttributesDump.h"
 
 #ifdef _DEBUG
 #define DBG_NAME(expression) expression
@@ -180,6 +180,7 @@ namespace Zibra::ZibraVDBDecompressor
         ApplyDetailMetadata(gdp, frameContainer);
 
         frameContainer->Release();
+
         delete[] decompressedFrameData.channelBlocks;
         delete[] decompressedFrameData.spatialBlocks;
 
