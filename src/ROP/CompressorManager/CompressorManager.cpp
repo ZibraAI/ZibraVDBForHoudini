@@ -21,6 +21,7 @@ namespace Zibra::CE::Compression
             return CE::ZCE_ERROR;
         }
 
+        RHIFactory->SetGFXAPI(RHI::GFXAPI::Auto);
         RHIstatus = RHIFactory->Create(&m_RHIRuntime);
         if (RHIstatus != RHI::ZRHI_SUCCESS)
         {
