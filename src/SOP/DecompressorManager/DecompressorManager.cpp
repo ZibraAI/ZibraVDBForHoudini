@@ -328,6 +328,7 @@ namespace Zibra::CE::Decompression
             {
                 return CE::ZCE_ERROR;
             }
+            m_DecompressionPerChannelBlockDataBuffer = BufferDesc{};
         }
         if (m_DecompressionPerChannelBlockInfoBuffer.buffer)
         {
@@ -336,6 +337,7 @@ namespace Zibra::CE::Decompression
             {
                 return CE::ZCE_ERROR;
             }
+            m_DecompressionPerChannelBlockInfoBuffer = BufferDesc{};
         }
         if (m_DecompressionPerSpatialBlockInfoBuffer.buffer)
         {
@@ -344,14 +346,16 @@ namespace Zibra::CE::Decompression
             {
                 return CE::ZCE_ERROR;
             }
+            m_DecompressionPerSpatialBlockInfoBuffer = BufferDesc{};
         }
-        if (m_DecompressionPerSpatialBlockInfoBuffer.buffer)
+        if (m_DecompressionSpatialToChannelIndexLookupBuffer.buffer)
         {
-            RHIstatus = m_RHIRuntime->ReleaseBuffer(m_DecompressionPerSpatialBlockInfoBuffer.buffer);
+            RHIstatus = m_RHIRuntime->ReleaseBuffer(m_DecompressionSpatialToChannelIndexLookupBuffer.buffer);
             if (RHIstatus != RHI::ZRHI_SUCCESS)
             {
                 return CE::ZCE_ERROR;
             }
+            m_DecompressionSpatialToChannelIndexLookupBuffer = BufferDesc{};
         }
         return CE::ZCE_SUCCESS;
     }

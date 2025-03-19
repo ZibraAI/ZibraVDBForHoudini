@@ -613,6 +613,7 @@ namespace Zibra::ZibraVDBCompressor
                 float quality = static_cast<float>(evalFloat(qualityParamNameStr.c_str(), 0, tStart));
 
                 perChannelCompressionSettings.emplace_back(channelNameStr, quality);
+                perChannelCompressionSettings.back().first.harden();
             }
         }
 
