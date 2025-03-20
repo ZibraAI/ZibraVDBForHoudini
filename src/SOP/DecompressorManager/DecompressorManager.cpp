@@ -113,7 +113,6 @@ namespace Zibra::CE::Decompression
             m_Decompressor->Release();
             m_Decompressor = nullptr;
         }
-
         status = m_DecompressorFactory->Create(&m_Decompressor);
         if (status != CE::ZCE_SUCCESS)
         {
@@ -154,18 +153,11 @@ namespace Zibra::CE::Decompression
         {
             return status;
         }
-        status = AllocateExternalBuffer(m_DecompressionSpatialToChannelIndexLookupBuffer,
-                                        newRequirements.decompressionSpatialToChannelIndexLookupSizeInBytes,
-                                        newRequirements.decompressionSpatialToChannelIndexLookupStride);
-        if (status != CE::ZCE_SUCCESS)
-        {
-            return status;
-        }
 
-        DecompressorResources decompressorResources = {
-            m_DecompressionPerChannelBlockDataBuffer.buffer, m_DecompressionPerChannelBlockInfoBuffer.buffer,
-            m_DecompressionPerSpatialBlockInfoBuffer.buffer, m_DecompressionSpatialToChannelIndexLookupBuffer.buffer};
-
+        DecompressorResources decompressorResources{};
+        decompressorResources.decompressionPerChannelBlockData = m_DecompressionPerChannelBlockDataBuffer.buffer;
+        decompressorResources.decompressionPerChannelBlockInfo = m_DecompressionPerChannelBlockInfoBuffer.buffer;
+        decompressorResources.decompressionPerSpatialBlockInfo = m_DecompressionPerSpatialBlockInfoBuffer.buffer;
         status = m_Decompressor->RegisterResources(decompressorResources);
         if (status != CE::ZCE_SUCCESS)
         {
@@ -185,7 +177,16 @@ namespace Zibra::CE::Decompression
         {
             return CE::ZCE_ERROR;
         }
-        ReturnCode status = m_Decompressor->DecompressFrame(frameContainer);
+        DecompressFrameDesc decompressDesc{};
+        decompressDesc.firstSpatialBlockIndex = 0;
+        decompressDesc.spatialBlocksCount = frameContainer->GetInfo().spatialBlockCount;
+        decompressDesc.decompressionPerChannelBlockDataOffset = 0;
+        decompressDesc.decompressionPerChannelBlockInfoOffset = 0;
+        decompressDesc.decompressionPerSpatialBlockInfoOffset = 0;
+        decompressDesc.frameContainer = frameContainer;
+
+        DecompressedFrameFeedback frameFeedback;
+        ReturnCode status = m_Decompressor->DecompressFrame(decompressDesc, &frameFeedback);
         if (status != CE::ZCE_SUCCESS)
         {
             return status;
