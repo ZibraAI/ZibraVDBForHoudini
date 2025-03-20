@@ -125,8 +125,8 @@ namespace Zibra::UpdateCheck
 
     Status Run() noexcept
     {
-        using time_point_t = std::chrono::time_point<std::chrono::system_clock>;
         using clock_t = std::chrono::system_clock;
+        using time_point_t = std::chrono::time_point<clock_t>;
 
         static Status cachedStatus = Status::Count;
         static time_point_t lastCheckTime;

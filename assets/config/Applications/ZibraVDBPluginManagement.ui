@@ -53,6 +53,16 @@ window.gad = NORMAL_WINDOW "ZibraVDB"
     {
         JUSTIFY(left, center)
 
+        LABEL "Trial status: " WIDTH(1.15);
+        LABEL VALUE(trial_status.val);
+    }
+
+    SEPARATOR;
+
+    ROW
+    {
+        JUSTIFY(left, center)
+
         LABEL "Activation status: " WIDTH(1.15);
         LABEL VALUE(activation_status.val);
     }
