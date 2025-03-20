@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Zibra/CE/Decompression.h>
+#include <Zibra/CE/Literals.h>
 #include "openvdb/OpenVDBEncoder.h"
 #include "Globals.h"
 
