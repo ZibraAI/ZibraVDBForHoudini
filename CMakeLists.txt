@@ -129,6 +129,12 @@ add_custom_command(TARGET ZibraVDBForHoudini POST_BUILD
     ${OUTPUT_PATH}
 )
 
+add_custom_command(TARGET ZibraVDBForHoudini POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy 
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/ThirdPartyCopyrightNotices.txt
+    ${OUTPUT_PATH}/dso/ZibraVDBForHoudiniThirdPartyCopyrightNotices.txt
+)
+
 list(APPEND CMAKE_PREFIX_PATH "${HOUDINI_PATH}/toolkit/cmake")
 find_package(Houdini REQUIRED)
 target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini Houdini::Dep::openvdb_sesi)
