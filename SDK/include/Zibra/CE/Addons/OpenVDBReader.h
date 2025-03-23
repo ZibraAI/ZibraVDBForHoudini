@@ -48,6 +48,19 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             }
         }
 
+        OpenVDBReader(openvdb::GridBase::ConstPtr* grids, const char* const* orderedChannelNames, size_t orderedChannelNamesCount) noexcept
+        {
+            assert(orderedChannelNamesCount != 0);
+            assert(orderedChannelNames != nullptr);
+            m_OrderedChannelNames.reserve(orderedChannelNamesCount);
+            for (size_t i = 0; i < orderedChannelNamesCount; ++i)
+            {
+                m_ChannelMapping[orderedChannelNames[i]] = 1 << i;
+                m_Grids[orderedChannelNames[i]] = openvdb::gridConstPtrCast<openvdb::FloatGrid>(grids[i]);
+                m_OrderedChannelNames.emplace_back(orderedChannelNames[i]);
+            }
+        }
+
         CE::Compression::SparseFrame* LoadFrame() noexcept
         {
             using namespace CE::Compression;

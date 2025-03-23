@@ -203,7 +203,7 @@ namespace Zibra::Helpers
         GetDecompressedFrameData(frameInfo, &frameData);
 
         CE::Addons::OpenVDBUtils::OpenVDBEncoder vdbEncoder{};
-        openvdb::GridPtrVec girds = vdbEncoder.Encode(decompressDesc, frameFeedback, frameInfo, frameData);
+        *vdbGrids = vdbEncoder.Encode(decompressDesc, frameFeedback, frameInfo, frameData);
 
         m_RHIRuntime->GarbageCollect();
         return CE::ZCE_SUCCESS;

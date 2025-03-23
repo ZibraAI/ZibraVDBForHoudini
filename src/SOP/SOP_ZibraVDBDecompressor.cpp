@@ -149,6 +149,8 @@ namespace Zibra::ZibraVDBDecompressor
             return error(context);
         }
 
+        // TODO: apply decode metadata
+
         // OpenVDBSupport::EncodeMetadata encodeMetadata = ReadEncodeMetadata(frameContainer);
         // auto vdbGrids = OpenVDBSupport::OpenVDBEncoder::EncodeFrame(frameInfo, decompressedFrameData, encodeMetadata);
 
