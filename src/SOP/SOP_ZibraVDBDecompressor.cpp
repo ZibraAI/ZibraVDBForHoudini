@@ -2,11 +2,13 @@
 
 #include "SOP_ZibraVDBDecompressor.h"
 
-#include "utils/GAAttributesDump.h"
+#include <Zibra/CE/Addons/OpenVDBEncoder.h>
+
 #include "bridge/LibraryUtils.h"
 #include "licensing/LicenseManager.h"
 #include "openvdb/OpenVDBEncoder.h"
 #include "ui/PluginManagementWindow.h"
+#include "utils/GAAttributesDump.h"
 
 #ifdef _DEBUG
 #define DBG_NAME(expression) expression
@@ -138,7 +140,8 @@ namespace Zibra::ZibraVDBDecompressor
             return error(context);
         }
 
-        status = m_DecompressorManager.DecompressFrame(frameContainer);
+        openvdb::GridPtrVec vdbGrids = {};
+        status = m_DecompressorManager.DecompressFrame(frameContainer, &vdbGrids);
         if (status != CE::ZCE_SUCCESS)
         {
             frameContainer->Release();
@@ -146,17 +149,8 @@ namespace Zibra::ZibraVDBDecompressor
             return error(context);
         }
 
-        FrameInfo frameInfo = frameContainer->GetInfo();
-        OpenVDBSupport::EncodeMetadata encodeMetadata = ReadEncodeMetadata(frameContainer);
-        OpenVDBSupport::DecompressedFrameData decompressedFrameData;
-        status = m_DecompressorManager.GetDecompressedFrameData(decompressedFrameData, frameInfo);
-        if (status != CE::ZCE_SUCCESS)
-        {
-            addError(SOP_MESSAGE, "Error when trying readback frame data.");
-            return error(context);
-        }
-
-        auto vdbGrids = OpenVDBSupport::OpenVDBEncoder::EncodeFrame(frameInfo, decompressedFrameData, encodeMetadata);
+        // OpenVDBSupport::EncodeMetadata encodeMetadata = ReadEncodeMetadata(frameContainer);
+        // auto vdbGrids = OpenVDBSupport::OpenVDBEncoder::EncodeFrame(frameInfo, decompressedFrameData, encodeMetadata);
 
         gdp->addStringTuple(GA_ATTRIB_PRIMITIVE, "name", 1);
         GA_RWHandleS nameAttr{gdp->findPrimitiveAttribute("name")};
@@ -166,7 +160,7 @@ namespace Zibra::ZibraVDBDecompressor
 
             if (!grid)
             {
-                addError(SOP_MESSAGE, ("Failed to decompress channel: "s + frameInfo.channels[i].name).c_str());
+                addError(SOP_MESSAGE, ("Failed to decompress channel: "s + frameContainer->GetInfo().channels[i].name).c_str());
                 continue;
             }
 
@@ -180,9 +174,6 @@ namespace Zibra::ZibraVDBDecompressor
         ApplyDetailMetadata(gdp, frameContainer);
 
         frameContainer->Release();
-
-        delete[] decompressedFrameData.channelBlocks;
-        delete[] decompressedFrameData.spatialBlocks;
 
         return error(context);
     }

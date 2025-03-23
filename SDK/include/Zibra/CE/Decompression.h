@@ -867,7 +867,7 @@ namespace ZCE_NS::CAPI::ConsumerBridge
         ReturnCode (*RegisterResources)(void*, const DecompressorResources& resources);
         DecompressorResourcesRequirements (*GetResourcesRequirements)(void*);
         FormatMapperHandle (*GetFormatMapper)(void*);
-        ReturnCode (*DecompressFrame)(void*, CompressedFrameContainerHandle frame);
+        ReturnCode (*DecompressFrame)(void*, const DecompressFrameDesc& desc, DecompressedFrameFeedback* outFeedback);
     };
 } // namespace ZCE_NS::CAPI::ConsumerBridge
 

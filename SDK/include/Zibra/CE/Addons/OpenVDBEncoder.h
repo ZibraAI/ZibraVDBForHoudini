@@ -1,6 +1,5 @@
 #pragma once
 
-#include <ProfilerWrapper.h>
 #include <Zibra/CE/Common.h>
 #include <Zibra/CE/Decompression.h>
 #include <algorithm>
@@ -24,8 +23,6 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         static openvdb::GridPtrVec CreateGrids(const Decompression::FrameInfo& frameInfo) noexcept
         {
             using namespace Decompression;
-
-            ZIB_PROFILE_SCOPE();
 
             if (frameInfo.channelsCount == 0 || frameInfo.spatialBlockCount == 0 || frameInfo.channelBlockCount == 0)
             {
@@ -68,8 +65,6 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                                           const Decompression::FrameInfo& frameInfo, const FrameData& frameData) noexcept
         {
             using namespace Decompression;
-
-            ZIB_PROFILE_SCOPE();
 
             const size_t spatialBlockCount = frameData.decompressionPerSpatialBlockInfo.size();
             const size_t channelBlockCount = frameData.decompressionPerChannelBlockData.size();

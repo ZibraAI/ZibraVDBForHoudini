@@ -1,6 +1,5 @@
 #pragma once
 
-#include <ProfilerWrapper.h>
 #include <Zibra/CE/Common.h>
 #include <execution>
 #include <map>
@@ -18,9 +17,6 @@ namespace Zibra::CE::Addons::OpenVDBUtils
     public:
         OpenVDBReader(std::ifstream& fstream, const char* const* orderedChannelNames, size_t orderedChannelNamesCount) noexcept
         {
-
-            ZIB_PROFILE_SCOPE_NAMED("OpenVDBReaderConstructor");
-
             auto stream = openvdb::io::Stream(reinterpret_cast<std::istream&>(fstream));
 
             openvdb::GridPtrVecPtr gridsPtr = stream.getGrids();
@@ -58,7 +54,6 @@ namespace Zibra::CE::Addons::OpenVDBUtils
 
             openvdb::initialize();
             {
-                ZIB_PROFILE_SCOPE();
                 // Sort channels by m_ChannelMapping.
                 assert(m_ChannelMapping.size() <= 8);
                 std::vector<std::pair<std::string, openvdb::FloatGrid::ConstPtr>> orderedInputChannels{m_ChannelMapping.size()};
@@ -95,8 +90,6 @@ namespace Zibra::CE::Addons::OpenVDBUtils
 
                 for (int channelIndex = 0; channelIndex < channelCount; channelIndex++)
                 {
-                    ZIB_PROFILE_SCOPE_NAMED("Voxelize Grid");
-
                     const auto& [name, grid] = orderedInputChannels[channelIndex];
 
                     if (!grid)
@@ -129,8 +122,6 @@ namespace Zibra::CE::Addons::OpenVDBUtils
 
                 for (int channelIndex = 0; channelIndex < channelCount; channelIndex++)
                 {
-                    ZIB_PROFILE_SCOPE_NAMED("Calculating ChannelBlockData");
-
                     const auto& [name, gridOut] = orderedChannels[channelIndex];
                     if (!gridOut || gridOut->empty())
                         continue;
@@ -162,7 +153,6 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 uint32_t channelBlockCount = 0;
 
                 {
-                    ZIB_PROFILE_SCOPE_NAMED("Calculating Channel Mask");
                     for (auto& [block, spatialBlockData] : channelBlockData)
                     {
 
@@ -196,8 +186,6 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 uint32_t* channelIndexPerBlock = nullptr;
 
                 {
-                    ZIB_PROFILE_SCOPE_NAMED("Allocating Frame Memory");
-
                     sparseFrame->spatialInfoCount = spatialBlockCount;
                     spatialInfo = new SpatialBlockInfo[spatialBlockCount];
                     sparseFrame->spatialInfo = spatialInfo;
@@ -210,7 +198,6 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 }
 
                 {
-                    ZIB_PROFILE_SCOPE_NAMED("Calculating Per Blocks Statistics");
                     std::for_each(std::execution::par_unseq, channelBlockData.cbegin(), channelBlockData.cend(),
                                   [&](const std::pair<openvdb::Coord, LocalSpatialBlockData>& spatialBlockDataPair) {
                                       const auto& [blockCoord, spatialBlockData] = spatialBlockDataPair;
@@ -260,8 +247,6 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 double meanNegativeChannelValue[8] = {};
                 uint32_t perChannelBlockCount[8] = {};
                 {
-                    ZIB_PROFILE_SCOPE_NAMED("Calculate per channel statistics");
-
                     for (int blockIndex = 0; blockIndex < channelBlockCount; ++blockIndex)
                     {
                         const auto channelIndex = sparseFrame->channelIndexPerBlock[blockIndex];
@@ -277,8 +262,6 @@ namespace Zibra::CE::Addons::OpenVDBUtils
 
                 // Calculate per channel grid data.
                 {
-                    ZIB_PROFILE_SCOPE_NAMED("Calculate per channel grid data");
-
                     ChannelInfo* orderedChannelsArray = new ChannelInfo[channelCount];
                     sparseFrame->orderedChannelsCount = channelCount;
                     sparseFrame->orderedChannels = orderedChannelsArray;
@@ -324,7 +307,6 @@ namespace Zibra::CE::Addons::OpenVDBUtils
 
                 std::thread deallocThread(
                     [orderedChannels = std::move(orderedChannels), channelBlockData = std::move(channelBlockData)]() mutable {
-                        ZIB_PROFILE_SCOPE_NAMED("Resources deallocation");
                         channelBlockData.clear();
                         orderedChannels.clear();
                     });
@@ -350,8 +332,6 @@ namespace Zibra::CE::Addons::OpenVDBUtils
 
         static void ReleaseSparseFrame(CE::Compression::SparseFrame* sparseFrame) noexcept
         {
-            ZIB_PROFILE_SCOPE_NAMED("Deallocating Frame Memory");
-
             delete[] sparseFrame->spatialInfo;
             delete[] sparseFrame->blocks;
             delete[] sparseFrame->channelIndexPerBlock;
@@ -457,8 +437,6 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                                                             const openvdb::FloatGrid::ConstPtr& originGrid,
                                                             const openvdb::math::Transform& transform)
         {
-            ZIB_PROFILE_SCOPE();
-
             // Create a GridTransformer with this transformation.
             openvdb::tools::GridTransformer transformer(transform.baseMap()->getAffineMap()->getMat4());
 

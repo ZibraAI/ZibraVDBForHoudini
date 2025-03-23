@@ -38,7 +38,7 @@ namespace Zibra::ZibraVDBDecompressor
         OpenVDBSupport::EncodeMetadata ReadEncodeMetadata(CE::Decompression::CompressedFrameContainer* const frameContainer);
 
     private:
-        CE::Decompression::DecompressorManager m_DecompressorManager;
+        Helpers::DecompressorManager m_DecompressorManager;
     };
 
     class SOP_ZibraVDBDecompressor_Operator final : public OP_Operator
