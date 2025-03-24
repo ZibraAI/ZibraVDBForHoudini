@@ -162,16 +162,16 @@ namespace Zibra::CE::Decompression
         virtual ~CompressedFrameContainer() noexcept = default;
 
     public:
-        virtual FrameInfo GetInfo() noexcept = 0;
+        virtual FrameInfo GetInfo() const noexcept = 0;
         /**
          * Finds metadata entry by key and returns payload.
          * @param key - Metadata key
          * @return String payload or nullptr if key is not present.
          * Memory managed by CompressedFrameContainer instance and present while container exists.
          */
-        virtual const char* GetMetadataByKey(const char* key) noexcept = 0;
-        virtual size_t GetMetadataCount() noexcept = 0;
-        virtual ReturnCode GetMetadataByIndex(size_t index, MetadataEntry* outEntry) noexcept = 0;
+        virtual const char* GetMetadataByKey(const char* key) const noexcept = 0;
+        virtual size_t GetMetadataCount() const noexcept = 0;
+        virtual ReturnCode GetMetadataByIndex(size_t index, MetadataEntry* outEntry) const noexcept = 0;
         virtual void Release() noexcept = 0;
     };
 
@@ -220,18 +220,18 @@ namespace Zibra::CE::Decompression
          * Returns valid frame range decompression parametrization.
          * @return pair StartFrame - EndFrame
          */
-        virtual FrameRange GetFrameRange() noexcept = 0;
-        virtual SequenceInfo GetSequenceInfo() noexcept = 0;
-        virtual PlaybackInfo GetPlaybackInfo() noexcept = 0;
+        virtual FrameRange GetFrameRange() const noexcept = 0;
+        virtual SequenceInfo GetSequenceInfo() const noexcept = 0;
+        virtual PlaybackInfo GetPlaybackInfo() const noexcept = 0;
         /**
          * Finds metadata entry by key and returns payload.
          * @param key - Metadata key
          * @return String payload or nullptr if key is not present.
          * Memory managed by CompressedFrameContainer instance and present while container exists.
          */
-        virtual const char* GetMetadataByKey(const char* key) noexcept = 0;
-        virtual size_t GetMetadataCount() noexcept = 0;
-        virtual ReturnCode GetMetadataByIndex(size_t index, MetadataEntry* outEntry) noexcept = 0;
+        virtual const char* GetMetadataByKey(const char* key) const noexcept = 0;
+        virtual size_t GetMetadataCount() const noexcept = 0;
+        virtual ReturnCode GetMetadataByIndex(size_t index, MetadataEntry* outEntry) const noexcept = 0;
         virtual void Release() noexcept = 0;
     };
 
@@ -432,19 +432,19 @@ namespace ZCE_NS::CAPI
         }
 
     public:
-        FrameInfo GetInfo() noexcept final
+        FrameInfo GetInfo() const noexcept final
         {
             return ZCE_FNPFX(GetInfo)(m_NativeInstance);
         }
-        const char* GetMetadataByKey(const char* key) noexcept final
+        const char* GetMetadataByKey(const char* key) const noexcept final
         {
             return ZCE_FNPFX(GetMetadataByKey)(m_NativeInstance, key);
         }
-        size_t GetMetadataCount() noexcept final
+        size_t GetMetadataCount() const noexcept final
         {
             return ZCE_FNPFX(GetMetadataCount)(m_NativeInstance);
         }
-        ReturnCode GetMetadataByIndex(size_t index, MetadataEntry* outEntry) noexcept final
+        ReturnCode GetMetadataByIndex(size_t index, MetadataEntry* outEntry) const noexcept final
         {
             return ZCE_FNPFX(GetMetadataByIndex)(m_NativeInstance, index, outEntry);
         }
@@ -532,27 +532,27 @@ namespace ZCE_NS::CAPI
         {
             return ZCE_FNPFX(FetchFrameInfo)(m_NativeInstance, frame, outInfo);
         }
-        FrameRange GetFrameRange() noexcept final
+        FrameRange GetFrameRange() const noexcept final
         {
             return ZCE_FNPFX(GetFrameRange)(m_NativeInstance);
         }
-        SequenceInfo GetSequenceInfo() noexcept final
+        SequenceInfo GetSequenceInfo() const noexcept final
         {
             return ZCE_FNPFX(GetSequenceInfo)(m_NativeInstance);
         }
-        PlaybackInfo GetPlaybackInfo() noexcept final
+        PlaybackInfo GetPlaybackInfo() const noexcept final
         {
             return ZCE_FNPFX(GetPlaybackInfo)(m_NativeInstance);
         }
-        const char* GetMetadataByKey(const char* key) noexcept final
+        const char* GetMetadataByKey(const char* key) const noexcept final
         {
             return ZCE_FNPFX(GetMetadataByKey)(m_NativeInstance, key);
         }
-        size_t GetMetadataCount() noexcept final
+        size_t GetMetadataCount() const noexcept final
         {
             return ZCE_FNPFX(GetMetadataCount)(m_NativeInstance);
         }
-        ReturnCode GetMetadataByIndex(size_t index, MetadataEntry* outEntry) noexcept final
+        ReturnCode GetMetadataByIndex(size_t index, MetadataEntry* outEntry) const noexcept final
         {
             return ZCE_FNPFX(GetMetadataByIndex)(m_NativeInstance, index, outEntry);
         }

@@ -123,7 +123,7 @@ namespace Zibra::ZibraVDBDecompressor
 
         const exint frameIndex = evalInt(FRAME_PARAM_NAME, 0, context.getTime());
 
-        CE::Decompression::CompressedFrameContainer* frameContainer = nullptr;
+        CompressedFrameContainer* frameContainer = nullptr;
         FrameRange frameRange = m_DecompressorManager.GetFrameRange();
 
         if (frameIndex < frameRange.start || frameIndex > frameRange.end)
@@ -149,10 +149,15 @@ namespace Zibra::ZibraVDBDecompressor
             return error(context);
         }
 
-        // TODO: apply decode metadata
-
-        // OpenVDBSupport::EncodeMetadata encodeMetadata = ReadEncodeMetadata(frameContainer);
-        // auto vdbGrids = OpenVDBSupport::OpenVDBEncoder::EncodeFrame(frameInfo, decompressedFrameData, encodeMetadata);
+        CE::Addons::OpenVDBUtils::OpenVDBReader::Feedback encodeMetadata = ReadFeedback(frameContainer);
+        for (const auto& grid : vdbGrids)
+        {
+            const openvdb::math::Vec3d translationFromMetadata(-encodeMetadata.offsetX, -encodeMetadata.offsetY, -encodeMetadata.offsetZ);
+            // transform3x3 will apply only 3x3 part of matrix, without translation.
+            const openvdb::math::Vec3d frameTranslationInFrameCoordinateSystem =
+                grid->transform().baseMap()->getAffineMap()->getMat4().transform3x3(translationFromMetadata);
+            grid->transform().postTranslate(frameTranslationInFrameCoordinateSystem);
+        }
 
         gdp->addStringTuple(GA_ATTRIB_PRIMITIVE, "name", 1);
         GA_RWHandleS nameAttr{gdp->findPrimitiveAttribute("name")};
@@ -186,14 +191,13 @@ namespace Zibra::ZibraVDBDecompressor
         return 0;
     }
 
-    void SOP_ZibraVDBDecompressor::ApplyGridMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::CompressedFrameContainer* const frameContainer)
+    void SOP_ZibraVDBDecompressor::ApplyGridMetadata(GU_PrimVDB* vdbPrim, CompressedFrameContainer* const frameContainer)
     {
         ApplyGridAttributeMetadata(vdbPrim, frameContainer);
         ApplyGridVisualizationMetadata(vdbPrim, frameContainer);
     }
 
-    void SOP_ZibraVDBDecompressor::ApplyGridAttributeMetadata(GU_PrimVDB* vdbPrim,
-                                                              CE::Decompression::CompressedFrameContainer* const frameContainer)
+    void SOP_ZibraVDBDecompressor::ApplyGridAttributeMetadata(GU_PrimVDB* vdbPrim, CompressedFrameContainer* const frameContainer)
     {
         const std::string attributeMetadataName = "houdiniPrimitiveAttributes_"s + vdbPrim->getGridName();
 
@@ -216,8 +220,7 @@ namespace Zibra::ZibraVDBDecompressor
         }
     }
 
-    void SOP_ZibraVDBDecompressor::ApplyGridVisualizationMetadata(GU_PrimVDB* vdbPrim,
-                                                                  CE::Decompression::CompressedFrameContainer* const frameContainer)
+    void SOP_ZibraVDBDecompressor::ApplyGridVisualizationMetadata(GU_PrimVDB* vdbPrim, CompressedFrameContainer* const frameContainer)
     {
         const std::string keyPrefix = "houdiniVisualizationAttributes_"s + vdbPrim->getGridName();
 
@@ -244,7 +247,7 @@ namespace Zibra::ZibraVDBDecompressor
         }
     }
 
-    void SOP_ZibraVDBDecompressor::ApplyDetailMetadata(GU_Detail* gdp, CE::Decompression::CompressedFrameContainer* const frameContainer)
+    void SOP_ZibraVDBDecompressor::ApplyDetailMetadata(GU_Detail* gdp, CompressedFrameContainer* const frameContainer)
     {
         const char* detailMetadata = frameContainer->GetMetadataByKey("houdiniDetailAttributes");
 
@@ -267,8 +270,7 @@ namespace Zibra::ZibraVDBDecompressor
         }
     }
 
-    OpenVDBSupport::EncodeMetadata SOP_ZibraVDBDecompressor::ReadEncodeMetadata(
-        CE::Decompression::CompressedFrameContainer* const frameContainer)
+    CE::Addons::OpenVDBUtils::OpenVDBReader::Feedback SOP_ZibraVDBDecompressor::ReadFeedback(const CompressedFrameContainer* frameContainer)
     {
         const char* metadataKey = "houdiniDecodeMetadata";
         const char* metadataValue = frameContainer->GetMetadataByKey(metadataKey);
@@ -276,10 +278,10 @@ namespace Zibra::ZibraVDBDecompressor
         {
             return {};
         }
-        OpenVDBSupport::EncodeMetadata encodeMetadata{};
+        CE::Addons::OpenVDBUtils::OpenVDBReader::Feedback feedback{};
         std::istringstream metadataStream(metadataValue);
-        metadataStream >> encodeMetadata.offsetX >> encodeMetadata.offsetY >> encodeMetadata.offsetZ;
-        return encodeMetadata;
+        metadataStream >> feedback.offsetX >> feedback.offsetY >> feedback.offsetZ;
+        return feedback;
     }
 
 } // namespace Zibra::ZibraVDBDecompressor

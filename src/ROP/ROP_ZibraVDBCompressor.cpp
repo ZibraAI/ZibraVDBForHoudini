@@ -116,10 +116,10 @@ namespace Zibra::ZibraVDBCompressor
     {
         switch (contextType)
         {
-        case Zibra::ContextType::SOP:
+        case ContextType::SOP:
             return NODE_NAME_SOP_CONTEXT;
             break;
-        case Zibra::ContextType::OUT:
+        case ContextType::OUT:
             return NODE_NAME_OUT_CONTEXT;
             break;
         default:
@@ -299,15 +299,15 @@ namespace Zibra::ZibraVDBCompressor
     int ROP_ZibraVDBCompressor::startRender(const int nFrames, const fpreal tStart, const fpreal tEnd)
     {
         using namespace std::string_literals;
-        if (!Zibra::LibraryUtils::IsPlatformSupported())
+        if (!LibraryUtils::IsPlatformSupported())
         {
             addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_PLATFORM_NOT_SUPPORTED);
             return ROP_ABORT_RENDER;
         }
 
-        Zibra::LibraryUtils::LoadLibrary();
+        LibraryUtils::LoadLibrary();
 
-        if (!Zibra::LibraryUtils::IsLibraryLoaded())
+        if (!LibraryUtils::IsLibraryLoaded())
         {
             addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_COMPRESSION_ENGINE_MISSING);
             return ROP_ABORT_RENDER;
@@ -429,7 +429,7 @@ namespace Zibra::ZibraVDBCompressor
     {
         using namespace std::literals;
 
-        assert(Zibra::LibraryUtils::IsLibraryLoaded());
+        assert(LibraryUtils::IsLibraryLoaded());
 
         if (CE::Licensing::CAPI::GetLicenseStatus(CE::Licensing::ProductType::Compression) != CE::Licensing::LicenseStatus::OK)
         {
@@ -501,14 +501,15 @@ namespace Zibra::ZibraVDBCompressor
             return ROP_ABORT_RENDER;
         }
 
-        Zibra::CE::Compression::CompressFrameDesc compressFrameDesc{};
+        CE::Compression::CompressFrameDesc compressFrameDesc{};
         compressFrameDesc.channelsCount = orderedChannelNames.size();
         compressFrameDesc.channels = orderedChannelNames.data();
 
-        Zibra::CE::Compression::FrameManager* frameManager = nullptr;
+        CE::Compression::FrameManager* frameManager = nullptr;
 
-        Zibra::CE::Addons::OpenVDBUtils::OpenVDBReader vdbReader{volumes.data(), orderedChannelNames.data(), orderedChannelNames.size()};
-        compressFrameDesc.frame = vdbReader.LoadFrame();
+        CE::Addons::OpenVDBUtils::OpenVDBReader vdbReader{volumes.data(), orderedChannelNames.data(), orderedChannelNames.size()};
+        CE::Addons::OpenVDBUtils::OpenVDBReader::Feedback frameFeedback{};
+        compressFrameDesc.frame = vdbReader.LoadFrame(&frameFeedback);
 
         auto status = m_CompressorManager.CompressFrame(compressFrameDesc, &frameManager);
         if (status != CE::ZCE_SUCCESS)
@@ -518,6 +519,7 @@ namespace Zibra::ZibraVDBCompressor
         }
 
         auto attrDump = DumpAttributes(gdp);
+        DumpFrameFeedback(attrDump, frameFeedback);
         for (const auto& [key, val] : attrDump)
         {
             frameManager->AddMetadata(key.c_str(), val.c_str());
@@ -539,7 +541,7 @@ namespace Zibra::ZibraVDBCompressor
 
     ROP_RENDER_CODE ROP_ZibraVDBCompressor::endRender()
     {
-        if (!Zibra::LibraryUtils::IsLibraryLoaded())
+        if (!LibraryUtils::IsLibraryLoaded())
         {
             return ROP_ABORT_RENDER;
         }
@@ -615,7 +617,7 @@ namespace Zibra::ZibraVDBCompressor
         }
 
         auto status = m_CompressorManager.Initialize(frameMappingDesc, defaultQuality, perChannelCompressionSettings);
-        if (status != Zibra::CE::ReturnCode::ZCE_SUCCESS)
+        if (status != CE::ReturnCode::ZCE_SUCCESS)
         {
             addError(ROP_MESSAGE, "Failed to initialize compressor.");
             return ROP_ABORT_RENDER;
@@ -679,16 +681,16 @@ namespace Zibra::ZibraVDBCompressor
 
     int ROP_ZibraVDBCompressor::OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate)
     {
-        Zibra::PluginManagementWindow::ShowWindow();
+        PluginManagementWindow::ShowWindow();
         return 0;
     }
 
-    void ROP_ZibraVDBCompressor::DumpDecodeMetadata(std::vector<std::pair<std::string, std::string>>& result,
-                                                    const OpenVDBSupport::DecodeMetadata& decodeMetadata)
+    void ROP_ZibraVDBCompressor::DumpFrameFeedback(std::vector<std::pair<std::string, std::string>>& result,
+                                                   const CE::Addons::OpenVDBUtils::OpenVDBReader::Feedback& feedback)
     {
-        // std::ostringstream oss;
-        // oss << decodeMetadata.offsetX << " " << decodeMetadata.offsetY << " " << decodeMetadata.offsetZ;
-        // result.emplace_back("houdiniDecodeMetadata", oss.str());
+        std::ostringstream oss;
+        oss << feedback.offsetX << " " << feedback.offsetY << " " << feedback.offsetZ;
+        result.emplace_back("houdiniDecodeMetadata", oss.str());
     }
 
 } // namespace Zibra::ZibraVDBCompressor

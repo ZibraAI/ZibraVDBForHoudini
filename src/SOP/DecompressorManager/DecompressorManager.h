@@ -2,6 +2,7 @@
 
 #include <Zibra/CE/Decompression.h>
 #include <Zibra/CE/Addons/OpenVDBEncoder.h>
+#include <Zibra/CE/Addons/OpenVDBReader.h>
 #include <Zibra/CE/Literals.h>
 
 #include "Globals.h"

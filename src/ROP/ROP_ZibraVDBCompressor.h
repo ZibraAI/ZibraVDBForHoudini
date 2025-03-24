@@ -71,8 +71,8 @@ namespace Zibra::ZibraVDBCompressor
 
         std::vector<std::pair<std::string, std::string>> DumpAttributes(const GU_Detail* gdp) noexcept;
         void DumpVisualisationAttributes(std::vector<std::pair<std::string, std::string>>& attributes, const GEO_PrimVDB* vdbPrim);
-        void DumpDecodeMetadata(std::vector<std::pair<std::string, std::string>>& result,
-                                const OpenVDBSupport::DecodeMetadata& decodeMetadata);
+        void DumpFrameFeedback(std::vector<std::pair<std::string, std::string>>& result,
+                               const CE::Addons::OpenVDBUtils::OpenVDBReader::Feedback& feedback);
 
         static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate);
 

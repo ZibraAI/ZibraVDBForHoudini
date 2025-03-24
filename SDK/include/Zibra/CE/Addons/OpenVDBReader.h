@@ -15,6 +15,13 @@ namespace Zibra::CE::Addons::OpenVDBUtils
     class OpenVDBReader final
     {
     public:
+        struct Feedback
+        {
+            int32_t offsetX = 0;
+            int32_t offsetY = 0;
+            int32_t offsetZ = 0;
+        };
+    public:
         OpenVDBReader(std::ifstream& fstream, const char* const* orderedChannelNames, size_t orderedChannelNamesCount) noexcept
         {
             auto stream = openvdb::io::Stream(reinterpret_cast<std::istream&>(fstream));
@@ -61,9 +68,9 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             }
         }
 
-        CE::Compression::SparseFrame* LoadFrame() noexcept
+        Compression::SparseFrame* LoadFrame(Feedback* outFeedback = nullptr) noexcept
         {
-            using namespace CE::Compression;
+            using namespace Compression;
 
             openvdb::initialize();
             {
@@ -243,8 +250,8 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                                                   statistics.meanNegativeValue += value;
                                               }
                                           }
-                                          statistics.meanPositiveValue /= CE::SPARSE_BLOCK_VOXEL_COUNT;
-                                          statistics.meanNegativeValue /= CE::SPARSE_BLOCK_VOXEL_COUNT;
+                                          statistics.meanPositiveValue /= SPARSE_BLOCK_VOXEL_COUNT;
+                                          statistics.meanNegativeValue /= SPARSE_BLOCK_VOXEL_COUNT;
 
                                           spatialInfoBlock.channelMask |= m_ChannelMapping[channelName];
                                           ++spatialInfoBlock.channelCount;
@@ -296,15 +303,15 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                             static_cast<float>(meanPositiveChannelValue[channelIndex] / perChannelBlockCount[channelIndex]);
                         statistics.meanNegativeValue =
                             static_cast<float>(meanNegativeChannelValue[channelIndex] / perChannelBlockCount[channelIndex]);
-                        statistics.voxelCount = perChannelBlockCount[channelIndex] * CE::SPARSE_BLOCK_VOXEL_COUNT;
+                        statistics.voxelCount = perChannelBlockCount[channelIndex] * SPARSE_BLOCK_VOXEL_COUNT;
 
                         const double volume = originGrid->constTransform().voxelVolume();
-                        if (!CE::IsNearlyEqual(volume, 0.))
+                        if (!IsNearlyEqual(volume, 0.))
                         {
                             // TODO: calculate translated transform per channel.
                             channelInfo.gridTransform = CastOpenVDBTransformToTransform(
                                 GetTranslatedFrameTransform(originGrid->constTransform(),
-                                                            openvdb::math::Vec3d(aabb.minX, aabb.minY, aabb.minZ) * CE::SPARSE_BLOCK_SIZE));
+                                                            openvdb::math::Vec3d(aabb.minX, aabb.minY, aabb.minZ) * SPARSE_BLOCK_SIZE));
                         }
                     }
 
@@ -316,6 +323,13 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                     aabb.minY = 0;
                     aabb.minZ = 0;
                     sparseFrame->aabb = aabb;
+                }
+
+                if (outFeedback)
+                {
+                    outFeedback->offsetX = aabb.minX * SPARSE_BLOCK_SIZE;
+                    outFeedback->offsetY = aabb.minY * SPARSE_BLOCK_SIZE;
+                    outFeedback->offsetZ = aabb.minZ * SPARSE_BLOCK_SIZE;
                 }
 
                 std::thread deallocThread(
@@ -343,7 +357,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             return result;
         }
 
-        static void ReleaseSparseFrame(CE::Compression::SparseFrame* sparseFrame) noexcept
+        static void ReleaseSparseFrame(Compression::SparseFrame* sparseFrame) noexcept
         {
             delete[] sparseFrame->spatialInfo;
             delete[] sparseFrame->blocks;
