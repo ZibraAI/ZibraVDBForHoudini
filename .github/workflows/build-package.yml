@@ -1,0 +1,54 @@
+name: Build Package
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-windows:
+    name: Build ZibraVDB for Houdini 20.5 (Windows)
+    runs-on: windows-latest
+    steps:
+
+    - name: Sync
+      uses: actions/checkout@v4
+
+    - name: Install Houdini
+      working-directory: ${{ github.workspace }}
+      shell: pwsh
+      run: |
+        python -m venv actions/install_houdini/venv
+        .\actions\install_houdini\venv\Scripts\Activate.ps1
+        pip install -r actions/install_houdini/requirements.txt
+        python actions/install_houdini/install_houdini.py
+      env:
+        HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
+        HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
+
+    - name: Configure Cmake
+      working-directory: ${{ github.workspace }}
+      shell: pwsh
+      run: cmake -S . -B build-20_5-windows -DZIBRAVDB_OUTPUT_PATH=${{ github.workspace }}\package-20_5-windows
+      env:
+        ZIBRA_HOUDINI_PATH: C:\houdini_win64-vc143_20.5
+
+    - name: Build Release
+      working-directory: ${{ github.workspace }}
+      shell: pwsh
+      run: cmake --build build-20_5-windows --config Release
+
+    - name: Repack HDA into Binary format
+      working-directory: ${{ github.workspace }}
+      shell: pwsh
+      run: |
+        C:\houdini_win64-vc143_20.5\bin\hotl.exe -l ${{ github.workspace }}\package-20_5-windows\otls\zibravdb_filecache.0.2.hda ${{ github.workspace }}\package-20_5-windows\otls\zibravdb_filecache.0.2.hda.2
+        Remove-Item -Recurse -Force ${{ github.workspace }}\package-20_5-windows\otls\zibravdb_filecache.0.2.hda
+        Move-Item -Path ${{ github.workspace }}\package-20_5-windows\otls\zibravdb_filecache.0.2.hda.2 -Destination ${{ github.workspace }}\package-20_5-windows\otls\zibravdb_filecache.0.2.hda
+
+    - name: Save artifacts (Windows)
+      uses: actions/upload-artifact@v4
+      with:
+        name: ZibraVDBForHoudini-20_5-Windows
+        path: package-20_5-windows
+        if-no-files-found: error

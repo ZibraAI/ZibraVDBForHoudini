@@ -5,6 +5,9 @@ build-*/
 # ZibraVDB Houdini packages
 package/
 
+# Python virtual environment
+venv/
+
 # Backups for HDAs
 /assets/otls/backup/
 
