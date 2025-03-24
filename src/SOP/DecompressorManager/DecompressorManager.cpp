@@ -19,6 +19,7 @@ namespace Zibra::Helpers
         {
             return CE::ZCE_ERROR;
         }
+        RHIFactory->SetGFXAPI(RHI::GFXAPI::Auto);
 
         RHIstatus = RHIFactory->Create(&m_RHIRuntime);
         if (RHIstatus != RHI::ZRHI_SUCCESS)
@@ -274,7 +275,8 @@ namespace Zibra::Helpers
         outDecompressedFrameData->decompressionPerSpatialBlockInfo.resize(frameInfo.spatialBlockCount);
 
         const size_t spatialBlockInfoElementCount = frameInfo.spatialBlockCount * 3;
-        std::vector<uint32_t> scratchBufferSpatialBlockData(spatialBlockInfoElementCount);
+        std::vector<uint32_t> scratchBufferSpatialBlockData{};
+        scratchBufferSpatialBlockData.resize(spatialBlockInfoElementCount);
         RHIstatus =
             m_RHIRuntime->GetBufferDataImmediately(m_DecompressionPerSpatialBlockInfoBuffer.buffer, scratchBufferSpatialBlockData.data(),
                                                    spatialBlockInfoElementCount * sizeof(uint32_t), 0);
@@ -283,7 +285,8 @@ namespace Zibra::Helpers
             return CE::ZCE_ERROR;
         }
         const size_t channelBlockDataElementCount = frameInfo.channelBlockCount * CE::SPARSE_BLOCK_VOXEL_COUNT;
-        std::vector<uint16_t> scratchBufferChannelBlockData(channelBlockDataElementCount);
+        std::vector<uint16_t> scratchBufferChannelBlockData{};
+        scratchBufferChannelBlockData.resize(channelBlockDataElementCount);
         RHIstatus =
             m_RHIRuntime->GetBufferDataImmediately(m_DecompressionPerChannelBlockDataBuffer.buffer, scratchBufferChannelBlockData.data(),
                                                    channelBlockDataElementCount * sizeof(uint16_t), 0);
