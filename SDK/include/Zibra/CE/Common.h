@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Zibra/Foundation.h>
+#include <Zibra/Math3D.h>
 
 #define ZCE_CONCAT_HELPER(A, B) A##B
 #define ZCE_PFN(name) ZCE_CONCAT_HELPER(PFN_, name)
@@ -9,7 +10,7 @@ namespace Zibra::CE
 {
     static constexpr int SPARSE_BLOCK_SIZE = 8;
     static constexpr int SPARSE_BLOCK_VOXEL_COUNT = SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE;
-    static constexpr size_t ZCE_MAX_CHANNEL_COUNT = 8;
+    static constexpr size_t MAX_CHANNEL_COUNT = 8;
 
     enum ReturnCode
     {
@@ -43,45 +44,66 @@ namespace Zibra::CE
         const char* value = nullptr;
     };
 
+    struct ChannelBlock
+    {
+        /**
+         * Dense voxels container.
+         * @range [-INF; INF]
+         */
+        float voxels[SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE] = {};
+    };
 
-    inline bool IsNearlyEqual(float a, float b) noexcept
+    struct SpatialBlockInfo
     {
-        return std::abs(a - b) < std::numeric_limits<float>::epsilon();
-    }
-    inline bool IsNearlyEqual(double a, double b) noexcept
+        /**
+         * Position of spatial block in space.
+         * Stored in blocks. To get position in voxels must be multiplied by sparseBlockSize.
+         * @range [0; 2^10]
+         */
+        int32_t coords[3];
+
+        /**
+         * Offset to first channel block of this spatial block.
+         * @range [0; 2^32]
+         */
+        uint32_t channelBlocksOffset;
+
+        /**
+         * Mask of active channels in this spatial block.
+         * @range [0; 2^32]
+         */
+        uint32_t channelMask;
+
+        /**
+         * Count of active channels in this spatial block.
+         * @range [0; 8]
+         */
+        uint32_t channelCount;
+    };
+    inline bool operator==(const SpatialBlockInfo& a, const SpatialBlockInfo& b) noexcept
     {
-        return std::abs(a - b) < std::numeric_limits<double>::epsilon();
+        const bool coords = a.coords[0] == b.coords[0] && a.coords[1] == b.coords[1] && a.coords[2] == b.coords[2];
+        return coords && (a.channelBlocksOffset == b.channelBlocksOffset) && (a.channelMask == b.channelMask) &&
+               (a.channelCount == b.channelCount);
     }
 
-    inline bool IsNearlyInteger(float value) noexcept
+    /**
+     * Packs 3 coords into 32bit
+     * @param [in] coords uint3 coords
+     * @return packed 32-bit value
+     */
+    inline uint32_t PackCoords(Math3D::uint3 coords) noexcept
     {
-        float dummy;
-        float frac = std::modf(value, &dummy);
-        return IsNearlyEqual(frac, 0.0f);
+        return coords.x & 1023 | (coords.y & 1023) << 10 | (coords.z & 1023) << 20;
     }
-
-    inline bool IsNearlyInteger(double value) noexcept
+    /**
+     * Unpacks 32bit-packed by PackCoords coords
+     * @param [in] packedCoords packed 32-bit value
+     * @return uint3 coords
+     */
+    inline Math3D::uint3 UnpackCoords(uint32_t packedCoords) noexcept
     {
-        double dummy;
-        double frac = std::modf(value, &dummy);
-        return IsNearlyEqual(frac, 0.0);
-    }
-
-    inline float RoundIfNearlyZero(float value) noexcept
-    {
-        if (value < std::numeric_limits<float>::epsilon())
-            return 0.0f;
-        return value;
-    }
-
-    inline int FloorWithEpsilon(float value) noexcept
-    {
-        return static_cast<int>(std::floorf(value + std::numeric_limits<float>::epsilon()));
-    }
-
-    inline int CeilWithEpsilon(float value) noexcept
-    {
-        return static_cast<int>(std::ceilf(value - std::numeric_limits<float>::epsilon()));
+        return {packedCoords & 1023, (packedCoords >> 10) & 1023, (packedCoords >> 20) & 1023};
     }
 
     inline int ModBlockSize(int value) noexcept
@@ -99,17 +121,8 @@ namespace Zibra::CE
         return FloorToBlockSize(value + SPARSE_BLOCK_SIZE - 1);
     }
 
-    inline float Lerp(float a, float b, float t) noexcept
-    {
-        return a + t * (b - a);
-    }
-    inline double Lerp(double a, double b, double t) noexcept
-    {
-        return a + t * (b - a);
-    }
-
     template <class T>
-    inline constexpr void NormalizeRange(T* data, const size_t size, const T minValue, const T maxValue, const T newMinValue,
+    constexpr void NormalizeRange(T* data, const size_t size, const T minValue, const T maxValue, const T newMinValue,
                                          const T newMaxValue) noexcept
     {
         for (size_t i = 0; i < size; i++)

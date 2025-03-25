@@ -6,7 +6,6 @@
 #include <openvdb/io/Stream.h>
 #include <openvdb/openvdb.h>
 #include <openvdb/tools/GridTransformer.h>
-#include <unordered_set>
 
 #include "Zibra/CE/Compression.h"
 
@@ -21,10 +20,11 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             int32_t offsetY = 0;
             int32_t offsetZ = 0;
         };
+
     public:
         OpenVDBReader(std::ifstream& fstream, const char* const* orderedChannelNames, size_t orderedChannelNamesCount) noexcept
         {
-            auto stream = openvdb::io::Stream(reinterpret_cast<std::istream&>(fstream));
+            auto stream = openvdb::io::Stream(fstream);
 
             openvdb::GridPtrVecPtr gridsPtr = stream.getGrids();
             std::vector<openvdb::GridBase::Ptr>& grids = *gridsPtr;
@@ -306,12 +306,11 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                         statistics.voxelCount = perChannelBlockCount[channelIndex] * SPARSE_BLOCK_VOXEL_COUNT;
 
                         const double volume = originGrid->constTransform().voxelVolume();
-                        if (!IsNearlyEqual(volume, 0.))
+                        if (!Math3D::IsNearlyEqual(volume, 0.))
                         {
                             // TODO: calculate translated transform per channel.
-                            channelInfo.gridTransform = CastOpenVDBTransformToTransform(
-                                GetTranslatedFrameTransform(originGrid->constTransform(),
-                                                            openvdb::math::Vec3d(aabb.minX, aabb.minY, aabb.minZ) * SPARSE_BLOCK_SIZE));
+                            channelInfo.gridTransform = CastOpenVDBTransformToTransform(GetTranslatedFrameTransform(
+                                originGrid->constTransform(), openvdb::math::Vec3d(aabb.minX, aabb.minY, aabb.minZ) * SPARSE_BLOCK_SIZE));
                         }
                     }
 
@@ -369,11 +368,9 @@ namespace Zibra::CE::Addons::OpenVDBUtils
     private:
         static float GetVoxelScale(const openvdb::GridBase::ConstPtr& grid)
         {
-            using namespace Zibra::CE;
-
             // Intentional cast to float.
             const openvdb::Vec3f voxelSize{grid->transform().voxelSize()};
-            assert(IsNearlyEqual(voxelSize[0], voxelSize[1]) && IsNearlyEqual(voxelSize[0], voxelSize[2]));
+            assert(Math3D::IsNearlyEqual(voxelSize[0], voxelSize[1]) && Math3D::IsNearlyEqual(voxelSize[0], voxelSize[2]));
             return voxelSize[0];
         }
 
@@ -428,20 +425,18 @@ namespace Zibra::CE::Addons::OpenVDBUtils
 
         static Math3D::AABB CalculateAABB(const openvdb::CoordBBox bbox)
         {
-            using namespace Zibra::CE;
-
             Math3D::AABB result{};
 
             const openvdb::math::Vec3d transformedBBoxMin = bbox.min().asVec3d();
             const openvdb::math::Vec3d transformedBBoxMax = bbox.max().asVec3d();
 
-            result.minX = FloorToBlockSize(FloorWithEpsilon(transformedBBoxMin.x())) / SPARSE_BLOCK_SIZE;
-            result.minY = FloorToBlockSize(FloorWithEpsilon(transformedBBoxMin.y())) / SPARSE_BLOCK_SIZE;
-            result.minZ = FloorToBlockSize(FloorWithEpsilon(transformedBBoxMin.z())) / SPARSE_BLOCK_SIZE;
+            result.minX = FloorToBlockSize(Math3D::FloorWithEpsilon(transformedBBoxMin.x())) / SPARSE_BLOCK_SIZE;
+            result.minY = FloorToBlockSize(Math3D::FloorWithEpsilon(transformedBBoxMin.y())) / SPARSE_BLOCK_SIZE;
+            result.minZ = FloorToBlockSize(Math3D::FloorWithEpsilon(transformedBBoxMin.z())) / SPARSE_BLOCK_SIZE;
 
-            result.maxX = CeilToBlockSize(CeilWithEpsilon(transformedBBoxMax.x())) / SPARSE_BLOCK_SIZE;
-            result.maxY = CeilToBlockSize(CeilWithEpsilon(transformedBBoxMax.y())) / SPARSE_BLOCK_SIZE;
-            result.maxZ = CeilToBlockSize(CeilWithEpsilon(transformedBBoxMax.z())) / SPARSE_BLOCK_SIZE;
+            result.maxX = CeilToBlockSize(Math3D::CeilWithEpsilon(transformedBBoxMax.x())) / SPARSE_BLOCK_SIZE;
+            result.maxY = CeilToBlockSize(Math3D::CeilWithEpsilon(transformedBBoxMax.y())) / SPARSE_BLOCK_SIZE;
+            result.maxZ = CeilToBlockSize(Math3D::CeilWithEpsilon(transformedBBoxMax.z())) / SPARSE_BLOCK_SIZE;
 
             return result;
         }
@@ -515,4 +510,4 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         std::map<std::string, uint32_t> m_ChannelMapping = {};
         std::vector<const char*> m_OrderedChannelNames = {};
     };
-} // namespace Zibra::CE::Addons
+} // namespace Zibra::CE::Addons::OpenVDBUtils

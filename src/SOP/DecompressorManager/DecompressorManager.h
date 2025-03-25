@@ -29,7 +29,9 @@ namespace Zibra::Helpers
         void Release() noexcept;
 
     private:
-        CE::ReturnCode GetDecompressedFrameData(const CE::Decompression::FrameInfo& frameInfo, CE::Addons::OpenVDBUtils::OpenVDBEncoder::FrameData* outDecompressedFrameData) const noexcept;
+        CE::ReturnCode GetDecompressedFrameData(const CE::Decompression::FrameInfo& frameInfo,
+                                                CE::ChannelBlock* decompressionPerChannelBlockData,
+                                                CE::SpatialBlockInfo* decompressionPerSpatialBlockInfo) const noexcept;
         CE::ReturnCode AllocateExternalBuffer(BufferDesc& bufferDesc, size_t newSizeInBytes, size_t newStride) noexcept;
         CE::ReturnCode FreeExternalBuffers() noexcept;
 

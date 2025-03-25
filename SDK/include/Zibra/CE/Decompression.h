@@ -67,43 +67,6 @@ namespace Zibra::CE::Decompression
         RHI::Buffer* decompressionPerSpatialBlockInfo;
     };
 
-    struct SpatialBlock
-    {
-        /**
-         * Position of spatial block in space.
-         * Stored in blocks. To get position in voxels must be multiplied by sparseBlockSize.
-         * @range [0; 2^10]
-         */
-        int32_t coords[3];
-
-        /**
-         * Offset to first channel block of this spatial block.
-         * @range [0; 2^32]
-         */
-        uint32_t channelBlocksOffset;
-
-        /**
-         * Mask of active channels in this spatial block.
-         * @range [0; 2^32]
-         */
-        uint32_t channelMask;
-
-        /**
-         * Count of active channels in this spatial block.
-         * @range [0; 8]
-         */
-        uint32_t channelCount;
-    };
-
-    struct ChannelBlock
-    {
-        /**
-         * Dense voxels container.
-         * @range [-INF; INF]
-         */
-        float voxels[SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE] = {};
-    };
-
     struct ChannelInfo
     {
         /**
@@ -138,7 +101,7 @@ namespace Zibra::CE::Decompression
          * Per channel information.
          * @range Length: =channelsCount
          */
-        ChannelInfo channels[ZCE_MAX_CHANNEL_COUNT];
+        ChannelInfo channels[MAX_CHANNEL_COUNT];
         /**
          * Spatial blocks count in DecompressorResources::decompressionBlockInfo
          * @range [1; INF]
@@ -187,7 +150,7 @@ namespace Zibra::CE::Decompression
         Math3D::uint3 maxAABBSize;
         uint64_t originalSize;
         uint8_t channelCount;
-        const char* channels[ZCE_MAX_CHANNEL_COUNT];
+        const char* channels[MAX_CHANNEL_COUNT];
     };
 
     struct PlaybackInfo

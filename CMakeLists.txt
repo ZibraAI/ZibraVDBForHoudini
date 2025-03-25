@@ -50,9 +50,6 @@ set(HeaderFiles
     src/ROP/CompressorManager/CompressorManager.h
     src/SOP/DecompressorManager/DecompressorManager.h
     src/licensing/LicenseManager.h
-    src/openvdb/OpenVDBDecoder.h
-    src/openvdb/OpenVDBEncoder.h
-    src/openvdb/MathHelpers.h
     src/ROP/ROP_ZibraVDBCompressor.h
     src/SOP/SOP_ZibraVDBDecompressor.h
     src/ui/MessageBox.h
@@ -69,9 +66,6 @@ set(SourceFiles
     src/ROP/CompressorManager/CompressorManager.cpp
     src/SOP/DecompressorManager/DecompressorManager.cpp
     src/licensing/LicenseManager.cpp
-    src/openvdb/OpenVDBDecoder.cpp
-    src/openvdb/OpenVDBEncoder.cpp
-    src/openvdb/MathHelpers.cpp
     src/ROP/ROP_ZibraVDBCompressor.cpp
     src/SOP/SOP_ZibraVDBDecompressor.cpp
     src/ui/MessageBox.cpp

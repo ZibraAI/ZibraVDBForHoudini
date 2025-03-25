@@ -15,9 +15,11 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         struct FrameData
         {
             /// Payload per channel block.
-            std::vector<Decompression::ChannelBlock> decompressionPerChannelBlockData;
+            const ChannelBlock* decompressionPerChannelBlockData = nullptr;
+            size_t perChannelBlocksDataCount = 0;
             /// Info per spatial group
-            std::vector<Decompression::SpatialBlock> decompressionPerSpatialBlockInfo;
+            const SpatialBlockInfo* decompressionPerSpatialBlockInfo = nullptr;
+            size_t perSpatialBlocksInfoCount = 0;
         };
 
         static openvdb::GridPtrVec CreateGrids(const Decompression::FrameInfo& frameInfo) noexcept
@@ -66,10 +68,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         {
             using namespace Decompression;
 
-            const size_t spatialBlockCount = frameData.decompressionPerSpatialBlockInfo.size();
-            const size_t channelBlockCount = frameData.decompressionPerChannelBlockData.size();
-
-            if (spatialBlockCount == 0 || channelBlockCount == 0)
+            if (frameData.perSpatialBlocksInfoCount == 0 || frameData.perChannelBlocksDataCount == 0)
             {
                 return {};
             }
@@ -83,17 +82,17 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                     {
                         return -1;
                     }
-                    return static_cast<int>(Zibra::CE::CountBits(blockChannelMask & (currentChannelMask - 1)));
+                    return static_cast<int>(CountBits(blockChannelMask & (currentChannelMask - 1)));
                 };
 
                 // Calculate leafs of tree.
                 using TreeT = openvdb::FloatGrid::TreeType;
                 using LeafT = typename TreeT::LeafNodeType;
-                std::vector<LeafT*> leafs(spatialBlockCount);
+                std::vector<LeafT*> leafs(frameData.perSpatialBlocksInfoCount);
 
-                std::transform(std::execution::par_unseq, frameData.decompressionPerSpatialBlockInfo.cbegin(),
-                               frameData.decompressionPerSpatialBlockInfo.cbegin() + spatialBlockCount, leafs.begin(),
-                               [&](const SpatialBlock& blockInfo) -> LeafT* {
+                std::transform(std::execution::par_unseq, frameData.decompressionPerSpatialBlockInfo,
+                               frameData.decompressionPerSpatialBlockInfo + frameData.perSpatialBlocksInfoCount, leafs.begin(),
+                               [&](const SpatialBlockInfo& blockInfo) -> LeafT* {
                                    const int activeChannelOffset = countActiveChannelOffset(blockInfo.channelMask);
                                    if (activeChannelOffset == -1)
                                    {
@@ -108,14 +107,13 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                                    const auto y = blockInfo.coords[1];
                                    const auto z = blockInfo.coords[2];
 
-                                   const openvdb::Coord blockMin = {x * Zibra::CE::SPARSE_BLOCK_SIZE, y * Zibra::CE::SPARSE_BLOCK_SIZE,
-                                                                    z * Zibra::CE::SPARSE_BLOCK_SIZE};
+                                   const openvdb::Coord blockMin = {x * SPARSE_BLOCK_SIZE, y * SPARSE_BLOCK_SIZE, z * SPARSE_BLOCK_SIZE};
 
                                    auto* leaf = new LeafT{openvdb::PartialCreate{}, blockMin, 0.f, true};
                                    leaf->allocate();
 
                                    float* leafBuffer = leaf->buffer().data();
-                                   std::memcpy(leafBuffer, block.voxels, Zibra::CE::SPARSE_BLOCK_SIZE * sizeof(float));
+                                   std::memcpy(leafBuffer, block.voxels, SPARSE_BLOCK_VOXEL_COUNT * sizeof(float));
                                    return leaf;
                                });
 

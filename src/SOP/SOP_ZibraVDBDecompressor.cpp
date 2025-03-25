@@ -6,7 +6,6 @@
 
 #include "bridge/LibraryUtils.h"
 #include "licensing/LicenseManager.h"
-#include "openvdb/OpenVDBEncoder.h"
 #include "ui/PluginManagementWindow.h"
 #include "utils/GAAttributesDump.h"
 
