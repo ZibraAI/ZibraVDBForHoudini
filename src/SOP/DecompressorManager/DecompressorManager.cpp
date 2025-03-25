@@ -210,28 +210,6 @@ namespace Zibra::Helpers
         return CE::ZCE_SUCCESS;
     }
 
-    static float Float16ToFloat32(uint16_t float16Value) noexcept
-    {
-        uint32_t t1, t2, t3;
-
-        t1 = float16Value & 0x7fffu; // Non-sign bits
-        t2 = float16Value & 0x8000u; // Sign bit
-        t3 = float16Value & 0x7c00u; // Exponent
-
-        t1 <<= 13u; // Align mantissa on MSB
-        t2 <<= 16u; // Shift sign bit into position
-
-        t1 += 0x38000000; // Adjust bias
-
-        t1 = (t3 == 0 ? 0 : t1); // Denormals-as-zero
-
-        t1 |= t2; // Re-insert sign bit
-
-        uint32_t float32_value = t1;
-
-        return *(reinterpret_cast<float*>(&float32_value));
-    }
-
     static void UnpackBlocks(const CE::Decompression::FrameInfo& frameInfo,
                              const std::vector<uint32_t>& scratchBufferSpatialBlockData,
                              const std::vector<uint16_t>& scratchBufferChannelBlockData,
@@ -242,18 +220,21 @@ namespace Zibra::Helpers
             for (size_t j = 0; j < CE::SPARSE_BLOCK_VOXEL_COUNT; ++j)
             {
                 size_t bufIdx = i * CE::SPARSE_BLOCK_VOXEL_COUNT + j;
-                frameData->decompressionPerChannelBlockData[i].voxels[j] = Float16ToFloat32(scratchBufferChannelBlockData[bufIdx]);
+                frameData->decompressionPerChannelBlockData[i].voxels[j] = CE::Float16ToFloat32(scratchBufferChannelBlockData[bufIdx]);
+                // frameData->decompressionPerChannelBlockData[i].voxels[j] = 1.0f;
             }
         }
 
         for (size_t i = 0; i < frameInfo.spatialBlockCount; ++i)
         {
-            uint32_t packedCoords = scratchBufferSpatialBlockData[i * 3];
-            frameData->decompressionPerSpatialBlockInfo[i].coords[0] = int32_t((packedCoords >> 0u) & 1023u);
-            frameData->decompressionPerSpatialBlockInfo[i].coords[1] = int32_t((packedCoords >> 10u) & 1023u);
-            frameData->decompressionPerSpatialBlockInfo[i].coords[2] = int32_t((packedCoords >> 20u) & 1023u);
+            uint32_t packedCoords = scratchBufferSpatialBlockData[i * 3 + 0];
+            frameData->decompressionPerSpatialBlockInfo[i].coords[0] = static_cast<int32_t>((packedCoords >> 0u) & 1023u);
+            frameData->decompressionPerSpatialBlockInfo[i].coords[1] = static_cast<int32_t>((packedCoords >> 10u) & 1023u);
+            frameData->decompressionPerSpatialBlockInfo[i].coords[2] = static_cast<int32_t>((packedCoords >> 20u) & 1023u);
             frameData->decompressionPerSpatialBlockInfo[i].channelBlocksOffset = scratchBufferSpatialBlockData[i * 3 + 1];
             frameData->decompressionPerSpatialBlockInfo[i].channelMask = scratchBufferSpatialBlockData[i * 3 + 2];
+
+            frameData->decompressionPerSpatialBlockInfo[i].channelCount = CE::CountBits(frameData->decompressionPerSpatialBlockInfo[i].channelMask);
         }
     }
 
