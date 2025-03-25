@@ -1,0 +1,30 @@
+name: Build ZibraVDBForHoudini
+
+on: [push]
+
+jobs:
+
+  build-linux:
+    name: Build ZibraVDB for Houdini 20.5 (Linux)
+    runs-on: [self-hosted, Linux, X64, houdini]
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+    - name: Sync
+      uses: actions/checkout@v4
+
+    - name: Configure Cmake
+      working-directory: ${{ github.workspace }}
+      shell: pwsh
+      run: cmake -S . -B build-20_5-linux -G "Ninja Multi-Config"
+
+    - name: Build Release
+      working-directory: ${{ github.workspace }}
+      shell: pwsh
+      run: cmake --build build-20_5-linux --config Release
+
+    - name: Build Debug
+      working-directory: ${{ github.workspace }}
+      shell: pwsh
+      run: cmake --build build-20_5-linux --config Debug
