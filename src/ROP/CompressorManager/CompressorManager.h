@@ -1,7 +1,7 @@
 #pragma once
 
+#include <Zibra/CE/Addons/OpenVDBReader.h>
 #include <Zibra/CE/Compression.h>
-#include "Globals.h"
 
 namespace Zibra::CE::Compression
 {

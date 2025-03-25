@@ -4,9 +4,9 @@
 
 #include "bridge/LibraryUtils.h"
 
-namespace Zibra::CE::Decompression
+namespace Zibra::Helpers
 {
-    ReturnCode DecompressorManager::Initialize() noexcept
+    CE::ReturnCode DecompressorManager::Initialize() noexcept
     {
         if (!Zibra::LibraryUtils::IsLibraryLoaded())
         {
@@ -19,6 +19,7 @@ namespace Zibra::CE::Decompression
         {
             return CE::ZCE_ERROR;
         }
+        RHIFactory->SetGFXAPI(RHI::GFXAPI::Auto);
 
         RHIstatus = RHIFactory->Create(&m_RHIRuntime);
         if (RHIstatus != RHI::ZRHI_SUCCESS)
@@ -35,7 +36,7 @@ namespace Zibra::CE::Decompression
             return CE::ZCE_ERROR;
         }
 
-        auto status = CAPI::CreateDecompressorFactory(&m_DecompressorFactory);
+        auto status = CE::Decompression::CAPI::CreateDecompressorFactory(&m_DecompressorFactory);
         if (status != CE::ZCE_SUCCESS)
         {
             return status;
@@ -50,7 +51,7 @@ namespace Zibra::CE::Decompression
         return CE::ZCE_SUCCESS;
     }
 
-    ReturnCode DecompressorManager::AllocateExternalBuffer(BufferDesc& bufferDesc, size_t newSizeInBytes, size_t newStride) noexcept
+    CE::ReturnCode DecompressorManager::AllocateExternalBuffer(BufferDesc& bufferDesc, size_t newSizeInBytes, size_t newStride) noexcept
     {
         if (bufferDesc.sizeInBytes != newSizeInBytes || bufferDesc.stride != newStride)
         {
@@ -76,7 +77,7 @@ namespace Zibra::CE::Decompression
         return CE::ZCE_SUCCESS;
     }
 
-    ReturnCode DecompressorManager::RegisterDecompressor(const UT_String& filename) noexcept
+    CE::ReturnCode DecompressorManager::RegisterDecompressor(const UT_String& filename) noexcept
     {
         if (m_Decoder)
         {
@@ -113,7 +114,6 @@ namespace Zibra::CE::Decompression
             m_Decompressor->Release();
             m_Decompressor = nullptr;
         }
-
         status = m_DecompressorFactory->Create(&m_Decompressor);
         if (status != CE::ZCE_SUCCESS)
         {
@@ -132,7 +132,7 @@ namespace Zibra::CE::Decompression
             return status;
         }
 
-        DecompressorResourcesRequirements newRequirements = m_Decompressor->GetResourcesRequirements();
+        CE::Decompression::DecompressorResourcesRequirements newRequirements = m_Decompressor->GetResourcesRequirements();
         status =
             AllocateExternalBuffer(m_DecompressionPerChannelBlockDataBuffer, newRequirements.decompressionPerChannelBlockDataSizeInBytes,
                                    newRequirements.decompressionPerChannelBlockDataStride);
@@ -154,18 +154,11 @@ namespace Zibra::CE::Decompression
         {
             return status;
         }
-        status = AllocateExternalBuffer(m_DecompressionSpatialToChannelIndexLookupBuffer,
-                                        newRequirements.decompressionSpatialToChannelIndexLookupSizeInBytes,
-                                        newRequirements.decompressionSpatialToChannelIndexLookupStride);
-        if (status != CE::ZCE_SUCCESS)
-        {
-            return status;
-        }
 
-        DecompressorResources decompressorResources = {
-            m_DecompressionPerChannelBlockDataBuffer.buffer, m_DecompressionPerChannelBlockInfoBuffer.buffer,
-            m_DecompressionPerSpatialBlockInfoBuffer.buffer, m_DecompressionSpatialToChannelIndexLookupBuffer.buffer};
-
+        CE::Decompression::DecompressorResources decompressorResources{};
+        decompressorResources.decompressionPerChannelBlockData = m_DecompressionPerChannelBlockDataBuffer.buffer;
+        decompressorResources.decompressionPerChannelBlockInfo = m_DecompressionPerChannelBlockInfoBuffer.buffer;
+        decompressorResources.decompressionPerSpatialBlockInfo = m_DecompressionPerSpatialBlockInfoBuffer.buffer;
         status = m_Decompressor->RegisterResources(decompressorResources);
         if (status != CE::ZCE_SUCCESS)
         {
@@ -174,7 +167,7 @@ namespace Zibra::CE::Decompression
         return CE::ZCE_SUCCESS;
     }
 
-    ReturnCode DecompressorManager::DecompressFrame(CE::Decompression::CompressedFrameContainer* frameContainer) noexcept
+    CE::ReturnCode DecompressorManager::DecompressFrame(CE::Decompression::CompressedFrameContainer* frameContainer, openvdb::GridPtrVec* vdbGrids) noexcept
     {
         if (!m_RHIRuntime || !m_Decompressor)
         {
@@ -185,7 +178,18 @@ namespace Zibra::CE::Decompression
         {
             return CE::ZCE_ERROR;
         }
-        ReturnCode status = m_Decompressor->DecompressFrame(frameContainer);
+        auto frameInfo = frameContainer->GetInfo();
+
+        CE::Decompression::DecompressFrameDesc decompressDesc{};
+        decompressDesc.firstSpatialBlockIndex = 0;
+        decompressDesc.spatialBlocksCount = frameInfo.spatialBlockCount;
+        decompressDesc.decompressionPerChannelBlockDataOffset = 0;
+        decompressDesc.decompressionPerChannelBlockInfoOffset = 0;
+        decompressDesc.decompressionPerSpatialBlockInfoOffset = 0;
+        decompressDesc.frameContainer = frameContainer;
+
+        CE::Decompression::DecompressedFrameFeedback frameFeedback;
+        CE::Decompression::ReturnCode status = m_Decompressor->DecompressFrame(decompressDesc, &frameFeedback);
         if (status != CE::ZCE_SUCCESS)
         {
             return status;
@@ -195,58 +199,59 @@ namespace Zibra::CE::Decompression
         {
             return CE::ZCE_ERROR;
         }
+
+        std::vector<CE::ChannelBlock> decompressionPerChannelBlockData{};
+        decompressionPerChannelBlockData.resize(frameInfo.channelBlockCount);
+        std::vector<CE::SpatialBlockInfo> decompressionPerSpatialBlockInfo;
+        decompressionPerSpatialBlockInfo.resize(frameInfo.spatialBlockCount);
+
+        GetDecompressedFrameData(frameInfo, decompressionPerChannelBlockData.data(), decompressionPerSpatialBlockInfo.data());
+
+        CE::Addons::OpenVDBUtils::OpenVDBEncoder::FrameData frameData{};
+        frameData.decompressionPerChannelBlockData = decompressionPerChannelBlockData.data();
+        frameData.perChannelBlocksDataCount = decompressionPerChannelBlockData.size();
+        frameData.decompressionPerSpatialBlockInfo = decompressionPerSpatialBlockInfo.data();
+        frameData.perSpatialBlocksInfoCount = decompressionPerSpatialBlockInfo.size();
+
+
+        CE::Addons::OpenVDBUtils::OpenVDBEncoder vdbEncoder{};
+        *vdbGrids = vdbEncoder.Encode(decompressDesc, frameFeedback, frameInfo, frameData);
+
         m_RHIRuntime->GarbageCollect();
         return CE::ZCE_SUCCESS;
     }
 
-    static float Float16ToFloat32(uint16_t float16Value) noexcept
-    {
-        uint32_t t1, t2, t3;
-
-        t1 = float16Value & 0x7fffu; // Non-sign bits
-        t2 = float16Value & 0x8000u; // Sign bit
-        t3 = float16Value & 0x7c00u; // Exponent
-
-        t1 <<= 13u; // Align mantissa on MSB
-        t2 <<= 16u; // Shift sign bit into position
-
-        t1 += 0x38000000; // Adjust bias
-
-        t1 = (t3 == 0 ? 0 : t1); // Denormals-as-zero
-
-        t1 |= t2; // Re-insert sign bit
-
-        uint32_t float32_value = t1;
-
-        return *(reinterpret_cast<float*>(&float32_value));
-    }
-
-    static void UnpackBlocks(OpenVDBSupport::DecompressedFrameData& decompressedBlockData, const CE::Decompression::FrameInfo& frameInfo,
+    static void UnpackBlocks(const CE::Decompression::FrameInfo& frameInfo,
                              const std::vector<uint32_t>& scratchBufferSpatialBlockData,
-                             const std::vector<uint16_t>& scratchBufferChannelBlockData) noexcept
+                             const std::vector<uint16_t>& scratchBufferChannelBlockData,
+                             CE::ChannelBlock* decompressionPerChannelBlockData,
+                             CE::SpatialBlockInfo* decompressionPerSpatialBlockInfo) noexcept
     {
         for (size_t i = 0; i < frameInfo.channelBlockCount; ++i)
         {
             for (size_t j = 0; j < CE::SPARSE_BLOCK_VOXEL_COUNT; ++j)
             {
                 size_t bufIdx = i * CE::SPARSE_BLOCK_VOXEL_COUNT + j;
-                decompressedBlockData.channelBlocks[i].voxels[j] = Float16ToFloat32(scratchBufferChannelBlockData[bufIdx]);
+                decompressionPerChannelBlockData[i].voxels[j] = CE::Float16ToFloat32(scratchBufferChannelBlockData[bufIdx]);
             }
         }
 
         for (size_t i = 0; i < frameInfo.spatialBlockCount; ++i)
         {
-            uint32_t packedCoords = scratchBufferSpatialBlockData[i * 3];
-            decompressedBlockData.spatialBlocks[i].coords[0] = int32_t((packedCoords >> 0u) & 1023u);
-            decompressedBlockData.spatialBlocks[i].coords[1] = int32_t((packedCoords >> 10u) & 1023u);
-            decompressedBlockData.spatialBlocks[i].coords[2] = int32_t((packedCoords >> 20u) & 1023u);
-            decompressedBlockData.spatialBlocks[i].channelBlocksOffset = scratchBufferSpatialBlockData[i * 3 + 1];
-            decompressedBlockData.spatialBlocks[i].channelMask = scratchBufferSpatialBlockData[i * 3 + 2];
+            uint32_t packedCoords = scratchBufferSpatialBlockData[i * 3 + 0];
+            decompressionPerSpatialBlockInfo[i].coords[0] = static_cast<int32_t>((packedCoords >> 0u) & 1023u);
+            decompressionPerSpatialBlockInfo[i].coords[1] = static_cast<int32_t>((packedCoords >> 10u) & 1023u);
+            decompressionPerSpatialBlockInfo[i].coords[2] = static_cast<int32_t>((packedCoords >> 20u) & 1023u);
+            decompressionPerSpatialBlockInfo[i].channelBlocksOffset = scratchBufferSpatialBlockData[i * 3 + 1];
+            decompressionPerSpatialBlockInfo[i].channelMask = scratchBufferSpatialBlockData[i * 3 + 2];
+
+            decompressionPerSpatialBlockInfo[i].channelCount = CE::CountBits(decompressionPerSpatialBlockInfo[i].channelMask);
         }
     }
 
-    ReturnCode DecompressorManager::GetDecompressedFrameData(OpenVDBSupport::DecompressedFrameData& outDecompressedFrameData,
-                                                             const CE::Decompression::FrameInfo& frameInfo) const noexcept
+    CE::ReturnCode DecompressorManager::GetDecompressedFrameData(const CE::Decompression::FrameInfo& frameInfo,
+                                                                 CE::ChannelBlock* decompressionPerChannelBlockData,
+                                                                 CE::SpatialBlockInfo* decompressionPerSpatialBlockInfo) const noexcept
     {
         if (!m_RHIRuntime)
         {
@@ -258,13 +263,10 @@ namespace Zibra::CE::Decompression
         {
             return CE::ZCE_ERROR;
         }
-        OpenVDBSupport::DecompressedFrameData decompressedFrameData;
-
-        decompressedFrameData.channelBlocks = new CE::Decompression::ChannelBlock[frameInfo.channelBlockCount];
-        decompressedFrameData.spatialBlocks = new CE::Decompression::SpatialBlock[frameInfo.spatialBlockCount];
 
         const size_t spatialBlockInfoElementCount = frameInfo.spatialBlockCount * 3;
-        std::vector<uint32_t> scratchBufferSpatialBlockData(spatialBlockInfoElementCount);
+        std::vector<uint32_t> scratchBufferSpatialBlockData{};
+        scratchBufferSpatialBlockData.resize(spatialBlockInfoElementCount);
         RHIstatus =
             m_RHIRuntime->GetBufferDataImmediately(m_DecompressionPerSpatialBlockInfoBuffer.buffer, scratchBufferSpatialBlockData.data(),
                                                    spatialBlockInfoElementCount * sizeof(uint32_t), 0);
@@ -273,7 +275,8 @@ namespace Zibra::CE::Decompression
             return CE::ZCE_ERROR;
         }
         const size_t channelBlockDataElementCount = frameInfo.channelBlockCount * CE::SPARSE_BLOCK_VOXEL_COUNT;
-        std::vector<uint16_t> scratchBufferChannelBlockData(channelBlockDataElementCount);
+        std::vector<uint16_t> scratchBufferChannelBlockData{};
+        scratchBufferChannelBlockData.resize(channelBlockDataElementCount);
         RHIstatus =
             m_RHIRuntime->GetBufferDataImmediately(m_DecompressionPerChannelBlockDataBuffer.buffer, scratchBufferChannelBlockData.data(),
                                                    channelBlockDataElementCount * sizeof(uint16_t), 0);
@@ -288,19 +291,18 @@ namespace Zibra::CE::Decompression
             return CE::ZCE_ERROR;
         }
 
-        UnpackBlocks(decompressedFrameData, frameInfo, scratchBufferSpatialBlockData, scratchBufferChannelBlockData);
-
-        outDecompressedFrameData = decompressedFrameData;
+        UnpackBlocks(frameInfo, scratchBufferSpatialBlockData, scratchBufferChannelBlockData, decompressionPerChannelBlockData,
+                     decompressionPerSpatialBlockInfo);
         return CE::ZCE_SUCCESS;
     }
 
-    CompressedFrameContainer* DecompressorManager::FetchFrame(const exint& frameIndex) const noexcept
+    CE::Decompression::CompressedFrameContainer* DecompressorManager::FetchFrame(const exint& frameIndex) const noexcept
     {
         if (!m_FormatMapper)
         {
             return nullptr;
         }
-        CompressedFrameContainer* frameContainer = nullptr;
+        CE::Decompression::CompressedFrameContainer* frameContainer = nullptr;
         auto status = m_FormatMapper->FetchFrame(frameIndex, &frameContainer);
         if (status != CE::ZCE_SUCCESS)
         {
@@ -309,7 +311,7 @@ namespace Zibra::CE::Decompression
         return frameContainer;
     }
 
-    FrameRange DecompressorManager::GetFrameRange() const noexcept
+    CE::Decompression::FrameRange DecompressorManager::GetFrameRange() const noexcept
     {
         if (!m_FormatMapper)
         {
@@ -318,7 +320,7 @@ namespace Zibra::CE::Decompression
         return m_FormatMapper->GetFrameRange();
     }
 
-    ReturnCode DecompressorManager::FreeExternalBuffers() noexcept
+    CE::ReturnCode DecompressorManager::FreeExternalBuffers() noexcept
     {
         RHI::ReturnCode RHIstatus;
         if (m_DecompressionPerChannelBlockDataBuffer.buffer)

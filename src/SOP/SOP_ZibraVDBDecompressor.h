@@ -1,6 +1,5 @@
 #pragma once
 #include "Globals.h"
-#include "openvdb/OpenVDBEncoder.h"
 #include "SOP/DecompressorManager/DecompressorManager.h"
 
 namespace Zibra::ZibraVDBDecompressor
@@ -31,14 +30,14 @@ namespace Zibra::ZibraVDBDecompressor
     private:
         static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate);
 
-        void ApplyGridMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::CompressedFrameContainer* const frameContainer);
-        void ApplyGridAttributeMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::CompressedFrameContainer* const frameContainer);
-        void ApplyGridVisualizationMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::CompressedFrameContainer* const frameContainer);
-        void ApplyDetailMetadata(GU_Detail* gdp, CE::Decompression::CompressedFrameContainer* const frameContainer);
-        OpenVDBSupport::EncodeMetadata ReadEncodeMetadata(CE::Decompression::CompressedFrameContainer* const frameContainer);
+        void ApplyGridMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::CompressedFrameContainer* frameContainer);
+        void ApplyGridAttributeMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::CompressedFrameContainer* frameContainer);
+        void ApplyGridVisualizationMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::CompressedFrameContainer* frameContainer);
+        void ApplyDetailMetadata(GU_Detail* gdp, CE::Decompression::CompressedFrameContainer* frameContainer);
+        CE::Addons::OpenVDBUtils::OpenVDBReader::Feedback ReadFeedback(const CE::Decompression::CompressedFrameContainer* frameContainer);
 
     private:
-        CE::Decompression::DecompressorManager m_DecompressorManager;
+        Helpers::DecompressorManager m_DecompressorManager;
     };
 
     class SOP_ZibraVDBDecompressor_Operator final : public OP_Operator
