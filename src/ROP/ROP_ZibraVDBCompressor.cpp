@@ -425,6 +425,35 @@ namespace Zibra::ZibraVDBCompressor
         return ROP_CONTINUE_RENDER;
     }
 
+    std::array<openvdb::FloatGrid::Ptr, 3> SplitVectorGrid(openvdb::Vec3fGrid::ConstPtr input) noexcept
+    {
+        std::array<openvdb::FloatGrid::Ptr, 3> result{};
+        result[0] = openvdb::FloatGrid::create();
+        result[1] = openvdb::FloatGrid::create();
+        result[2] = openvdb::FloatGrid::create();
+
+        openvdb::FloatGrid::Accessor outAccessors[result.size()] = {result[0]->getAccessor(), result[1]->getAccessor(),
+                                                                    result[2]->getAccessor()};
+
+        auto inputAccessor = input->getConstAccessor();
+        openvdb::CoordBBox aabb = input->evalActiveVoxelBoundingBox();
+        for (int32_t z = aabb.min().z(); z < aabb.max().z(); ++z)
+        {
+            for (int32_t y = aabb.min().y(); y < aabb.max().y(); ++y)
+            {
+                for (int32_t x = aabb.min().x(); x < aabb.max().x(); ++x)
+                {
+                    openvdb::Coord coord{x, y, z};
+                    openvdb::Vec3f value = inputAccessor.getValue(coord);
+                    outAccessors[0].setValue(coord, value.x());
+                    outAccessors[1].setValue(coord, value.y());
+                    outAccessors[2].setValue(coord, value.z());
+                }
+            }
+        }
+        return result;
+    }
+
     ROP_RENDER_CODE ROP_ZibraVDBCompressor::renderFrame(const fpreal time, UT_Interrupt* boss)
     {
         using namespace std::literals;
@@ -459,6 +488,7 @@ namespace Zibra::ZibraVDBCompressor
         std::set<std::string> channelNamesUniqueStorage{};
         std::vector<const char*> orderedChannelNames{};
         std::vector<openvdb::GridBase::ConstPtr> volumes{};
+        std::vector<openvdb::GridBase::Ptr> garbage{};
         const GEO_Primitive* prim;
         GA_FOR_ALL_PRIMITIVES(gdp, prim)
         {
@@ -472,21 +502,38 @@ namespace Zibra::ZibraVDBCompressor
                     addError(ROP_MESSAGE, m.c_str());
                     return ROP_ABORT_RENDER;
                 }
-                if (vdbPrim->getStorageType() != UT_VDB_FLOAT)
+                if (vdbPrim->getStorageType() == UT_VDB_FLOAT)
+                {
+                    volumes.emplace_back(vdbPrim->getGridPtr());
+                    orderedChannelNames.push_back(gridName);
+                    channelNamesUniqueStorage.insert(gridName);
+                }
+                else if (vdbPrim->getStorageType() == UT_VDB_VEC3F)
+                {
+                    auto splitGrids = SplitVectorGrid(openvdb::gridConstPtrCast<openvdb::Vec3fGrid>(vdbPrim->getGridPtr()));
+
+                    volumes.emplace_back(splitGrids[0]);
+                    garbage.emplace_back(splitGrids[0]);
+                    orderedChannelNames.emplace_back(channelNamesUniqueStorage.emplace(std::string{gridName} + ".x").first->c_str());
+
+                    volumes.emplace_back(splitGrids[1]);
+                    garbage.emplace_back(splitGrids[1]);
+                    orderedChannelNames.emplace_back(channelNamesUniqueStorage.emplace(std::string{gridName} + ".y").first->c_str());
+
+                    volumes.emplace_back(splitGrids[2]);
+                    garbage.emplace_back(splitGrids[2]);
+                    orderedChannelNames.emplace_back(channelNamesUniqueStorage.emplace(std::string{gridName} + ".z").first->c_str());
+                }
+                else
                 {
                     std::string m = "Unsupported value type for '"s + gridName + "' prim. Only float grids supported.";
                     addError(ROP_MESSAGE, m.c_str());
                     return ROP_ABORT_RENDER;
                 }
 
-                volumes.emplace_back(vdbPrim->getGridPtr());
-                orderedChannelNames.push_back(gridName);
-                channelNamesUniqueStorage.insert(gridName);
-
                 totalFrameActiveVoxelsCount += vdbPrim->getGrid().activeVoxelCount();
             }
         }
-        channelNamesUniqueStorage.clear();
         if (volumes.empty())
         {
             std::string m = "Node input at frame "s + std::to_string(ctx.getFrame()) +
