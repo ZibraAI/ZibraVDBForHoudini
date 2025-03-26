@@ -429,6 +429,35 @@ namespace Zibra::ZibraVDBCompressor
         return ROP_CONTINUE_RENDER;
     }
 
+    std::array<openvdb::FloatGrid::Ptr, 3> SplitVectorGrid(openvdb::Vec3fGrid::ConstPtr input) noexcept
+    {
+        std::array<openvdb::FloatGrid::Ptr, 3> result{};
+        result[0] = openvdb::FloatGrid::create();
+        result[1] = openvdb::FloatGrid::create();
+        result[2] = openvdb::FloatGrid::create();
+
+        openvdb::FloatGrid::Accessor outAccessors[result.size()] = {result[0]->getAccessor(), result[1]->getAccessor(),
+                                                                    result[2]->getAccessor()};
+
+        auto inputAccessor = input->getConstAccessor();
+        openvdb::CoordBBox aabb = input->evalActiveVoxelBoundingBox();
+        for (int32_t z = aabb.min().z(); z < aabb.max().z(); ++z)
+        {
+            for (int32_t y = aabb.min().y(); y < aabb.max().y(); ++y)
+            {
+                for (int32_t x = aabb.min().x(); x < aabb.max().x(); ++x)
+                {
+                    openvdb::Coord coord{x, y, z};
+                    openvdb::Vec3f value = inputAccessor.getValue(coord);
+                    outAccessors[0].setValue(coord, value.x());
+                    outAccessors[1].setValue(coord, value.y());
+                    outAccessors[2].setValue(coord, value.z());
+                }
+            }
+        }
+        return result;
+    }
+
     ROP_RENDER_CODE ROP_ZibraVDBCompressor::renderFrame(const fpreal time, UT_Interrupt* boss)
     {
         using namespace std::literals;
@@ -454,6 +483,7 @@ namespace Zibra::ZibraVDBCompressor
         std::set<std::string> channelNamesUniqueStorage{};
         std::vector<const char*> orderedChannelNames{};
         std::vector<openvdb::GridBase::ConstPtr> volumes{};
+        std::vector<openvdb::GridBase::Ptr> garbage{};
         const GEO_Primitive* prim;
         GA_FOR_ALL_PRIMITIVES(gdp, prim)
         {
@@ -487,7 +517,6 @@ namespace Zibra::ZibraVDBCompressor
                 channelNamesUniqueStorage.insert(gridName);
             }
         }
-        channelNamesUniqueStorage.clear();
         if (volumes.empty())
         {
             std::string m = "Node input at frame "s + std::to_string(ctx.getFrame()) +
