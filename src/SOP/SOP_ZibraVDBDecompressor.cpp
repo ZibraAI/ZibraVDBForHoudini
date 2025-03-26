@@ -71,8 +71,8 @@ namespace Zibra::ZibraVDBDecompressor
     SOP_ZibraVDBDecompressor::SOP_ZibraVDBDecompressor(OP_Network* net, const char* name, OP_Operator* entry) noexcept
         : SOP_Node(net, name, entry)
     {
-        Zibra::LibraryUtils::LoadLibrary();
-        if (!Zibra::LibraryUtils::IsLibraryLoaded())
+        LibraryUtils::LoadLibrary();
+        if (!LibraryUtils::IsLibraryLoaded())
         {
             return;
         }
@@ -81,7 +81,7 @@ namespace Zibra::ZibraVDBDecompressor
 
     SOP_ZibraVDBDecompressor::~SOP_ZibraVDBDecompressor() noexcept
     {
-        if (!Zibra::LibraryUtils::IsLibraryLoaded())
+        if (!LibraryUtils::IsLibraryLoaded())
         {
             return;
         }
@@ -92,14 +92,14 @@ namespace Zibra::ZibraVDBDecompressor
     {
         gdp->clearAndDestroy();
 
-        if (!Zibra::LibraryUtils::IsPlatformSupported())
+        if (!LibraryUtils::IsPlatformSupported())
         {
             addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_PLATFORM_NOT_SUPPORTED);
             return error(context);
         }
 
-        Zibra::LibraryUtils::LoadLibrary();
-        if (!Zibra::LibraryUtils::IsLibraryLoaded())
+        LibraryUtils::LoadLibrary();
+        if (!LibraryUtils::IsLibraryLoaded())
         {
             addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_COMPRESSION_ENGINE_MISSING);
             return error(context);
@@ -186,7 +186,7 @@ namespace Zibra::ZibraVDBDecompressor
 
     int SOP_ZibraVDBDecompressor::OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate)
     {
-        Zibra::PluginManagementWindow::ShowWindow();
+        PluginManagementWindow::ShowWindow();
         return 0;
     }
 
