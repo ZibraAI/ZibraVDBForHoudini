@@ -226,6 +226,8 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                                       spatialInfoBlock.coords[1] = blockCoord.y() - aabb.minY;
                                       spatialInfoBlock.coords[2] = blockCoord.z() - aabb.minZ;
                                       spatialInfoBlock.channelBlocksOffset = spatialBlockData.channelBlockOffset;
+                                      spatialInfoBlock.channelMask = 0;
+                                      spatialInfoBlock.channelCount = 0;
 
                                       for (const auto& [channelIndex, blockData] : spatialBlockData.channelBlockDataMap)
                                       {
@@ -257,6 +259,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                                           ++spatialInfoBlock.channelCount;
                                           channelIndexPerBlock[blockData.channelBlockOffset] = channelIndex;
                                       }
+                                      assert(spatialInfoBlock.channelCount == 1);
                                   });
                 }
 
