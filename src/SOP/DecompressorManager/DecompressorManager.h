@@ -1,11 +1,16 @@
 #pragma once
 
 #include <Zibra/CE/Decompression.h>
-#include "openvdb/OpenVDBEncoder.h"
+#include <Zibra/CE/Addons/OpenVDBEncoder.h>
+#include <Zibra/CE/Addons/OpenVDBReader.h>
+#include <Zibra/CE/Literals.h>
+
 #include "Globals.h"
 
-namespace Zibra::CE::Decompression
+namespace Zibra::Helpers
 {
+    using namespace Zibra;
+
     class DecompressorManager
     {
         struct BufferDesc
@@ -16,24 +21,25 @@ namespace Zibra::CE::Decompression
         };
 
     public:
-        ReturnCode Initialize() noexcept;
-        ReturnCode RegisterDecompressor(const UT_String& filename) noexcept;
-        ReturnCode DecompressFrame(CE::Decompression::CompressedFrameContainer* frameContainer) noexcept;
-        ReturnCode GetDecompressedFrameData(OpenVDBSupport::DecompressedFrameData& outDecompressedFrameData,
-                                            const CE::Decompression::FrameInfo& frameInfo) const noexcept;
-        CompressedFrameContainer* FetchFrame(const exint& frameIndex) const noexcept;
-        FrameRange GetFrameRange() const noexcept;
+        CE::ReturnCode Initialize() noexcept;
+        CE::ReturnCode RegisterDecompressor(const UT_String& filename) noexcept;
+        CE::ReturnCode DecompressFrame(CE::Decompression::CompressedFrameContainer* frameContainer, openvdb::GridPtrVec* vdbGrids) noexcept;
+        CE::Decompression::CompressedFrameContainer* FetchFrame(const exint& frameIndex) const noexcept;
+        CE::Decompression::FrameRange GetFrameRange() const noexcept;
         void Release() noexcept;
 
     private:
-        ReturnCode AllocateExternalBuffer(BufferDesc& bufferDesc, size_t newSizeInBytes, size_t newStride) noexcept;
-        ReturnCode FreeExternalBuffers() noexcept;
+        CE::ReturnCode GetDecompressedFrameData(const CE::Decompression::FrameInfo& frameInfo,
+                                                CE::ChannelBlock* decompressionPerChannelBlockData,
+                                                CE::SpatialBlockInfo* decompressionPerSpatialBlockInfo) const noexcept;
+        CE::ReturnCode AllocateExternalBuffer(BufferDesc& bufferDesc, size_t newSizeInBytes, size_t newStride) noexcept;
+        CE::ReturnCode FreeExternalBuffers() noexcept;
 
     private:
-        DecompressorFactory* m_DecompressorFactory = nullptr;
-        Zibra::CE::ZibraVDB::FileDecoder* m_Decoder = nullptr;
-        Decompressor* m_Decompressor = nullptr;
-        CAPI::FormatMapperCAPI* m_FormatMapper = nullptr;
+        CE::Decompression::DecompressorFactory* m_DecompressorFactory = nullptr;
+        CE::ZibraVDB::FileDecoder* m_Decoder = nullptr;
+        CE::Decompression::Decompressor* m_Decompressor = nullptr;
+        CE::Decompression::FormatMapper* m_FormatMapper = nullptr;
         RHI::RHIRuntime* m_RHIRuntime = nullptr;
 
         BufferDesc m_DecompressionPerChannelBlockDataBuffer;

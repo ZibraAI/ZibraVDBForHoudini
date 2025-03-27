@@ -17,7 +17,6 @@ Before you can build ZibraVDBForHoudini, you need to set up following in your bu
 * Software
     * Visual Studio 2022
         * C++ support
-        * C++ build tools 14.35 - must be this specific version, can't be newer or older
     * CMake 3.25 or newer
 * Environment variables
     * `ZIBRA_HOUDINI_PATH` or `HFS` - must be set to Houdini path (e.g. "C:/Program Files/Side Effects Software/Houdini 20.5.386")
@@ -28,7 +27,7 @@ After setting up build environment you can do one of the following:
     * Run ./scripts/build.ps1
 2. Build manually
     * In the root of the repository, run following commands: 
-        * `cmake -S . -B build -T "v143,host=x64,version=14.35"`
+        * `cmake -S . -B build`
         * `cmake --build build --config Release`
 
 After successful build, plugin will be automatically installed into HOUDINI_USER_PREF_DIR and can be used in Houdini

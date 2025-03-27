@@ -12,48 +12,7 @@ namespace Zibra::CE::ZibraVDB
 
 namespace Zibra::CE::Compression
 {
-    constexpr Version ZCE_COMPRESSION_VERSION = { 0, 9, 3, 0 };
-
-    struct ChannelBlock
-    {
-        float voxels[SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE] = {};
-    };
-
-    struct SpatialBlockInfo
-    {
-        /// Block coords in block space (block dim size = SPARSE_BLOCK_SIZE)
-        int32_t coords[3] = { 0, 0, 0 };
-        /// Offset in blocks to channel group start (block that relates to first present channel in group) in SparseFrame::blocks.1
-        uint32_t channelBlocksOffset = 0;
-        /// Block present channels mask. Bits order must match SparseFrame::orderedChannels order.
-        uint32_t channelMask = 0x0;
-        /// Block present channels count.
-        uint32_t channelCount = 0;
-    };
-    inline bool operator==(const SpatialBlockInfo& a, const SpatialBlockInfo& b) noexcept
-    {
-        const bool coords = a.coords[0] == b.coords[0] && a.coords[1] == b.coords[1] && a.coords[2] == b.coords[2];
-        return coords && (a.channelBlocksOffset == b.channelBlocksOffset) && (a.channelMask == b.channelMask) &&
-            (a.channelCount == b.channelCount);
-    }
-    /**
-     * Packs 3 coords into 32bit
-     * @param [in] coords uint3 coords
-     * @return packed 32-bit value
-     */
-    inline uint32_t PackCoords(Math3D::uint3 coords) noexcept
-    {
-        return coords.x & 1023 | (coords.y & 1023) << 10 | (coords.z & 1023) << 20;
-    }
-    /**
-     * Unpacks 32bit-packed by PackCoords coords
-     * @param [in] packedCoords packed 32-bit value
-     * @return uint3 coords
-     */
-    inline Math3D::uint3 UnpackCoords(uint32_t packedCoords) noexcept
-    {
-        return { packedCoords & 1023, (packedCoords >> 10) & 1023, (packedCoords >> 20) & 1023 };
-    }
+    constexpr Version ZCE_COMPRESSION_VERSION = {0, 9, 4, 0};
 
     struct VoxelStatistics
     {
@@ -262,13 +221,13 @@ namespace ZCE_NS::CAPI
 
 #define ZCE_FNPFX(name) ZCE_COMPRESSION_FRAME_MANAGER_EXPORT_FNPFX(name)
 
-typedef Zibra::CE::ReturnCode(ZCE_CALL_CONV* ZCE_PFN(ZCE_FNPFX(AddMetadata)))(ZCE_NS::CAPI::FrameManagerHandle instance, const char* key,
-    const char* value);
-typedef Zibra::CE::ReturnCode(ZCE_CALL_CONV* ZCE_PFN(ZCE_FNPFX(Finish)))(ZCE_NS::CAPI::FrameManagerHandle instance);
+typedef Zibra::CE::ReturnCode (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(AddMetadata)))(ZCE_NS::CAPI::FrameManagerHandle instance, const char* key,
+                                                                 const char* value);
+typedef Zibra::CE::ReturnCode (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(Finish)))(ZCE_NS::CAPI::FrameManagerHandle instance);
 
 #ifndef ZCE_NO_STATIC_API_DECL
 ZCE_API_IMPORT Zibra::CE::ReturnCode ZCE_CALL_CONV ZCE_FNPFX(AddMetadata)(ZCE_NS::CAPI::FrameManagerHandle instance, const char* key,
-    const char* value) noexcept;
+                                                            const char* value) noexcept;
 ZCE_API_IMPORT Zibra::CE::ReturnCode ZCE_CALL_CONV ZCE_FNPFX(Finish)(ZCE_NS::CAPI::FrameManagerHandle instance) noexcept;
 #else
 #define ZCE_DECLARE_API_EXTERN_FUNCS(name) extern ZCE_PFN(name) name;
@@ -319,28 +278,28 @@ namespace ZCE_NS::CAPI
 
 #define ZCE_FNPFX(name) ZCE_COMPRESSION_COMPRESSOR_EXPORT_FNPFX(name)
 
-typedef Zibra::CE::ReturnCode(ZCE_CALL_CONV* ZCE_PFN(ZCE_FNPFX(Initialize)))(ZCE_NS::CAPI::CompressorHandle instance);
-typedef Zibra::CE::ReturnCode(ZCE_CALL_CONV* ZCE_PFN(ZCE_FNPFX(Release)))(ZCE_NS::CAPI::CompressorHandle instance);
-typedef Zibra::CE::ReturnCode(ZCE_CALL_CONV* ZCE_PFN(ZCE_FNPFX(StartSequence)))(ZCE_NS::CAPI::CompressorHandle instance);
-typedef Zibra::CE::ReturnCode(ZCE_CALL_CONV* ZCE_PFN(ZCE_FNPFX(AddPerSequenceMetadata)))(ZCE_NS::CAPI::CompressorHandle instance, const char* key,
-    const char* value);
-typedef Zibra::CE::ReturnCode(ZCE_CALL_CONV* ZCE_PFN(ZCE_FNPFX(CompressFrame)))(ZCE_NS::CAPI::CompressorHandle instance,
-    const ZCE_NS::CompressFrameDesc& desc,
-    ZCE_NS::CAPI::FrameManagerHandle* outFrame);
-typedef Zibra::CE::ReturnCode(ZCE_CALL_CONV* ZCE_PFN(ZCE_FNPFX(FinishSequence)))(ZCE_NS::CAPI::CompressorHandle instance,
-    Zibra::CAPI::OStreamVTable vt);
+typedef Zibra::CE::ReturnCode (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(Initialize)))(ZCE_NS::CAPI::CompressorHandle instance);
+typedef Zibra::CE::ReturnCode (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(Release)))(ZCE_NS::CAPI::CompressorHandle instance);
+typedef Zibra::CE::ReturnCode (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(StartSequence)))(ZCE_NS::CAPI::CompressorHandle instance);
+typedef Zibra::CE::ReturnCode (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(AddPerSequenceMetadata)))(ZCE_NS::CAPI::CompressorHandle instance, const char* key,
+                                                                            const char* value);
+typedef Zibra::CE::ReturnCode (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(CompressFrame)))(ZCE_NS::CAPI::CompressorHandle instance,
+                                                                   const ZCE_NS::CompressFrameDesc& desc,
+                                                                   ZCE_NS::CAPI::FrameManagerHandle* outFrame);
+typedef Zibra::CE::ReturnCode (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(FinishSequence)))(ZCE_NS::CAPI::CompressorHandle instance,
+                                                                    Zibra::CAPI::OStreamVTable vt);
 
 #ifndef ZCE_NO_STATIC_API_DECL
 ZCE_API_IMPORT Zibra::CE::ReturnCode ZCE_CALL_CONV ZCE_FNPFX(Initialize)(ZCE_NS::CAPI::CompressorHandle instance) noexcept;
 ZCE_API_IMPORT void ZCE_CALL_CONV ZCE_FNPFX(Release)(ZCE_NS::CAPI::CompressorHandle instance) noexcept;
 ZCE_API_IMPORT Zibra::CE::ReturnCode ZCE_CALL_CONV ZCE_FNPFX(StartSequence)(ZCE_NS::CAPI::CompressorHandle instance) noexcept;
 ZCE_API_IMPORT Zibra::CE::ReturnCode ZCE_CALL_CONV ZCE_FNPFX(AddPerSequenceMetadata)(ZCE_NS::CAPI::CompressorHandle instance, const char* key,
-    const char* value) noexcept;
+                                                                       const char* value) noexcept;
 ZCE_API_IMPORT Zibra::CE::ReturnCode ZCE_CALL_CONV ZCE_FNPFX(CompressFrame)(ZCE_NS::CAPI::CompressorHandle instance,
-    const ZCE_NS::CompressFrameDesc& desc,
-    ZCE_NS::CAPI::FrameManagerHandle* outFrame) noexcept;
+                                                              const ZCE_NS::CompressFrameDesc& desc,
+                                                              ZCE_NS::CAPI::FrameManagerHandle* outFrame) noexcept;
 ZCE_API_IMPORT Zibra::CE::ReturnCode ZCE_CALL_CONV ZCE_FNPFX(FinishSequence)(ZCE_NS::CAPI::CompressorHandle instance,
-    Zibra::CAPI::OStreamVTable vt) noexcept;
+                                                               Zibra::CAPI::OStreamVTable vt) noexcept;
 #else
 #define ZCE_DECLARE_API_EXTERN_FUNCS(name) extern ZCE_PFN(name) name;
 ZCE_COMPRESSION_COMPRESSOR_API_APPLY(ZCE_DECLARE_API_EXTERN_FUNCS);
@@ -379,7 +338,7 @@ namespace ZCE_NS::CAPI
         {
             FrameManagerHandle frameManagerHandle;
             auto status = ZCE_FNPFX(CompressFrame)(m_NativeInstance, desc, &frameManagerHandle);
-            *outFrame = new FrameManagerCAPI{ frameManagerHandle };
+            *outFrame = new FrameManagerCAPI{frameManagerHandle};
             return status;
         }
         ReturnCode FinishSequence(OStream* outStream) noexcept final
@@ -408,27 +367,27 @@ namespace ZCE_NS::CAPI
 
 #define ZCE_FNPFX(name) ZCE_COMPRESSION_COMPRESSORFACTORY_EXPORT_FNPFX(name)
 
-typedef Zibra::CE::ReturnCode(ZCE_CALL_CONV* ZCE_PFN(ZCE_FNPFX(UseRHI)))(ZCE_NS::CAPI::CompressorFactoryHandle instance,
-    Zibra::RHI::CAPI::ConsumerBridge::RHIRuntimeVTable vt);
-typedef Zibra::CE::ReturnCode(ZCE_CALL_CONV* ZCE_PFN(ZCE_FNPFX(SetQuality)))(ZCE_NS::CAPI::CompressorFactoryHandle instance, float quality);
-typedef Zibra::CE::ReturnCode(ZCE_CALL_CONV* ZCE_PFN(ZCE_FNPFX(OverrideChannelQuality)))(ZCE_NS::CAPI::CompressorFactoryHandle instance,
-    const char* channelName, float quality);
-typedef Zibra::CE::ReturnCode(ZCE_CALL_CONV* ZCE_PFN(ZCE_FNPFX(SetFrameMapping)))(ZCE_NS::CAPI::CompressorFactoryHandle instance,
-    const ZCE_NS::FrameMappingDecs& desc);
-typedef Zibra::CE::ReturnCode(ZCE_CALL_CONV* ZCE_PFN(ZCE_FNPFX(Create)))(ZCE_NS::CAPI::CompressorFactoryHandle instance,
-    ZCE_NS::CAPI::CompressorHandle* outInstance);
-typedef Zibra::CE::ReturnCode(ZCE_CALL_CONV* ZCE_PFN(ZCE_FNPFX(Release)))(ZCE_NS::CAPI::CompressorFactoryHandle instance);
+typedef Zibra::CE::ReturnCode (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(UseRHI)))(ZCE_NS::CAPI::CompressorFactoryHandle instance,
+                                                            Zibra::RHI::CAPI::ConsumerBridge::RHIRuntimeVTable vt);
+typedef Zibra::CE::ReturnCode (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(SetQuality)))(ZCE_NS::CAPI::CompressorFactoryHandle instance, float quality);
+typedef Zibra::CE::ReturnCode (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(OverrideChannelQuality)))(ZCE_NS::CAPI::CompressorFactoryHandle instance,
+                                                                            const char* channelName, float quality);
+typedef Zibra::CE::ReturnCode (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(SetFrameMapping)))(ZCE_NS::CAPI::CompressorFactoryHandle instance,
+                                                                     const ZCE_NS::FrameMappingDecs& desc);
+typedef Zibra::CE::ReturnCode (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(Create)))(ZCE_NS::CAPI::CompressorFactoryHandle instance,
+                                                            ZCE_NS::CAPI::CompressorHandle* outInstance);
+typedef Zibra::CE::ReturnCode (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(Release)))(ZCE_NS::CAPI::CompressorFactoryHandle instance);
 
 #ifndef ZCE_NO_STATIC_API_DECL
 ZCE_API_IMPORT Zibra::CE::ReturnCode ZCE_CALL_CONV ZCE_FNPFX(UseRHI)(ZCE_NS::CAPI::CompressorFactoryHandle instance,
-    Zibra::RHI::CAPI::ConsumerBridge::RHIRuntimeVTable vt) noexcept;
+                                                       Zibra::RHI::CAPI::ConsumerBridge::RHIRuntimeVTable vt) noexcept;
 ZCE_API_IMPORT Zibra::CE::ReturnCode ZCE_CALL_CONV ZCE_FNPFX(SetQuality)(ZCE_NS::CAPI::CompressorFactoryHandle instance, float quality) noexcept;
 ZCE_API_IMPORT Zibra::CE::ReturnCode ZCE_CALL_CONV ZCE_FNPFX(OverrideChannelQuality)(ZCE_NS::CAPI::CompressorFactoryHandle instance,
-    const char* channelName, float quality) noexcept;
+                                                                       const char* channelName, float quality) noexcept;
 ZCE_API_IMPORT Zibra::CE::ReturnCode ZCE_CALL_CONV ZCE_FNPFX(SetFrameMapping)(ZCE_NS::CAPI::CompressorFactoryHandle instance,
-    const ZCE_NS::FrameMappingDecs& desc) noexcept;
+                                                                const ZCE_NS::FrameMappingDecs& desc) noexcept;
 ZCE_API_IMPORT Zibra::CE::ReturnCode ZCE_CALL_CONV ZCE_FNPFX(Create)(ZCE_NS::CAPI::CompressorFactoryHandle instance,
-    ZCE_NS::CAPI::CompressorHandle* outInstance) noexcept;
+                                                       ZCE_NS::CAPI::CompressorHandle* outInstance) noexcept;
 ZCE_API_IMPORT void ZCE_CALL_CONV ZCE_FNPFX(Release)(ZCE_NS::CAPI::CompressorFactoryHandle instance) noexcept;
 #else
 #define ZCE_DECLARE_API_EXTERN_FUNCS(name) extern ZCE_PFN(name) name;
@@ -467,7 +426,7 @@ namespace ZCE_NS::CAPI
         {
             CompressorHandle handle;
             auto status = ZCE_FNPFX(Create)(m_NativeInstance, &handle);
-            *outInstance = new CompressorCAPI{ handle };
+            *outInstance = new CompressorCAPI{handle};
             return status;
         }
         void Release() noexcept final
@@ -494,8 +453,8 @@ namespace ZCE_NS::CAPI
 
 #define ZCE_FNPFX(name) ZCE_COMPRESSION_FUNCS_EXPORT_FNPFX(name)
 
-typedef Zibra::Version(ZCE_CALL_CONV* ZCE_PFN(ZCE_FNPFX(GetVersion)))();
-typedef Zibra::CE::ReturnCode(ZCE_CALL_CONV* ZCE_PFN(ZCE_FNPFX(CreateCompressorFactory)))(ZCE_NS::CAPI::CompressorFactoryHandle* outInstance);
+typedef Zibra::Version (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(GetVersion)))();
+typedef Zibra::CE::ReturnCode (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(CreateCompressorFactory)))(ZCE_NS::CAPI::CompressorFactoryHandle* outInstance);
 
 #ifndef ZCE_NO_STATIC_API_DECL
 ZCE_API_IMPORT Zibra::Version ZCE_CALL_CONV ZCE_FNPFX(GetVersion)() noexcept;
@@ -521,7 +480,7 @@ namespace ZCE_NS::CAPI
         {
             return nullptr;
         }
-        return new CompressorFactoryCAPI{ handle };
+        return new CompressorFactoryCAPI{handle};
     }
 } // namespace ZCE_NS::CAPI
 

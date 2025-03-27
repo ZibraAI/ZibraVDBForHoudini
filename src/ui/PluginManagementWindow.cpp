@@ -5,9 +5,10 @@
 
 #include "MessageBox.h"
 #include "bridge/LibraryUtils.h"
-#include "licensing/LicenseManager.h"
-#include "utils/Helpers.h"
 #include "bridge/UpdateCheck.h"
+#include "licensing/LicenseManager.h"
+#include "licensing/TrialManager.h"
+#include "utils/Helpers.h"
 
 namespace Zibra
 {
@@ -175,7 +176,9 @@ namespace Zibra
             return;
         }
 
-        UI::MessageBox::Show(UI::MessageBox::Type::OK, "You will be directed to download page. To update ZibraVDB Library, first close Houdini, then proceed with normal installation flow and when prompted overwrite old version files.",
+        UI::MessageBox::Show(UI::MessageBox::Type::OK,
+                             "You will be directed to download page. To update ZibraVDB Library, first close Houdini, then proceed with "
+                             "normal installation flow and when prompted overwrite old version files.",
                              &PluginManagementWindowImpl::HandleUpdateLibraryCalback);
         UpdateUI();
     }
@@ -426,6 +429,28 @@ namespace Zibra
             SetStringField("update_status.val", updateStatusString.c_str());
         }
         {
+            std::string trialStatus;
+
+            if (LicenseManager::GetInstance().GetLicenseStatus(LicenseManager::Product::Compression) == LicenseManager::Status::OK)
+            {
+                trialStatus = "License activated, no trial required.";
+            }
+            else
+            {
+                int remainingTrialCompressions = TrialManager::GetRemainingTrialCompressions();
+                if (remainingTrialCompressions == -1)
+                {
+                    trialStatus = "Failed to get trial status.";
+                }
+                else
+                {
+                    trialStatus = std::to_string(remainingTrialCompressions) + " trial compressions remaining.";
+                }
+            }
+
+            SetStringField("trial_status.val", trialStatus.c_str());
+        }
+        {
             std::string activationStatus;
             LicenseManager::Status status = LicenseManager::Status::Uninitialized;
             for (size_t i = 0; i < size_t(LicenseManager::Product::Count); ++i)
@@ -443,9 +468,6 @@ namespace Zibra
                 break;
             case LicenseManager::Status::ValidationError:
                 activationStatus = "Validation Error";
-                break;
-            case LicenseManager::Status::NetworkError:
-                activationStatus = "Network Error";
                 break;
             case LicenseManager::Status::InvalidKeyFormat:
                 activationStatus = "Invalid Key Format";

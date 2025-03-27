@@ -240,7 +240,7 @@ namespace Zibra
     }
 
     bool LicenseManager::CheckLicense(Product product)
-{
+    {
         if (!IsLicenseValid(product))
         {
             CheckoutLicense();
@@ -450,7 +450,9 @@ namespace Zibra
             {
                 return Status::NoLicense;
             }
-            if (CE::Licensing::CAPI::CheckoutLicenseOffline(offlineLicense.c_str()))
+            CE::Licensing::CAPI::CheckoutLicenseOffline(offlineLicense.c_str(), offlineLicense.size());
+
+            if (CE::Licensing::CAPI::IsLicenseValidated(CE::Licensing::ProductType::Compression))
             {
                 SetStatusFromZibraVDBRuntime();
                 m_Type = ActivationType::Offline;
@@ -460,8 +462,8 @@ namespace Zibra
                 m_OfflineLicense = offlineLicense;
                 return Status::OK;
             }
-            return ConvertToManagerStatus(CE::Licensing::CAPI::GetLicenseStatus(CE::Licensing::ProductType::Compression));
-            break;
+
+            return Status::ValidationError;
         }
         case ActivationType::Online: {
             std::string licenseKeyPath = GetKeyPath(pathType);
@@ -474,7 +476,8 @@ namespace Zibra
             {
                 return Status::NoLicense;
             }
-            if (CE::Licensing::CAPI::CheckoutLicenseWithKey(licenseKey.c_str()))
+            CE::Licensing::CAPI::CheckoutLicenseWithKey(licenseKey.c_str());
+            if (CE::Licensing::CAPI::IsLicenseValidated(CE::Licensing::ProductType::Compression))
             {
                 SetStatusFromZibraVDBRuntime();
                 m_Type = ActivationType::Online;
@@ -484,8 +487,8 @@ namespace Zibra
                 m_OfflineLicense = "";
                 return Status::OK;
             }
-            return ConvertToManagerStatus(CE::Licensing::CAPI::GetLicenseStatus(CE::Licensing::ProductType::Compression));
-            break;
+
+            return Status::ValidationError;
         }
         default:
             assert(0);
@@ -497,7 +500,7 @@ namespace Zibra
     {
         for (size_t i = 0; i < size_t(Product::Count); ++i)
         {
-            m_Status[i] = ConvertToManagerStatus(CE::Licensing::CAPI::GetLicenseStatus(CE::Licensing::ProductType(i)));
+            m_Status[i] = CE::Licensing::CAPI::IsLicenseValidated(CE::Licensing::ProductType(i)) ? Status::OK : Status::ValidationError;
         }
     }
 
@@ -506,28 +509,6 @@ namespace Zibra
         for (size_t i = 0; i < size_t(Product::Count); ++i)
         {
             m_Status[i] = status;
-        }
-    }
-
-    LicenseManager::Status LicenseManager::ConvertToManagerStatus(CE::Licensing::LicenseStatus status)
-    {
-        switch (status)
-        {
-        case CE::Licensing::LicenseStatus::NotInitialized:
-            return Status::Uninitialized;
-        case CE::Licensing::LicenseStatus::OK:
-            return Status::OK;
-        case CE::Licensing::LicenseStatus::InvalidKeyFormat:
-            return Status::InvalidKeyFormat;
-        case CE::Licensing::LicenseStatus::NetworkError:
-            return Status::NetworkError;
-        case CE::Licensing::LicenseStatus::ValidationError:
-            return Status::ValidationError;
-        case CE::Licensing::LicenseStatus::NoKey:
-            return Status::NoLicense;
-        default:
-            assert(0);
-            return Status::ValidationError;
         }
     }
 

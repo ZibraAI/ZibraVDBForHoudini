@@ -22,7 +22,6 @@ namespace Zibra
         {
             OK,
             ValidationError,
-            NetworkError,
             InvalidKeyFormat,
             NoLicense,
             LibraryError,
@@ -98,7 +97,5 @@ namespace Zibra
 
         void SetStatusFromZibraVDBRuntime();
         void SetStatusForAllProducts(Status status);
-        
-        static Status ConvertToManagerStatus(Zibra::CE::Licensing::LicenseStatus status);
     };
 } // namespace Zibra

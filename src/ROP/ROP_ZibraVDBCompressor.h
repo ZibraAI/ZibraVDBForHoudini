@@ -1,6 +1,6 @@
 #pragma once
-#include "Globals.h"
-#include "ROP/CompressorManager/CompressorManager.h"
+
+#include "CompressorManager/CompressorManager.h"
 
 namespace Zibra::OpenVDBSupport
 {
@@ -11,7 +11,7 @@ namespace Zibra::ZibraVDBCompressor
 {
     constexpr const char* NODE_NAME_SOP_CONTEXT = "labs::rop_zibravdb_compress::" ZIB_ZIBRAVDB_VERSION_SHORT;
     constexpr const char* NODE_NAME_OUT_CONTEXT = "labs::zibravdb_compress::" ZIB_ZIBRAVDB_VERSION_SHORT;
-    constexpr const char* NODE_LABEL = "Labs ZibraVDB Compress (Alpha)";
+    constexpr const char* NODE_LABEL = "Labs ZibraVDB Compress";
 
     class ROP_ZibraVDBCompressor_Operator : public OP_Operator
     {
@@ -69,11 +69,10 @@ namespace Zibra::ZibraVDBCompressor
     private:
         static std::vector<PRM_Template>& GetTemplateListContainer(ContextType contextType);
 
-        std::vector<std::pair<std::string, std::string>> DumpAttributes(const GU_Detail* gdp,
-                                                                        const OpenVDBSupport::DecodeMetadata& decodeMetadata) noexcept;
+        std::vector<std::pair<std::string, std::string>> DumpAttributes(const GU_Detail* gdp) noexcept;
         void DumpVisualisationAttributes(std::vector<std::pair<std::string, std::string>>& attributes, const GEO_PrimVDB* vdbPrim);
-        void DumpDecodeMetadata(std::vector<std::pair<std::string, std::string>>& result,
-                                const OpenVDBSupport::DecodeMetadata& decodeMetadata);
+        void DumpFrameFeedback(std::vector<std::pair<std::string, std::string>>& result,
+                               const CE::Addons::OpenVDBUtils::OpenVDBReader::Feedback& feedback);
 
         static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate);
 
