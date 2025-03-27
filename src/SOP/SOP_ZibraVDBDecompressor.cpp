@@ -132,10 +132,15 @@ namespace Zibra::ZibraVDBDecompressor
         }
 
         frameContainer = m_DecompressorManager.FetchFrame(frameIndex);
+        if (frameContainer->GetInfo().spatialBlockCount == 0)
+        {
+            frameContainer->Release();
+            return error(context);
+        }
 
         if (frameContainer == nullptr)
         {
-            addError(SOP_MESSAGE, "Error when trying to fetch frame");
+            addError(SOP_MESSAGE, "Error when trying to fetch frame.");
             return error(context);
         }
 
@@ -144,7 +149,7 @@ namespace Zibra::ZibraVDBDecompressor
         if (status != CE::ZCE_SUCCESS)
         {
             frameContainer->Release();
-            addError(SOP_MESSAGE, "Error when trying to decompress frame");
+            addError(SOP_MESSAGE, "Error when trying to decompress frame.");
             return error(context);
         }
 
