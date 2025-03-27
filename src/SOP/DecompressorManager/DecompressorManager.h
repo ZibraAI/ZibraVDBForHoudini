@@ -45,6 +45,5 @@ namespace Zibra::Helpers
         BufferDesc m_DecompressionPerChannelBlockDataBuffer;
         BufferDesc m_DecompressionPerChannelBlockInfoBuffer;
         BufferDesc m_DecompressionPerSpatialBlockInfoBuffer;
-        BufferDesc m_DecompressionSpatialToChannelIndexLookupBuffer;
     };
 } // namespace Zibra
