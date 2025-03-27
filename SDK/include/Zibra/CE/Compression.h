@@ -12,48 +12,7 @@ namespace Zibra::CE::ZibraVDB
 
 namespace Zibra::CE::Compression
 {
-    constexpr Version ZCE_COMPRESSION_VERSION = {0, 9, 3, 0};
-
-    struct ChannelBlock
-    {
-        float voxels[SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE] = {};
-    };
-
-    struct SpatialBlockInfo
-    {
-        /// Block coords in block space (block dim size = SPARSE_BLOCK_SIZE)
-        int32_t coords[3] = {0, 0, 0};
-        /// Offset in blocks to channel group start (block that relates to first present channel in group) in SparseFrame::blocks.1
-        uint32_t channelBlocksOffset = 0;
-        /// Block present channels mask. Bits order must match SparseFrame::orderedChannels order.
-        uint32_t channelMask = 0x0;
-        /// Block present channels count.
-        uint32_t channelCount = 0;
-    };
-    inline bool operator==(const SpatialBlockInfo& a, const SpatialBlockInfo& b) noexcept
-    {
-        const bool coords = a.coords[0] == b.coords[0] && a.coords[1] == b.coords[1] && a.coords[2] == b.coords[2];
-        return coords && (a.channelBlocksOffset == b.channelBlocksOffset) && (a.channelMask == b.channelMask) &&
-               (a.channelCount == b.channelCount);
-    }
-    /**
-     * Packs 3 coords into 32bit
-     * @param [in] coords uint3 coords
-     * @return packed 32-bit value
-     */
-    inline uint32_t PackCoords(Math3D::uint3 coords) noexcept
-    {
-        return coords.x & 1023 | (coords.y & 1023) << 10 | (coords.z & 1023) << 20;
-    }
-    /**
-     * Unpacks 32bit-packed by PackCoords coords
-     * @param [in] packedCoords packed 32-bit value
-     * @return uint3 coords
-     */
-    inline Math3D::uint3 UnpackCoords(uint32_t packedCoords) noexcept
-    {
-        return {packedCoords & 1023, (packedCoords >> 10) & 1023, (packedCoords >> 20) & 1023};
-    }
+    constexpr Version ZCE_COMPRESSION_VERSION = {0, 9, 4, 0};
 
     struct VoxelStatistics
     {

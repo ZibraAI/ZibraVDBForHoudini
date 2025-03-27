@@ -357,4 +357,55 @@ namespace Zibra::Math3D
     {
         return !(a == b);
     }
+
+    inline float Lerp(float a, float b, float t) noexcept
+    {
+        return a + t * (b - a);
+    }
+    inline double Lerp(double a, double b, double t) noexcept
+    {
+        return a + t * (b - a);
+    }
+
+    inline bool IsNearlyEqual(float a, float b) noexcept
+    {
+        return std::abs(a - b) < std::numeric_limits<float>::epsilon();
+    }
+    inline bool IsNearlyEqual(double a, double b) noexcept
+    {
+        return std::abs(a - b) < std::numeric_limits<double>::epsilon();
+    }
+
+    inline bool IsNearlyInteger(float value) noexcept
+    {
+        float dummy;
+        float frac = std::modf(value, &dummy);
+        return IsNearlyEqual(frac, 0.0f);
+    }
+
+    inline bool IsNearlyInteger(double value) noexcept
+    {
+        double dummy;
+        double frac = std::modf(value, &dummy);
+        return IsNearlyEqual(frac, 0.0);
+    }
+
+    inline float RoundIfNearlyZero(float value) noexcept
+    {
+        if (value < std::numeric_limits<float>::epsilon())
+            return 0.0f;
+        return value;
+    }
+
+    inline int FloorWithEpsilon(float value) noexcept
+    {
+        return static_cast<int>(std::floorf(value + std::numeric_limits<float>::epsilon()));
+    }
+
+    inline int CeilWithEpsilon(float value) noexcept
+    {
+        return static_cast<int>(std::ceilf(value - std::numeric_limits<float>::epsilon()));
+    }
+
+
 } // namespace Zibra::Math3D

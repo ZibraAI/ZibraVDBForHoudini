@@ -1412,7 +1412,7 @@ namespace Zibra::RHI
          * @param [out] outHeap - out DescriptorHeap instance with copied descriptors.
          * @return ZRHI_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode CloneDescriptorHeap(DescriptorHeap* src, const char* name, DescriptorHeap** outHeap) noexcept = 0;
+        virtual ReturnCode CloneDescriptorHeap(const DescriptorHeap* src, const char* name, DescriptorHeap** outHeap) noexcept = 0;
 
         /**
          * Releases resources of DescriptorHeap
@@ -1818,7 +1818,7 @@ namespace ZRHI_NS::CAPI
 #pragma endregion GFXCore
 
 #pragma region VulkanGFXCore
-#if ZRHI_SUPPORT_VULKAN
+#ifdef ZRHI_USE_VULKAN_INTEGRATION
 namespace ZRHI_NS::CAPI
 {
     struct VulkanGFXCoreVTable
@@ -1863,11 +1863,11 @@ namespace ZRHI_NS::CAPI
         return vt;
     }
 } // namespace ZRHI_NS::CAPI
-#endif // ZRHI_SUPPORT_VULKAN
+#endif // ZRHI_USE_VULKAN_INTEGRATION
 #pragma endregion VulkanGFXCore
 
 #pragma region D3D11GFXCore
-#if ZRHI_SUPPORT_D3D11
+#ifdef ZRHI_USE_D3D11_INTEGRATION
 namespace ZRHI_NS::CAPI
 {
     struct D3D11GFXCoreVTable
@@ -1899,11 +1899,11 @@ namespace ZRHI_NS::CAPI
         return vt;
     }
 } // namespace ZRHI_NS::CAPI
-#endif // ZRHI_SUPPORT_D3D11
+#endif // ZRHI_USE_D3D11_INTEGRATION
 #pragma endregion D3D11GFXCore
 
 #pragma region D3D12GFXCore
-#if ZRHI_SUPPORT_D3D12
+#ifdef ZRHI_USE_D3D12_INTEGRATION
 namespace ZRHI_NS::CAPI
 {
     struct D3D12GFXCoreVTable
@@ -1946,7 +1946,7 @@ namespace ZRHI_NS::CAPI
         return vt;
     }
 } // namespace ZRHI_NS::CAPI
-#endif // ZRHI_SUPPORT_D3D12
+#endif // ZRHI_USE_D3D12_INTEGRATION
 #pragma endregion D3D12GFXCore
 
 #ifndef ZRHI_NO_CAPI_IMPL
@@ -2060,7 +2060,7 @@ typedef ZRHI_NS::ReturnCode (ZRHI_CALL_CONV *ZRHI_PFN(ZRHI_FNPFX(CreateDescripto
                                                                           ZRHI_NS::DescriptorHeapType heapType,
                                                                           const ZRHI_NS::PipelineLayoutDesc& pipelineLayoutDesc, const char* name,
                                                                           ZRHI_NS::DescriptorHeap** outHeap) noexcept;
-typedef ZRHI_NS::ReturnCode (ZRHI_CALL_CONV *ZRHI_PFN(ZRHI_FNPFX(CloneDescriptorHeap)))(ZRHI_NS::CAPI::ZRHIRuntimeHandle instance, ZRHI_NS::DescriptorHeap* src,
+typedef ZRHI_NS::ReturnCode (ZRHI_CALL_CONV *ZRHI_PFN(ZRHI_FNPFX(CloneDescriptorHeap)))(ZRHI_NS::CAPI::ZRHIRuntimeHandle instance, const ZRHI_NS::DescriptorHeap* src,
                                                                          const char* name, ZRHI_NS::DescriptorHeap** outHeap) noexcept;
 typedef ZRHI_NS::ReturnCode (ZRHI_CALL_CONV *ZRHI_PFN(ZRHI_FNPFX(ReleaseDescriptorHeap)))(ZRHI_NS::CAPI::ZRHIRuntimeHandle instance,
                                                                            ZRHI_NS::DescriptorHeap* heap) noexcept;
@@ -2175,7 +2175,7 @@ ZRHI_API_IMPORT ZRHI_NS::ReturnCode ZRHI_CALL_CONV ZRHI_FNPFX(ReleaseSampler)(ZR
 ZRHI_API_IMPORT ZRHI_NS::ReturnCode ZRHI_CALL_CONV ZRHI_FNPFX(CreateDescriptorHeap)(ZRHI_NS::CAPI::ZRHIRuntimeHandle instance, ZRHI_NS::DescriptorHeapType heapType,
                                                                      const ZRHI_NS::PipelineLayoutDesc& pipelineLayoutDesc, const char* name,
                                                                      ZRHI_NS::DescriptorHeap** outHeap) noexcept;
-ZRHI_API_IMPORT ZRHI_NS::ReturnCode ZRHI_CALL_CONV ZRHI_FNPFX(CloneDescriptorHeap)(ZRHI_NS::CAPI::ZRHIRuntimeHandle instance, ZRHI_NS::DescriptorHeap* src,
+ZRHI_API_IMPORT ZRHI_NS::ReturnCode ZRHI_CALL_CONV ZRHI_FNPFX(CloneDescriptorHeap)(ZRHI_NS::CAPI::ZRHIRuntimeHandle instance, const ZRHI_NS::DescriptorHeap* src,
                                                                     const char* name, ZRHI_NS::DescriptorHeap** outHeap) noexcept;
 ZRHI_API_IMPORT ZRHI_NS::ReturnCode ZRHI_CALL_CONV ZRHI_FNPFX(ReleaseDescriptorHeap)(ZRHI_NS::CAPI::ZRHIRuntimeHandle instance,
                                                                       ZRHI_NS::DescriptorHeap* heap) noexcept;
@@ -2388,7 +2388,7 @@ namespace ZRHI_NS::CAPI
             return ZRHI_FNPFX(CreateDescriptorHeap)(m_NativeInstance, heapType, pipelineLayoutDesc, name, outHeap);
         }
 
-        ReturnCode CloneDescriptorHeap(DescriptorHeap* src, const char* name, DescriptorHeap** outHeap) noexcept final
+        ReturnCode CloneDescriptorHeap(const DescriptorHeap* src, const char* name, DescriptorHeap** outHeap) noexcept final
         {
             return ZRHI_FNPFX(CloneDescriptorHeap)(m_NativeInstance, src, name, outHeap);
         }
@@ -2645,28 +2645,28 @@ namespace ZRHI_NS::CAPI
             using namespace Integration;
             switch (engineInterface->GetGFXAPI())
             {
-#if ZRHI_SUPPORT_D3D11
+#ifdef ZRHI_USE_D3D11_INTEGRATION
             case GFXAPI::D3D11: {
                 auto vtable = VTConvert(static_cast<D3D11GFXCore*>(engineInterface));
                 return ZRHI_FNPFX(UseGFXCore)(m_NativeInstance, &vtable);
             }
-#endif // ZRHI_SUPPORT_D3D11
-#if ZRHI_SUPPORT_D3D12
+#endif // ZRHI_USE_D3D11_INTEGRATION
+#ifdef ZRHI_USE_D3D12_INTEGRATION
             case GFXAPI::D3D12: {
                 auto vtable = VTConvert(static_cast<D3D12GFXCore*>(engineInterface));
                 return ZRHI_FNPFX(UseGFXCore)(m_NativeInstance, &vtable);
             }
-#endif // ZRHI_SUPPORT_D3D12
-#if ZRHI_SUPPORT_VULKAN
+#endif // ZRHI_USE_D3D12_INTEGRATION
+#ifdef ZRHI_USE_VULKAN_INTEGRATION
             case GFXAPI::Vulkan: {
                 auto vtable = VTConvert(static_cast<VulkanGFXCore*>(engineInterface));
                 return ZRHI_FNPFX(UseGFXCore)(m_NativeInstance, &vtable);
             }
-#endif // ZRHI_SUPPORT_D3D12
-#if ZRHI_SUPPORT_METAL
+#endif // ZRHI_USE_VULKAN_INTEGRATION
+#ifdef ZRHI_USE_METAL_INTEGRATION
             case GFXAPI::Metal:
                 return ZRHI_ERROR_NOT_SUPPORTED;
-#endif // ZRHI_SUPPORT_D3D12
+#endif // ZRHI_USE_METAL_INTEGRATION
             default:
                 return ZRHI_ERROR_NOT_SUPPORTED;
             }
@@ -2800,7 +2800,7 @@ namespace ZRHI_NS::CAPI::ConsumerBridge
 
         ReturnCode (*CreateDescriptorHeap)(void*, DescriptorHeapType heapType, const PipelineLayoutDesc& pipelineLayoutDesc, const char* name,
                                            DescriptorHeap** outHeap);
-        ReturnCode (*CloneDescriptorHeap)(void*, DescriptorHeap* src, const char* name, DescriptorHeap** outHeap);
+        ReturnCode (*CloneDescriptorHeap)(void*, const DescriptorHeap* src, const char* name, DescriptorHeap** outHeap);
         ReturnCode (*ReleaseDescriptorHeap)(void*, DescriptorHeap* heap);
 
         ReturnCode (*CreateQueryHeap)(void*, QueryHeapType heapType, uint64_t queryCount, const char* name, QueryHeap** outHeap);
@@ -2899,7 +2899,7 @@ namespace ZRHI_NS::CAPI::ConsumerBridge
         vt.CreateDescriptorHeap = [](void* o, DescriptorHeapType t, const PipelineLayoutDesc& d, const char* n, DescriptorHeap** h) {
             return static_cast<T*>(o)->CreateDescriptorHeap(t, d, n, h);
         };
-        vt.CloneDescriptorHeap = [](void* o, DescriptorHeap* s, const char* n, DescriptorHeap** d) {
+        vt.CloneDescriptorHeap = [](void* o, const DescriptorHeap* s, const char* n, DescriptorHeap** d) {
             return static_cast<T*>(o)->CloneDescriptorHeap(s, n, d);
         };
         vt.ReleaseDescriptorHeap = [](void* o, DescriptorHeap* h) { return static_cast<T*>(o)->ReleaseDescriptorHeap(h); };
@@ -3081,7 +3081,7 @@ namespace ZRHI_NS::CAPI::ConsumerBridge
         {
             return m_VT.CreateDescriptorHeap(m_VT.obj, heapType, pipelineLayoutDesc, name, outHeap);
         }
-        ReturnCode CloneDescriptorHeap(DescriptorHeap* src, const char* name, DescriptorHeap** outHeap) noexcept final
+        ReturnCode CloneDescriptorHeap(const DescriptorHeap* src, const char* name, DescriptorHeap** outHeap) noexcept final
         {
             return m_VT.CloneDescriptorHeap(m_VT.obj, src, name, outHeap);
         }
