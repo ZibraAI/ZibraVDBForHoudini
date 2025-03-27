@@ -350,15 +350,6 @@ namespace Zibra::Helpers
             }
             m_DecompressionPerSpatialBlockInfoBuffer = BufferDesc{};
         }
-        if (m_DecompressionSpatialToChannelIndexLookupBuffer.buffer)
-        {
-            RHIstatus = m_RHIRuntime->ReleaseBuffer(m_DecompressionSpatialToChannelIndexLookupBuffer.buffer);
-            if (RHIstatus != RHI::ZRHI_SUCCESS)
-            {
-                return CE::ZCE_ERROR;
-            }
-            m_DecompressionSpatialToChannelIndexLookupBuffer = BufferDesc{};
-        }
         return CE::ZCE_SUCCESS;
     }
 
