@@ -3,7 +3,7 @@
 {
     name	labs::zibravdb_filecache::0.2
     script	labs::zibravdb_filecache::0.2
-    label	"Labs ZibraVDB File Cache (Alpha)"
+    label	"Labs ZibraVDB File Cache"
 
     help {
 	""

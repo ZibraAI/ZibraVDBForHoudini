@@ -1,5 +1,5 @@
 Operator:     labs::zibravdb_filecache::0.2
-Label:        Labs ZibraVDB File Cache (Alpha)
+Label:        Labs ZibraVDB File Cache
 Path:         oplib:/labs::Sop/zibravdb_filecache::0.2?labs::Sop/zibravdb_filecache::0.2
 Icon:         zibravdb.svg
 Table:        Sop
@@ -10,5 +10,5 @@ Inputs:       1 to 1
 Subnet:       true
 Python:       false
 Empty:        false
-Modified:     Fri Feb 28 21:29:22 2025
+Modified:     Wed Mar 19 20:43:29 2025
 

@@ -13,7 +13,8 @@
     ZRHI_API_APPLY(macro) \
     ZCE_COMPRESSOR_API_APPLY(macro) \
     ZCE_DECOMPRESSION_API_APPLY(macro) \
-    ZRHI_LICENSING_API_APPLY(macro)
+    ZCE_LICENSING_API_APPLY(macro) \
+    ZCE_TRIAL_API_APPLY(macro) 
 
 // clang-format on
 

@@ -11,7 +11,7 @@ namespace Zibra::ZibraVDBCompressor
 {
     constexpr const char* NODE_NAME_SOP_CONTEXT = "labs::rop_zibravdb_compress::" ZIB_ZIBRAVDB_VERSION_SHORT;
     constexpr const char* NODE_NAME_OUT_CONTEXT = "labs::zibravdb_compress::" ZIB_ZIBRAVDB_VERSION_SHORT;
-    constexpr const char* NODE_LABEL = "Labs ZibraVDB Compress (Alpha)";
+    constexpr const char* NODE_LABEL = "Labs ZibraVDB Compress";
 
     class ROP_ZibraVDBCompressor_Operator : public OP_Operator
     {

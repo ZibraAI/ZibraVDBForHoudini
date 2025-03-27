@@ -1208,6 +1208,23 @@ namespace Zibra::RHI
             StructuredBufferViewDesc structuredBufferViewDesc;
             FormattedBufferViewDesc rawBufferViewDescr;
         };
+
+        InitializeViewDesc() noexcept
+            : type(ViewDataType::None)
+        {
+        }
+
+        explicit InitializeViewDesc(const StructuredBufferViewDesc& desc) noexcept
+            : type(ViewDataType::StructuredBuffer)
+            , structuredBufferViewDesc(desc)
+        {
+        }
+
+        explicit InitializeViewDesc(const FormattedBufferViewDesc& desc) noexcept
+            : type(ViewDataType::FormattedBuffer)
+            , rawBufferViewDescr(desc)
+        {
+        }
     };
 
     /**

@@ -4,6 +4,7 @@
 
 #include "bridge/LibraryUtils.h"
 #include "licensing/LicenseManager.h"
+#include "licensing/TrialManager.h"
 #include "ui/PluginManagementWindow.h"
 #include "utils/GAAttributesDump.h"
 
@@ -315,8 +316,11 @@ namespace Zibra::ZibraVDBCompressor
 
         if (!LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Compression))
         {
-            addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR);
-            return ROP_ABORT_RENDER;
+            if (!TrialManager::RequestTrialCompression())
+            {
+                addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR);
+                return ROP_ABORT_RENDER;
+            }
         }
 
         m_EndTime = tEnd;
@@ -431,12 +435,6 @@ namespace Zibra::ZibraVDBCompressor
 
         assert(LibraryUtils::IsLibraryLoaded());
 
-        if (CE::Licensing::CAPI::GetLicenseStatus(CE::Licensing::ProductType::Compression) != CE::Licensing::LicenseStatus::OK)
-        {
-            addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR);
-            return ROP_ABORT_RENDER;
-        }
-
         executePreFrameScript(time);
 
         OP_Context ctx(time);
@@ -547,6 +545,8 @@ namespace Zibra::ZibraVDBCompressor
         }
 
         auto status = m_CompressorManager.FinishSequence();
+        TrialManager::CheckoutTrialCompression();
+
         if (status != CE::ZCE_SUCCESS)
         {
             addError(ROP_MESSAGE, "Failed to finish compressing sequence.");

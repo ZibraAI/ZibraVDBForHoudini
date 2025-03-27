@@ -133,9 +133,6 @@ namespace Zibra::CE
 
     inline uint32_t CountBits(uint32_t x) noexcept
     {
-#if __cplusplus >= 202002L
-        return std::popcount(x);
-#else
         uint32_t count = 0;
         while (x)
         {
@@ -143,7 +140,6 @@ namespace Zibra::CE
             count++;
         }
         return count;
-#endif
     }
 
     inline float Float16ToFloat32(uint16_t float16Value) noexcept
@@ -167,4 +163,4 @@ namespace Zibra::CE
 
         return *(reinterpret_cast<float*>(&float32_value));
     }
-}
+} // namespace Zibra::CE
