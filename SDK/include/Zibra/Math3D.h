@@ -236,7 +236,7 @@ namespace Zibra::Math3D
         Matrix2x2() = default;
         Matrix2x2(Vector2<T> _x, Vector2<T> _y)
             : x(_x)
-            , y(_y){};
+            , y(_y) {};
     };
     template <typename T>
     struct Matrix3x3
@@ -248,7 +248,7 @@ namespace Zibra::Math3D
         Matrix3x3(Vector3<T> _x, Vector3<T> _y, Vector3<T> _z)
             : x(_x)
             , y(_y)
-            , z(_z){};
+            , z(_z) {};
     };
     template <typename T>
     struct Matrix4x4
@@ -262,8 +262,7 @@ namespace Zibra::Math3D
             : x(_x)
             , y(_y)
             , z(_z)
-            , w(_w)
-                  {};
+            , w(_w) {};
     };
     using float2x2 = Matrix2x2<float32_t>;
     using double2x2 = Matrix2x2<float64_t>;
@@ -399,13 +398,22 @@ namespace Zibra::Math3D
 
     inline int FloorWithEpsilon(float value) noexcept
     {
+// Workaround for GCC bug
+#if defined(__GNUC__) && (__GNUC__ < 14)
+        return static_cast<int>(::floorf(value + std::numeric_limits<float>::epsilon()));
+#else
         return static_cast<int>(std::floorf(value + std::numeric_limits<float>::epsilon()));
+#endif
     }
 
     inline int CeilWithEpsilon(float value) noexcept
     {
+// Workaround for GCC bug
+#if defined(__GNUC__) && (__GNUC__ < 14)
+        return static_cast<int>(::ceilf(value - std::numeric_limits<float>::epsilon()));
+#else
         return static_cast<int>(std::ceilf(value - std::numeric_limits<float>::epsilon()));
+#endif
     }
-
 
 } // namespace Zibra::Math3D

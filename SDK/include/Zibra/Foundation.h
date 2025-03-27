@@ -3,7 +3,8 @@
 #include <istream>
 #include <ostream>
 
-namespace Zibra {
+namespace Zibra
+{
     struct Version
     {
         uint32_t major;
@@ -20,6 +21,7 @@ namespace Zibra {
     {
     public:
         virtual ~IStream() noexcept = default;
+
     public:
         virtual void read(char* s, size_t count) noexcept = 0;
         [[nodiscard]] virtual size_t gcount() const noexcept = 0;
@@ -53,9 +55,9 @@ namespace Zibra {
         struct IStreamVTable
         {
             void* obj;
-            void(*destructor)(void*);
-            void(*read)(void*, char* s, size_t count);
-            size_t(*gcount)(void*);
+            void (*destructor)(void*);
+            void (*read)(void*, char* s, size_t count);
+            size_t (*gcount)(void*);
         };
 
         inline IStreamVTable VTConvert(IStream* obj) noexcept
@@ -70,13 +72,14 @@ namespace Zibra {
 
             return vt;
         }
-    }
+    } // namespace CAPI
 #pragma endregion IStream CAPI
 
     class OStream
     {
     public:
         virtual ~OStream() noexcept = default;
+
     public:
         virtual void write(const char* s, size_t count) noexcept = 0;
         [[nodiscard]] virtual bool fail() const noexcept = 0;
@@ -110,9 +113,9 @@ namespace Zibra {
         struct OStreamVTable
         {
             void* obj;
-            void(*destructor)(void*);
-            void(*write)(void*, const char* s, size_t count);
-            bool(*fail)(void*);
+            void (*destructor)(void*);
+            void (*write)(void*, const char* s, size_t count);
+            bool (*fail)(void*);
         };
 
         inline OStreamVTable VTConvert(OStream* obj) noexcept
@@ -149,7 +152,7 @@ namespace Zibra {
         private:
             OStreamVTable m_VT;
         };
-    }
+    } // namespace CAPI
 #pragma endregion OStream CAPI
 
-}
+} // namespace Zibra
