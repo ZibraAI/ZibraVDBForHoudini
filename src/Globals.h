@@ -28,8 +28,7 @@ namespace Zibra
     constexpr auto* ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR = "License is not verified. Visit "
                                                            "'https://effects.zibra.ai/zibravdbhoudini' for activation.";
     constexpr auto* ZIBRAVDB_ERROR_MESSAGE_NO_FILE_SELECTED = "No file was selected to decompress.";
-    constexpr auto* ZIBRAVDB_ERROR_MESSAGE_COULDNT_OPEN_FILE = "File couldn't be opened. Please check the file and make sure "
-                                                               "it is valid .zibravdb compressed effect.";
+    constexpr auto* ZIBRAVDB_ERROR_MESSAGE_FILE_NOT_FOUND = "Specified file could not be found. Please make sure the file exists and that path is valid.";
     constexpr auto* ZIBRAVDB_ERROR_MESSAGE_COULDNT_DECOMPRESS_FRAME = "Couldn't decompress frame. Please verify "
                                                                       "decompression settings.";
     constexpr auto* ZIBRAVDB_ERROR_MESSAGE_FRAME_INDEX_OUT_OF_RANGE = "Trying to decompress frame out of range of "

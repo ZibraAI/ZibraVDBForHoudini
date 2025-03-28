@@ -113,6 +113,12 @@ namespace Zibra::ZibraVDBDecompressor
             return error(context);
         }
 
+        if (!std::filesystem::exists(filename.toStdString()))
+        {
+            addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_FILE_NOT_FOUND);
+            return error(context);
+        }
+
         auto status = m_DecompressorManager.RegisterDecompressor(filename);
         if (status != CE::ZCE_SUCCESS)
         {

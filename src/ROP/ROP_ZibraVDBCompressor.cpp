@@ -516,6 +516,8 @@ namespace Zibra::ZibraVDBCompressor
             return ROP_ABORT_RENDER;
         }
 
+        CE::Addons::OpenVDBUtils::OpenVDBReader::ReleaseSparseFrame(compressFrameDesc.frame);
+
         auto attrDump = DumpAttributes(gdp);
         DumpFrameFeedback(attrDump, frameFeedback);
         for (const auto& [key, val] : attrDump)
