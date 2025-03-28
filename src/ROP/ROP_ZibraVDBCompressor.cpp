@@ -474,6 +474,14 @@ namespace Zibra::ZibraVDBCompressor
                     return ROP_ABORT_RENDER;
                 }
 
+                const auto gridDimensions = vdbPrim->getGrid().evalActiveVoxelBoundingBox().dim();
+                constexpr size_t MAX_GRID_DIMENSION = 4096;
+                if (gridDimensions.x() > MAX_GRID_DIMENSION || gridDimensions.y() > MAX_GRID_DIMENSION || gridDimensions.z() > MAX_GRID_DIMENSION)
+                {
+                    addError(ROP_MESSAGE, "Grid dimension for one of the axis is larger than maximum supported (4096 voxels).");
+                    return ROP_ABORT_RENDER;
+                }
+
                 volumes.emplace_back(vdbPrim->getGridPtr());
                 orderedChannelNames.push_back(gridName);
                 channelNamesUniqueStorage.insert(gridName);
