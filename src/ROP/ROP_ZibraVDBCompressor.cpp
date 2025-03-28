@@ -451,9 +451,6 @@ namespace Zibra::ZibraVDBCompressor
             return ROP_ABORT_RENDER;
         }
 
-        constexpr size_t ACTIVE_VOXELS_CAP = (1024ull * 1024ull * 1024ull * 2ull) / sizeof(float);
-        size_t totalFrameActiveVoxelsCount = 0;
-
         std::set<std::string> channelNamesUniqueStorage{};
         std::vector<const char*> orderedChannelNames{};
         std::vector<openvdb::GridBase::ConstPtr> volumes{};
@@ -477,11 +474,17 @@ namespace Zibra::ZibraVDBCompressor
                     return ROP_ABORT_RENDER;
                 }
 
+                const auto gridDimensions = vdbPrim->getGrid().evalActiveVoxelBoundingBox().dim();
+                constexpr size_t MAX_GRID_DIMENSION = 4096;
+                if (gridDimensions.x() > MAX_GRID_DIMENSION || gridDimensions.y() > MAX_GRID_DIMENSION || gridDimensions.z() > MAX_GRID_DIMENSION)
+                {
+                    addError(ROP_MESSAGE, "Grid dimension for one of the axis is larger than maximum supported (4096 voxels).");
+                    return ROP_ABORT_RENDER;
+                }
+
                 volumes.emplace_back(vdbPrim->getGridPtr());
                 orderedChannelNames.push_back(gridName);
                 channelNamesUniqueStorage.insert(gridName);
-
-                totalFrameActiveVoxelsCount += vdbPrim->getGrid().activeVoxelCount();
             }
         }
         channelNamesUniqueStorage.clear();
@@ -492,11 +495,6 @@ namespace Zibra::ZibraVDBCompressor
                             " Frame will be skipped in resulting sequence.";
             addWarning(ROP_MESSAGE, m.c_str());
             return ROP_CONTINUE_RENDER;
-        }
-        if (totalFrameActiveVoxelsCount > ACTIVE_VOXELS_CAP)
-        {
-            addError(ROP_MESSAGE, "Total frame active voxels count is higher that maximum supported (536 870 912 voxels).");
-            return ROP_ABORT_RENDER;
         }
 
         CE::Compression::CompressFrameDesc compressFrameDesc{};
