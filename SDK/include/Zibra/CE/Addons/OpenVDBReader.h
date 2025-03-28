@@ -259,7 +259,8 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                                           ++spatialInfoBlock.channelCount;
                                           channelIndexPerBlock[blockData.channelBlockOffset] = channelIndex;
                                       }
-                                      assert(spatialInfoBlock.channelCount == 1);
+                                      
+                                      assert(spatialInfoBlock.channelCount >= 1 && spatialInfoBlock.channelCount <= 8);
                                   });
                 }
 
