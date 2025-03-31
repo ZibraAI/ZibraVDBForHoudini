@@ -1097,18 +1097,6 @@ Content-Type: text/plain
       flags = 0
       segment { length = 0 value = 1 1 expr = ch(\"../f3\") }
     }
-    channel execute {
-      lefttype = extend
-      righttype = extend
-      flags = 0
-      segment { length = 0 expr = ch(\"../execute\") }
-    }
-    channel executebackground {
-      lefttype = extend
-      righttype = extend
-      flags = 0
-      segment { length = 0 expr = ch(\"../executebackground\") }
-    }
     channel quality {
       lefttype = extend
       righttype = extend
@@ -1226,8 +1214,8 @@ Content-Type: text/plain
 
 {
 version 0.8
-execute	[ 0	locks=0 ]	(	[ execute	0 ] 	)
-executebackground	[ 0	locks=0 ]	(	[ executebackground	0 ] 	)
+execute	[ 0	locks=0 ]	(	0	)
+executebackground	[ 0	locks=0 ]	(	0	)
 renderpreview	[ 0	locks=0 ]	(	0	)
 renderdialog	[ 0	locks=0 ]	(	0	)
 trange	[ 8	locks=0 ]	(	[ trange	0 ] 	)
