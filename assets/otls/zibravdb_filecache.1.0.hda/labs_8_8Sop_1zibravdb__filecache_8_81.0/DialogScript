@@ -73,6 +73,8 @@
                 joinnext
                 default { "0" }
                 parmtag { "autoscope" "0000000000000000" }
+                parmtag { "script_callback" "hou.phm().render(kwargs)" }
+                parmtag { "script_callback_language" "python" }
                 parmtag { "takecontrol" "always" }
             }
             parm {
@@ -81,6 +83,8 @@
                 type    button
                 default { "0" }
                 parmtag { "autoscope" "0000000000000000" }
+                parmtag { "script_callback" "hou.phm().backgroundRender(kwargs)" }
+                parmtag { "script_callback_language" "python" }
                 parmtag { "takecontrol" "always" }
             }
         }
