@@ -1,6 +1,6 @@
-Operator:     labs::zibravdb_filecache::0.2
+Operator:     labs::zibravdb_filecache::1.0
 Label:        Labs ZibraVDB File Cache
-Path:         oplib:/labs::Sop/zibravdb_filecache::0.2?labs::Sop/zibravdb_filecache::0.2
+Path:         oplib:/labs::Sop/zibravdb_filecache::1.0?labs::Sop/zibravdb_filecache::1.0
 Icon:         zibravdb.svg
 Table:        Sop
 License:      
@@ -10,5 +10,5 @@ Inputs:       1 to 1
 Subnet:       true
 Python:       false
 Empty:        false
-Modified:     Wed Mar 19 20:43:29 2025
+Modified:     Mon Mar 31 19:47:22 2025
 
