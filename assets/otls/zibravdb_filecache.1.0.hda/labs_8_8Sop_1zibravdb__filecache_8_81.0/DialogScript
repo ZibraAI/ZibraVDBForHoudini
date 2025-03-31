@@ -1,0 +1,413 @@
+# Dialog script for labs::zibravdb_filecache::1.0 automatically generated
+
+{
+    name	labs::zibravdb_filecache::1.0
+    script	labs::zibravdb_filecache::1.0
+    label	"Labs ZibraVDB File Cache"
+
+    help {
+	""
+    }
+
+    inputlabel	1	"Volumes to Cache to Disk"
+    inputlabel	2	"Sub-Network Input #2"
+    inputlabel	3	"Sub-Network Input #3"
+    inputlabel	4	"Sub-Network Input #4"
+    outputlabel	1	"Cached VDBs"
+
+    groupsimple {
+        name    "head"
+        label   "Header"
+        grouptag { "sidefx::look" "blank" }
+
+        parm {
+            name    "loadfromdisk"
+            label   "Load from Disk         "
+            type    toggle
+            joinnext
+            default { "0" }
+            parmtag { "script_callback_language" "python" }
+        }
+        parm {
+            name    "reload"
+            label   "Reload Cache"
+            type    button
+            default { "0" }
+            parmtag { "autoscope" "0000000000000000" }
+            parmtag { "script_callback_language" "python" }
+        }
+    }
+
+    parm {
+        name    "sepparm"
+        label   "Spacer"
+        type    separator
+        default { "" }
+        parmtag { "sidefx::layout_height" "small" }
+        parmtag { "sidefx::look" "blank" }
+    }
+    parm {
+        name    "file"
+        label   "File"
+        type    file
+        default { "$HIP/vol/$HIPNAME.$OS.zibravdb" }
+        menureplace {
+            [ "opmenu -l -a rop_zibravdb_compress filename" ]
+        }
+        parmtag { "autoscope" "0000000000000000" }
+        parmtag { "script_callback_language" "python" }
+    }
+    group {
+        name    "tabs"
+        label   "Caching"
+
+        groupcollapsible {
+            name    "cache"
+            label   "Cache"
+            parmtag { "group_default" "1" }
+
+            parm {
+                name    "execute"
+                label   "Render to Disk"
+                type    button
+                joinnext
+                default { "0" }
+                parmtag { "autoscope" "0000000000000000" }
+                parmtag { "takecontrol" "always" }
+            }
+            parm {
+                name    "executebackground"
+                label   "Background Render"
+                type    button
+                default { "0" }
+                parmtag { "autoscope" "0000000000000000" }
+                parmtag { "takecontrol" "always" }
+            }
+        }
+
+        groupcollapsible {
+            name    "sequence"
+            label   "Sequence"
+            parmtag { "group_default" "1" }
+
+            parm {
+                name    "trange"
+                label   "Valid Frame Range"
+                type    ordinal
+                default { "normal" }
+                menu {
+                    "off"       "Render Current Frame"
+                    "normal"    "Render Frame Range"
+                    "on"        "Render Frame Range Only (Strict)"
+                }
+                parmtag { "autoscope" "0000000000000000" }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "f"
+                label   "Start/End/Inc"
+                type    float
+                size    3
+                default { [ "$FSTART" hscript-expr ] [ "$FEND" hscript-expr ] "1" }
+                range   { 0 10 }
+                parmtag { "autoscope" "0000000000000000" }
+                parmtag { "script_callback_language" "python" }
+            }
+        }
+
+    }
+
+    group {
+        name    "tabs_1"
+        label   "Save Filters"
+
+        parm {
+            name    "deleteattributes"
+            label   "Delete Attributes"
+            type    string
+            default { "" }
+            parmtag { "script_callback_language" "python" }
+        }
+        parm {
+            name    "deletegroups"
+            label   "Delete Groups"
+            type    string
+            default { "" }
+            parmtag { "script_callback_language" "python" }
+        }
+        multiparm {
+            name    "numcasts"
+            label    "Number of Casts"
+            default 0
+            parmtag { "autoscope" "0000000000000000" }
+
+            parm {
+                name    "class#"
+                label   "Class"
+                type    string
+                default { "point" }
+                menu {
+                    "detail"    "Detail"
+                    "primitive" "Primitive"
+                    "point"     "Point"
+                    "vertex"    "Vertex"
+                }
+            }
+            parm {
+                name    "attribs#"
+                label   "Attributes"
+                type    string
+                default { "" }
+            }
+            parm {
+                name    "precision#"
+                label   "Precision"
+                type    string
+                default { "fpreal32" }
+                menu {
+                    "uint8"     "8-bit unsigned integer"
+                    "int8"      "8-bit signed integer"
+                    "int16"     "16-bit integer"
+                    "int32"     "32-bit integer"
+                    "int64"     "64-bit integer"
+                    "fpreal16"  "16-bit float"
+                    "fpreal32"  "32-bit float"
+                    "fpreal64"  "64-bit float"
+                    "preferred" "Convert to Preferred"
+                }
+            }
+        }
+
+    }
+
+    group {
+        name    "tabs_2"
+        label   "Compression Settings"
+
+        parm {
+            name    "quality"
+            label   "Quality"
+            type    float
+            default { "0.6" }
+            range   { 0! 1! }
+            parmtag { "autoscope" "0000000000000000" }
+            parmtag { "script_callback_language" "python" }
+        }
+        parm {
+            name    "useperchsettings"
+            label   "Use per Channel Compression Settings"
+            type    toggle
+            default { "off" }
+            parmtag { "autoscope" "0000000000000000" }
+            parmtag { "script_callback_language" "python" }
+        }
+        multiparm {
+            name    "perch_settings"
+            label    "Number of Channels"
+            default 0
+            disablewhen "{ useperchsettings == off }"
+            parmtag { "autoscope" "0000000000000000" }
+
+            parm {
+                name    "perchname#"
+                label   "Channel Name"
+                type    string
+                default { "" }
+            }
+            parm {
+                name    "perchquality#"
+                label   "Channel Quality"
+                type    float
+                default { "0.6" }
+                range   { 0! 1! }
+            }
+        }
+
+    }
+
+    group {
+        name    "tabs_3"
+        label   "Advanced"
+
+        groupcollapsible {
+            name    "save"
+            label   "Save"
+
+            parm {
+                name    "take"
+                label   "Render with Take"
+                type    string
+                default { "_current_" }
+                menu {
+                    [ "opmenu -l -a rop_zibravdb_compress take" ]
+                }
+                parmtag { "autoscope" "0000000000000000" }
+                parmtag { "script_callback_language" "python" }
+            }
+        }
+
+        groupcollapsible {
+            name    "scripts"
+            label   "Scripts"
+
+            parm {
+                name    "tprerender"
+                label   "Pre-Render Script"
+                type    toggle
+                nolabel
+                joinnext
+                default { "on" }
+                parmtag { "autoscope" "0000000000000000" }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "prerender"
+                label   "Pre-Render Script"
+                type    file
+                joinnext
+                default { "" }
+                menureplace {
+                    [ "opmenu -l -a rop_zibravdb_compress prerender" ]
+                }
+                parmtag { "autoscope" "0000000000000000" }
+                parmtag { "filechooser_mode" "read" }
+            }
+            parm {
+                name    "lprerender"
+                label   "Pre-Render Script Language"
+                type    string
+                nolabel
+                default { "hscript" }
+                menu {
+                    "hscript"   "Hscript"
+                    "python"    "Python"
+                }
+                parmtag { "autoscope" "0000000000000000" }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "tpreframe"
+                label   "Pre-Frame Script"
+                type    toggle
+                nolabel
+                joinnext
+                default { "on" }
+                parmtag { "autoscope" "0000000000000000" }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "preframe"
+                label   "Pre-Frame Script"
+                type    file
+                joinnext
+                default { "" }
+                menureplace {
+                    [ "opmenu -l -a rop_zibravdb_compress preframe" ]
+                }
+                parmtag { "autoscope" "0000000000000000" }
+                parmtag { "filechooser_mode" "read" }
+            }
+            parm {
+                name    "lpreframe"
+                label   "Pre-Frame Script Language"
+                type    string
+                nolabel
+                default { "hscript" }
+                menu {
+                    "hscript"   "Hscript"
+                    "python"    "Python"
+                }
+                parmtag { "autoscope" "0000000000000000" }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "tpostframe"
+                label   "Post-Frame Script"
+                type    toggle
+                nolabel
+                joinnext
+                default { "on" }
+                parmtag { "autoscope" "0000000000000000" }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "postframe"
+                label   "Post-Frame Script"
+                type    file
+                joinnext
+                default { "" }
+                menureplace {
+                    [ "opmenu -l -a rop_zibravdb_compress postframe" ]
+                }
+                parmtag { "autoscope" "0000000000000000" }
+                parmtag { "filechooser_mode" "read" }
+            }
+            parm {
+                name    "lpostframe"
+                label   "Post-Frame Script Language"
+                type    string
+                nolabel
+                default { "hscript" }
+                menu {
+                    "hscript"   "Hscript"
+                    "python"    "Python"
+                }
+                parmtag { "autoscope" "0000000000000000" }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "tpostrender"
+                label   "Post-Render Script"
+                type    toggle
+                nolabel
+                joinnext
+                default { "on" }
+                parmtag { "autoscope" "0000000000000000" }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "postrender"
+                label   "Post-Render Script"
+                type    file
+                joinnext
+                default { "" }
+                menureplace {
+                    [ "opmenu -l -a rop_zibravdb_compress postrender" ]
+                }
+                parmtag { "autoscope" "0000000000000000" }
+                parmtag { "filechooser_mode" "read" }
+            }
+            parm {
+                name    "lpostrender"
+                label   "Post-Render Script Language"
+                type    string
+                nolabel
+                default { "hscript" }
+                menu {
+                    "hscript"   "Hscript"
+                    "python"    "Python"
+                }
+                parmtag { "autoscope" "0000000000000000" }
+                parmtag { "script_callback_language" "python" }
+            }
+        }
+
+    }
+
+    parm {
+        name    "sepparm2"
+        label   "Spacer"
+        type    separator
+        default { "" }
+        parmtag { "sidefx::layout_height" "small" }
+        parmtag { "sidefx::look" "blank" }
+    }
+    parm {
+        name    "openmanagement"
+        label   "Open Plugin Management"
+        type    button
+        default { "0" }
+        parmtag { "autoscope" "0000000000000000" }
+        parmtag { "script_callback_language" "python" }
+    }
+}

@@ -9,7 +9,7 @@ def render(kwargs):
         pass
     
     if len(error_sop.errors()) == 0:
-        rop = hda.node('rop_zibravdb_compress1')
+        rop = hda.node('rop_zibravdb_compress')
         rop.parm('execute').pressButton()
         if len(rop.errors()) == 0:
             hda.parm('loadfromdisk').set(1)
@@ -35,7 +35,7 @@ def backgroundRender(kwargs):
         pass
     
     if len(error_sop.errors()) == 0:
-        rop = hda.node('rop_zibravdb_compress1')
+        rop = hda.node('rop_zibravdb_compress')
         rop.parm('executebackground').pressButton()
         if not hou.hipFile.hasUnsavedChanges():
             if len(rop.errors()) == 0:

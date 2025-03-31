@@ -21,7 +21,7 @@ if (-not $IsWindows -and -not $IsLinux)
     Exit 1
 }
 
-$HDAVersion = "0.2"
+$HDAVersion = "1.0"
 
 if (Test-Path package) {
     Remove-Item -Recurse -Force package
