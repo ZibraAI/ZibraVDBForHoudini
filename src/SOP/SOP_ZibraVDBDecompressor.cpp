@@ -76,7 +76,6 @@ namespace Zibra::ZibraVDBDecompressor
         {
             return;
         }
-        m_DecompressorManager.Initialize();
     }
 
     SOP_ZibraVDBDecompressor::~SOP_ZibraVDBDecompressor() noexcept
@@ -118,6 +117,8 @@ namespace Zibra::ZibraVDBDecompressor
             addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_FILE_NOT_FOUND);
             return error(context);
         }
+
+        m_DecompressorManager.Initialize();
 
         auto status = m_DecompressorManager.RegisterDecompressor(filename);
         if (status != CE::ZCE_SUCCESS)

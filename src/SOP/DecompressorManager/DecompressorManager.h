@@ -39,6 +39,7 @@ namespace Zibra::Helpers
         CE::Decompression::Decompressor* m_Decompressor = nullptr;
         CE::Decompression::FormatMapper* m_FormatMapper = nullptr;
         RHI::RHIRuntime* m_RHIRuntime = nullptr;
+        bool m_IsInitialized = false;
 
         BufferDesc m_DecompressionPerChannelBlockDataBuffer;
         BufferDesc m_DecompressionPerChannelBlockInfoBuffer;

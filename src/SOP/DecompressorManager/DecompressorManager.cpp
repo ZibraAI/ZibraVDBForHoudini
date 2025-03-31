@@ -1,6 +1,7 @@
 #include "PrecompiledHeader.h"
 
 #include "DecompressorManager.h"
+
 #include <Zibra/CE/Literals.h>
 
 #include "bridge/LibraryUtils.h"
@@ -9,6 +10,11 @@ namespace Zibra::Helpers
 {
     CE::ReturnCode DecompressorManager::Initialize() noexcept
     {
+        if (m_IsInitialized)
+        {
+            return CE::ZCE_SUCCESS;
+        }
+
         if (!Zibra::LibraryUtils::IsLibraryLoaded())
         {
             return CE::ZCE_ERROR;
@@ -53,6 +59,9 @@ namespace Zibra::Helpers
             m_DecompressorFactory = nullptr;
             return status;
         }
+
+        m_IsInitialized = true;
+
         return CE::ZCE_SUCCESS;
     }
 
@@ -172,7 +181,8 @@ namespace Zibra::Helpers
         return CE::ZCE_SUCCESS;
     }
 
-    CE::ReturnCode DecompressorManager::DecompressFrame(CE::Decompression::CompressedFrameContainer* frameContainer, openvdb::GridPtrVec* vdbGrids) noexcept
+    CE::ReturnCode DecompressorManager::DecompressFrame(CE::Decompression::CompressedFrameContainer* frameContainer,
+                                                        openvdb::GridPtrVec* vdbGrids) noexcept
     {
         if (!m_RHIRuntime || !m_Decompressor)
         {
@@ -268,8 +278,9 @@ namespace Zibra::Helpers
         }
     }
 
-    CE::ReturnCode DecompressorManager::GetDecompressedFrameData(std::vector<CE::ChannelBlock>& decompressionPerChannelBlockData,
-                                                std::vector<CE::SpatialBlockInfo>& decompressionPerSpatialBlockInfo) const noexcept
+    CE::ReturnCode DecompressorManager::GetDecompressedFrameData(
+        std::vector<CE::ChannelBlock>& decompressionPerChannelBlockData,
+        std::vector<CE::SpatialBlockInfo>& decompressionPerSpatialBlockInfo) const noexcept
     {
         if (!m_RHIRuntime)
         {
@@ -279,9 +290,9 @@ namespace Zibra::Helpers
         const size_t spatialBlockInfoElementCount = decompressionPerSpatialBlockInfo.size() * 3;
         std::vector<uint32_t> scratchBufferSpatialBlockData{};
         scratchBufferSpatialBlockData.resize(spatialBlockInfoElementCount);
-        auto RHIstatus =
-            m_RHIRuntime->GetBufferDataImmediately(m_DecompressionPerSpatialBlockInfoBuffer.buffer, scratchBufferSpatialBlockData.data(),
-                                                   spatialBlockInfoElementCount * sizeof(decltype(scratchBufferSpatialBlockData)::value_type), 0);
+        auto RHIstatus = m_RHIRuntime->GetBufferDataImmediately(
+            m_DecompressionPerSpatialBlockInfoBuffer.buffer, scratchBufferSpatialBlockData.data(),
+            spatialBlockInfoElementCount * sizeof(decltype(scratchBufferSpatialBlockData)::value_type), 0);
         if (RHIstatus != RHI::ZRHI_SUCCESS)
         {
             return CE::ZCE_ERROR;
@@ -289,9 +300,9 @@ namespace Zibra::Helpers
         const size_t channelBlockDataElementCount = decompressionPerChannelBlockData.size() * CE::SPARSE_BLOCK_VOXEL_COUNT;
         std::vector<uint16_t> scratchBufferChannelBlockData{};
         scratchBufferChannelBlockData.resize(channelBlockDataElementCount);
-        RHIstatus =
-            m_RHIRuntime->GetBufferDataImmediately(m_DecompressionPerChannelBlockDataBuffer.buffer, scratchBufferChannelBlockData.data(),
-                                                   channelBlockDataElementCount * sizeof(decltype(scratchBufferChannelBlockData)::value_type), 0);
+        RHIstatus = m_RHIRuntime->GetBufferDataImmediately(
+            m_DecompressionPerChannelBlockDataBuffer.buffer, scratchBufferChannelBlockData.data(),
+            channelBlockDataElementCount * sizeof(decltype(scratchBufferChannelBlockData)::value_type), 0);
         if (RHIstatus != RHI::ZRHI_SUCCESS)
         {
             return CE::ZCE_ERROR;
@@ -361,6 +372,11 @@ namespace Zibra::Helpers
 
     void DecompressorManager::Release() noexcept
     {
+        if (!m_IsInitialized)
+        {
+            return;
+        }
+
         FreeExternalBuffers();
         if (m_Decompressor)
         {
@@ -377,6 +393,8 @@ namespace Zibra::Helpers
             m_RHIRuntime->Release();
             m_RHIRuntime = nullptr;
         }
+
+        m_IsInitialized = false;
     }
 
-} // namespace Zibra::CE::Decompression
+} // namespace Zibra::Helpers
