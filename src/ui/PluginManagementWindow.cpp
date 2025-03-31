@@ -385,6 +385,7 @@ namespace Zibra
 
     void PluginManagementWindowImpl::UpdateUI()
     {
+        LibraryUtils::LoadLibrary();
         {
             std::string libraryStatus;
             if (!LibraryUtils::IsPlatformSupported())
@@ -431,7 +432,11 @@ namespace Zibra
         {
             std::string trialStatus;
 
-            if (LicenseManager::GetInstance().GetLicenseStatus(LicenseManager::Product::Compression) == LicenseManager::Status::OK)
+            if (!LibraryUtils::IsLibraryLoaded())
+            {
+                trialStatus = "Download library to see trial status.";
+            }
+            else if (LicenseManager::GetInstance().GetLicenseStatus(LicenseManager::Product::Compression) == LicenseManager::Status::OK)
             {
                 trialStatus = "License activated, no trial required.";
             }
