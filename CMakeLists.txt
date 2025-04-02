@@ -6,6 +6,9 @@ include(CMakePrintHelpers)
 # So any configuration will use the same runtime library as Houdini
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
 
+option(LABS_BUILD "Build for Labs. Disables certain build system quirks." OFF)
+cmake_print_variables(LABS_BUILD)
+
 project(ZibraVDBForHoudini)
 
 # Target platform identification
@@ -125,11 +128,14 @@ add_custom_command(TARGET ZibraVDBForHoudini POST_BUILD
     ${OUTPUT_PATH}
 )
 
-add_custom_command(TARGET ZibraVDBForHoudini POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy 
-    ${CMAKE_CURRENT_SOURCE_DIR}/external/ThirdPartyCopyrightNotices.txt
-    ${OUTPUT_PATH}/dso/ZibraVDBForHoudiniThirdPartyCopyrightNotices.txt
-)
+# Labs uses separate file for copyright notices
+if(NOT ${LABS_BUILD})
+    add_custom_command(TARGET ZibraVDBForHoudini POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_CURRENT_SOURCE_DIR}/external/ThirdPartyCopyrightNotices.txt
+        ${OUTPUT_PATH}/dso/ZibraVDBForHoudiniThirdPartyCopyrightNotices.txt
+    )
+endif()
 
 list(APPEND CMAKE_PREFIX_PATH "${HOUDINI_PATH}/toolkit/cmake")
 find_package(Houdini REQUIRED)
@@ -143,7 +149,7 @@ if(MSVC)
         VS_DEBUGGER_COMMAND "${HOUDINI_PATH}/bin/houdini${CMAKE_EXECUTABLE_SUFFIX}"
         VS_DEBUGGER_COMMAND_ARGUMENTS "${CMAKE_CURRENT_SOURCE_DIR}/HIP/HDAs.hip"
         VS_DEBUGGER_ENVIRONMENT "HOUDINI_OTLSCAN_PATH=${CMAKE_CURRENT_SOURCE_DIR}/assets/otls\nHOUDINI_TEXT_CONSOLE=1"
-        )
+    )
     set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         PROPERTY VS_STARTUP_PROJECT ZibraVDBForHoudini)
 endif()
