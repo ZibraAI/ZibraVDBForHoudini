@@ -122,14 +122,21 @@ cmake_print_variables(OUTPUT_PATH)
 set(HOUDINI_INSTDIR "${OUTPUT_PATH}/dso")
 cmake_print_variables(HOUDINI_INSTDIR)
 
-add_custom_command(TARGET ZibraVDBForHoudini POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/assets
-    ${OUTPUT_PATH}
-)
+if(${LABS_BUILD})
+    # Icons and HDA are handled separaetely in Labs
+    add_custom_command(TARGET ZibraVDBForHoudini POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/config/Applications/
+        ${OUTPUT_PATH}/config/Applications/
+    )
+    # Labs uses separate file for copyright notices, skip copying 
+else()
+    add_custom_command(TARGET ZibraVDBForHoudini POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets
+        ${OUTPUT_PATH}
+    )
 
-# Labs uses separate file for copyright notices
-if(NOT ${LABS_BUILD})
     add_custom_command(TARGET ZibraVDBForHoudini POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_CURRENT_SOURCE_DIR}/external/ThirdPartyCopyrightNotices.txt
