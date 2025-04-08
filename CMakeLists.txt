@@ -44,6 +44,10 @@ else()
     message(FATAL_ERROR "Unsupported compiler")
 endif()
 
+if(UNIX)
+    set(CMAKE_INSTALL_RPATH "${INSTALL_RPATH}")
+endif()
+
 set(HeaderFiles
     src/PrecompiledHeader.h
     src/Globals.h
@@ -87,6 +91,7 @@ target_precompile_headers(ZibraVDBForHoudini PRIVATE src/PrecompiledHeader.h)
 target_compile_definitions(ZibraVDBForHoudini PRIVATE ZIB_PLATFORM_${OS_NAME_CAPITALIZED}=1)
 
 target_include_directories(ZibraVDBForHoudini PRIVATE SDK/include)
+target_include_directories(ZibraVDBForHoudini PRIVATE "${HOUDINI_INCLUDE_DIR}")
 
 if(DEFINED ENV{ZIBRA_HOUDINI_PATH})
     message(STATUS "ENV{ZIBRA_HOUDINI_PATH}: $ENV{ZIBRA_HOUDINI_PATH}")
@@ -148,8 +153,12 @@ list(APPEND CMAKE_PREFIX_PATH "${HOUDINI_PATH}/toolkit/cmake")
 find_package(Houdini REQUIRED)
 target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini Houdini::Dep::openvdb_sesi)
 
-houdini_configure_target(ZibraVDBForHoudini INSTDIR ${HOUDINI_INSTDIR})
-install(TARGETS ZibraVDBForHoudini DESTINATION ${HOUDINI_INSTDIR})
+if(${LABS_BUILD})
+    set_target_properties(ZibraVDBForHoudini PROPERTIES PREFIX "")
+    install(TARGETS ZibraVDBForHoudini DESTINATION ${HOUDINI_INSTDIR})
+else()
+    houdini_configure_target(ZibraVDBForHoudini INSTDIR ${HOUDINI_INSTDIR})
+endif()
 
 if(MSVC)
     set_target_properties(ZibraVDBForHoudini PROPERTIES
