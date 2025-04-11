@@ -68,7 +68,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             }
         }
 
-        Compression::SparseFrame* LoadFrame(Feedback* outFeedback = nullptr) noexcept
+        Compression::SparseFrame* LoadFrame(bool resampleChannels = true, Feedback* outFeedback = nullptr) noexcept
         {
             using namespace Compression;
 
@@ -87,7 +87,11 @@ namespace Zibra::CE::Addons::OpenVDBUtils
 
                 const auto channelCount = int32_t(orderedInputChannels.size());
 
-                const openvdb::FloatGrid::ConstPtr originGrid = GetOriginGrid(m_Grids);
+                openvdb::FloatGrid::ConstPtr originGrid = nullptr;
+                if (resampleChannels)
+                {
+                    originGrid = GetOriginGrid(m_Grids);
+                }
 
                 Math3D::AABB aabb = {};
                 struct LocalBlockData
@@ -124,13 +128,19 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                     gridCopy->tree().voxelizeActiveTiles();
 
                     openvdb::FloatGrid::Ptr gridOut;
-
-                    const openvdb::math::Transform relativeTransform = GetIndexSpaceRelativeTransform(grid, originGrid);
-
-                    // Only apply transformation if it's not identity to not waste time on unnecessary operations.
-                    if (!relativeTransform.isIdentity())
+                    if (resampleChannels)
                     {
-                        gridOut = OpenVDBGridTransform(gridCopy, originGrid, relativeTransform);
+                        const openvdb::math::Transform relativeTransform = GetIndexSpaceRelativeTransform(grid, originGrid);
+
+                        // Only apply transformation if it's not identity to not waste time on unnecessary operations.
+                        if (!relativeTransform.isIdentity())
+                        {
+                            gridOut = OpenVDBGridTransform(gridCopy, originGrid, relativeTransform);
+                        }
+                        else
+                        {
+                            gridOut = gridCopy;
+                        }
                     }
                     else
                     {
@@ -259,7 +269,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                                           ++spatialInfoBlock.channelCount;
                                           channelIndexPerBlock[blockData.channelBlockOffset] = channelIndex;
                                       }
-                                      
+
                                       assert(spatialInfoBlock.channelCount >= 1 && spatialInfoBlock.channelCount <= 8);
                                   });
                 }
@@ -309,12 +319,26 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                             static_cast<float>(meanNegativeChannelValue[channelIndex] / perChannelBlockCount[channelIndex]);
                         statistics.voxelCount = perChannelBlockCount[channelIndex] * SPARSE_BLOCK_VOXEL_COUNT;
 
-                        const double volume = originGrid->constTransform().voxelVolume();
-                        if (!Math3D::IsNearlyEqual(volume, 0.))
+                        if (resampleChannels)
                         {
-                            // TODO: calculate translated transform per channel.
-                            channelInfo.gridTransform = CastOpenVDBTransformToTransform(GetTranslatedFrameTransform(
-                                originGrid->constTransform(), openvdb::math::Vec3d(aabb.minX, aabb.minY, aabb.minZ) * SPARSE_BLOCK_SIZE));
+                            const auto& vdbTransform = originGrid->constTransform();
+                            const double volume = vdbTransform.voxelVolume();
+                            if (!Math3D::IsNearlyEqual(volume, 0.))
+                            {
+                                channelInfo.gridTransform = CastOpenVDBTransformToTransform(GetTranslatedFrameTransform(
+                                    vdbTransform, openvdb::math::Vec3d(aabb.minX, aabb.minY, aabb.minZ) * SPARSE_BLOCK_SIZE));
+                            }
+                        }
+                        else
+                        {
+                            const openvdb::FloatGrid::ConstPtr grid = orderedChannels[channelIndex].second;
+                            const auto& vdbTransform = grid->constTransform();
+                            const double volume = vdbTransform.voxelVolume();
+                            if (!Math3D::IsNearlyEqual(volume, 0.))
+                            {
+                                channelInfo.gridTransform = CastOpenVDBTransformToTransform(GetTranslatedFrameTransform(
+                                    grid->constTransform(), openvdb::math::Vec3d(aabb.minX, aabb.minY, aabb.minZ) * SPARSE_BLOCK_SIZE));
+                            }
                         }
                     }
 
