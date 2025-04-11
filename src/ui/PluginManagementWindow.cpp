@@ -542,8 +542,15 @@ namespace Zibra
             SetStringField("license_file_loaded_via.val", licensePathType.c_str());
         }
         {
-            std::string licenseFilePath = LicenseManager::GetInstance().GetLicensePath();
-            SetStringField("license_file_path.val", licenseFilePath.c_str());
+            const std::string& licenseFilePath = LicenseManager::GetInstance().GetLicensePath();
+            if (licenseFilePath.empty())
+            {
+                SetStringField("license_file_path.val", "None");
+            }
+            else
+            {
+                SetStringField("license_file_path.val", licenseFilePath.c_str());
+            }
         }
     }
 

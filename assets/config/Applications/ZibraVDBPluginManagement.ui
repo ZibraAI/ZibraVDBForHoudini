@@ -79,7 +79,7 @@ window.gad = NORMAL_WINDOW "ZibraVDB"
     {
         JUSTIFY(left, center)
 
-        LABEL "License loaded via " WIDTH(1.15);
+        LABEL "License loaded via: " WIDTH(1.15);
         LABEL VALUE(license_file_loaded_via.val);
     }
 
