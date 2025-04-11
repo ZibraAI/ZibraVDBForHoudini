@@ -505,7 +505,7 @@ namespace Zibra::ZibraVDBCompressor
 
         CE::Addons::OpenVDBUtils::OpenVDBReader vdbReader{volumes.data(), orderedChannelNames.data(), orderedChannelNames.size()};
         CE::Addons::OpenVDBUtils::OpenVDBReader::Feedback frameFeedback{};
-        compressFrameDesc.frame = vdbReader.LoadFrame(&frameFeedback);
+        compressFrameDesc.frame = vdbReader.LoadFrame(false, &frameFeedback);
 
         auto status = m_CompressorManager.CompressFrame(compressFrameDesc, &frameManager);
         if (status != CE::ZCE_SUCCESS)

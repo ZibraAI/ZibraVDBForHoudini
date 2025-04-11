@@ -31,10 +31,6 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 return {};
             }
 
-            // TODO (VDB-978): use per frame transform.
-            openvdb::math::Transform::Ptr transform =
-                openvdb::math::Transform::createLinearTransform(openvdb::Mat4d{frameInfo.channels[0].gridTransform.raw});
-
             const uint32_t gridCount = frameInfo.channelsCount;
 
             // Create grids.
@@ -47,7 +43,8 @@ namespace Zibra::CE::Addons::OpenVDBUtils
 
                 openvdb::FloatGrid::Ptr grid = openvdb::FloatGrid::create(0.f);
                 grid->setName(channelName);
-                grid->setTransform(transform);
+                grid->setTransform(
+                    openvdb::math::Transform::createLinearTransform(openvdb::Mat4d{frameInfo.channels[i].gridTransform.raw}));
                 grids.push_back(grid);
             }
 
