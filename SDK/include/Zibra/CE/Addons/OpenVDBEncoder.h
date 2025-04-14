@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Zibra/Math3D.h>
 #include <Zibra/CE/Common.h>
 #include <Zibra/CE/Decompression.h>
 #include <algorithm>
@@ -22,6 +23,26 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             size_t perSpatialBlocksInfoCount = 0;
         };
 
+        static openvdb::math::Transform::Ptr SanitizeTransform(const Math3D::Transform& inTransform)
+        {
+            bool isEmpty = true;
+            for (float value : inTransform.raw)
+            {
+                if (!Math3D::IsNearlyEqual(value, 0.0f))
+                {
+                    isEmpty = false;
+                    break;
+                }
+            }
+
+            if (isEmpty)
+            {
+                return openvdb::math::Transform::createLinearTransform();
+            }
+
+            return openvdb::math::Transform::createLinearTransform(openvdb::Mat4d{inTransform.raw});
+        }
+
         static openvdb::GridPtrVec CreateGrids(const Decompression::FrameInfo& frameInfo) noexcept
         {
             using namespace Decompression;
@@ -43,8 +64,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
 
                 openvdb::FloatGrid::Ptr grid = openvdb::FloatGrid::create(0.f);
                 grid->setName(channelName);
-                grid->setTransform(
-                    openvdb::math::Transform::createLinearTransform(openvdb::Mat4d{frameInfo.channels[i].gridTransform.raw}));
+                grid->setTransform(SanitizeTransform(frameInfo.channels[i].gridTransform));
                 grids.push_back(grid);
             }
 
