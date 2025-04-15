@@ -11,6 +11,54 @@
 
 namespace Zibra::CE::Addons::OpenVDBUtils
 {
+    class FrameLoader {
+        struct ChannelDescriptor
+        {
+            std::string name;
+            openvdb::GridBase::ConstPtr grid;
+            uint32_t componentIndex;
+        };
+
+    public:
+        explicit FrameLoader(openvdb::GridBase::ConstPtr* grids, size_t gridsCount) noexcept
+        {
+            m_Channels.reserve(gridsCount);
+            for (size_t i = 0; i < gridsCount; ++i)
+            {
+                ChannelDescriptor descriptor{};
+                descriptor.grid = grids[i];
+
+
+                openvdb::GridBase::ConstPtr a = grids[i]->deepCopyGrid();
+                m_Channels.emplace_back(descriptor);
+            }
+        }
+
+        [[nodiscard]] Compression::SparseFrame* LoadFrame() const noexcept
+        {
+            auto result = new Compression::SparseFrame{};
+
+
+
+            for ()
+            {
+                result;
+            }
+
+            return result;
+        }
+    private:
+        std::vector<ChannelDescriptor> m_Channels{};
+    };
+
+
+
+
+
+
+
+
+
     class OpenVDBReader final
     {
     public:
