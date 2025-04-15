@@ -18,7 +18,12 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             openvdb::GridBase::ConstPtr grid;
             uint32_t componentIndex;
         };
-
+        struct LocalSpatialBlock
+        {
+            uint32_t spatialBlockOffset = 0;
+            uint32_t channelBlockOffset = 0;
+            std::map<uint8_t, ChannelBlock*> blocks{};
+        };
     public:
         explicit FrameLoader(openvdb::GridBase::ConstPtr* grids, size_t gridsCount) noexcept
         {
@@ -40,6 +45,28 @@ namespace Zibra::CE::Addons::OpenVDBUtils
 
 
 
+            std::map<openvdb::Coord, LocalSpatialBlock> spatialBlocks{};
+
+            for (size_t i = 0; i < m_Channels.size(); ++i)
+            {
+                const ChannelDescriptor& channel = m_Channels[i];
+                if (channel.grid->type() == "vec3f")
+                {
+                    ResolveBlocks(openvdb::gridConstPtrCast<openvdb::Vec3fGrid>(channel.grid));
+                }
+                else
+                {
+                    ResolveBlocks(openvdb::gridConstPtrCast<openvdb::FloatGrid>(channel.grid));
+                }
+                ResolveBlocks();
+            }
+
+            result->blocksCount = 0;
+            result->spatialInfoCount = 0;
+            result->blocks = new ChannelBlock[result->blocksCount];
+            result->spatialInfo = new SpatialBlockInfo[result->spatialInfoCount];
+
+
             for ()
             {
                 result;
@@ -47,6 +74,42 @@ namespace Zibra::CE::Addons::OpenVDBUtils
 
             return result;
         }
+    private:
+        template<class T>
+        void ResolveBlocks(openvdb::Vec3fGrid::ConstPtr grid, std::map<openvdb::Coord, LocalSpatialBlock> spatialMap) const noexcept
+        {
+            for (auto leafIt = grid->tree().cbeginLeaf(); leafIt; ++leafIt)
+            {
+                const auto leaf = leafIt.getLeaf();
+                const Math3D::AABB leafAABB = CalculateAABB(leaf->getNodeBoundingBox());
+                openvdb::Coord origin = openvdb::Coord(leafAABB.minX, leafAABB.minY, leafAABB.minZ);
+
+                auto slbIt = spatialMap.find(origin);
+                LocalSpatialBlock& localSpatialBlock = slbIt == spatialMap.end() ? LocalSpatialBlock{} : slbIt->second;
+
+
+                leaf->buffer().data();
+            }
+        }
+
+        static Math3D::AABB CalculateAABB(const openvdb::CoordBBox bbox)
+        {
+            Math3D::AABB result{};
+
+            const openvdb::math::Vec3d transformedBBoxMin = bbox.min().asVec3d();
+            const openvdb::math::Vec3d transformedBBoxMax = bbox.max().asVec3d();
+
+            result.minX = FloorToBlockSize(Math3D::FloorWithEpsilon(transformedBBoxMin.x())) / SPARSE_BLOCK_SIZE;
+            result.minY = FloorToBlockSize(Math3D::FloorWithEpsilon(transformedBBoxMin.y())) / SPARSE_BLOCK_SIZE;
+            result.minZ = FloorToBlockSize(Math3D::FloorWithEpsilon(transformedBBoxMin.z())) / SPARSE_BLOCK_SIZE;
+
+            result.maxX = CeilToBlockSize(Math3D::CeilWithEpsilon(transformedBBoxMax.x())) / SPARSE_BLOCK_SIZE;
+            result.maxY = CeilToBlockSize(Math3D::CeilWithEpsilon(transformedBBoxMax.y())) / SPARSE_BLOCK_SIZE;
+            result.maxZ = CeilToBlockSize(Math3D::CeilWithEpsilon(transformedBBoxMax.z())) / SPARSE_BLOCK_SIZE;
+
+            return result;
+        }
+
     private:
         std::vector<ChannelDescriptor> m_Channels{};
     };
