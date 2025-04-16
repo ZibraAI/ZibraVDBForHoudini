@@ -17,7 +17,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         {
             std::string name;
             ChannelMask channelMask;
-            openvdb::GridBase::ConstPtr grid;
+            openvdb::GridBase::Ptr grid;
             uint32_t valueSize;
             uint32_t valueStride;
             uint32_t valueOffset;
@@ -44,14 +44,15 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             for (size_t i = 0; i < gridsCount; ++i)
             {
                 std::vector<ChannelDescriptor> channels;
+                openvdb::GridBase::Ptr mutableCopy = grids[i]->deepCopyGrid();
 
                 if (grids[i]->baseTree().isType<openvdb::Vec3fTree>())
                 {
-                    channels = ChannelsFromGrid(grids[i], 3, sizeof(float), mask);
+                    channels = ChannelsFromGrid(mutableCopy, 3, sizeof(float), mask);
                 }
                 else if (grids[i]->baseTree().isType<openvdb::FloatTree>())
                 {
-                    channels = ChannelsFromGrid(grids[i], 1, sizeof(float), mask);
+                    channels = ChannelsFromGrid(mutableCopy, 1, sizeof(float), mask);
                 }
                 else
                 {
@@ -118,7 +119,10 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 orderedChannels[i].name = chName;
                 orderedChannels[i].statistics.minValue = std::numeric_limits<float>::max();
                 orderedChannels[i].statistics.maxValue = std::numeric_limits<float>::min();
-                orderedChannels[i].gridTransform = OpenVDBTransformToMath3DTransform(m_Channels[i].grid->transform());
+
+                auto posVoxelSpaceCompensation = openvdb::math::Vec3d(totalAABB.minX, totalAABB.minY, totalAABB.minZ) * SPARSE_BLOCK_SIZE;
+                auto translatedTransform = TranslateOpenVDBTransform(m_Channels[i].grid->constTransform(), posVoxelSpaceCompensation);
+                orderedChannels[i].gridTransform = OpenVDBTransformToMath3DTransform(translatedTransform);
             }
 
             std::vector<Compression::VoxelStatistics> perBlockStatistics{};
@@ -189,7 +193,8 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         template<class T>
         Math3D::AABB ResolveBlocks(const ChannelDescriptor& ch, std::map<openvdb::Coord, SpatialBlockIntermediate>& spatialMap) const noexcept
         {
-            openvdb::FloatGrid::ConstPtr grid = openvdb::gridConstPtrCast<openvdb::FloatGrid>(ch.grid);
+            openvdb::FloatGrid::Ptr grid = openvdb::gridPtrCast<openvdb::FloatGrid>(ch.grid);
+            grid->tree().voxelizeActiveTiles();
 
             Math3D::AABB totalAABB = {};
             for (auto leafIt = grid->tree().cbeginLeaf(); leafIt; ++leafIt)
@@ -229,6 +234,20 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             return result;
         }
 
+        static openvdb::math::Transform TranslateOpenVDBTransform(const openvdb::math::Transform& frameTransform,
+                                                                  const openvdb::math::Vec3d& frameTranslation)
+        {
+            // Update transformation matrix to account for additional frameTranslation that was added to coords.
+            openvdb::math::Transform resultTransform = frameTransform;
+
+            // transform3x3 will apply only 3x3 part of matrix, without translation.
+            const openvdb::math::Vec3d frameTranslationInFrameCoordinateSystem =
+                frameTransform.baseMap()->getAffineMap()->getMat4().transform3x3(frameTranslation);
+            resultTransform.postTranslate(frameTranslationInFrameCoordinateSystem);
+
+            return resultTransform;
+        }
+
         static uint32_t FirstChannelIndexFromMask(ChannelMask mask) noexcept
         {
             for (size_t i = 0; i < sizeof(mask) * 8; ++i)
@@ -241,7 +260,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             return 0;
         }
 
-        static std::vector<ChannelDescriptor> ChannelsFromGrid(openvdb::GridBase::ConstPtr grid, uint32_t voxelComponentCount,
+        static std::vector<ChannelDescriptor> ChannelsFromGrid(openvdb::GridBase::Ptr grid, uint32_t voxelComponentCount,
                                                                uint32_t voxelComponentSize, ChannelMask firstChMask) noexcept
         {
             std::vector<ChannelDescriptor> result{};
