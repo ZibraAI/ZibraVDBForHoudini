@@ -63,12 +63,9 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         [[nodiscard]] Compression::SparseFrame* LoadFrame() const noexcept
         {
             auto result = new Compression::SparseFrame{};
-
-
-
             std::map<openvdb::Coord, SpatialBlockIntermediate> spatialBlocks{};
-
             Math3D::AABB totalAABB = {};
+
             for (size_t i = 0; i < m_Channels.size(); ++i)
             {
                 const ChannelDescriptor& channel = m_Channels[i];
@@ -90,26 +87,41 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             }
 
             auto* resultBlocks = new ChannelBlock[result->blocksCount];
+            auto* channelIndexPerBlock = new uint32_t[result->blocksCount];
             auto* resultSpatialInfo = new SpatialBlockInfo[result->spatialInfoCount];
+            auto* orderedChannels = new Compression::ChannelInfo[m_Channels.size()];
+
             result->blocksCount = channelBlockAccumulator;
             result->spatialInfoCount = spatialBlocks.size();
+            result->orderedChannelsCount = m_Channels.size();
+
             result->blocks = resultBlocks;
             result->spatialInfo = resultSpatialInfo;
+            result->orderedChannels = orderedChannels;
 
             result->aabb = totalAABB;
-            result->channelIndexPerBlock = ;
-            result->orderedChannels = ;
-            result->orderedChannelsCount = ;
-            result->originalSize = ;
+            result->channelIndexPerBlock = channelIndexPerBlock;
+
+            for (size_t i = 0; i < m_Channels.size(); ++i)
+            {
+                auto chName = new char[m_Channels[i].name.length() + 1];
+                strcpy(chName, m_Channels[i].name.c_str());
+                orderedChannels[i].name = chName;
+                //TODO: fill statistics
+                orderedChannels[i].gridTransform = OpenVDBTransformToMath3DTransform(m_Channels[i].grid->transform());
+            }
 
             std::for_each(std::execution::par_unseq, spatialBlocks.begin(), spatialBlocks.end(), [&](const std::pair<openvdb::Coord, SpatialBlockIntermediate>& item){
                 auto& [coord, spatialIntrm] = item;
                 ChannelMask mask = 0x0;
 
                 //TODO: ensure right channels order
+                size_t i = 0;
                 for (auto& [chMask, chBlockIntrm] : spatialIntrm.blocks) {
+                    uint32_t channelBlockIndex = spatialIntrm.destFirstChannelBlockIndex + i;
                     mask |= chMask;
-                    PackFromStride(&resultBlocks[spatialIntrm.destFirstChannelBlockIndex], chBlockIntrm.data,
+                    channelIndexPerBlock[channelBlockIndex] = FirstChannelIndexFromMask(chMask);
+                    PackFromStride(&resultBlocks[channelBlockIndex], chBlockIntrm.data,
                                    chBlockIntrm.valueStride, chBlockIntrm.valueOffset, chBlockIntrm.valueSize,
                                    SPARSE_BLOCK_VOXEL_COUNT);
                 }
@@ -122,13 +134,15 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 spatialInfo.channelCount = spatialIntrm.blocks.size();
                 spatialInfo.channelBlocksOffset = spatialIntrm.destFirstChannelBlockIndex;
                 resultSpatialInfo[spatialIntrm.destSpatialBlockIndex] = spatialInfo;
+
+                ++i;
             });
 
             return result;
         }
     private:
         template<class T>
-        Math3D::AABB ResolveBlocks(ChannelDescriptor& ch, std::map<openvdb::Coord, SpatialBlockIntermediate>& spatialMap) const noexcept
+        Math3D::AABB ResolveBlocks(const ChannelDescriptor& ch, std::map<openvdb::Coord, SpatialBlockIntermediate>& spatialMap) const noexcept
         {
             openvdb::Vec3fGrid::ConstPtr grid = openvdb::gridConstPtrCast<openvdb::Vec3fGrid>(ch.grid);
 
@@ -152,6 +166,32 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 localSpatialBlock.blocks[ch.channelMask] = localChannelBlock;
             }
             return totalAABB;
+        }
+
+        static Math3D::Transform OpenVDBTransformToMath3DTransform(const openvdb::math::Transform& transform) noexcept
+        {
+            Math3D::Transform result{};
+
+            const openvdb::math::Mat4 map = transform.baseMap()->getAffineMap()->getMat4();
+            for (int i = 0; i < 16; ++i)
+            {
+                // Flat indexing to 2D index conversion.
+                result.raw[i] = float(map(i >> 2, i & 3));
+            }
+
+            return result;
+        }
+
+        static uint32_t FirstChannelIndexFromMask(ChannelMask mask) noexcept
+        {
+            for (size_t i = 0; i < sizeof(mask) * 8; ++i)
+            {
+                if (mask & 1 << i)
+                {
+                    return i;
+                }
+            }
+            return 0;
         }
 
         static std::vector<ChannelDescriptor> ChannelsFromGrid(openvdb::GridBase::ConstPtr grid, uint32_t voxelComponentCount,
@@ -212,7 +252,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 return "y";
             case 2:
                 return "z";
-            case 4:
+            case 3:
                 return "w";
             default:
                 return "c"s + std::to_string(idx);
