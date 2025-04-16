@@ -30,10 +30,8 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         };
         struct SpatialBlockIntermediate
         {
-            // Offset in SpatialBlock units
-            uint32_t spatialBlockOffset = 0;
-            // Offset in ChannelBlock units
-            uint32_t channelBlockOffset = 0;
+            uint32_t destSpatialBlockIndex = 0;
+            uint32_t destFirstChannelBlockIndex = 0;
             std::map<ChannelMask, ChannelBlockIntermediate> blocks{};
         };
     public:
@@ -75,10 +73,10 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             }
 
             uint32_t channelBlockAccumulator = 0;
-            for (auto& [coord, sparseBlock] : spatialBlocks)
+            for (auto& [coord, spatialBlock] : spatialBlocks)
             {
-                sparseBlock.channelBlockOffset = channelBlockAccumulator;
-                channelBlockAccumulator += sparseBlock.blocks.size();
+                spatialBlock.destFirstChannelBlockIndex = channelBlockAccumulator;
+                channelBlockAccumulator += spatialBlock.blocks.size();
             }
 
             result->blocksCount = channelBlockAccumulator;
@@ -86,12 +84,30 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             result->blocks = new ChannelBlock[result->blocksCount];
             result->spatialInfo = new SpatialBlockInfo[result->spatialInfoCount];
 
+            result->aabb = ;
+            result->channelIndexPerBlock = ;
+            result->orderedChannels = ;
+            result->orderedChannelsCount = ;
+            result->originalSize = ;
 
+            std::for_each(std::execution::par_unseq, spatialBlocks.begin(), spatialBlocks.end(), [&](const std::pair<openvdb::Coord, SpatialBlockIntermediate>& item){
+                auto& [coord, spatialIntrm] = item;
+                SpatialBlockInfo spatialInfo{};
+                spatialInfo.coords[0] = coord.x();
+                spatialInfo.coords[0] = coord.y();
+                spatialInfo.coords[0] = coord.z();
+                spatialInfo.channelMask = ;
+                spatialInfo.channelCount = spatialIntrm.blocks.size();
+                spatialInfo.channelBlocksOffset = spatialIntrm.destFirstChannelBlockIndex;
+                result->spatialInfo[spatialIntrm.destSpatialBlockIndex] = spatialInfo;
 
-            for ()
-            {
-                result;
-            }
+                //TODO: ensure right channels order
+                for (auto& [mask, blockIntrm] : spatialIntrm.blocks) {
+                    PackFromStride(result->blocks[spatialIntrm.destFirstChannelBlockIndex], blockIntrm.data,
+                                   blockIntrm.valueStride, blockIntrm.valueOffset, blockIntrm.valueSize,
+                                   SPARSE_BLOCK_VOXEL_COUNT);
+                }
+            });
 
             return result;
         }
@@ -136,6 +152,18 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             result.maxZ = CeilToBlockSize(Math3D::CeilWithEpsilon(transformedBBoxMax.z())) / SPARSE_BLOCK_SIZE;
 
             return result;
+        }
+
+        static void PackFromStride(void* dst, void* src, size_t stride, size_t offset, size_t size, size_t count) noexcept {
+            if (stride == size && offset == 0) {
+                memcpy(dst, src, count * size);
+            } else {
+                auto dstBytes = static_cast<uint8_t*>(dst);
+                auto srcBytes = static_cast<uint8_t*>(src);
+                for (size_t i = 0; i < count; ++i) {
+                    memcpy(dstBytes + size * i, srcBytes + stride * i + offset, size);
+                }
+            }
         }
 
     private:
