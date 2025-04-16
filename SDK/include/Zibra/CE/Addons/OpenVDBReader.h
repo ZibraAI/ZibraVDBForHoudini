@@ -38,16 +38,25 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         explicit FrameLoader(openvdb::GridBase::ConstPtr* grids, size_t gridsCount) noexcept
         {
             m_Channels.reserve(gridsCount);
+
+            ChannelMask mask = 0x1;
             for (size_t i = 0; i < gridsCount; ++i)
             {
-                ChannelDescriptor descriptor{};
-                descriptor.grid = grids[i];
-                descriptor.valueSize = sizeof(uint16_t);
-                descriptor.valueStride = ;
-                descriptor.valueOffset = ;
+                std::vector<ChannelDescriptor> channels;
 
-                openvdb::GridBase::ConstPtr a = grids[i]->deepCopyGrid();
-                m_Channels.emplace_back(descriptor);
+                // grids[i]->baseTree().isType<openvdb::Vec3f>()
+                if (grids[i]->type() == "vec3f")
+                {
+                    channels = ChannelsFromGrid(grids[i], 3, sizeof(float), mask);
+                }
+                else
+                {
+                    assert(0 && "Unsupported grid type. Loader supports only floating point grids.");
+                    m_Channels.clear();
+                    return;
+                }
+                mask = mask << channels.size();
+                m_Channels.insert(m_Channels.end(), channels.begin(), channels.end());
             }
         }
 
@@ -59,16 +68,17 @@ namespace Zibra::CE::Addons::OpenVDBUtils
 
             std::map<openvdb::Coord, SpatialBlockIntermediate> spatialBlocks{};
 
+            Math3D::AABB totalAABB = {};
             for (size_t i = 0; i < m_Channels.size(); ++i)
             {
                 const ChannelDescriptor& channel = m_Channels[i];
                 if (channel.grid->type() == "vec3f")
                 {
-                    ResolveBlocks<openvdb::Vec3fGrid>(channel, spatialBlocks);
+                    totalAABB = totalAABB | ResolveBlocks<openvdb::Vec3fGrid>(channel, spatialBlocks);
                 }
                 else
                 {
-                    ResolveBlocks<openvdb::FloatGrid>(channel, spatialBlocks);
+                    totalAABB = totalAABB | ResolveBlocks<openvdb::FloatGrid>(channel, spatialBlocks);
                 }
             }
 
@@ -79,12 +89,14 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 channelBlockAccumulator += spatialBlock.blocks.size();
             }
 
+            auto* resultBlocks = new ChannelBlock[result->blocksCount];
+            auto* resultSpatialInfo = new SpatialBlockInfo[result->spatialInfoCount];
             result->blocksCount = channelBlockAccumulator;
             result->spatialInfoCount = spatialBlocks.size();
-            result->blocks = new ChannelBlock[result->blocksCount];
-            result->spatialInfo = new SpatialBlockInfo[result->spatialInfoCount];
+            result->blocks = resultBlocks;
+            result->spatialInfo = resultSpatialInfo;
 
-            result->aabb = ;
+            result->aabb = totalAABB;
             result->channelIndexPerBlock = ;
             result->orderedChannels = ;
             result->orderedChannelsCount = ;
@@ -92,35 +104,40 @@ namespace Zibra::CE::Addons::OpenVDBUtils
 
             std::for_each(std::execution::par_unseq, spatialBlocks.begin(), spatialBlocks.end(), [&](const std::pair<openvdb::Coord, SpatialBlockIntermediate>& item){
                 auto& [coord, spatialIntrm] = item;
+                ChannelMask mask = 0x0;
+
+                //TODO: ensure right channels order
+                for (auto& [chMask, chBlockIntrm] : spatialIntrm.blocks) {
+                    mask |= chMask;
+                    PackFromStride(&resultBlocks[spatialIntrm.destFirstChannelBlockIndex], chBlockIntrm.data,
+                                   chBlockIntrm.valueStride, chBlockIntrm.valueOffset, chBlockIntrm.valueSize,
+                                   SPARSE_BLOCK_VOXEL_COUNT);
+                }
+
                 SpatialBlockInfo spatialInfo{};
                 spatialInfo.coords[0] = coord.x();
                 spatialInfo.coords[0] = coord.y();
                 spatialInfo.coords[0] = coord.z();
-                spatialInfo.channelMask = ;
+                spatialInfo.channelMask = mask;
                 spatialInfo.channelCount = spatialIntrm.blocks.size();
                 spatialInfo.channelBlocksOffset = spatialIntrm.destFirstChannelBlockIndex;
-                result->spatialInfo[spatialIntrm.destSpatialBlockIndex] = spatialInfo;
-
-                //TODO: ensure right channels order
-                for (auto& [mask, blockIntrm] : spatialIntrm.blocks) {
-                    PackFromStride(result->blocks[spatialIntrm.destFirstChannelBlockIndex], blockIntrm.data,
-                                   blockIntrm.valueStride, blockIntrm.valueOffset, blockIntrm.valueSize,
-                                   SPARSE_BLOCK_VOXEL_COUNT);
-                }
+                resultSpatialInfo[spatialIntrm.destSpatialBlockIndex] = spatialInfo;
             });
 
             return result;
         }
     private:
         template<class T>
-        void ResolveBlocks(ChannelDescriptor& ch, std::map<openvdb::Coord, SpatialBlockIntermediate>& spatialMap) const noexcept
+        Math3D::AABB ResolveBlocks(ChannelDescriptor& ch, std::map<openvdb::Coord, SpatialBlockIntermediate>& spatialMap) const noexcept
         {
             openvdb::Vec3fGrid::ConstPtr grid = openvdb::gridConstPtrCast<openvdb::Vec3fGrid>(ch.grid);
 
+            Math3D::AABB totalAABB = {};
             for (auto leafIt = grid->tree().cbeginLeaf(); leafIt; ++leafIt)
             {
                 const auto leaf = leafIt.getLeaf();
                 const Math3D::AABB leafAABB = CalculateAABB(leaf->getNodeBoundingBox());
+                totalAABB = totalAABB | leafAABB;
                 openvdb::Coord origin = openvdb::Coord(leafAABB.minX, leafAABB.minY, leafAABB.minZ);
 
                 auto slbIt = spatialMap.find(origin);
@@ -133,6 +150,24 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 localChannelBlock.valueStride = ch.valueStride;
                 localChannelBlock.valueOffset = ch.valueOffset;
                 localSpatialBlock.blocks[ch.channelMask] = localChannelBlock;
+            }
+            return totalAABB;
+        }
+
+        static std::vector<ChannelDescriptor> ChannelsFromGrid(openvdb::GridBase::ConstPtr grid, uint32_t voxelComponentCount,
+                                                               uint32_t voxelComponentSize, ChannelMask firstChMask) noexcept
+        {
+            std::vector<ChannelDescriptor> result{};
+            for (size_t chIdx = 0; chIdx < voxelComponentCount; ++chIdx)
+            {
+                ChannelDescriptor chDesc{};
+                chDesc.name = ValueComponentIndexToLetter(voxelComponentCount);
+                chDesc.grid = grid;
+                chDesc.channelMask = firstChMask << chIdx;
+                chDesc.valueOffset = chIdx * voxelComponentSize;
+                chDesc.valueSize = voxelComponentSize;
+                chDesc.valueStride = voxelComponentSize * voxelComponentCount;
+                result.emplace_back(chDesc);
             }
         }
 
@@ -154,15 +189,33 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             return result;
         }
 
-        static void PackFromStride(void* dst, void* src, size_t stride, size_t offset, size_t size, size_t count) noexcept {
+        static void PackFromStride(void* dst, const void* src, size_t stride, size_t offset, size_t size, size_t count) noexcept {
             if (stride == size && offset == 0) {
                 memcpy(dst, src, count * size);
             } else {
-                auto dstBytes = static_cast<uint8_t*>(dst);
-                auto srcBytes = static_cast<uint8_t*>(src);
+                auto* dstBytes = static_cast<uint8_t*>(dst);
+                auto* srcBytes = static_cast<const uint8_t*>(src);
                 for (size_t i = 0; i < count; ++i) {
                     memcpy(dstBytes + size * i, srcBytes + stride * i + offset, size);
                 }
+            }
+        }
+
+        static std::string ValueComponentIndexToLetter(uint32_t idx) noexcept
+        {
+            using namespace std::string_literals;
+            switch (idx)
+            {
+            case 0:
+                return "x";
+            case 1:
+                return "y";
+            case 2:
+                return "z";
+            case 4:
+                return "w";
+            default:
+                return "c"s + std::to_string(idx);
             }
         }
 
