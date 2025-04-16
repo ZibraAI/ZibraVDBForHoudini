@@ -153,6 +153,8 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                     }
                     dstStatistics.meanPositiveValue /= static_cast<float>(SPARSE_BLOCK_VOXEL_COUNT);
                     dstStatistics.meanNegativeValue /= static_cast<float>(SPARSE_BLOCK_VOXEL_COUNT);
+
+                    ++chIdx;
                 }
 
                 SpatialBlockInfo spatialInfo{};
@@ -163,8 +165,6 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 spatialInfo.channelCount = spatialIntrm.blocks.size();
                 spatialInfo.channelBlocksOffset = spatialIntrm.destFirstChannelBlockIndex;
                 resultSpatialInfo[spatialIntrm.destSpatialBlockIndex] = spatialInfo;
-
-                ++chIdx;
             });
 
             for (size_t i = 0; i < perBlockStatistics.size(); ++i)
@@ -190,10 +190,10 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             return result;
         }
     private:
-        template<class T>
+        template<typename T>
         Math3D::AABB ResolveBlocks(const ChannelDescriptor& ch, std::map<openvdb::Coord, SpatialBlockIntermediate>& spatialMap) const noexcept
         {
-            openvdb::FloatGrid::Ptr grid = openvdb::gridPtrCast<openvdb::FloatGrid>(ch.grid);
+            auto grid = openvdb::gridPtrCast<T>(ch.grid);
             grid->tree().voxelizeActiveTiles();
 
             Math3D::AABB totalAABB = {};

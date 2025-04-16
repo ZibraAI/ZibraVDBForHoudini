@@ -497,7 +497,7 @@ namespace Zibra::ZibraVDBCompressor
                     addError(ROP_MESSAGE, m.c_str());
                     return ROP_ABORT_RENDER;
                 }
-                if (vdbPrim->getStorageType() != UT_VDB_FLOAT)
+                if (vdbPrim->getStorageType() != UT_VDB_FLOAT && vdbPrim->getStorageType() != UT_VDB_VEC3F)
                 {
                     std::string m = "Unsupported value type for '"s + gridName + "' prim. Only float grids supported.";
                     addError(ROP_MESSAGE, m.c_str());
