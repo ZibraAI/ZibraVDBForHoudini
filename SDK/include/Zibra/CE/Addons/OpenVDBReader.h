@@ -15,14 +15,26 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         struct ChannelDescriptor
         {
             std::string name;
+            ChannelMask channelMask;
             openvdb::GridBase::ConstPtr grid;
-            uint32_t componentIndex;
+            uint32_t valueSize;
+            uint32_t valueStride;
+            uint32_t valueOffset;
         };
-        struct LocalSpatialBlock
+        struct ChannelBlockIntermediate
         {
+            const void* data;
+            uint32_t valueSize;
+            uint32_t valueStride;
+            uint32_t valueOffset;
+        };
+        struct SpatialBlockIntermediate
+        {
+            // Offset in SpatialBlock units
             uint32_t spatialBlockOffset = 0;
+            // Offset in ChannelBlock units
             uint32_t channelBlockOffset = 0;
-            std::map<uint8_t, ChannelBlock*> blocks{};
+            std::map<ChannelMask, ChannelBlockIntermediate> blocks{};
         };
     public:
         explicit FrameLoader(openvdb::GridBase::ConstPtr* grids, size_t gridsCount) noexcept
@@ -32,7 +44,9 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             {
                 ChannelDescriptor descriptor{};
                 descriptor.grid = grids[i];
-
+                descriptor.valueSize = sizeof(uint16_t);
+                descriptor.valueStride = ;
+                descriptor.valueOffset = ;
 
                 openvdb::GridBase::ConstPtr a = grids[i]->deepCopyGrid();
                 m_Channels.emplace_back(descriptor);
@@ -45,26 +59,33 @@ namespace Zibra::CE::Addons::OpenVDBUtils
 
 
 
-            std::map<openvdb::Coord, LocalSpatialBlock> spatialBlocks{};
+            std::map<openvdb::Coord, SpatialBlockIntermediate> spatialBlocks{};
 
             for (size_t i = 0; i < m_Channels.size(); ++i)
             {
                 const ChannelDescriptor& channel = m_Channels[i];
                 if (channel.grid->type() == "vec3f")
                 {
-                    ResolveBlocks(openvdb::gridConstPtrCast<openvdb::Vec3fGrid>(channel.grid));
+                    ResolveBlocks<openvdb::Vec3fGrid>(channel, spatialBlocks);
                 }
                 else
                 {
-                    ResolveBlocks(openvdb::gridConstPtrCast<openvdb::FloatGrid>(channel.grid));
+                    ResolveBlocks<openvdb::FloatGrid>(channel, spatialBlocks);
                 }
-                ResolveBlocks();
             }
 
-            result->blocksCount = 0;
-            result->spatialInfoCount = 0;
+            uint32_t channelBlockAccumulator = 0;
+            for (auto& [coord, sparseBlock] : spatialBlocks)
+            {
+                sparseBlock.channelBlockOffset = channelBlockAccumulator;
+                channelBlockAccumulator += sparseBlock.blocks.size();
+            }
+
+            result->blocksCount = channelBlockAccumulator;
+            result->spatialInfoCount = spatialBlocks.size();
             result->blocks = new ChannelBlock[result->blocksCount];
             result->spatialInfo = new SpatialBlockInfo[result->spatialInfoCount];
+
 
 
             for ()
@@ -76,8 +97,10 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         }
     private:
         template<class T>
-        void ResolveBlocks(openvdb::Vec3fGrid::ConstPtr grid, std::map<openvdb::Coord, LocalSpatialBlock> spatialMap) const noexcept
+        void ResolveBlocks(ChannelDescriptor& ch, std::map<openvdb::Coord, SpatialBlockIntermediate>& spatialMap) const noexcept
         {
+            openvdb::Vec3fGrid::ConstPtr grid = openvdb::gridConstPtrCast<openvdb::Vec3fGrid>(ch.grid);
+
             for (auto leafIt = grid->tree().cbeginLeaf(); leafIt; ++leafIt)
             {
                 const auto leaf = leafIt.getLeaf();
@@ -85,10 +108,15 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 openvdb::Coord origin = openvdb::Coord(leafAABB.minX, leafAABB.minY, leafAABB.minZ);
 
                 auto slbIt = spatialMap.find(origin);
-                LocalSpatialBlock& localSpatialBlock = slbIt == spatialMap.end() ? LocalSpatialBlock{} : slbIt->second;
+                SpatialBlockIntermediate newBlock{static_cast<uint32_t>(spatialMap.size()), 0, {}};
+                SpatialBlockIntermediate& localSpatialBlock = slbIt == spatialMap.end() ? newBlock : slbIt->second;
 
-
-                leaf->buffer().data();
+                ChannelBlockIntermediate localChannelBlock{};
+                localChannelBlock.data = leaf->buffer().data();
+                localChannelBlock.valueSize = ch.valueSize;
+                localChannelBlock.valueStride = ch.valueStride;
+                localChannelBlock.valueOffset = ch.valueOffset;
+                localSpatialBlock.blocks[ch.channelMask] = localChannelBlock;
             }
         }
 
