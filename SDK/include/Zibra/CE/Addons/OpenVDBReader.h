@@ -11,7 +11,8 @@
 
 namespace Zibra::CE::Addons::OpenVDBUtils
 {
-    class FrameLoader {
+    class FrameLoader
+    {
         struct ChannelDescriptor
         {
             std::string name;
@@ -44,10 +45,13 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             {
                 std::vector<ChannelDescriptor> channels;
 
-                // grids[i]->baseTree().isType<openvdb::Vec3f>()
-                if (grids[i]->type() == "vec3f")
+                if (grids[i]->baseTree().isType<openvdb::Vec3fTree>())
                 {
                     channels = ChannelsFromGrid(grids[i], 3, sizeof(float), mask);
+                }
+                else if (grids[i]->baseTree().isType<openvdb::FloatTree>())
+                {
+                    channels = ChannelsFromGrid(grids[i], 1, sizeof(float), mask);
                 }
                 else
                 {
@@ -69,13 +73,18 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             for (size_t i = 0; i < m_Channels.size(); ++i)
             {
                 const ChannelDescriptor& channel = m_Channels[i];
-                if (channel.grid->type() == "vec3f")
+                if (channel.grid->baseTree().isType<openvdb::Vec3fTree>())
                 {
                     totalAABB = totalAABB | ResolveBlocks<openvdb::Vec3fGrid>(channel, spatialBlocks);
                 }
-                else
+                else if (channel.grid->baseTree().isType<openvdb::FloatTree>())
                 {
                     totalAABB = totalAABB | ResolveBlocks<openvdb::FloatGrid>(channel, spatialBlocks);
+                }
+                else
+                {
+                    assert(0 && "Unsupported grid type. Loader supports only floating point grids.");
+                    return nullptr;
                 }
             }
 
@@ -86,14 +95,14 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 channelBlockAccumulator += spatialBlock.blocks.size();
             }
 
-            auto* resultBlocks = new ChannelBlock[result->blocksCount];
-            auto* channelIndexPerBlock = new uint32_t[result->blocksCount];
-            auto* resultSpatialInfo = new SpatialBlockInfo[result->spatialInfoCount];
-            auto* orderedChannels = new Compression::ChannelInfo[m_Channels.size()];
-
             result->blocksCount = channelBlockAccumulator;
             result->spatialInfoCount = spatialBlocks.size();
             result->orderedChannelsCount = m_Channels.size();
+
+            auto* resultBlocks = new ChannelBlock[result->blocksCount];
+            auto* channelIndexPerBlock = new uint32_t[result->blocksCount];
+            auto* resultSpatialInfo = new SpatialBlockInfo[result->spatialInfoCount];
+            auto* orderedChannels = new Compression::ChannelInfo[result->orderedChannelsCount];
 
             result->blocks = resultBlocks;
             result->spatialInfo = resultSpatialInfo;
@@ -107,36 +116,72 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 auto chName = new char[m_Channels[i].name.length() + 1];
                 strcpy(chName, m_Channels[i].name.c_str());
                 orderedChannels[i].name = chName;
-                //TODO: fill statistics
+                orderedChannels[i].statistics.minValue = std::numeric_limits<float>::max();
+                orderedChannels[i].statistics.maxValue = std::numeric_limits<float>::min();
                 orderedChannels[i].gridTransform = OpenVDBTransformToMath3DTransform(m_Channels[i].grid->transform());
             }
 
+            std::vector<Compression::VoxelStatistics> perBlockStatistics{};
+            perBlockStatistics.resize(result->blocksCount);
             std::for_each(std::execution::par_unseq, spatialBlocks.begin(), spatialBlocks.end(), [&](const std::pair<openvdb::Coord, SpatialBlockIntermediate>& item){
                 auto& [coord, spatialIntrm] = item;
                 ChannelMask mask = 0x0;
 
                 //TODO: ensure right channels order
-                size_t i = 0;
+                size_t chIdx = 0;
                 for (auto& [chMask, chBlockIntrm] : spatialIntrm.blocks) {
-                    uint32_t channelBlockIndex = spatialIntrm.destFirstChannelBlockIndex + i;
+                    uint32_t channelBlockIndex = spatialIntrm.destFirstChannelBlockIndex + chIdx;
+                    ChannelBlock& outBlock = resultBlocks[channelBlockIndex];
                     mask |= chMask;
                     channelIndexPerBlock[channelBlockIndex] = FirstChannelIndexFromMask(chMask);
-                    PackFromStride(&resultBlocks[channelBlockIndex], chBlockIntrm.data,
-                                   chBlockIntrm.valueStride, chBlockIntrm.valueOffset, chBlockIntrm.valueSize,
+                    PackFromStride(&outBlock, chBlockIntrm.data, chBlockIntrm.valueStride, chBlockIntrm.valueOffset, chBlockIntrm.valueSize,
                                    SPARSE_BLOCK_VOXEL_COUNT);
+
+                    Compression::VoxelStatistics& dstStatistics = perBlockStatistics[channelBlockIndex];
+                    dstStatistics.minValue = std::numeric_limits<float>::max();
+                    dstStatistics.maxValue = std::numeric_limits<float>::min();
+                    for (float voxel : outBlock.voxels)
+                    {
+                        dstStatistics.minValue = std::min(dstStatistics.minValue, voxel);
+                        dstStatistics.maxValue = std::max(dstStatistics.maxValue, voxel);
+                        dstStatistics.meanPositiveValue += voxel > 0.0f ? voxel : 0.0f;
+                        dstStatistics.meanNegativeValue += voxel < 0.0f ? voxel : 0.0f;
+                    }
+                    dstStatistics.meanPositiveValue /= static_cast<float>(SPARSE_BLOCK_VOXEL_COUNT);
+                    dstStatistics.meanNegativeValue /= static_cast<float>(SPARSE_BLOCK_VOXEL_COUNT);
                 }
 
                 SpatialBlockInfo spatialInfo{};
-                spatialInfo.coords[0] = coord.x();
-                spatialInfo.coords[0] = coord.y();
-                spatialInfo.coords[0] = coord.z();
+                spatialInfo.coords[0] = coord.x() - totalAABB.minX;
+                spatialInfo.coords[1] = coord.y() - totalAABB.minY;
+                spatialInfo.coords[2] = coord.z() - totalAABB.minZ;
                 spatialInfo.channelMask = mask;
                 spatialInfo.channelCount = spatialIntrm.blocks.size();
                 spatialInfo.channelBlocksOffset = spatialIntrm.destFirstChannelBlockIndex;
                 resultSpatialInfo[spatialIntrm.destSpatialBlockIndex] = spatialInfo;
 
-                ++i;
+                ++chIdx;
             });
+
+            for (size_t i = 0; i < perBlockStatistics.size(); ++i)
+            {
+                const auto channelIndex = result->channelIndexPerBlock[i];
+                auto& dstStatistics = orderedChannels[channelIndex].statistics;
+                dstStatistics.minValue = std::min(dstStatistics.minValue, perBlockStatistics[i].minValue);
+                dstStatistics.maxValue = std::max(dstStatistics.maxValue, perBlockStatistics[i].maxValue);
+                dstStatistics.meanPositiveValue += perBlockStatistics[i].meanPositiveValue;
+                dstStatistics.meanNegativeValue += perBlockStatistics[i].meanNegativeValue;
+                // Writing blocks count to voxelCount to use it in the future.
+                dstStatistics.voxelCount += 1;
+            }
+
+            for (size_t i = 0; i < result->orderedChannelsCount; ++i)
+            {
+                orderedChannels[i].statistics.meanPositiveValue /= static_cast<float>(orderedChannels[i].statistics.voxelCount);
+                orderedChannels[i].statistics.meanNegativeValue /= static_cast<float>(orderedChannels[i].statistics.voxelCount);
+                // Previous cycle has written blocks per channel count to voxelCount field.
+                orderedChannels[i].statistics.voxelCount *= SPARSE_BLOCK_VOXEL_COUNT;
+            }
 
             return result;
         }
@@ -144,7 +189,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         template<class T>
         Math3D::AABB ResolveBlocks(const ChannelDescriptor& ch, std::map<openvdb::Coord, SpatialBlockIntermediate>& spatialMap) const noexcept
         {
-            openvdb::Vec3fGrid::ConstPtr grid = openvdb::gridConstPtrCast<openvdb::Vec3fGrid>(ch.grid);
+            openvdb::FloatGrid::ConstPtr grid = openvdb::gridConstPtrCast<openvdb::FloatGrid>(ch.grid);
 
             Math3D::AABB totalAABB = {};
             for (auto leafIt = grid->tree().cbeginLeaf(); leafIt; ++leafIt)
@@ -164,6 +209,8 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 localChannelBlock.valueStride = ch.valueStride;
                 localChannelBlock.valueOffset = ch.valueOffset;
                 localSpatialBlock.blocks[ch.channelMask] = localChannelBlock;
+
+                spatialMap[origin] = localSpatialBlock;
             }
             return totalAABB;
         }
@@ -200,8 +247,12 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             std::vector<ChannelDescriptor> result{};
             for (size_t chIdx = 0; chIdx < voxelComponentCount; ++chIdx)
             {
+                std::string chName = grid->getName();
+                if (voxelComponentCount > 1)
+                    chName += "." + ValueComponentIndexToLetter(chIdx);
+
                 ChannelDescriptor chDesc{};
-                chDesc.name = ValueComponentIndexToLetter(voxelComponentCount);
+                chDesc.name = chName;
                 chDesc.grid = grid;
                 chDesc.channelMask = firstChMask << chIdx;
                 chDesc.valueOffset = chIdx * voxelComponentSize;
@@ -209,6 +260,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 chDesc.valueStride = voxelComponentSize * voxelComponentCount;
                 result.emplace_back(chDesc);
             }
+            return result;
         }
 
         static Math3D::AABB CalculateAABB(const openvdb::CoordBBox bbox)
