@@ -27,6 +27,14 @@ namespace Zibra::CE::Decompression
         size_t decompressionPerChannelBlockInfoStride;
     };
 
+    struct PerChannelBlockInfo
+    {
+        //TODO: document it
+
+        // Max voxel value in channel block
+        uint32_t halfFloatScalePerBlock;
+    };
+
     /**
      * Decompressor resources abstraction
      *
@@ -52,18 +60,27 @@ namespace Zibra::CE::Decompression
      * @warning If you are about changing this structure use checklist:
      * - make sure that you are not exposing specific implementation details. Expose only general abstract data.
      * - think about potential future decompressor implementations. Make resources format as flexible as possible. (No DCT or Huffman
-     * params, etc..)
+     * params, etc...)
      * - add fields to appropriate buffer items instead of adding new buffer if it is possible.
      * - remember about Dependency Inversion principle!!!
      * - discuss changes with 3d team
      */
     struct DecompressorResources
     {
-        /// Payload per channel block.
+        /**
+         * Payload per channel block.
+         * @layoyt ChannelBlock[]
+         */
         RHI::Buffer* decompressionPerChannelBlockData;
-        /// Info per channel block
+        /**
+         * Info per channel block.
+         * @layoyt PerChannelBlockInfo[]
+         */
         RHI::Buffer* decompressionPerChannelBlockInfo;
-        /// Info per spatial group
+        /**
+         * Info per spatial group.
+         * @layoyt SpatialBlockInfo[]
+         */
         RHI::Buffer* decompressionPerSpatialBlockInfo;
     };
 

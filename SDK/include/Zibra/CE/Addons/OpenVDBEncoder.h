@@ -10,6 +10,112 @@
 
 namespace Zibra::CE::Addons::OpenVDBUtils
 {
+    struct FrameData
+    {
+        const void* decompressionPerChannelBlockData;
+        const void* decompressionPerSpatialBlockInfo;
+    };
+
+    class FrameEncoder
+    {
+        using float16_mem = uint16_t;
+        struct ChannelBlockF16Mem
+        {
+            float16_mem mem[SPARSE_BLOCK_VOXEL_COUNT];
+        };
+        struct LeafIntermediate
+        {
+            const ChannelBlockF16Mem* chBlocks[4] = {};
+        };
+        struct GridIntermediate
+        {
+            // GridType type
+            std::map<openvdb::Coord, LeafIntermediate> leafs;
+        };
+    public:
+        openvdb::GridPtrVec EncodeFrame(const FrameData& fData, Decompression::FrameInfo& fInfo) noexcept
+        {
+            std::map<std::string, GridIntermediate> gridsIntermediate{};
+
+            const auto* spatialInfo = static_cast<const SpatialBlockInfo*>(fData.decompressionPerSpatialBlockInfo);
+            const auto* channelBlocksSrc = static_cast<const ChannelBlockF16Mem*>(fData.decompressionPerChannelBlockData);
+
+            for (size_t spatialIdx = 0; spatialIdx < fInfo.spatialBlockCount; ++spatialIdx)
+            {
+                size_t localChannelBlockIdx = 0;
+                for (size_t i = 0; i < MAX_CHANNEL_COUNT; ++i)
+                {
+                    const auto& curSpatialInfo = spatialInfo[spatialIdx];
+                    openvdb::Coord blockCoord{curSpatialInfo.coords[0], curSpatialInfo.coords[1], curSpatialInfo.coords[2]};
+                    if (curSpatialInfo.channelMask & 1 << i)
+                    {
+                        const char* chName = fInfo.channels[i].name;
+
+                        // Find grid intermediate by name or create empty if it is absent
+                        auto gridIntermediateIt = gridsIntermediate.find(chName);
+                        if (gridIntermediateIt == gridsIntermediate.end())
+                            gridIntermediateIt = gridsIntermediate.insert({chName, {}}).first;
+
+                        // Find leaf intermediate in grid intermediate or create if it is absent
+                        auto leafIntermediateMapIt = gridIntermediateIt->second.leafs.find(blockCoord);
+                        if (leafIntermediateMapIt == gridIntermediateIt->second.leafs.end())
+                            leafIntermediateMapIt = gridIntermediateIt->second.leafs.insert({blockCoord, {}}).first;
+
+                        const size_t channelBlockIdx = curSpatialInfo.channelBlocksOffset + localChannelBlockIdx;
+                        leafIntermediateMapIt->second.chBlocks[0] = &channelBlocksSrc[channelBlockIdx];
+
+                        ++localChannelBlockIdx;
+                    }
+                }
+            }
+
+            std::map<std::string, openvdb::GridBase::Ptr> outGrids{};
+            std::for_each(std::execution::par_unseq, gridsIntermediate.begin(), gridsIntermediate.end(), [&](auto& gridIt) {
+                outGrids[gridIt.first] = ConstructGrid<openvdb::FloatGrid>(gridIt.second);
+
+            });
+
+        }
+    private:
+        template<typename GridT>
+        auto ConstructGrid(const GridIntermediate& gridIntermediate) noexcept
+        {
+            auto result = openvdb::FloatGrid::create();
+            const auto& leafIntermediates = gridIntermediate.leafs;
+
+            std::for_each(std::execution::par_unseq, leafIntermediates.begin(), leafIntermediates.end(), [&](auto leafIt) {
+                using TreeT = openvdb::FloatGrid::TreeType;
+                using LeafT = TreeT::LeafNodeType;
+                ConstructLeaf<LeafT>(leafIt.first, leafIt.second);
+            });
+
+            return result;
+        }
+
+        template<typename LeafT>
+        LeafT ConstructLeaf(const openvdb::Coord& leafCoord, const LeafIntermediate& leafIntermediate) noexcept
+        {
+            auto* result = new LeafT{};
+
+            const openvdb::Coord blockMin = {leafCoord.x() * SPARSE_BLOCK_SIZE, leafCoord.y() * SPARSE_BLOCK_SIZE,
+                                             leafCoord.z() * SPARSE_BLOCK_SIZE};
+
+            auto* leaf = new LeafT{openvdb::PartialCreate{}, blockMin, 0.0f, true};
+            leaf->allocate();
+            float* leafBuffer = leaf->buffer().data();
+            CopyFromStrided(leafBuffer, *leafIntermediate.chBlocks[0], 1, 0);
+            return result;
+        }
+    private:
+        static void CopyFromStrided(float* dst, const ChannelBlockF16Mem& src, size_t componentCount, size_t componentIdx) noexcept
+        {
+            for (size_t i = 0; i < SPARSE_BLOCK_VOXEL_COUNT; ++i)
+            {
+                dst[i * componentCount + componentIdx] = Float16ToFloat32(src.mem[i]);
+            }
+        }
+    };
+
     class OpenVDBEncoder final
     {
     public:

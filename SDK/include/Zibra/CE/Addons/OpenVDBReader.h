@@ -46,7 +46,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 std::vector<ChannelDescriptor> channels;
                 openvdb::GridBase::Ptr mutableCopy = grids[i]->deepCopyGrid();
 
-                if (grids[i]->baseTree().isType<openvdb::Vec3fTree>())
+                if (grids[i]->baseTree().isType<openvdb::Vec3STree>())
                 {
                     channels = ChannelsFromGrid(mutableCopy, 3, sizeof(float), mask);
                 }
@@ -74,7 +74,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             for (size_t i = 0; i < m_Channels.size(); ++i)
             {
                 const ChannelDescriptor& channel = m_Channels[i];
-                if (channel.grid->baseTree().isType<openvdb::Vec3fTree>())
+                if (channel.grid->baseTree().isType<openvdb::Vec3STree>())
                 {
                     totalAABB = totalAABB | ResolveBlocks<openvdb::Vec3fGrid>(channel, spatialBlocks);
                 }
@@ -188,6 +188,18 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             }
 
             return result;
+        }
+        void ReleaseFrame(Compression::SparseFrame* frame) const noexcept
+        {
+            for (size_t i = 0; i < frame->orderedChannelsCount; ++i)
+            {
+                delete [] frame->orderedChannels[i].name;
+            }
+            delete [] frame->orderedChannels;
+            delete [] frame->channelIndexPerBlock;
+            delete [] frame->blocks;
+            delete [] frame->spatialInfo;
+            delete frame;
         }
     private:
         template<typename T>
