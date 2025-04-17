@@ -103,7 +103,11 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             auto* leaf = new LeafT{openvdb::PartialCreate{}, blockMin, 0.0f, true};
             leaf->allocate();
             float* leafBuffer = leaf->buffer().data();
-            CopyFromStrided(leafBuffer, *leafIntermediate.chBlocks[0], 1, 0);
+
+            if (leafIntermediate.chBlocks[0] != nullptr)
+            {
+                CopyFromStrided(leafBuffer, *leafIntermediate.chBlocks[0], 1, 0);
+            }
             return result;
         }
     private:
