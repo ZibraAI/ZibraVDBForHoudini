@@ -99,7 +99,7 @@ jobs:
       shell: pwsh
       run: |
         python3 -m venv actions/install_houdini/venv
-        source ./actions/install_houdini/venv/bin/activate
+        ./actions/install_houdini/venv/bin/Activate.ps1
         pip3 install -r actions/install_houdini/requirements.txt
         python3 actions/install_houdini/install_houdini.py
       env:
