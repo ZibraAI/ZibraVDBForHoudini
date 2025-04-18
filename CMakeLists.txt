@@ -82,6 +82,7 @@ elseif("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
 else()
     message(FATAL_ERROR "Unsupported target OS: ${ZIB_TARGET_OS_NAME}")
 endif()
+cmake_print_variables(ZIB_NETWORK_REQUEST_BACKEND)
 
 set(HeaderFiles
     src/PrecompiledHeader.h
@@ -189,6 +190,10 @@ endif()
 list(APPEND CMAKE_PREFIX_PATH "${HOUDINI_PATH}/toolkit/cmake")
 find_package(Houdini REQUIRED)
 target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini)
+
+if (NOT "${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
+    target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::openvdb_sesi)
+endif()
 
 if(${LABS_BUILD})
     set_target_properties(ZibraVDBForHoudini PROPERTIES PREFIX "")

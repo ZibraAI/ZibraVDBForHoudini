@@ -47,7 +47,7 @@ namespace Zibra::NetworkRequest
     {
         std::vector<char> result;
 
-#if ZIB_NETWORK_REQUEST_BACKEND
+#if ZIB_NETWORK_REQUEST_BACKEND_WINHTTP
         std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
 
         HINTERNET hSession = ::WinHttpOpen(L"ZibraVDB for Houdini", WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME,
