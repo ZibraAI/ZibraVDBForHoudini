@@ -1,4 +1,4 @@
-#!/usr/bin/pwsh
+#!/usr/bin/env pwsh
 
 param (
    [string]$AdditionalArgs,
@@ -7,10 +7,23 @@ param (
 
 if ($TargetFolder -eq "") {
     $TargetFolder = "build"
-    if ($IsWindows) {
-        $TargetFolder += "-windows"
-    } else {
-        $TargetFolder = "-linux"
+
+    if ($IsWindows)
+    {
+        $TargetFolder += "-windows-x64"
+    } 
+    elseif ($IsLinux) 
+    {
+        $TargetFolder += "-linux-x64"
+    }
+    elseif ($IsMacOS) 
+    {
+        $TargetFolder += "-macos-universal"
+    }
+    else 
+    {
+        Write-Host "Unknown OS"
+        exit 1
     }
 }
 

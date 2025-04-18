@@ -1,7 +1,25 @@
 cmake_minimum_required(VERSION 3.25)
 
+include_guard(GLOBAL)
+
 include(CMakePrintHelpers)
 
+# VFX Reference Platform Specific Settings, see See https://vfxplatform.com/
+# CY2025
+# macOS Minimum Deployment Target = 12.0
+set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0" CACHE STRING "Minimum OS X deployment version")
+# C++ Standard = 17
+set(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ Standard")
+
+# C++ settings
+# Force it to be as close to C++ standard as possible
+set(CMAKE_CXX_STANDARD_REQUIRED ON CACHE BOOL "C++ Standard Required")
+set(CMAKE_CXX_EXTENSIONS OFF CACHE BOOL "C++ Standard Extensions")
+if (MSVC)
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive- /Zc:__cplusplus" CACHE STRING "C++ Compiler Flags")
+endif()
+
+# Houdini specific settings
 # Set MSVC runtime library to always be MultiThreadedDLL
 # So any configuration will use the same runtime library as Houdini
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
@@ -11,41 +29,58 @@ cmake_print_variables(LABS_BUILD)
 
 project(ZibraVDBForHoudini)
 
-# Target platform identification
-cmake_print_variables(CMAKE_SYSTEM_NAME)
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
-    set(OS_NAME "Win")
-elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-    set(OS_NAME "Mac")
-elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    set(OS_NAME "Linux")
+# Target OS detection
+if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    set(ZIB_TARGET_OS_NAME "WIN" CACHE STRING "Target OS Name")
+elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+    set(ZIB_TARGET_OS_NAME "LINUX" CACHE STRING "Target OS Name")
+elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+    set(ZIB_TARGET_OS_NAME "MAC" CACHE STRING "Target OS Name")
 else()
-    message(FATAL_ERROR "Unsupported OS")
+    message(FATAL_ERROR "Unknown target OS: ${CMAKE_SYSTEM}.")
 endif()
-cmake_print_variables(OS_NAME)
-string(TOUPPER ${OS_NAME} OS_NAME_CAPITALIZED)
+cmake_print_variables(ZIB_TARGET_OS_NAME)
 
-# Using C++17 without vendor extensions
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
-cmake_print_variables(CMAKE_CXX_COMPILER_VERSION)
-if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    cmake_print_variables(CMAKE_VS_PLATFORM_TOOLSET_VERSION)
-    # Disable Microsoft extensions and enable correct __cplusplus macro
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive- /Zc:__cplusplus")
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    # Check that major GCC version is exactly 11
-    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 11 OR CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12)
-        message(FATAL_ERROR "GCC version must be 11. Houdini will not load plugins built with other versions.")
+if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
+    
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        message(STATUS "MSVC platform toolset version: ${CMAKE_VS_PLATFORM_TOOLSET_VERSION}")
+        message(STATUS "MSVC version: ${CMAKE_CXX_COMPILER_VERSION}")
+    else()
+        message(FATAL_ERROR "Unsupported compiler for Windows: ${CMAKE_CXX_COMPILER_ID}.")
     endif()
+
+elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "LINUX")
+
+    set(CMAKE_INSTALL_RPATH "${INSTALL_RPATH}")
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        message(STATUS "GCC version: ${CMAKE_CXX_COMPILER_VERSION}")
+    else()
+        message(FATAL_ERROR "Unsupported compiler for Linux: ${CMAKE_CXX_COMPILER_ID}.")
+    endif()
+
+elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
+
+    set(CMAKE_INSTALL_RPATH "${INSTALL_RPATH}")
+    set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+        message(STATUS "AppleClang version: ${CMAKE_CXX_COMPILER_VERSION}")
+    else()
+        message(FATAL_ERROR "Unsupported compiler for macOS: ${CMAKE_CXX_COMPILER_ID}.")
+    endif()
+
 else()
-    message(FATAL_ERROR "Unsupported compiler")
+    message(FATAL_ERROR "Unknown target OS: ${ZIB_TARGET_OS_NAME}.")
 endif()
 
-if(UNIX)
-    set(CMAKE_INSTALL_RPATH "${INSTALL_RPATH}")
+if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
+    set(ZIB_NETWORK_REQUEST_BACKEND "WINHTTP")
+elseif("${ZIB_TARGET_OS_NAME}" STREQUAL "LINUX")
+    set(ZIB_NETWORK_REQUEST_BACKEND "CURL")
+elseif("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
+    set(ZIB_NETWORK_REQUEST_BACKEND "CURL")
+else()
+    message(FATAL_ERROR "Unsupported target OS: ${ZIB_TARGET_OS_NAME}")
 endif()
 
 set(HeaderFiles
@@ -88,7 +123,9 @@ target_include_directories(ZibraVDBForHoudini
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/Include)
 target_precompile_headers(ZibraVDBForHoudini PRIVATE src/PrecompiledHeader.h)
-target_compile_definitions(ZibraVDBForHoudini PRIVATE ZIB_PLATFORM_${OS_NAME_CAPITALIZED}=1)
+target_compile_definitions(ZibraVDBForHoudini PRIVATE 
+    ZIB_NETWORK_REQUEST_BACKEND_${ZIB_NETWORK_REQUEST_BACKEND}=1
+    ZIB_TARGET_OS_${ZIB_TARGET_OS_NAME}=1)
 
 target_include_directories(ZibraVDBForHoudini PRIVATE SDK/include)
 target_include_directories(ZibraVDBForHoudini PRIVATE "${HOUDINI_INCLUDE_DIR}")
@@ -151,7 +188,7 @@ endif()
 
 list(APPEND CMAKE_PREFIX_PATH "${HOUDINI_PATH}/toolkit/cmake")
 find_package(Houdini REQUIRED)
-target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini Houdini::Dep::openvdb_sesi)
+target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini)
 
 if(${LABS_BUILD})
     set_target_properties(ZibraVDBForHoudini PROPERTIES PREFIX "")

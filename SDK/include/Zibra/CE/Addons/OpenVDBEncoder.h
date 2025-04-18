@@ -91,7 +91,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             }
 
             // For each channel fill grids.
-            std::for_each(std::execution::seq, grids.begin(), grids.end(), [&](auto& baseGrid) {
+            std::for_each(grids.begin(), grids.end(), [&](auto& baseGrid) {
                 const int channelIndex = &baseGrid - grids.data();
 
                 const auto countActiveChannelOffset = [currentChannelMask = 1 << channelIndex](const int blockChannelMask) noexcept -> int {
@@ -107,7 +107,11 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 using LeafT = typename TreeT::LeafNodeType;
                 std::vector<LeafT*> leafs(frameData.perSpatialBlocksInfoCount);
 
-                std::transform(std::execution::par_unseq, frameData.decompressionPerSpatialBlockInfo,
+                std::transform(
+                    #if !ZIB_TARGET_OS_MAC
+                    std::execution::par_unseq, 
+                    #endif
+                    frameData.decompressionPerSpatialBlockInfo,
                                frameData.decompressionPerSpatialBlockInfo + frameData.perSpatialBlocksInfoCount, leafs.begin(),
                                [&](const SpatialBlockInfo& blockInfo) -> LeafT* {
                                    const int activeChannelOffset = countActiveChannelOffset(blockInfo.channelMask);

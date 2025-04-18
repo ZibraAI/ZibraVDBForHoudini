@@ -4,7 +4,6 @@
 
 #include <UT/UT_EnvControl.h>
 
-#include "networking/NetworkRequest.h"
 #include "utils/Helpers.h"
 
 // clang-format off
@@ -28,20 +27,20 @@ ZSDK_RUNTIME_FUNCTION_LIST_APPLY(ZSDK_DEFINE_FUNCTION_POINTER)
 
 namespace Zibra::LibraryUtils
 {
-#if ZIB_PLATFORM_WIN
-#define ZIB_PLATFORM_NAME "Windows"
+#if ZIB_TARGET_OS_WIN
+#define ZIB_TARGET_OS_NAME "Windows"
 #define ZIB_DYNAMIC_LIB_EXTENSION ".dll"
 #define ZIB_DYNAMIC_LIB_PREFIX ""
-#elif ZIB_PLATFORM_MAC
-#define ZIB_PLATFORM_NAME "macOS"
-#define ZIB_DYNAMIC_LIB_EXTENSION ".dylib"
-#define ZIB_DYNAMIC_LIB_PREFIX "lib"
-#elif ZIB_PLATFORM_LINUX
-#define ZIB_PLATFORM_NAME "Linux"
+#elif ZIB_TARGET_OS_LINUX
+#define ZIB_TARGET_OS_NAME "Linux"
 #define ZIB_DYNAMIC_LIB_EXTENSION ".so"
 #define ZIB_DYNAMIC_LIB_PREFIX "lib"
+#elif ZIB_TARGET_OS_MAC
+#define ZIB_TARGET_OS_NAME "macOS"
+#define ZIB_DYNAMIC_LIB_EXTENSION ".dylib"
+#define ZIB_DYNAMIC_LIB_PREFIX "lib"
 #else
-#error Unuspported platform
+#error Unsupported platform
 #endif
 
     const char* g_LibraryPath = ZIB_LIBRARY_FOLDER "/" ZIB_DYNAMIC_LIB_PREFIX "ZibraVDBSDK" ZIB_DYNAMIC_LIB_EXTENSION;
@@ -102,9 +101,9 @@ namespace Zibra::LibraryUtils
         return true;
     }
 
-#if ZIB_PLATFORM_WIN
+#if ZIB_TARGET_OS_WIN
     HMODULE g_LibraryHandle = NULL;
-#elif ZIB_PLATFORM_LINUX
+#elif ZIB_TARGET_OS_LINUX || ZIB_TARGET_OS_MAC
     void* g_LibraryHandle = nullptr;
 #else
 #error Unsupported platform
@@ -112,7 +111,7 @@ namespace Zibra::LibraryUtils
 
     bool LoadFunctions() noexcept
     {
-#if ZIB_PLATFORM_WIN
+#if ZIB_TARGET_OS_WIN
 #define ZIB_LOAD_FUNCTION_POINTER(functionName)                                                                          \
     functionName = reinterpret_cast<ZCE_PFN(functionName)>(::GetProcAddress(g_LibraryHandle, ZIB_STRINGIFY(functionName))); \
     if (functionName == nullptr)                                                                                         \
@@ -121,7 +120,7 @@ namespace Zibra::LibraryUtils
     }
         ZSDK_RUNTIME_FUNCTION_LIST_APPLY(ZIB_LOAD_FUNCTION_POINTER)
 #undef ZIB_LOAD_FUNCTION_POINTER
-#elif ZIB_PLATFORM_LINUX
+#elif ZIB_TARGET_OS_LINUX || ZIB_TARGET_OS_MAC
 #define ZIB_LOAD_FUNCTION_POINTER(functionName)                                                    \
     functionName = reinterpret_cast<ZCE_PFN(functionName)>(dlsym(g_LibraryHandle, ZIB_STRINGIFY(functionName))); \
     if (functionName == nullptr)                                                                   \
@@ -131,14 +130,14 @@ namespace Zibra::LibraryUtils
         ZSDK_RUNTIME_FUNCTION_LIST_APPLY(ZIB_LOAD_FUNCTION_POINTER)
 #undef ZIB_LOAD_FUNCTION_POINTER
 #else
-#error Unuspported platform
+#error Unsupported platform
 #endif
         return true;
     }
 
     bool LoadLibraryByPath(const std::string& libraryPath) noexcept
     {
-#if ZIB_PLATFORM_WIN
+#if ZIB_TARGET_OS_WIN
         static_assert(IsPlatformSupported());
         if (libraryPath == "")
         {
@@ -173,7 +172,7 @@ namespace Zibra::LibraryUtils
         }
 
         return true;
-#elif ZIB_PLATFORM_LINUX
+#elif ZIB_TARGET_OS_LINUX || ZIB_TARGET_OS_MAC
         static_assert(IsPlatformSupported());
 
         assert(g_LibraryHandle == nullptr);

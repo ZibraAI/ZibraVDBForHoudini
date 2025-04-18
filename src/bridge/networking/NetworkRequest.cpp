@@ -2,9 +2,9 @@
 
 #include "NetworkRequest.h"
 
-#if ZIB_PLATFORM_WIN
+#if ZIB_NETWORK_REQUEST_BACKEND_WINHTTP
 #pragma comment(lib, "winhttp.lib")
-#elif ZIB_PLATFORM_LINUX
+#elif ZIB_NETWORK_REQUEST_BACKEND_CURL
 #define ZIB_CURL_FUNCTIONS(MACRO_TO_APPLY) \
     MACRO_TO_APPLY(easy_init)              \
     MACRO_TO_APPLY(easy_getinfo)           \
@@ -26,8 +26,7 @@ static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* use
     return size * nmemb;
 }
 #else
-// TODO macOS support
-#error Unimplemented
+#error No networking backend defined
 #endif
 
 namespace Zibra::NetworkRequest
@@ -48,7 +47,7 @@ namespace Zibra::NetworkRequest
     {
         std::vector<char> result;
 
-#if ZIB_PLATFORM_WIN
+#if ZIB_NETWORK_REQUEST_BACKEND
         std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
 
         HINTERNET hSession = ::WinHttpOpen(L"ZibraVDB for Houdini", WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME,
@@ -157,7 +156,7 @@ namespace Zibra::NetworkRequest
         ::WinHttpCloseHandle(hRequest);
         ::WinHttpCloseHandle(hConnect);
         ::WinHttpCloseHandle(hSession);
-#elif ZIB_PLATFORM_LINUX
+#elif ZIB_NETWORK_REQUEST_BACKEND_CURL
         // Dynamically load libcurl and load functions
         void* curlLib = dlopen("libcurl.so.4", RTLD_LAZY);
         if (!curlLib)
@@ -229,8 +228,7 @@ namespace Zibra::NetworkRequest
             return std::nullopt;
         }
 #else
-// TODO macOS support
-#error Unimplemented
+#error No networking backend defined
 #endif
         return result;
     }

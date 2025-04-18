@@ -31,7 +31,7 @@ jobs:
       shell: pwsh
       run: cmake -S . -B build-20_5-windows -G "Visual Studio 17 2022" -DZIBRAVDB_OUTPUT_PATH=${{ github.workspace }}\package-20_5-windows
       env:
-        ZIBRA_HOUDINI_PATH: C:\houdini_win64-vc143_20.5
+        HFS: C:\houdini_win64-vc143_20.5
 
     - name: Build Release
       working-directory: ${{ github.workspace }}
@@ -84,4 +84,51 @@ jobs:
       with:
         name: ZibraVDBForHoudini-20_5-Linux
         path: package-20_5-linux
+        if-no-files-found: error
+
+  build-macos:
+    name: Build ZibraVDB for Houdini 20.5 (macOS)
+    runs-on: macos-latest
+    steps:
+
+    - name: Sync
+      uses: actions/checkout@v4
+
+    - name: Install Houdini
+      working-directory: ${{ github.workspace }}
+      shell: pwsh
+      run: |
+        python3 -m venv actions/install_houdini/venv
+        source ./actions/install_houdini/venv/bin/activate
+        pip3 install -r actions/install_houdini/requirements.txt
+        python3 actions/install_houdini/install_houdini.py
+      env:
+        HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
+        HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
+
+    - name: Configure Cmake
+      working-directory: ${{ github.workspace }}
+      shell: pwsh
+      run: cmake -S . -B build-20_5-macos -G "Xcode" -DZIBRAVDB_OUTPUT_PATH=${{ github.workspace }}/package-20_5-macos
+      env:
+        HFS: /Applications/Houdini/Current/Frameworks/Houdini.framework/Versions/Current/Resources
+
+    - name: Build Release
+      working-directory: ${{ github.workspace }}
+      shell: pwsh
+      run: cmake --build build-20_5-macos --config Release
+
+    - name: Repack HDA into Binary format
+      working-directory: ${{ github.workspace }}
+      shell: pwsh
+      run: |
+        $HFS/bin/hotl -l ${{ github.workspace }}/package-20_5-macos/otls/zibravdb_filecache.1.0.hda ${{ github.workspace }}/package-20_5-macos/otls/zibravdb_filecache.1.0.hda.2
+        Remove-Item -Recurse -Force ${{ github.workspace }}/package-20_5-macos/otls/zibravdb_filecache.1.0.hda
+        Move-Item -Path ${{ github.workspace }}/package-20_5-macos/otls/zibravdb_filecache.1.0.hda.2 -Destination ${{ github.workspace }}/package-20_5-macos/otls/zibravdb_filecache.1.0.hda
+
+    - name: Save artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ZibraVDBForHoudini-20_5-macOS
+        path: package-20_5-macos
         if-no-files-found: error
