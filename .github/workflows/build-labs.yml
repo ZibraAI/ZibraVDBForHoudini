@@ -91,7 +91,7 @@ jobs:
     - name: Configure Cmake
       working-directory: ${{ github.workspace }}
       shell: pwsh
-      run: cmake -S . -B build-20_5-macos -G "Xcode" -DLABS_BUILD=ON
+      run: cmake -S . -B build-20_5-macos -G "Xcode" -DLABS_BUILD=ON -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
       env:
         HFS: /Applications/Houdini/Current/Frameworks/Houdini.framework/Versions/Current/Resources
 
