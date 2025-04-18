@@ -228,7 +228,11 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 }
 
                 {
-                    std::for_each(std::execution::par_unseq, channelBlockData.cbegin(), channelBlockData.cend(),
+                    std::for_each(
+                        #if !ZIB_TARGET_OS_MAC
+                        std::execution::par_unseq, 
+                        #endif
+                        channelBlockData.cbegin(), channelBlockData.cend(),
                                   [&](const std::pair<openvdb::Coord, LocalSpatialBlockData>& spatialBlockDataPair) {
                                       const auto& [blockCoord, spatialBlockData] = spatialBlockDataPair;
                                       SpatialBlockInfo& spatialInfoBlock = spatialInfo[spatialBlockData.spatialBlockOffset];

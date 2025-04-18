@@ -58,9 +58,22 @@ if __name__ == "__main__":
 
                 # Run the installer
                 if sys.platform == "linux":
-                    raise Exception("Unimplemented")
+                    # Extract the tarball
+                    subprocess.run(["tar", "-xvf", file_name])
+                    # Find extracted directory that starts with houdini_
+                    extracted_dir = [d for d in os.listdir() if d.startswith("houdini-") and os.path.isdir(d)][0]
+                    # Make installer executable
+                    subprocess.run(["chmod", "+x", f"{extracted_dir}/houdini.install"])
+                    # Run installer
+                    subprocess.run([f"{extracted_dir}/houdini.install", "--install-houdini", "--no-install-engine-maya", "--no-install-engine-unity", "--no-install-engine-unreal", "--no-install-menus", "--no-install-hfs-symlink", "--no-install-license", "--no-install-avahi", "--no-install-sidefxlabs", "--no-install-hqueue-server", "--no-install-hqueue-client", "--auto-install", "--make-dir", "--accept-EULA", "2021-10-13", "/opt/hfs20.5"])
                 elif sys.platform == "darwin":
-                    raise Exception("Unimplemented")
+                    # Mount the DMG
+                    subprocess.run(["hdiutil", "attach", file_name])
+                    # Mounted volume is /Volumes/Houdini
+                    # Run the installer
+                    subprocess.run(["sudo", "installer", "-pkg", "/Volumes/Houdini/Houdini.pkg", "-target", "/"])
+                    # Unmount the DMG
+                    subprocess.run(["hdiutil", "detach", "/Volumes/Houdini"])          
                 elif sys.platform == "win32":
                     subprocess.run([file_name, "/S", f"/InstallDir=C:\\{product}_{platform}_{version}", "/acceptEULA=2021-10-13"], check=True)
                 else:
