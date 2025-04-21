@@ -235,6 +235,14 @@ namespace Zibra::Helpers
         }
         RHIStatus = m_RHIRuntime->StopRecording();
 
+
+        CE::Addons::OpenVDBUtils::VDBGridDesc gridDesc{};
+        gridDesc.voxelType = CE::Addons::OpenVDBUtils::GridVoxelType::Float3;
+        gridDesc.gridName = "MyComposedGrid";
+        gridDesc.chSource[0] = "density.x";
+        gridDesc.chSource[1] = "density.y";
+        gridDesc.chSource[2] = "density.z";
+
         CE::Addons::OpenVDBUtils::FrameEncoder encoder{};
         CE::Addons::OpenVDBUtils::FrameData fData{};
         fData.decompressionPerChannelBlockData = readbackDecompressionPerChannelBlockData.data();
@@ -242,6 +250,7 @@ namespace Zibra::Helpers
         // TODO VDB-1291: Implement read-back circular buffer, to optimize GPU stalls.
         //                Implement cpu circular buffer to optimize RAM allocation for DecompressedFrameData.
         //                Move EncodeFrame into separate thread to overlay CPU and CPU work.
+        *vdbGrids = encoder.EncodeFrame(&gridDesc, 1, fData, frameInfo);
         if (RHIStatus != RHI::ZRHI_SUCCESS)
         {
             return CE::ZCE_ERROR;
