@@ -104,8 +104,8 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                                 const size_t channelBlockIdx = curSpatialInfo.channelBlocksOffset + localChannelBlockIdx;
                                 leafIntermediateMapIt->second.chBlocks[gridRef.chIdx] = &channelBlocksSrc[channelBlockIdx];
                             }
+                            ++localChannelBlockIdx;
                         }
-                        ++localChannelBlockIdx;
                     }
                 }
             }
