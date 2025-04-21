@@ -28,8 +28,9 @@ namespace Zibra::Helpers
         void Release() noexcept;
 
     private:
-        CE::ReturnCode GetDecompressedFrameData(std::vector<CE::ChannelBlock>& decompressionPerChannelBlockData,
-                                                std::vector<CE::SpatialBlockInfo>& decompressionPerSpatialBlockInfo) const noexcept;
+        CE::ReturnCode GetDecompressedFrameData(uint16_t* perChannelBlockData, size_t channelBlocksCount,
+                                                ZCEDecompressionPackedSpatialBlock* perSpatialBlockInfo,
+                                                size_t spatialBlocksCount) const noexcept;
         CE::ReturnCode AllocateExternalBuffer(BufferDesc& bufferDesc, size_t newSizeInBytes, size_t newStride) noexcept;
         CE::ReturnCode FreeExternalBuffers() noexcept;
 

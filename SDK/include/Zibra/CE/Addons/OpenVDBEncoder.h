@@ -33,11 +33,11 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             std::map<openvdb::Coord, LeafIntermediate> leafs;
         };
     public:
-        openvdb::GridPtrVec EncodeFrame(const FrameData& fData, Decompression::FrameInfo& fInfo) noexcept
+        openvdb::GridPtrVec EncodeFrame(const FrameData& fData, const Decompression::FrameInfo& fInfo) noexcept
         {
             std::map<std::string, GridIntermediate> gridsIntermediate{};
 
-            const auto* spatialInfo = static_cast<const SpatialBlockInfo*>(fData.decompressionPerSpatialBlockInfo);
+            const auto* packedSpatialInfo = static_cast<const ZCEDecompressionPackedSpatialBlock*>(fData.decompressionPerSpatialBlockInfo);
             const auto* channelBlocksSrc = static_cast<const ChannelBlockF16Mem*>(fData.decompressionPerChannelBlockData);
 
             for (size_t spatialIdx = 0; spatialIdx < fInfo.spatialBlockCount; ++spatialIdx)
@@ -45,7 +45,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 size_t localChannelBlockIdx = 0;
                 for (size_t i = 0; i < MAX_CHANNEL_COUNT; ++i)
                 {
-                    const auto& curSpatialInfo = spatialInfo[spatialIdx];
+                    const auto& curSpatialInfo = UnpackPackedSpatialBlock(packedSpatialInfo[spatialIdx]);
                     openvdb::Coord blockCoord{curSpatialInfo.coords[0], curSpatialInfo.coords[1], curSpatialInfo.coords[2]};
                     if (curSpatialInfo.channelMask & 1 << i)
                     {
@@ -74,29 +74,38 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 outGrids[gridIt.first] = ConstructGrid<openvdb::FloatGrid>(gridIt.second);
 
             });
-
+            openvdb::GridPtrVec result{};
+            result.reserve(outGrids.size());
+            for (const auto& [gridName, grid] : outGrids)
+            {
+                grid->setName(gridName);
+                result.emplace_back(grid);
+            }
+            return result;
         }
     private:
         template<typename GridT>
         auto ConstructGrid(const GridIntermediate& gridIntermediate) noexcept
         {
-            auto result = openvdb::FloatGrid::create();
             const auto& leafIntermediates = gridIntermediate.leafs;
 
-            std::for_each(std::execution::par_unseq, leafIntermediates.begin(), leafIntermediates.end(), [&](auto leafIt) {
-                using TreeT = openvdb::FloatGrid::TreeType;
-                using LeafT = TreeT::LeafNodeType;
-                ConstructLeaf<LeafT>(leafIt.first, leafIt.second);
-            });
+            std::mutex gridAccessMutex{};
+            auto result = GridT::create();
 
+            std::for_each(std::execution::par_unseq, leafIntermediates.begin(), leafIntermediates.end(), [&](auto leafIt) {
+                using TreeT = typename GridT::TreeType;
+                using LeafT = typename TreeT::LeafNodeType;
+                LeafT* leaf = ConstructLeaf<LeafT>(leafIt.first, leafIt.second);
+
+                std::lock_guard guard{gridAccessMutex};
+                result->tree().addLeaf(leaf);
+            });
             return result;
         }
 
         template<typename LeafT>
-        LeafT ConstructLeaf(const openvdb::Coord& leafCoord, const LeafIntermediate& leafIntermediate) noexcept
+        LeafT* ConstructLeaf(const openvdb::Coord& leafCoord, const LeafIntermediate& leafIntermediate) noexcept
         {
-            auto* result = new LeafT{};
-
             const openvdb::Coord blockMin = {leafCoord.x() * SPARSE_BLOCK_SIZE, leafCoord.y() * SPARSE_BLOCK_SIZE,
                                              leafCoord.z() * SPARSE_BLOCK_SIZE};
 
@@ -108,7 +117,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             {
                 CopyFromStrided(leafBuffer, *leafIntermediate.chBlocks[0], 1, 0);
             }
-            return result;
+            return leaf;
         }
     private:
         static void CopyFromStrided(float* dst, const ChannelBlockF16Mem& src, size_t componentCount, size_t componentIdx) noexcept
@@ -119,6 +128,22 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             }
         }
     };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     class OpenVDBEncoder final
     {
