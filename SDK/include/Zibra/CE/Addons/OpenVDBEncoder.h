@@ -83,25 +83,28 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                         const char* chName = fInfo.channels[i].name;
                         const Decompression::ChannelInfo& chInfo = *chNameToChInfo[chName];
 
-                        for (const VDBGridDescRef& gridRef : chNameToGridDescs[chName])
+                        auto gridRefIt = chNameToGridDescs.find(chName);
+                        if (gridRefIt != chNameToGridDescs.end())
                         {
-                            const char* targetGridName = gridRef.desc->gridName;
+                            for (const VDBGridDescRef& gridRef : gridRefIt->second)
+                            {
+                                const char* targetGridName = gridRef.desc->gridName;
 
-                            // Find grid intermediate by name or create empty if it is absent
-                            const auto gridIntermediateToCreate = GridIntermediate{gridRef.desc->voxelType, chInfo.gridTransform, {}};
-                            auto gridIntermediateIt = gridsIntermediate.find(targetGridName);
-                            if (gridIntermediateIt == gridsIntermediate.end())
-                                gridIntermediateIt = gridsIntermediate.insert({targetGridName, gridIntermediateToCreate}).first;
+                                // Find grid intermediate by name or create empty if it is absent
+                                const auto gridIntermediateToCreate = GridIntermediate{gridRef.desc->voxelType, chInfo.gridTransform, {}};
+                                auto gridIntermediateIt = gridsIntermediate.find(targetGridName);
+                                if (gridIntermediateIt == gridsIntermediate.end())
+                                    gridIntermediateIt = gridsIntermediate.insert({targetGridName, gridIntermediateToCreate}).first;
 
-                            // Find leaf intermediate in grid intermediate or create if it is absent
-                            auto leafIntermediateMapIt = gridIntermediateIt->second.leafs.find(blockCoord);
-                            if (leafIntermediateMapIt == gridIntermediateIt->second.leafs.end())
-                                leafIntermediateMapIt = gridIntermediateIt->second.leafs.insert({blockCoord, {}}).first;
+                                // Find leaf intermediate in grid intermediate or create if it is absent
+                                auto leafIntermediateMapIt = gridIntermediateIt->second.leafs.find(blockCoord);
+                                if (leafIntermediateMapIt == gridIntermediateIt->second.leafs.end())
+                                    leafIntermediateMapIt = gridIntermediateIt->second.leafs.insert({blockCoord, {}}).first;
 
-                            const size_t channelBlockIdx = curSpatialInfo.channelBlocksOffset + localChannelBlockIdx;
-                            leafIntermediateMapIt->second.chBlocks[gridRef.chIdx] = &channelBlocksSrc[channelBlockIdx];
+                                const size_t channelBlockIdx = curSpatialInfo.channelBlocksOffset + localChannelBlockIdx;
+                                leafIntermediateMapIt->second.chBlocks[gridRef.chIdx] = &channelBlocksSrc[channelBlockIdx];
+                            }
                         }
-
                         ++localChannelBlockIdx;
                     }
                 }
