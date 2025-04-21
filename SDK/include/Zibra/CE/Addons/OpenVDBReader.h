@@ -40,6 +40,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             m_Channels.reserve(gridsCount * 4);
             m_GridsShuffle.reserve(gridsCount);
 
+            // Splitting vector grids to separate scalar channels + constructing channels unshuffle structure
             ChannelMask mask = 0x1;
             for (size_t i = 0; i < gridsCount; ++i)
             {
@@ -98,6 +99,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             std::map<openvdb::Coord, SpatialBlockIntermediate> spatialBlocks{};
             Math3D::AABB totalAABB = {};
 
+            // Resolving leaf data to spatial descriptors structure for future concurrent processing.
             for (size_t i = 0; i < m_Channels.size(); ++i)
             {
                 const ChannelDescriptor& channel = m_Channels[i];
@@ -116,6 +118,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 }
             }
 
+            // Iterating over resolved spatial descriptors and precalculating voxel data destination memory offset
             uint32_t channelBlockAccumulator = 0;
             for (auto& [coord, spatialBlock] : spatialBlocks)
             {
@@ -127,8 +130,9 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             result->spatialInfoCount = spatialBlocks.size();
             result->orderedChannelsCount = m_Channels.size();
 
+            // Allocating result frame buffers from precalculated data
             auto* resultBlocks = new ChannelBlock[result->blocksCount];
-            auto* channelIndexPerBlock = new uint32_t[result->blocksCount];
+            auto* resultChannelIndexPerBlock = new uint32_t[result->blocksCount];
             auto* resultSpatialInfo = new SpatialBlockInfo[result->spatialInfoCount];
             auto* orderedChannels = new Compression::ChannelInfo[result->orderedChannelsCount];
 
@@ -137,8 +141,9 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             result->orderedChannels = orderedChannels;
 
             result->aabb = totalAABB;
-            result->channelIndexPerBlock = channelIndexPerBlock;
+            result->channelIndexPerBlock = resultChannelIndexPerBlock;
 
+            // Preparing channel info. Filling known data and setting edge initial values for future statistics calculation.
             for (size_t i = 0; i < m_Channels.size(); ++i)
             {
                 auto chName = new char[m_Channels[i].name.length() + 1];
@@ -152,6 +157,8 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 orderedChannels[i].gridTransform = OpenVDBTransformToMath3DTransform(translatedTransform);
             }
 
+            // Concurrently moving voxel data from leafs to destination ChannelBlock array using precalculated offsets and other data
+            // stored in spatial descriptors + calculating voxel statistics per block.
             std::vector<Compression::VoxelStatistics> perBlockStatistics{};
             perBlockStatistics.resize(result->blocksCount);
             std::for_each(std::execution::par_unseq, spatialBlocks.begin(), spatialBlocks.end(), [&](const std::pair<openvdb::Coord, SpatialBlockIntermediate>& item){
@@ -164,7 +171,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                     uint32_t channelBlockIndex = spatialIntrm.destFirstChannelBlockIndex + chIdx;
                     ChannelBlock& outBlock = resultBlocks[channelBlockIndex];
                     mask |= chMask;
-                    channelIndexPerBlock[channelBlockIndex] = FirstChannelIndexFromMask(chMask);
+                    resultChannelIndexPerBlock[channelBlockIndex] = FirstChannelIndexFromMask(chMask);
                     PackFromStride(&outBlock, chBlockIntrm.data, chBlockIntrm.valueStride, chBlockIntrm.valueOffset, chBlockIntrm.valueSize,
                                    SPARSE_BLOCK_VOXEL_COUNT);
 
@@ -194,6 +201,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 resultSpatialInfo[spatialIntrm.destSpatialBlockIndex] = spatialInfo;
             });
 
+            // Resolving concurrently calculated per block voxel statistics to general frame per channel voxel statistics.
             for (size_t i = 0; i < perBlockStatistics.size(); ++i)
             {
                 const auto channelIndex = result->channelIndexPerBlock[i];
@@ -205,7 +213,6 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 // Writing blocks count to voxelCount to use it in the future.
                 dstStatistics.voxelCount += 1;
             }
-
             for (size_t i = 0; i < result->orderedChannelsCount; ++i)
             {
                 orderedChannels[i].statistics.meanPositiveValue /= static_cast<float>(orderedChannels[i].statistics.voxelCount);
@@ -238,7 +245,14 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             }
         }
     private:
-        template<typename T>
+        /**
+         * Iterates over input channel grid leafs, resolved offsets and adds transition data (SpatialBlockIntermediate) to spatialMap.
+         * @tparam T - OpenVDB::BasicGrid subtype
+         * @param ch - Source channel grid descriptor
+         * @param spatialMap - out map SpatialBlockIntermediate descriptor will be stored in.
+         * @return Total channel AABB
+         */
+        template <typename T>
         Math3D::AABB ResolveBlocks(const ChannelDescriptor& ch, std::map<openvdb::Coord, SpatialBlockIntermediate>& spatialMap) const noexcept
         {
             auto grid = openvdb::gridPtrCast<T>(ch.grid);
