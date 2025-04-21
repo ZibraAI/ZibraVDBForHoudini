@@ -41,7 +41,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
          * @param gridsCount - number of entries in grids param
          * @param matchVoxelSize - gets one origin grid and resamples other to its voxel size. (Heavy operation)
          */
-        explicit FrameLoader(openvdb::GridBase::ConstPtr* grids, size_t gridsCount, bool matchVoxelSize = false) noexcept
+        explicit FrameLoader(openvdb::GridBase::ConstPtr* grids, size_t gridsCount, bool matchVoxelSize = true) noexcept
         {
             if (!gridsCount)
                 return;
@@ -79,7 +79,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                     const auto src = openvdb::gridConstPtrCast<openvdb::Vec3SGrid>(grid);
                     const auto dst = openvdb::gridPtrCast<openvdb::Vec3SGrid>(mutableCopy);
                     dst->tree().voxelizeActiveTiles();
-                    if (matchVoxelSize)
+                    if (matchVoxelSize && !relativeTransform.isIdentity())
                         transformer.transformGrid<openvdb::tools::BoxSampler>(*src, *dst);
                 }
                 else if (mutableCopy->baseTree().isType<openvdb::FloatTree>())
@@ -87,7 +87,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                     const auto src = openvdb::gridConstPtrCast<openvdb::FloatGrid>(grid);
                     const auto dst = openvdb::gridPtrCast<openvdb::FloatGrid>(mutableCopy);
                     dst->tree().voxelizeActiveTiles();
-                    if (matchVoxelSize)
+                    if (matchVoxelSize && !relativeTransform.isIdentity())
                         transformer.transformGrid<openvdb::tools::BoxSampler>(*src, *dst);
                 }
                 else
