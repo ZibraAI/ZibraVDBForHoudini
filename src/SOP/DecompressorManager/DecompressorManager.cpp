@@ -200,11 +200,6 @@ namespace Zibra::Helpers
         const uint32_t maxChunkSize = maxDimensionsPerSubmit.maxSpatialBlocks;
         const uint32_t chunksCount = (frameInfo.spatialBlockCount + maxChunkSize - 1) / maxChunkSize;
 
-        // std::vector<CE::ChannelBlock> decompressionPerChannelBlockData{};
-        // std::vector<CE::SpatialBlockInfo> decompressionPerSpatialBlockInfo{};
-        // *vdbGrids = CE::Addons::OpenVDBUtils::OpenVDBEncoder::CreateGrids(frameInfo);
-
-
         std::vector<ZCEDecompressionPackedSpatialBlock> readbackDecompressionPerSpatialBlockInfo{};
         readbackDecompressionPerSpatialBlockInfo.resize(frameInfo.spatialBlockCount);
         std::vector<uint16_t> readbackDecompressionPerChannelBlockData{};
@@ -230,28 +225,12 @@ namespace Zibra::Helpers
                 return status;
             }
 
-            // TODO VDB-1291: Implement read-back circular buffer, to optimize GPU stalls.
-            //                Implement cpu circular buffer to optimize RAM allocation for DecompressedFrameData.
-            //                Move EncodeFrame into separate thread to overlay CPU and CPU work.
-
-            // decompressionPerChannelBlockData.resize(frameFeedback.channelBlocksCount);
-            // decompressionPerSpatialBlockInfo.resize(decompressDesc.spatialBlocksCount);
-            // GetDecompressedFrameData(decompressionPerChannelBlockData, decompressionPerSpatialBlockInfo);
-
             auto* chBlocksReadback = readbackDecompressionPerChannelBlockData.data() + readbackDecompressionPerSpatialBlockInfoOffset;
             auto* spBlocksReadback = readbackDecompressionPerSpatialBlockInfo.data() + readbackDecompressionPerSpatialBlockInfoOffset;
             GetDecompressedFrameData(chBlocksReadback, fFeedback.channelBlocksCount, spBlocksReadback, decompressDesc.spatialBlocksCount);
 
             readbackDecompressionPerSpatialBlockInfoOffset += decompressDesc.spatialBlocksCount;
             readbackDecompressionPerChannelBlockDataOffset += fFeedback.channelBlocksCount * CE::SPARSE_BLOCK_VOXEL_COUNT;
-
-            // CE::Addons::OpenVDBUtils::OpenVDBEncoder::FrameData frameData{};
-            // frameData.decompressionPerChannelBlockData = decompressionPerChannelBlockData.data();
-            // frameData.perChannelBlocksDataCount = decompressionPerChannelBlockData.size();
-            // frameData.decompressionPerSpatialBlockInfo = decompressionPerSpatialBlockInfo.data();
-            // frameData.perSpatialBlocksInfoCount = decompressionPerSpatialBlockInfo.size();
-            // CE::Addons::OpenVDBUtils::OpenVDBEncoder::Encode(*vdbGrids, decompressDesc, frameFeedback, frameInfo, frameData);
-
             m_RHIRuntime->GarbageCollect();
         }
         RHIStatus = m_RHIRuntime->StopRecording();
@@ -260,41 +239,15 @@ namespace Zibra::Helpers
         CE::Addons::OpenVDBUtils::FrameData fData{};
         fData.decompressionPerChannelBlockData = readbackDecompressionPerChannelBlockData.data();
         fData.decompressionPerSpatialBlockInfo = readbackDecompressionPerSpatialBlockInfo.data();
-        *vdbGrids = encoder.EncodeFrame(fData, frameInfo);
-
+        // TODO VDB-1291: Implement read-back circular buffer, to optimize GPU stalls.
+        //                Implement cpu circular buffer to optimize RAM allocation for DecompressedFrameData.
+        //                Move EncodeFrame into separate thread to overlay CPU and CPU work.
         if (RHIStatus != RHI::ZRHI_SUCCESS)
         {
             return CE::ZCE_ERROR;
         }
 
         return CE::ZCE_SUCCESS;
-    }
-
-    static void UnpackBlocks(const std::vector<uint32_t>& scratchBufferSpatialBlockData,
-                             const std::vector<uint16_t>& scratchBufferChannelBlockData,
-                             std::vector<CE::ChannelBlock>& decompressionPerChannelBlockData,
-                             std::vector<CE::SpatialBlockInfo>& decompressionPerSpatialBlockInfo) noexcept
-    {
-        for (size_t i = 0; i < decompressionPerChannelBlockData.size(); ++i)
-        {
-            for (size_t j = 0; j < CE::SPARSE_BLOCK_VOXEL_COUNT; ++j)
-            {
-                size_t bufIdx = i * CE::SPARSE_BLOCK_VOXEL_COUNT + j;
-                decompressionPerChannelBlockData[i].voxels[j] = CE::Float16ToFloat32(scratchBufferChannelBlockData[bufIdx]);
-            }
-        }
-
-        for (size_t i = 0; i < decompressionPerSpatialBlockInfo.size(); ++i)
-        {
-            uint32_t packedCoords = scratchBufferSpatialBlockData[i * 3 + 0];
-            decompressionPerSpatialBlockInfo[i].coords[0] = static_cast<int32_t>((packedCoords >> 0u) & 1023u);
-            decompressionPerSpatialBlockInfo[i].coords[1] = static_cast<int32_t>((packedCoords >> 10u) & 1023u);
-            decompressionPerSpatialBlockInfo[i].coords[2] = static_cast<int32_t>((packedCoords >> 20u) & 1023u);
-            decompressionPerSpatialBlockInfo[i].channelBlocksOffset = scratchBufferSpatialBlockData[i * 3 + 1];
-            decompressionPerSpatialBlockInfo[i].channelMask = scratchBufferSpatialBlockData[i * 3 + 2];
-
-            decompressionPerSpatialBlockInfo[i].channelCount = CE::CountBits(decompressionPerSpatialBlockInfo[i].channelMask);
-        }
     }
 
     CE::ReturnCode DecompressorManager::GetDecompressedFrameData(uint16_t* perChannelBlockData, size_t channelBlocksCount,
