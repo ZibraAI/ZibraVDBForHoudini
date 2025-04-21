@@ -35,28 +35,83 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             std::map<ChannelMask, ChannelBlockIntermediate> blocks{};
         };
     public:
-        explicit FrameLoader(openvdb::GridBase::ConstPtr* grids, size_t gridsCount) noexcept
+        /**
+         *
+         * @param grids - grids to encode
+         * @param gridsCount - number of entries in grids param
+         * @param matchVoxelSize - gets one origin grid and resamples other to its voxel size. (Heavy operation)
+         */
+        explicit FrameLoader(openvdb::GridBase::ConstPtr* grids, size_t gridsCount, bool matchVoxelSize = false) noexcept
         {
+            if (!gridsCount)
+                return;
+
             m_Channels.reserve(gridsCount * 4);
             m_GridsShuffle.reserve(gridsCount);
+
+            // Selecting orign grid for resampling
+            openvdb::GridBase::ConstPtr originGrid = grids[0];
+            if (matchVoxelSize)
+            {
+                auto minVoxelScale = std::numeric_limits<float>::max();
+                for (size_t i = 0; i < gridsCount; ++i)
+                {
+                    const float voxelScale = GetUniformVoxelScale(grids[i]);
+                    if (voxelScale < minVoxelScale)
+                    {
+                        minVoxelScale = voxelScale;
+                        originGrid = grids[i];
+                    }
+                    minVoxelScale = std::min(minVoxelScale, voxelScale);
+                }
+            }
+
+            // Creating mutable grid copies for future voxelization. Resample if matchVoxelSize is enabled.
+            std::vector<openvdb::GridBase::Ptr> processedGrids{};
+            processedGrids.resize(gridsCount);
+            std::transform(std::execution::seq, grids, grids + gridsCount, processedGrids.begin(), [&](const auto& grid) {
+                const openvdb::math::Transform relativeTransform = GetIndexSpaceRelativeTransform(grid, originGrid);
+                openvdb::tools::GridTransformer transformer{relativeTransform.baseMap()->getAffineMap()->getMat4()};
+
+                openvdb::GridBase::Ptr mutableCopy = grid->deepCopyGrid();
+                if (mutableCopy->baseTree().isType<openvdb::Vec3STree>())
+                {
+                    const auto src = openvdb::gridConstPtrCast<openvdb::Vec3SGrid>(grid);
+                    const auto dst = openvdb::gridPtrCast<openvdb::Vec3SGrid>(mutableCopy);
+                    dst->tree().voxelizeActiveTiles();
+                    if (matchVoxelSize)
+                        transformer.transformGrid<openvdb::tools::BoxSampler>(*src, *dst);
+                }
+                else if (mutableCopy->baseTree().isType<openvdb::FloatTree>())
+                {
+                    const auto src = openvdb::gridConstPtrCast<openvdb::FloatGrid>(grid);
+                    const auto dst = openvdb::gridPtrCast<openvdb::FloatGrid>(mutableCopy);
+                    dst->tree().voxelizeActiveTiles();
+                    if (matchVoxelSize)
+                        transformer.transformGrid<openvdb::tools::BoxSampler>(*src, *dst);
+                }
+                else
+                {
+                    assert(0 && "Unsupported grid type. Loader supports only floating point grids.");
+                }
+                return mutableCopy;
+            });
 
             // Splitting vector grids to separate scalar channels + constructing channels unshuffle structure
             ChannelMask mask = 0x1;
             for (size_t i = 0; i < gridsCount; ++i)
             {
-                openvdb::GridBase::Ptr mutableCopy = grids[i]->deepCopyGrid();
-
                 VDBGridDesc shuffleGridInfo{};
                 std::vector<ChannelDescriptor> channels;
-                if (grids[i]->baseTree().isType<openvdb::Vec3STree>())
+                if (processedGrids[i]->baseTree().isType<openvdb::Vec3STree>())
                 {
                     shuffleGridInfo.voxelType = GridVoxelType::Float3;
-                    channels = ChannelsFromGrid(mutableCopy, 3, sizeof(float), mask);
+                    channels = ChannelsFromGrid(processedGrids[i], 3, sizeof(float), mask);
                 }
-                else if (grids[i]->baseTree().isType<openvdb::FloatTree>())
+                else if (processedGrids[i]->baseTree().isType<openvdb::FloatTree>())
                 {
                     shuffleGridInfo.voxelType = GridVoxelType::Float1;
-                    channels = ChannelsFromGrid(mutableCopy, 1, sizeof(float), mask);
+                    channels = ChannelsFromGrid(processedGrids[i], 1, sizeof(float), mask);
                 }
                 else
                 {
@@ -65,7 +120,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                     return;
                 }
 
-                const auto& gridName = grids[i]->getName();
+                const auto& gridName = processedGrids[i]->getName();
                 shuffleGridInfo.gridName = new char[gridName.length() + 1];
                 strcpy(const_cast<char*>(shuffleGridInfo.gridName), gridName.c_str());
 
@@ -256,7 +311,6 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         Math3D::AABB ResolveBlocks(const ChannelDescriptor& ch, std::map<openvdb::Coord, SpatialBlockIntermediate>& spatialMap) const noexcept
         {
             auto grid = openvdb::gridPtrCast<T>(ch.grid);
-            grid->tree().voxelizeActiveTiles();
 
             Math3D::AABB totalAABB = {};
             for (auto leafIt = grid->tree().cbeginLeaf(); leafIt; ++leafIt)
@@ -391,6 +445,32 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         static std::string SplitGridNameFromValueComponentIdx(const std::string gridName, uint32_t valueComponentIdx)
         {
             return gridName + "." + ValueComponentIndexToLetter(valueComponentIdx);
+        }
+
+        static float GetUniformVoxelScale(const openvdb::GridBase::ConstPtr& grid)
+        {
+            const openvdb::Vec3f voxelSize{grid->voxelSize()};
+            assert(grid->hasUniformVoxels());
+            return voxelSize.x();
+        }
+
+        /** Calculate transformation to origin grid's index space.
+         * T^B_O = T^B_W * T^W_O  -- B - Base, O - Origin, W - World.
+         *
+         * Also, for optimization reasons we assume that rotation matrix of base and origin grid within 1 frame is the same.
+         * Therefore, transformation matrix calculated in this method will be ScaleTranslation matrix (or close to that due to floating
+         * point errors). This assumption later allows to cut off drastic amount of multiplications.
+         *
+         * @param targetGrid - base grid transform will be applied to
+         * @param referenceGrid - reference grid (transformation destination)
+         * @return - T^B_O - transformation from targetGrid to referenceGrid index space.
+         */
+        static openvdb::math::Transform GetIndexSpaceRelativeTransform(const openvdb::GridBase::ConstPtr& targetGrid,
+                                                                       const openvdb::GridBase::ConstPtr& referenceGrid) noexcept
+        {
+            openvdb::math::Transform result{targetGrid->transform().baseMap()->copy()};
+            result.postMult(referenceGrid->transform().baseMap()->getAffineMap()->getMat4().inverse());
+            return result;
         }
 
     private:
