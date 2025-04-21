@@ -1,13 +1,13 @@
 #pragma once
 
-#include <Zibra/CE/Common.h>
 #include <execution>
 #include <map>
+#include <Zibra/CE/Compression.h>
 #include <openvdb/io/Stream.h>
 #include <openvdb/openvdb.h>
 #include <openvdb/tools/GridTransformer.h>
 
-#include "Zibra/CE/Compression.h"
+#include "OpenVDBCommon.h"
 
 namespace Zibra::CE::Addons::OpenVDBUtils
 {
@@ -38,20 +38,24 @@ namespace Zibra::CE::Addons::OpenVDBUtils
     public:
         explicit FrameLoader(openvdb::GridBase::ConstPtr* grids, size_t gridsCount) noexcept
         {
-            m_Channels.reserve(gridsCount);
+            m_Channels.reserve(gridsCount * 4);
+            m_GridsShuffle.reserve(gridsCount);
 
             ChannelMask mask = 0x1;
             for (size_t i = 0; i < gridsCount; ++i)
             {
-                std::vector<ChannelDescriptor> channels;
                 openvdb::GridBase::Ptr mutableCopy = grids[i]->deepCopyGrid();
 
+                VDBGridDesc shuffleGridInfo{};
+                std::vector<ChannelDescriptor> channels;
                 if (grids[i]->baseTree().isType<openvdb::Vec3STree>())
                 {
+                    shuffleGridInfo.voxelType = GridVoxelType::Float3;
                     channels = ChannelsFromGrid(mutableCopy, 3, sizeof(float), mask);
                 }
                 else if (grids[i]->baseTree().isType<openvdb::FloatTree>())
                 {
+                    shuffleGridInfo.voxelType = GridVoxelType::Float1;
                     channels = ChannelsFromGrid(mutableCopy, 1, sizeof(float), mask);
                 }
                 else
@@ -60,8 +64,32 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                     m_Channels.clear();
                     return;
                 }
+
+                const auto& gridName = grids[i]->getName();
+                shuffleGridInfo.gridName = new char[gridName.length() + 1];
+                strcpy(const_cast<char*>(shuffleGridInfo.gridName), gridName.c_str());
+
+                for (size_t chIdx = 0; chIdx < std::min(channels.size(), std::size(shuffleGridInfo.chSource)); ++chIdx)
+                {
+                    shuffleGridInfo.chSource[chIdx] = new char[channels[chIdx].name.length() + 1];
+                    strcpy(const_cast<char*>(shuffleGridInfo.chSource[chIdx]), channels[chIdx].name.c_str());
+                }
+
                 mask = mask << channels.size();
                 m_Channels.insert(m_Channels.end(), channels.begin(), channels.end());
+                m_GridsShuffle.push_back(shuffleGridInfo);
+            }
+        }
+
+        ~FrameLoader() noexcept
+        {
+            for (auto& shuffleItem : m_GridsShuffle)
+            {
+                delete [] shuffleItem.gridName;
+                for (size_t i = 0; i < std::size(shuffleItem.chSource); ++i)
+                {
+                    delete [] shuffleItem.chSource[i];
+                }
             }
         }
 
@@ -189,17 +217,26 @@ namespace Zibra::CE::Addons::OpenVDBUtils
 
             return result;
         }
-        void ReleaseFrame(Compression::SparseFrame* frame) const noexcept
+
+        const std::vector<VDBGridDesc>& GetGridsShuffleInfo() noexcept
         {
-            for (size_t i = 0; i < frame->orderedChannelsCount; ++i)
+            return m_GridsShuffle;
+        }
+
+        void ReleaseFrame(const Compression::SparseFrame* frame) const noexcept
+        {
+            if (frame)
             {
-                delete [] frame->orderedChannels[i].name;
+                for (size_t i = 0; i < frame->orderedChannelsCount; ++i)
+                {
+                    delete[] frame->orderedChannels[i].name;
+                }
+                delete[] frame->orderedChannels;
+                delete[] frame->channelIndexPerBlock;
+                delete[] frame->blocks;
+                delete[] frame->spatialInfo;
+                delete frame;
             }
-            delete [] frame->orderedChannels;
-            delete [] frame->channelIndexPerBlock;
-            delete [] frame->blocks;
-            delete [] frame->spatialInfo;
-            delete frame;
         }
     private:
         template<typename T>
@@ -278,12 +315,8 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             std::vector<ChannelDescriptor> result{};
             for (size_t chIdx = 0; chIdx < voxelComponentCount; ++chIdx)
             {
-                std::string chName = grid->getName();
-                if (voxelComponentCount > 1)
-                    chName += "." + ValueComponentIndexToLetter(chIdx);
-
                 ChannelDescriptor chDesc{};
-                chDesc.name = chName;
+                chDesc.name = voxelComponentCount > 1 ? SplitGridNameFromValueComponentIdx(grid->getName(), chIdx) : grid->getName();
                 chDesc.grid = grid;
                 chDesc.channelMask = firstChMask << chIdx;
                 chDesc.valueOffset = chIdx * voxelComponentSize;
@@ -324,10 +357,10 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             }
         }
 
-        static std::string ValueComponentIndexToLetter(uint32_t idx) noexcept
+        static std::string ValueComponentIndexToLetter(uint32_t valueComponentIdx) noexcept
         {
             using namespace std::string_literals;
-            switch (idx)
+            switch (valueComponentIdx)
             {
             case 0:
                 return "x";
@@ -338,12 +371,18 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             case 3:
                 return "w";
             default:
-                return "c"s + std::to_string(idx);
+                return "c"s + std::to_string(valueComponentIdx);
             }
+        }
+
+        static std::string SplitGridNameFromValueComponentIdx(const std::string gridName, uint32_t valueComponentIdx)
+        {
+            return gridName + "." + ValueComponentIndexToLetter(valueComponentIdx);
         }
 
     private:
         std::vector<ChannelDescriptor> m_Channels{};
+        std::vector<VDBGridDesc> m_GridsShuffle{};
     };
 
 
