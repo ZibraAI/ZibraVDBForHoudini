@@ -100,8 +100,7 @@
 #include <dlfcn.h>
 #include <curl/curl.h>
 #else
-// TODO macOS support
-#error Unimplemented
+#error Unexpected OS
 #endif
 
 #define ZRHI_NO_STATIC_API_DECL

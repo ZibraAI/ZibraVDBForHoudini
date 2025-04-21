@@ -450,7 +450,7 @@ namespace Zibra
             {
                 return Status::NoLicense;
             }
-            CE::Licensing::CAPI::CheckoutLicenseOffline(offlineLicense.c_str(), offlineLicense.size());
+            CE::Licensing::CAPI::CheckoutLicenseOffline(offlineLicense.c_str(), static_cast<int>(offlineLicense.size()));
 
             if (CE::Licensing::CAPI::IsLicenseValidated(CE::Licensing::ProductType::Compression))
             {

@@ -94,7 +94,7 @@ namespace Zibra::CE
      */
     inline uint32_t PackCoords(Math3D::uint3 coords) noexcept
     {
-        return coords.x & 1023 | (coords.y & 1023) << 10 | (coords.z & 1023) << 20;
+        return (coords.x & 1023) | (coords.y & 1023) << 10 | (coords.z & 1023) << 20;
     }
     /**
      * Unpacks 32bit-packed by PackCoords coords

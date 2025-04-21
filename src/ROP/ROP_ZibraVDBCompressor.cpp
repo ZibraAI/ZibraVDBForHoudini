@@ -568,7 +568,7 @@ namespace Zibra::ZibraVDBCompressor
         evalString(filename, FILENAME_PARAM_NAME, nullptr, 0, tStart);
         std::filesystem::create_directories(std::filesystem::path{filename.c_str()}.parent_path());
 
-        const int renderMode = evalInt("trange", 0, ctx.getTime());
+        const int renderMode = static_cast<int>(evalInt("trange", 0, ctx.getTime()));
         const float startFrame = renderMode == 0 ? ctx.getFrame() : evalFloat("f", 0, tStart);
         const float frameInc = renderMode == 0 ? 1 : evalFloat("f", 2, tStart);
         CE::Compression::FrameMappingDecs frameMappingDesc;

@@ -2,6 +2,8 @@ import os
 import sys
 import requests
 import subprocess
+import platform
+import argparse
 from sesiweb import SesiWeb
 from sesiweb.model.service import ProductBuild
 
@@ -11,11 +13,16 @@ def get_secret(secret_name):
     except KeyError:
         raise Exception(f"Missing secret: {secret_name}")
 
-def get_platforms():
+def get_platform_list(architecture):
     if sys.platform == "linux":
         return ["linux_x86_64_gcc11.2"]
     elif sys.platform == "darwin":
-        return ["macosx"]
+        if architecture == "arm64":
+            print("Searching for arm64 build")
+            return ["macosx_arm64_clang15"]
+        else:
+            print("Running on x86_64 build")
+            return ["macosx_x86_64_clang15"]
     elif sys.platform == "win32":
         return ["win64-vc143"]
     else:
@@ -32,19 +39,25 @@ def get_file_extension():
         print(platform)
         raise Exception("Unexpected platform")
 
-HOUDINI_CLIENT_ID = get_secret("HOUDINI_CLIENT_ID")
-HOUDINI_SECRET_KEY = get_secret("HOUDINI_SECRET_KEY")
-
-PLATFORMS = get_platforms()
-PRODUCTS = ["houdini"]
-VERSIONS = ["20.5"]
-
 if __name__ == "__main__":
+
+    arg_parser = argparse.ArgumentParser(description="Install Houdini")
+    arg_parser.add_argument("--architecture", type=str, help="macOS architecture to install for (arm64 or x86_64)", default="arm64", choices=["arm64", "x86_64"])
+    arg_parser.add_argument("--version", type=str, help="Houdini version to install", default="20.5", choices=["20.5"])
+    args = arg_parser.parse_args()
+
+    HOUDINI_CLIENT_ID = get_secret("HOUDINI_CLIENT_ID")
+    HOUDINI_SECRET_KEY = get_secret("HOUDINI_SECRET_KEY")
+
+    platform_list = get_platform_list(args.architecture)
+    product_list = ["houdini"]
+    version_list = [args.version]
+
     sw = SesiWeb(client_secret=HOUDINI_SECRET_KEY, client_id=HOUDINI_CLIENT_ID)
 
-    for product in PRODUCTS:
-        for platform in PLATFORMS:
-            for version in VERSIONS:
+    for platform in platform_list:
+        for product in product_list:
+            for version in version_list:
                 product_build = {"product": product, "platform": platform, "version": version}
                 build_select = sw.get_latest_build(prodinfo=product_build, only_production=False)
                 build_dl = sw.get_build_download(prodinfo=ProductBuild(**build_select.dict()))

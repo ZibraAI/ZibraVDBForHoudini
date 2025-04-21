@@ -6,8 +6,8 @@ on:
       - main
 
 jobs:
-  build-windows:
-    name: Build ZibraVDB for Houdini 20.5 (Windows)
+  build-windows-x64:
+    name: Build ZibraVDB for Houdini 20.5 (Windows-x64)
     runs-on: windows-latest
     steps:
 
@@ -43,8 +43,8 @@ jobs:
       shell: pwsh
       run: cmake --build build-20_5-windows --config Debug
 
-  build-linux:
-    name: Build ZibraVDB for Houdini 20.5 (Linux)
+  build-linux-x64:
+    name: Build ZibraVDB for Houdini 20.5 (Linux-x64)
     runs-on: [self-hosted, Linux, X64, houdini]
     steps:
 
@@ -66,11 +66,11 @@ jobs:
       shell: pwsh
       run: cmake --build build-20_5-linux --config Debug
 
-  build-macos:
-    name: Build ZibraVDB for Houdini 20.5 (macOS)
+  build-macos-arm64:
+    name: Build ZibraVDB for Houdini 20.5 (macOS-arm64)
     runs-on: macos-latest
     concurrency:
-      group: macos-${{ github.workflow }}-${{ github.ref }}
+      group: macos-arm64-${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     steps:
     - name: Sync
@@ -83,7 +83,7 @@ jobs:
         python3 -m venv actions/install_houdini/venv
         ./actions/install_houdini/venv/bin/Activate.ps1
         pip3 install -r actions/install_houdini/requirements.txt
-        python3 actions/install_houdini/install_houdini.py
+        python3 actions/install_houdini/install_houdini.py --architecture arm64
       env:
         HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
         HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
@@ -91,7 +91,47 @@ jobs:
     - name: Configure Cmake
       working-directory: ${{ github.workspace }}
       shell: pwsh
-      run: cmake -S . -B build-20_5-macos -G "Xcode" -DLABS_BUILD=ON -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+      run: cmake -S . -B build-20_5-macos -G "Xcode" -DCMAKE_OSX_ARCHITECTURES=arm64 -DLABS_BUILD=ON
+      env:
+        HFS: /Applications/Houdini/Current/Frameworks/Houdini.framework/Versions/Current/Resources
+
+    - name: Build Release
+      working-directory: ${{ github.workspace }}
+      shell: pwsh
+      run: cmake --build build-20_5-macos --config Release
+
+    - name: Build Debug
+      working-directory: ${{ github.workspace }}
+      shell: pwsh
+      run: cmake --build build-20_5-macos --config Debug
+
+
+  build-macos-x86_64:
+    name: Build ZibraVDB for Houdini 20.5 (macOS-x86_64)
+    runs-on: macos-latest
+    concurrency:
+      group: macos-x86_64-${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+    - name: Sync
+      uses: actions/checkout@v4
+
+    - name: Install Houdini
+      working-directory: ${{ github.workspace }}
+      shell: pwsh
+      run: |
+        python3 -m venv actions/install_houdini/venv
+        ./actions/install_houdini/venv/bin/Activate.ps1
+        pip3 install -r actions/install_houdini/requirements.txt
+        python3 actions/install_houdini/install_houdini.py --architecture x86_64
+      env:
+        HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
+        HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
+
+    - name: Configure Cmake
+      working-directory: ${{ github.workspace }}
+      shell: pwsh
+      run: cmake -S . -B build-20_5-macos -G "Xcode" -DCMAKE_OSX_ARCHITECTURES=x86_64 -DLABS_BUILD=ON
       env:
         HFS: /Applications/Houdini/Current/Frameworks/Houdini.framework/Versions/Current/Resources
 

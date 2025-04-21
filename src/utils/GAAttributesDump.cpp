@@ -116,7 +116,7 @@ namespace Zibra::Utils
                 case GA_STORE_INT64: {
                     std::vector<int64> data{};
                     data.resize(attr->getTupleSize());
-                    tuple->get(attr, mapOffset, data.data(), data.size());
+                    tuple->get(attr, mapOffset, data.data(), static_cast<int>(data.size()));
                     attrDump["t"] = GAStorageToStr(storage);
                     attrDump["v"] = data;
                     break;
@@ -126,7 +126,7 @@ namespace Zibra::Utils
                 case GA_STORE_REAL64: {
                     std::vector<fpreal64> data{};
                     data.resize(attr->getTupleSize());
-                    tuple->get(attr, mapOffset, data.data(), data.size());
+                    tuple->get(attr, mapOffset, data.data(), static_cast<int>(data.size()));
                     attrDump["t"] = GAStorageToStr(storage);
                     attrDump["v"] = data;
                 }
@@ -184,7 +184,7 @@ namespace Zibra::Utils
             GA_Storage storage = StrTypeToGAStorage(typeContainer);
 
             ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE(storage == GA_STORE_INVALID);
-            GA_Attribute* attr = gdp->addTuple(storage, owner, attribName, valContainer.size());
+            GA_Attribute* attr = gdp->addTuple(storage, owner, attribName, static_cast<int>(valContainer.size()));
 
             switch (storage)
             {
@@ -205,7 +205,7 @@ namespace Zibra::Utils
                 {
                     values.emplace_back(val);
                 }
-                attrRWHandle.setV(mapOffset, values.data(), values.size());
+                attrRWHandle.setV(mapOffset, values.data(), static_cast<int>(values.size()));
                 break;
             }
             case GA_STORE_REAL16:
@@ -218,7 +218,7 @@ namespace Zibra::Utils
                 {
                     values.emplace_back(static_cast<float>(val));
                 }
-                attrRWHandle.setV(mapOffset, values.data(), values.size());
+                attrRWHandle.setV(mapOffset, values.data(), static_cast<int>(values.size()));
                 break;
             }
             case GA_STORE_STRING: {

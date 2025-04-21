@@ -52,7 +52,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 return {};
             }
 
-            const uint32_t gridCount = frameInfo.channelsCount;
+            const uint32_t gridCount = static_cast<uint32_t>(frameInfo.channelsCount);
 
             // Create grids.
             openvdb::GridPtrVec grids{};
@@ -92,7 +92,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
 
             // For each channel fill grids.
             std::for_each(grids.begin(), grids.end(), [&](auto& baseGrid) {
-                const int channelIndex = &baseGrid - grids.data();
+                const int channelIndex = static_cast<int>(&baseGrid - grids.data());
 
                 const auto countActiveChannelOffset = [currentChannelMask = 1 << channelIndex](const int blockChannelMask) noexcept -> int {
                     if (!(blockChannelMask & currentChannelMask))
