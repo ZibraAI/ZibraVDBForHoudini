@@ -174,11 +174,17 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             }
 
             // Iterating over resolved spatial descriptors and precalculating voxel data destination memory offset
-            uint32_t channelBlockAccumulator = 0;
+            std::vector<SpatialBlockIntermediate*> orderedSpatialBlockIntermediates{};
+            orderedSpatialBlockIntermediates.resize(spatialBlocks.size());
             for (auto& [coord, spatialBlock] : spatialBlocks)
             {
-                spatialBlock.destFirstChannelBlockIndex = channelBlockAccumulator;
-                channelBlockAccumulator += spatialBlock.blocks.size();
+                orderedSpatialBlockIntermediates[spatialBlock.destSpatialBlockIndex] = &spatialBlock;
+            }
+            uint32_t channelBlockAccumulator = 0;
+            for (auto& spatialBlock : orderedSpatialBlockIntermediates)
+            {
+                spatialBlock->destFirstChannelBlockIndex = channelBlockAccumulator;
+                channelBlockAccumulator += spatialBlock->blocks.size();
             }
 
             result->blocksCount = channelBlockAccumulator;
