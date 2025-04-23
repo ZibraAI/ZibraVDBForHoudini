@@ -81,7 +81,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 {
                     const auto& curSpatialInfo = UnpackPackedSpatialBlock(packedSpatialInfo[spatialIdx]);
                     openvdb::Coord blockCoord{curSpatialInfo.coords[0], curSpatialInfo.coords[1], curSpatialInfo.coords[2]};
-                    if (curSpatialInfo.channelMask & 1 << i)
+                    if (curSpatialInfo.channelMask & (1 << i))
                     {
                         const char* chName = m_FrameInfo.channels[i].name;
 
