@@ -182,7 +182,7 @@ namespace Zibra::Helpers
     }
 
     CE::ReturnCode DecompressorManager::DecompressFrame(CE::Decompression::CompressedFrameContainer* frameContainer,
-                                                        const std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc>& gridShuffle,
+                                                        std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridShuffle,
                                                         openvdb::GridPtrVec* vdbGrids) noexcept
     {
         if (!m_RHIRuntime || !m_Decompressor)
@@ -196,6 +196,19 @@ namespace Zibra::Helpers
         }
 
         const auto frameInfo = frameContainer->GetInfo();
+
+        // Filling default mapping if metadata is empty/invalid
+        if (gridShuffle.empty())
+        {
+            for (size_t i = 0; i < frameInfo.channelsCount; ++i)
+            {
+                CE::Addons::OpenVDBUtils::VDBGridDesc gridDesc{};
+                gridDesc.gridName = frameInfo.channels[i].name;
+                gridDesc.voxelType = CE::Addons::OpenVDBUtils::GridVoxelType::Float1;
+                gridDesc.chSource[0] = frameInfo.channels[i].name;
+                gridShuffle.emplace_back(gridDesc);
+            }
+        }
 
         CE::Addons::OpenVDBUtils::FrameEncoder encoder{gridShuffle.data(), gridShuffle.size(), frameInfo};
 
