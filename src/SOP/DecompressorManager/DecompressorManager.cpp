@@ -182,6 +182,7 @@ namespace Zibra::Helpers
     }
 
     CE::ReturnCode DecompressorManager::DecompressFrame(CE::Decompression::CompressedFrameContainer* frameContainer,
+                                                        const std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc>& gridShuffle,
                                                         openvdb::GridPtrVec* vdbGrids) noexcept
     {
         if (!m_RHIRuntime || !m_Decompressor)
@@ -196,17 +197,17 @@ namespace Zibra::Helpers
 
         const auto frameInfo = frameContainer->GetInfo();
 
+        CE::Addons::OpenVDBUtils::FrameEncoder encoder{gridShuffle.data(), gridShuffle.size(), frameInfo};
+
         const CE::Decompression::MaxDimensionsPerSubmit maxDimensionsPerSubmit = m_Decompressor->GetMaxDimensionsPerSubmit();
         const uint32_t maxChunkSize = maxDimensionsPerSubmit.maxSpatialBlocks;
         const uint32_t chunksCount = (frameInfo.spatialBlockCount + maxChunkSize - 1) / maxChunkSize;
 
         std::vector<ZCEDecompressionPackedSpatialBlock> readbackDecompressionPerSpatialBlockInfo{};
-        readbackDecompressionPerSpatialBlockInfo.resize(frameInfo.spatialBlockCount);
+        readbackDecompressionPerSpatialBlockInfo.reserve(maxChunkSize);
         std::vector<uint16_t> readbackDecompressionPerChannelBlockData{};
-        readbackDecompressionPerChannelBlockData.resize(frameInfo.channelBlockCount * CE::SPARSE_BLOCK_VOXEL_COUNT);
+        readbackDecompressionPerChannelBlockData.reserve(maxChunkSize * CE::MAX_CHANNEL_COUNT * CE::SPARSE_BLOCK_VOXEL_COUNT);
 
-        size_t readbackDecompressionPerSpatialBlockInfoOffset = 0;
-        size_t readbackDecompressionPerChannelBlockDataOffset = 0;
         for (int chunkIdx = 0; chunkIdx < chunksCount; ++chunkIdx)
         {
             CE::Decompression::DecompressFrameDesc decompressDesc{};
@@ -225,37 +226,27 @@ namespace Zibra::Helpers
                 return status;
             }
 
-            auto* chBlocksReadback = readbackDecompressionPerChannelBlockData.data() + readbackDecompressionPerSpatialBlockInfoOffset;
-            auto* spBlocksReadback = readbackDecompressionPerSpatialBlockInfo.data() + readbackDecompressionPerSpatialBlockInfoOffset;
-            GetDecompressedFrameData(chBlocksReadback, fFeedback.channelBlocksCount, spBlocksReadback, decompressDesc.spatialBlocksCount);
-
-            readbackDecompressionPerSpatialBlockInfoOffset += decompressDesc.spatialBlocksCount;
-            readbackDecompressionPerChannelBlockDataOffset += fFeedback.channelBlocksCount * CE::SPARSE_BLOCK_VOXEL_COUNT;
+            readbackDecompressionPerSpatialBlockInfo.resize(decompressDesc.spatialBlocksCount);
+            readbackDecompressionPerChannelBlockData.resize(fFeedback.channelBlocksCount * CE::SPARSE_BLOCK_VOXEL_COUNT);
+            GetDecompressedFrameData(readbackDecompressionPerChannelBlockData.data(), fFeedback.channelBlocksCount,
+                                     readbackDecompressionPerSpatialBlockInfo.data(), decompressDesc.spatialBlocksCount);
             m_RHIRuntime->GarbageCollect();
+
+            CE::Addons::OpenVDBUtils::FrameData fData{};
+            fData.decompressionPerChannelBlockData = readbackDecompressionPerChannelBlockData.data();
+            fData.decompressionPerSpatialBlockInfo = readbackDecompressionPerSpatialBlockInfo.data();
+            // TODO VDB-1291: Implement read-back circular buffer, to optimize GPU stalls.
+            //                Implement cpu circular buffer to optimize RAM allocation for DecompressedFrameData.
+            //                Move EncodeChunk into separate thread to overlay CPU and CPU work.
+            encoder.EncodeChunk(fData, decompressDesc.spatialBlocksCount, fFeedback.firstChannelBlockIndex);
         }
         RHIStatus = m_RHIRuntime->StopRecording();
-
-
-        CE::Addons::OpenVDBUtils::VDBGridDesc gridDesc{};
-        gridDesc.voxelType = CE::Addons::OpenVDBUtils::GridVoxelType::Float3;
-        gridDesc.gridName = "MyComposedGrid";
-        gridDesc.chSource[0] = "density.x";
-        gridDesc.chSource[1] = "density.y";
-        gridDesc.chSource[2] = "density.z";
-
-        CE::Addons::OpenVDBUtils::FrameEncoder encoder{};
-        CE::Addons::OpenVDBUtils::FrameData fData{};
-        fData.decompressionPerChannelBlockData = readbackDecompressionPerChannelBlockData.data();
-        fData.decompressionPerSpatialBlockInfo = readbackDecompressionPerSpatialBlockInfo.data();
-        // TODO VDB-1291: Implement read-back circular buffer, to optimize GPU stalls.
-        //                Implement cpu circular buffer to optimize RAM allocation for DecompressedFrameData.
-        //                Move EncodeFrame into separate thread to overlay CPU and CPU work.
-        *vdbGrids = encoder.EncodeFrame(&gridDesc, 1, fData, frameInfo);
         if (RHIStatus != RHI::ZRHI_SUCCESS)
         {
             return CE::ZCE_ERROR;
         }
 
+        *vdbGrids = encoder.GetGrids();
         return CE::ZCE_SUCCESS;
     }
 

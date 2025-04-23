@@ -67,16 +67,15 @@ namespace Zibra::ZibraVDBCompressor
         void getOutputFile(UT_String& filename) final;
 
     private:
-        static std::vector<PRM_Template>& GetTemplateListContainer(ContextType contextType);
+        static std::vector<PRM_Template>& GetTemplateListContainer(ContextType contextType) noexcept;
 
         std::vector<std::pair<std::string, std::string>> DumpAttributes(const GU_Detail* gdp) noexcept;
-        void DumpVisualisationAttributes(std::vector<std::pair<std::string, std::string>>& attributes, const GEO_PrimVDB* vdbPrim);
-        void DumpFrameFeedback(std::vector<std::pair<std::string, std::string>>& result,
-                               const CE::Addons::OpenVDBUtils::OpenVDBReader::Feedback& feedback);
+        void DumpVisualisationAttributes(std::vector<std::pair<std::string, std::string>>& attributes, const GEO_PrimVDB* vdbPrim) noexcept;
+        nlohmann::json DumpGridsShuffleInfo(const std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridDescs) noexcept;
 
-        static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate);
+        static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate) noexcept;
 
-        ROP_RENDER_CODE CreateCompressor(fpreal tStart);
+        ROP_RENDER_CODE CreateCompressor(fpreal tStart) noexcept;
 
     private:
         fpreal m_EndTime = 0;
