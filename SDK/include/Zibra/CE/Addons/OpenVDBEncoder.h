@@ -140,6 +140,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             result.reserve(m_Grids.size());
             for (const auto& [gridName, grid] : m_Grids)
             {
+                grid->setName(gridName);
                 result.emplace_back(grid);
             }
             return result;
