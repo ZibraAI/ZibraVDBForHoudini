@@ -68,7 +68,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             // Creating mutable grid copies for future voxelization. Resample if matchVoxelSize is enabled.
             std::vector<openvdb::GridBase::Ptr> processedGrids{};
             processedGrids.resize(gridsCount);
-            std::transform(std::execution::seq, grids, grids + gridsCount, processedGrids.begin(), [&](const auto& grid) {
+            std::transform(std::execution::par_unseq, grids, grids + gridsCount, processedGrids.begin(), [&](const auto& grid) {
                 const openvdb::math::Transform relativeTransform = GetIndexSpaceRelativeTransform(grid, originGrid);
                 openvdb::tools::GridTransformer transformer{relativeTransform.baseMap()->getAffineMap()->getMat4()};
 
