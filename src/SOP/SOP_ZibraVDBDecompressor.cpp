@@ -2,8 +2,6 @@
 
 #include "SOP_ZibraVDBDecompressor.h"
 
-#include <Zibra/CE/Addons/OpenVDBEncoder.h>
-
 #include "bridge/LibraryUtils.h"
 #include "licensing/LicenseManager.h"
 #include "ui/PluginManagementWindow.h"

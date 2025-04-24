@@ -70,8 +70,10 @@ namespace Zibra::CE::Addons::OpenVDBUtils
 
         void EncodeChunk(const FrameData& fData, size_t spatialBlocksCount, size_t chunkChBlocksFirstIndex) noexcept
         {
+            using PackedSpatialBlockInfo = Decompression::Shaders::PackedSpatialBlockInfo;
+
             std::map<std::string, GridIntermediate> gridsIntermediate{};
-            const auto* packedSpatialInfo = static_cast<const ZCEDecompressionPackedSpatialBlock*>(fData.decompressionPerSpatialBlockInfo);
+            const auto* packedSpatialInfo = static_cast<const PackedSpatialBlockInfo*>(fData.decompressionPerSpatialBlockInfo);
             const auto* channelBlocksSrc = static_cast<const ChannelBlockF16Mem*>(fData.decompressionPerChannelBlockData);
 
             for (size_t spatialIdx = 0; spatialIdx < spatialBlocksCount; ++spatialIdx)
@@ -79,7 +81,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 size_t localChannelBlockIdx = 0;
                 for (size_t i = 0; i < MAX_CHANNEL_COUNT; ++i)
                 {
-                    const auto& curSpatialInfo = UnpackPackedSpatialBlock(packedSpatialInfo[spatialIdx]);
+                    const auto& curSpatialInfo = Decompression::UnpackPackedSpatialBlockInfo(packedSpatialInfo[spatialIdx]);
                     openvdb::Coord blockCoord{curSpatialInfo.coords[0], curSpatialInfo.coords[1], curSpatialInfo.coords[2]};
                     if (curSpatialInfo.channelMask & (1 << i))
                     {

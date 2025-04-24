@@ -12,9 +12,15 @@ namespace Zibra
         uint32_t patch;
         uint32_t build;
     };
-    inline bool operator==(const Version& l, const Version& r) noexcept
+    inline bool IsCompatibleVersion(const Version& runtime, const Version& expected) noexcept
     {
-        return l.major == r.major && l.minor == r.minor && l.patch == r.patch && l.build == r.build;
+        if (runtime.major != expected.major)
+            return false;
+        if (runtime.minor != expected.minor)
+            return runtime.minor >= expected.minor;
+        if (runtime.patch != expected.patch)
+            return runtime.patch >= expected.patch;
+        return runtime.build >= expected.build;
     }
 
     class IStream

@@ -1,10 +1,7 @@
 #pragma once
 
 #include <Zibra/CE/Decompression.h>
-#include <Zibra/CE/Addons/OpenVDBEncoder.h>
-#include <Zibra/CE/Addons/OpenVDBReader.h>
-
-#include "Globals.h"
+#include <Zibra/CE/Addons/OpenVDBFrameEncoder.h>
 
 namespace Zibra::Helpers
 {
@@ -31,7 +28,7 @@ namespace Zibra::Helpers
 
     private:
         CE::ReturnCode GetDecompressedFrameData(uint16_t* perChannelBlockData, size_t channelBlocksCount,
-                                                ZCEDecompressionPackedSpatialBlock* perSpatialBlockInfo,
+                                                CE::Decompression::Shaders::PackedSpatialBlockInfo* perSpatialBlockInfo,
                                                 size_t spatialBlocksCount) const noexcept;
         CE::ReturnCode AllocateExternalBuffer(BufferDesc& bufferDesc, size_t newSizeInBytes, size_t newStride) noexcept;
         CE::ReturnCode FreeExternalBuffers() noexcept;

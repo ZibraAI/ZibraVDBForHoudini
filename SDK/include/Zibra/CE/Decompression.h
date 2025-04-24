@@ -6,6 +6,8 @@
 #include <cassert>
 #include <cstdint>
 
+#include "shaders/ZCEDecompressionShaderTypes.hlsli"
+
 namespace Zibra::CE::ZibraVDB
 {
     class FileDecoder;
@@ -13,7 +15,7 @@ namespace Zibra::CE::ZibraVDB
 
 namespace Zibra::CE::Decompression
 {
-    constexpr Version ZCE_DECOMPRESSION_VERSION = {0, 9, 4, 0};
+    constexpr Version ZCE_DECOMPRESSION_VERSION = {0, 9, 5, 0};
 
     struct DecompressorResourcesRequirements
     {
@@ -25,14 +27,6 @@ namespace Zibra::CE::Decompression
 
         size_t decompressionPerChannelBlockInfoSizeInBytes;
         size_t decompressionPerChannelBlockInfoStride;
-    };
-
-    struct PerChannelBlockInfo
-    {
-        //TODO: document it
-
-        // Max voxel value in channel block
-        uint32_t halfFloatScalePerBlock;
     };
 
     /**
@@ -56,33 +50,34 @@ namespace Zibra::CE::Decompression
      *    ├── ...
      *    └── channelCN -> PerChannelBlockInfo[spatialToChannelLookup[PN] + CN] + PerChannelBlockPayload[spatialToChannelLookup[PN] + CN]
      * @endcode
-     *
-     * @warning If you are about changing this structure use checklist:
-     * - make sure that you are not exposing specific implementation details. Expose only general abstract data.
-     * - think about potential future decompressor implementations. Make resources format as flexible as possible. (No DCT or Huffman
-     * params, etc...)
-     * - add fields to appropriate buffer items instead of adding new buffer if it is possible.
-     * - remember about Dependency Inversion principle!!!
-     * - discuss changes with 3d team
      */
     struct DecompressorResources
     {
         /**
          * Payload per channel block.
-         * @layoyt ChannelBlock[]
+         * @layout float16[SPARSE_BLOCK_VOXEL_COUNT][FrameInfo::channelBlockCount]
          */
-        RHI::Buffer* decompressionPerChannelBlockData;
+        RHI::Buffer* decompressionPerChannelBlockData = nullptr;
         /**
-         * Info per channel block.
-         * @layoyt PerChannelBlockInfo[]
+         * Info per channel block
+         * @layout ZCEDecompressionPackedChannelBlockInfo[FrameInfo::channelBlockCount / 2]
          */
-        RHI::Buffer* decompressionPerChannelBlockInfo;
-        /**
-         * Info per spatial group.
-         * @layoyt SpatialBlockInfo[]
-         */
-        RHI::Buffer* decompressionPerSpatialBlockInfo;
+        RHI::Buffer* decompressionPerChannelBlockInfo = nullptr;
+        /// Info per spatial group
+        /// @layout ZCEDecompressionPackedSpatialBlock[FrameInfo::spatialBlockCount]
+        RHI::Buffer* decompressionPerSpatialBlockInfo = nullptr;
     };
+
+    inline SpatialBlockInfo UnpackPackedSpatialBlockInfo(const Shaders::PackedSpatialBlockInfo& packedBlock) noexcept {
+        SpatialBlockInfo result{};
+        result.coords[0] = static_cast<int32_t>((packedBlock.packedCoords >> 0u) & 1023u);
+        result.coords[1] = static_cast<int32_t>((packedBlock.packedCoords >> 10u) & 1023u);
+        result.coords[2] = static_cast<int32_t>((packedBlock.packedCoords >> 20u) & 1023u);
+        result.channelBlocksOffset = packedBlock.channelBlocksOffset;
+        result.channelMask = packedBlock.channelMask;
+        result.channelCount = CountBits(packedBlock.channelMask);
+        return result;
+    }
 
     struct ChannelInfo
     {

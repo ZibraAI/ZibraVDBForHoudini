@@ -2,7 +2,6 @@
 
 #include <Zibra/Foundation.h>
 #include <Zibra/Math3D.h>
-#include "Addons/ZCEDecompressionShaderTypes.hlsli"
 
 #define ZCE_CONCAT_HELPER(A, B) A##B
 #define ZCE_PFN(name) ZCE_CONCAT_HELPER(PFN_, name)
@@ -61,7 +60,7 @@ namespace Zibra::CE
         /**
          * Position of spatial block in space.
          * Stored in blocks. To get position in voxels must be multiplied by sparseBlockSize.
-         * @range [0; INF]
+         * @range [0; 2^9]
          */
         int32_t coords[3];
 
@@ -165,16 +164,5 @@ namespace Zibra::CE
         uint32_t float32_value = t1;
 
         return *(reinterpret_cast<float*>(&float32_value));
-    }
-
-    inline SpatialBlockInfo UnpackPackedSpatialBlock(const ZCEDecompressionPackedSpatialBlock& packedBlock) noexcept {
-        SpatialBlockInfo result{};
-        result.coords[0] = static_cast<int32_t>((packedBlock.packedCoords >> 0u) & 1023u);
-        result.coords[1] = static_cast<int32_t>((packedBlock.packedCoords >> 10u) & 1023u);
-        result.coords[2] = static_cast<int32_t>((packedBlock.packedCoords >> 20u) & 1023u);
-        result.channelBlocksOffset = packedBlock.channelBlocksOffset;
-        result.channelMask = packedBlock.channelMask;
-        result.channelCount = CountBits(packedBlock.channelMask);
-        return result;
     }
 } // namespace Zibra::CE

@@ -231,7 +231,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 auto& [coord, spatialIntrm] = item;
                 ChannelMask mask = 0x0;
 
-                //TODO: ensure right channels order
+                // Channels are ordered right way due to map soring and mask bit order.
                 size_t chIdx = 0;
                 for (auto& [chMask, chBlockIntrm] : spatialIntrm.blocks) {
                     uint32_t channelBlockIndex = spatialIntrm.destFirstChannelBlockIndex + chIdx;

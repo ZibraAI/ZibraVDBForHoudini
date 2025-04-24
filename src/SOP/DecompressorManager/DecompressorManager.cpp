@@ -216,7 +216,7 @@ namespace Zibra::Helpers
         const uint32_t maxChunkSize = maxDimensionsPerSubmit.maxSpatialBlocks;
         const uint32_t chunksCount = (frameInfo.spatialBlockCount + maxChunkSize - 1) / maxChunkSize;
 
-        std::vector<ZCEDecompressionPackedSpatialBlock> readbackDecompressionPerSpatialBlockInfo{};
+        std::vector<CE::Decompression::Shaders::PackedSpatialBlockInfo> readbackDecompressionPerSpatialBlockInfo{};
         readbackDecompressionPerSpatialBlockInfo.reserve(maxChunkSize);
         std::vector<uint16_t> readbackDecompressionPerChannelBlockData{};
         readbackDecompressionPerChannelBlockData.reserve(maxChunkSize * CE::MAX_CHANNEL_COUNT * CE::SPARSE_BLOCK_VOXEL_COUNT);
@@ -264,7 +264,7 @@ namespace Zibra::Helpers
     }
 
     CE::ReturnCode DecompressorManager::GetDecompressedFrameData(uint16_t* perChannelBlockData, size_t channelBlocksCount,
-                                                                 ZCEDecompressionPackedSpatialBlock* perSpatialBlockInfo,
+                                                                 CE::Decompression::Shaders::PackedSpatialBlockInfo* perSpatialBlockInfo,
                                                                  size_t spatialBlocksCount) const noexcept
     {
         if (!m_RHIRuntime)

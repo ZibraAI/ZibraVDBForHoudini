@@ -17,4 +17,4 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         GridVoxelType voxelType = GridVoxelType::Float1;
         const char* chSource[4] = {nullptr, nullptr, nullptr, nullptr};
     };
-}
+} // namespace Zibra::CE::Addons::OpenVDBUtils
