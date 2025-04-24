@@ -1,10 +1,7 @@
 #pragma once
 
 #include <Zibra/CE/Decompression.h>
-#include <Zibra/CE/Addons/OpenVDBEncoder.h>
-#include <Zibra/CE/Addons/OpenVDBReader.h>
-
-#include "Globals.h"
+#include <Zibra/CE/Addons/OpenVDBFrameEncoder.h>
 
 namespace Zibra::Helpers
 {
@@ -22,14 +19,17 @@ namespace Zibra::Helpers
     public:
         CE::ReturnCode Initialize() noexcept;
         CE::ReturnCode RegisterDecompressor(const UT_String& filename) noexcept;
-        CE::ReturnCode DecompressFrame(CE::Decompression::CompressedFrameContainer* frameContainer, openvdb::GridPtrVec* vdbGrids) noexcept;
+        CE::ReturnCode DecompressFrame(CE::Decompression::CompressedFrameContainer* frameContainer,
+                                       std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridShuffle,
+                                       openvdb::GridPtrVec* vdbGrids) noexcept;
         CE::Decompression::CompressedFrameContainer* FetchFrame(const exint& frameIndex) const noexcept;
         CE::Decompression::FrameRange GetFrameRange() const noexcept;
         void Release() noexcept;
 
     private:
-        CE::ReturnCode GetDecompressedFrameData(std::vector<CE::ChannelBlock>& decompressionPerChannelBlockData,
-                                                std::vector<CE::SpatialBlockInfo>& decompressionPerSpatialBlockInfo) const noexcept;
+        CE::ReturnCode GetDecompressedFrameData(uint16_t* perChannelBlockData, size_t channelBlocksCount,
+                                                CE::Decompression::Shaders::PackedSpatialBlockInfo* perSpatialBlockInfo,
+                                                size_t spatialBlocksCount) const noexcept;
         CE::ReturnCode AllocateExternalBuffer(BufferDesc& bufferDesc, size_t newSizeInBytes, size_t newStride) noexcept;
         CE::ReturnCode FreeExternalBuffers() noexcept;
 

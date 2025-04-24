@@ -170,7 +170,7 @@ namespace Zibra::ZibraVDBCompressor
         return new ROP_ZibraVDBCompressor{ContextType::OUT, net, name, op};
     }
 
-    std::vector<PRM_Template>& ROP_ZibraVDBCompressor::GetTemplateListContainer(ContextType contextType)
+    std::vector<PRM_Template>& ROP_ZibraVDBCompressor::GetTemplateListContainer(ContextType contextType) noexcept
     {
         static std::vector<PRM_Template> templateListSOP;
         static std::vector<PRM_Template> templateListOUT;
@@ -454,6 +454,7 @@ namespace Zibra::ZibraVDBCompressor
         std::set<std::string> channelNamesUniqueStorage{};
         std::vector<const char*> orderedChannelNames{};
         std::vector<openvdb::GridBase::ConstPtr> volumes{};
+        std::vector<openvdb::GridBase::Ptr> garbage{};
         const GEO_Primitive* prim;
         GA_FOR_ALL_PRIMITIVES(gdp, prim)
         {
@@ -467,7 +468,7 @@ namespace Zibra::ZibraVDBCompressor
                     addError(ROP_MESSAGE, m.c_str());
                     return ROP_ABORT_RENDER;
                 }
-                if (vdbPrim->getStorageType() != UT_VDB_FLOAT)
+                if (vdbPrim->getStorageType() != UT_VDB_FLOAT && vdbPrim->getStorageType() != UT_VDB_VEC3F)
                 {
                     std::string m = "Unsupported value type for '"s + gridName + "' prim. Only float grids supported.";
                     addError(ROP_MESSAGE, m.c_str());
@@ -487,7 +488,6 @@ namespace Zibra::ZibraVDBCompressor
                 channelNamesUniqueStorage.insert(gridName);
             }
         }
-        channelNamesUniqueStorage.clear();
         if (volumes.empty())
         {
             std::string m = "Node input at frame "s + std::to_string(ctx.getFrame()) +
@@ -503,9 +503,10 @@ namespace Zibra::ZibraVDBCompressor
 
         CE::Compression::FrameManager* frameManager = nullptr;
 
-        CE::Addons::OpenVDBUtils::OpenVDBReader vdbReader{volumes.data(), orderedChannelNames.data(), orderedChannelNames.size()};
-        CE::Addons::OpenVDBUtils::OpenVDBReader::Feedback frameFeedback{};
-        compressFrameDesc.frame = vdbReader.LoadFrame(false, &frameFeedback);
+
+        CE::Addons::OpenVDBUtils::FrameLoader vdbFrameLoader{volumes.data(), volumes.size()};
+        compressFrameDesc.frame = vdbFrameLoader.LoadFrame();
+        auto gridsShuffleInfo = vdbFrameLoader.GetGridsShuffleInfo();
 
         auto status = m_CompressorManager.CompressFrame(compressFrameDesc, &frameManager);
         if (status != CE::ZCE_SUCCESS)
@@ -514,11 +515,11 @@ namespace Zibra::ZibraVDBCompressor
             return ROP_ABORT_RENDER;
         }
 
-        CE::Addons::OpenVDBUtils::OpenVDBReader::ReleaseSparseFrame(compressFrameDesc.frame);
+        vdbFrameLoader.ReleaseFrame(compressFrameDesc.frame);
 
-        auto attrDump = DumpAttributes(gdp);
-        DumpFrameFeedback(attrDump, frameFeedback);
-        for (const auto& [key, val] : attrDump)
+        auto frameMetadata = DumpAttributes(gdp);
+        frameMetadata.push_back({"chShuffle", DumpGridsShuffleInfo(gridsShuffleInfo).dump()});
+        for (const auto& [key, val] : frameMetadata)
         {
             frameManager->AddMetadata(key.c_str(), val.c_str());
         }
@@ -561,7 +562,7 @@ namespace Zibra::ZibraVDBCompressor
         return error() < UT_ERROR_ABORT ? ROP_CONTINUE_RENDER : ROP_ABORT_RENDER;
     }
 
-    ROP_RENDER_CODE ROP_ZibraVDBCompressor::CreateCompressor(const fpreal tStart)
+    ROP_RENDER_CODE ROP_ZibraVDBCompressor::CreateCompressor(const fpreal tStart) noexcept
     {
         UT_String filename = "";
         OP_Context ctx(tStart);
@@ -659,7 +660,7 @@ namespace Zibra::ZibraVDBCompressor
     }
 
     void ROP_ZibraVDBCompressor::DumpVisualisationAttributes(std::vector<std::pair<std::string, std::string>>& attributes,
-                                                             const GEO_PrimVDB* vdbPrim)
+                                                             const GEO_PrimVDB* vdbPrim) noexcept
     {
         const std::string keyPrefix = "houdiniVisualizationAttributes_"s + vdbPrim->getGridName();
 
@@ -680,18 +681,40 @@ namespace Zibra::ZibraVDBCompressor
         attributes.emplace_back(std::move(keyVisLod), std::move(valueVisLod));
     }
 
-    int ROP_ZibraVDBCompressor::OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate)
+    nlohmann::json ROP_ZibraVDBCompressor::DumpGridsShuffleInfo(const std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridDescs) noexcept
+    {
+        static std::map<CE::Addons::OpenVDBUtils::GridVoxelType, std::string> voxelTypeToString = {
+            {CE::Addons::OpenVDBUtils::GridVoxelType::Float1, "Float1"},
+            {CE::Addons::OpenVDBUtils::GridVoxelType::Float3, "Float3"}
+        };
+
+        nlohmann::json result = nlohmann::json::array();
+        for (const CE::Addons::OpenVDBUtils::VDBGridDesc& gridDesc : gridDescs)
+        {
+            nlohmann::json serializedDesc = nlohmann::json{
+                {"gridName", gridDesc.gridName},
+                {"voxelType", voxelTypeToString.at(gridDesc.voxelType)},
+            };
+            for (size_t i = 0; i < std::size(gridDesc.chSource); ++i)
+            {
+                std::string name{"chSource"};
+                if (gridDesc.chSource[i])
+                {
+                    serializedDesc[name + std::to_string(i)] = gridDesc.chSource[i];
+                }
+                else
+                {
+                    serializedDesc[name + std::to_string(i)] = nullptr;
+                }
+            }
+            result.emplace_back(serializedDesc);
+        }
+        return result;
+    }
+
+    int ROP_ZibraVDBCompressor::OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate) noexcept
     {
         PluginManagementWindow::ShowWindow();
         return 0;
     }
-
-    void ROP_ZibraVDBCompressor::DumpFrameFeedback(std::vector<std::pair<std::string, std::string>>& result,
-                                                   const CE::Addons::OpenVDBUtils::OpenVDBReader::Feedback& feedback)
-    {
-        std::ostringstream oss;
-        oss << feedback.offsetX << " " << feedback.offsetY << " " << feedback.offsetZ;
-        result.emplace_back("houdiniDecodeMetadata", oss.str());
-    }
-
 } // namespace Zibra::ZibraVDBCompressor

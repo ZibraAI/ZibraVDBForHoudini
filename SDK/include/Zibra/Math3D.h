@@ -1,8 +1,10 @@
 #pragma once
 
+#include <cassert>
 #include <climits>
 #include <cmath>
 #include <cstdint>
+#include <array>
 
 namespace Zibra::Math3D
 {
@@ -10,6 +12,64 @@ namespace Zibra::Math3D
     using float64_t = double;
 
     using uint = uint32_t;
+
+    inline float Lerp(float a, float b, float t) noexcept
+    {
+        return a + t * (b - a);
+    }
+    inline double Lerp(double a, double b, double t) noexcept
+    {
+        return a + t * (b - a);
+    }
+
+    inline bool IsNearlyEqual(float a, float b) noexcept
+    {
+        return std::abs(a - b) < std::numeric_limits<float>::epsilon();
+    }
+    inline bool IsNearlyEqual(double a, double b) noexcept
+    {
+        return std::abs(a - b) < std::numeric_limits<double>::epsilon();
+    }
+
+    inline bool IsNearlyInteger(float value) noexcept
+    {
+        float dummy;
+        float frac = std::modf(value, &dummy);
+        return IsNearlyEqual(frac, 0.0f);
+    }
+    inline bool IsNearlyInteger(double value) noexcept
+    {
+        double dummy;
+        double frac = std::modf(value, &dummy);
+        return IsNearlyEqual(frac, 0.0);
+    }
+
+    inline float RoundIfNearlyZero(float value) noexcept
+    {
+        if (value < std::numeric_limits<float>::epsilon())
+            return 0.0f;
+        return value;
+    }
+
+    inline int FloorWithEpsilon(float value) noexcept
+    {
+// Workaround for GCC bug
+#if defined(__GNUC__) && (__GNUC__ < 14)
+        return static_cast<int>(::floorf(value + std::numeric_limits<float>::epsilon()));
+#else
+        return static_cast<int>(std::floorf(value + std::numeric_limits<float>::epsilon()));
+#endif
+    }
+
+    inline int CeilWithEpsilon(float value) noexcept
+    {
+// Workaround for GCC bug
+#if defined(__GNUC__) && (__GNUC__ < 14)
+        return static_cast<int>(::ceilf(value - std::numeric_limits<float>::epsilon()));
+#else
+        return static_cast<int>(std::ceilf(value - std::numeric_limits<float>::epsilon()));
+#endif
+    }
 
     template <typename T>
     struct Vector2
@@ -43,6 +103,14 @@ namespace Zibra::Math3D
         {
             return {x - v.x, y - v.y};
         }
+        Vector2 operator+() const
+        {
+            return *this;
+        }
+        Vector2 operator+(const Vector2& v) const
+        {
+            return {x + v.x, y + v.y};
+        }
         Vector2 operator*(T scalar) const
         {
             return {x * scalar, y * scalar};
@@ -61,13 +129,17 @@ namespace Zibra::Math3D
             assert(v.x != 0 && v.y != 0);
             return {x / v.x, y / v.y};
         }
-        Vector2 operator+() const
+        bool operator==(const Vector2& v) const
         {
-            return *this;
+            return x == v.x && y == v.y;
         }
-        Vector2 operator+(const Vector2& v) const
+        bool operator!=(const Vector2& v) const
         {
-            return {x + v.x, y + v.y};
+            return !(*this == v);
+        }
+        bool IsNearlyEqualTo(const Vector2& v) noexcept
+        {
+            return IsNearlyEqual(x, v.x) && IsNearlyEqual(y, v.y);
         }
         explicit operator std::array<T, 2>() const
         {
@@ -103,6 +175,14 @@ namespace Zibra::Math3D
             , z(arr[2])
         {
         }
+        Vector3 operator+() const
+        {
+            return *this;
+        }
+        Vector3 operator+(const Vector3& v) const
+        {
+            return {x + v.x, y + v.y, z + v.z};
+        }
         Vector3 operator-() const
         {
             return {-x, -y, -z};
@@ -129,13 +209,17 @@ namespace Zibra::Math3D
             assert(v.x != 0 && v.y != 0 && v.z != 0);
             return {x / v.x, y / v.y, z / v.z};
         }
-        Vector3 operator+() const
+        bool operator==(const Vector3& v) const
         {
-            return *this;
+            return x == v.x && y == v.y && z == v.z;
         }
-        Vector3 operator+(const Vector3& v) const
+        bool operator!=(const Vector3& v) const
         {
-            return {x + v.x, y + v.y, z + v.z};
+            return !(*this == v);
+        }
+        bool IsNearlyEqualTo(const Vector3& v) noexcept
+        {
+            return IsNearlyEqual(x, v.x) && IsNearlyEqual(y, v.y) && IsNearlyEqual(z, v.z);
         }
         explicit operator std::array<T, 3>() const
         {
@@ -175,6 +259,14 @@ namespace Zibra::Math3D
             , w(arr[3])
         {
         }
+        Vector4 operator+() const
+        {
+            return *this;
+        }
+        Vector4 operator+(const Vector4& v) const
+        {
+            return {x + v.x, y + v.y, z + v.z, w + v.w};
+        }
         Vector4 operator-() const
         {
             return {-x, -y, -z, -w};
@@ -201,13 +293,17 @@ namespace Zibra::Math3D
             assert(v.x != 0 && v.y != 0 && v.z != 0 && v.w != 0);
             return {x / v.x, y / v.y, z / v.z, w / v.w};
         }
-        Vector4 operator+() const
+        bool operator==(const Vector4& v) const
         {
-            return *this;
+            return x == v.x && y == v.y && z == v.z && w == v.w;
         }
-        Vector4 operator+(const Vector4& v) const
+        bool operator!=(const Vector4& v) const
         {
-            return {x + v.x, y + v.y, z + v.z, w + v.w};
+            return !(*this == v);
+        }
+        bool IsNearlyEqualTo(const Vector4& v) noexcept
+        {
+            return IsNearlyEqual(x, v.x) && IsNearlyEqual(y, v.y) && IsNearlyEqual(z, v.z) && IsNearlyEqual(w, v.w);
         }
         explicit operator std::array<T, 4>() const
         {
@@ -355,65 +451,6 @@ namespace Zibra::Math3D
     inline bool operator!=(const AABB& a, const AABB& b) noexcept
     {
         return !(a == b);
-    }
-
-    inline float Lerp(float a, float b, float t) noexcept
-    {
-        return a + t * (b - a);
-    }
-    inline double Lerp(double a, double b, double t) noexcept
-    {
-        return a + t * (b - a);
-    }
-
-    inline bool IsNearlyEqual(float a, float b) noexcept
-    {
-        return std::abs(a - b) < std::numeric_limits<float>::epsilon();
-    }
-    inline bool IsNearlyEqual(double a, double b) noexcept
-    {
-        return std::abs(a - b) < std::numeric_limits<double>::epsilon();
-    }
-
-    inline bool IsNearlyInteger(float value) noexcept
-    {
-        float dummy;
-        float frac = std::modf(value, &dummy);
-        return IsNearlyEqual(frac, 0.0f);
-    }
-
-    inline bool IsNearlyInteger(double value) noexcept
-    {
-        double dummy;
-        double frac = std::modf(value, &dummy);
-        return IsNearlyEqual(frac, 0.0);
-    }
-
-    inline float RoundIfNearlyZero(float value) noexcept
-    {
-        if (value < std::numeric_limits<float>::epsilon())
-            return 0.0f;
-        return value;
-    }
-
-    inline int FloorWithEpsilon(float value) noexcept
-    {
-// Workaround for GCC bug
-#if defined(__GNUC__) && (__GNUC__ < 14)
-        return static_cast<int>(::floorf(value + std::numeric_limits<float>::epsilon()));
-#else
-        return static_cast<int>(std::floorf(value + std::numeric_limits<float>::epsilon()));
-#endif
-    }
-
-    inline int CeilWithEpsilon(float value) noexcept
-    {
-// Workaround for GCC bug
-#if defined(__GNUC__) && (__GNUC__ < 14)
-        return static_cast<int>(::ceilf(value - std::numeric_limits<float>::epsilon()));
-#else
-        return static_cast<int>(std::ceilf(value - std::numeric_limits<float>::epsilon()));
-#endif
     }
 
 } // namespace Zibra::Math3D

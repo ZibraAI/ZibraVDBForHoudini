@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Zibra/CE/Addons/OpenVDBReader.h>
+#include <Zibra/CE/Addons/OpenVDBFrameLoader.h>
 #include <Zibra/CE/Compression.h>
 
 namespace Zibra::CE::Compression

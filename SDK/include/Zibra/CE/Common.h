@@ -12,6 +12,8 @@ namespace Zibra::CE
     static constexpr int SPARSE_BLOCK_VOXEL_COUNT = SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE;
     static constexpr size_t MAX_CHANNEL_COUNT = 8;
 
+    using ChannelMask = uint32_t;
+
     enum ReturnCode
     {
         // Successfully finished operation
@@ -58,21 +60,21 @@ namespace Zibra::CE
         /**
          * Position of spatial block in space.
          * Stored in blocks. To get position in voxels must be multiplied by sparseBlockSize.
-         * @range [0; 2^10]
+         * @range [0; 2^9]
          */
         int32_t coords[3];
 
         /**
          * Offset to first channel block of this spatial block.
-         * @range [0; 2^32]
+         * @range [0; INF]
          */
         uint32_t channelBlocksOffset;
 
         /**
          * Mask of active channels in this spatial block.
-         * @range [0; 2^32]
+         * @range [0x0; 0xFFFFFF]
          */
-        uint32_t channelMask;
+        ChannelMask channelMask;
 
         /**
          * Count of active channels in this spatial block.
