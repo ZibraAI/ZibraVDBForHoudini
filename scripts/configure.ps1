@@ -1,4 +1,4 @@
-#!/usr/bin/pwsh
+#!/usr/bin/env pwsh
 
 param (
    [string]$AdditionalArgs, 
@@ -23,7 +23,7 @@ if ($TargetFolder -eq "") {
     elseif ($IsMacOS) 
     {
         $TargetFolder += "-macos-universal"
-        $PlatformOptions = '-G "Xcode" -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"'
+        $PlatformOptions = '-G "Xcode" -DCMAKE_OSX_ARCHITECTURES="arm64"'
     }
     else 
     {
