@@ -29,21 +29,19 @@ namespace Zibra::LibraryUtils
 {
 #if ZIB_TARGET_OS_WIN
 #define ZIB_TARGET_OS_NAME "Windows"
-#define ZIB_DYNAMIC_LIB_EXTENSION ".dll"
-#define ZIB_DYNAMIC_LIB_PREFIX ""
+#define ZIB_DYNAMIC_LIB_NAME "ZibraVDBSDK.dll"
 #elif ZIB_TARGET_OS_LINUX
 #define ZIB_TARGET_OS_NAME "Linux"
-#define ZIB_DYNAMIC_LIB_EXTENSION ".so"
-#define ZIB_DYNAMIC_LIB_PREFIX "lib"
+#define ZIB_DYNAMIC_LIB_NAME "libZibraVDBSDK.so"
 #elif ZIB_TARGET_OS_MAC
 #define ZIB_TARGET_OS_NAME "macOS"
-#define ZIB_DYNAMIC_LIB_EXTENSION ".dylib"
-#define ZIB_DYNAMIC_LIB_PREFIX "lib"
+// actual dynamic library loadable by dlopen is inside .bundle
+#define ZIB_DYNAMIC_LIB_NAME "ZibraVDBSDK.bundle/Contents/MacOS/ZibraVDBSDK"
 #else
 #error Unsupported platform
 #endif
 
-    const char* g_LibraryPath = ZIB_LIBRARY_FOLDER "/" ZIB_DYNAMIC_LIB_PREFIX "ZibraVDBSDK" ZIB_DYNAMIC_LIB_EXTENSION;
+    const char* g_LibraryPath = ZIB_LIBRARY_FOLDER "/" ZIB_DYNAMIC_LIB_NAME;
 
     bool g_IsLibraryLoaded = false;
     bool g_IsLibraryInitialized = false;
