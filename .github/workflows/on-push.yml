@@ -3,7 +3,6 @@ name: Build
 on: [push]
 
 jobs:
-
   build-windows-x64:
     name: Build ZibraVDB for Houdini 20.5 (Windows-x64)
     runs-on: windows-latest
