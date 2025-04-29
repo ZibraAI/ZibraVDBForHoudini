@@ -16,9 +16,10 @@ namespace Zibra::LibraryUtils {
 
     constexpr bool IsPlatformSupported() noexcept
     {
-#if ZIB_PLATFORM_WIN || ZIB_PLATFORM_LINUX
+#if ZIB_TARGET_OS_WIN || ZIB_TARGET_OS_LINUX || ZIB_TARGET_OS_MAC
         return true;
 #else
+        #error Unexpected platform
         return false;
 #endif
     }

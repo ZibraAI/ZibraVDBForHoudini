@@ -115,7 +115,11 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 }
             }
 
-            std::for_each(std::execution::par_unseq, gridsIntermediate.begin(), gridsIntermediate.end(), [&](auto& gridIt) {
+            std::for_each(
+                #if !ZIB_TARGET_OS_MAC
+                std::execution::par_unseq, 
+                #endif
+                gridsIntermediate.begin(), gridsIntermediate.end(), [&](auto& gridIt) {
                 auto outGridIt = m_Grids.find(gridIt.first);
                 if (outGridIt == m_Grids.end())
                     outGridIt = m_Grids.insert({gridIt.first, nullptr}).first;
@@ -159,7 +163,11 @@ namespace Zibra::CE::Addons::OpenVDBUtils
 
             std::mutex gridAccessMutex{};
             const auto& leafIntermediates = gridIntermediate.leafs;
-            std::for_each(std::execution::par_unseq, leafIntermediates.begin(), leafIntermediates.end(), [&](auto leafIt) {
+            std::for_each(
+                #if !ZIB_TARGET_OS_MAC
+                std::execution::par_unseq, 
+                #endif
+                leafIntermediates.begin(), leafIntermediates.end(), [&](auto leafIt) {
                 using TreeT = typename GridT::TreeType;
                 using LeafT = typename TreeT::LeafNodeType;
                 LeafT* leaf = ConstructLeaf<LeafT>(leafIt.first, leafIt.second, gridIntermediate.voxelType);

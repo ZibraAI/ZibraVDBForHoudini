@@ -77,10 +77,10 @@ namespace Zibra::Helpers
                     return CE::ZCE_ERROR;
                 }
             }
-            auto RHIstatus = m_RHIRuntime->CreateBuffer(newSizeInBytes, RHI::ResourceHeapType::Default,
-                                                        RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource |
-                                                            RHI::ResourceUsage::CopySource,
-                                                        newStride, "decompressionPerChannelBlockData", &bufferDesc.buffer);
+            auto RHIstatus = m_RHIRuntime->CreateBuffer(
+                newSizeInBytes, RHI::ResourceHeapType::Default,
+                RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource | RHI::ResourceUsage::CopySource,
+                static_cast<uint32_t>(newStride), "decompressionPerChannelBlockData", &bufferDesc.buffer);
             if (RHIstatus != RHI::ZRHI_SUCCESS)
             {
                 return CE::ZCE_ERROR;
@@ -213,7 +213,7 @@ namespace Zibra::Helpers
         CE::Addons::OpenVDBUtils::FrameEncoder encoder{gridShuffle.data(), gridShuffle.size(), frameInfo};
 
         const CE::Decompression::MaxDimensionsPerSubmit maxDimensionsPerSubmit = m_Decompressor->GetMaxDimensionsPerSubmit();
-        const uint32_t maxChunkSize = maxDimensionsPerSubmit.maxSpatialBlocks;
+        const uint32_t maxChunkSize = static_cast<uint32_t>(maxDimensionsPerSubmit.maxSpatialBlocks);
         const uint32_t chunksCount = (frameInfo.spatialBlockCount + maxChunkSize - 1) / maxChunkSize;
 
         std::vector<CE::Decompression::Shaders::PackedSpatialBlockInfo> readbackDecompressionPerSpatialBlockInfo{};

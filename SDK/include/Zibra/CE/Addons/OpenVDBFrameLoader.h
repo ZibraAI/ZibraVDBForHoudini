@@ -68,7 +68,11 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             // Creating mutable grid copies for future voxelization. Resample if matchVoxelSize is enabled.
             std::vector<openvdb::GridBase::Ptr> processedGrids{};
             processedGrids.resize(gridsCount);
-            std::transform(std::execution::par_unseq, grids, grids + gridsCount, processedGrids.begin(), [&](const auto& grid) {
+            std::transform(
+                #if !ZIB_TARGET_OS_MAC
+                std::execution::par_unseq, 
+                #endif
+                grids, grids + gridsCount, processedGrids.begin(), [&](const auto& grid) {
                 const openvdb::math::Transform relativeTransform = GetIndexSpaceRelativeTransform(grid, originGrid);
                 openvdb::tools::GridTransformer transformer{relativeTransform.baseMap()->getAffineMap()->getMat4()};
 
@@ -227,7 +231,11 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             // stored in spatial descriptors + calculating voxel statistics per block.
             std::vector<Compression::VoxelStatistics> perBlockStatistics{};
             perBlockStatistics.resize(result->blocksCount);
-            std::for_each(std::execution::par_unseq, spatialBlocks.begin(), spatialBlocks.end(), [&](const std::pair<openvdb::Coord, SpatialBlockIntermediate>& item){
+            std::for_each(
+                #if !ZIB_TARGET_OS_MAC
+                std::execution::par_unseq, 
+                #endif
+                spatialBlocks.begin(), spatialBlocks.end(), [&](const std::pair<openvdb::Coord, SpatialBlockIntermediate>& item){
                 auto& [coord, spatialIntrm] = item;
                 ChannelMask mask = 0x0;
 

@@ -27,7 +27,7 @@
 #include <bit>
 #endif
 
-#if ZIB_PLATFORM_WIN
+#if ZIB_TARGET_OS_WIN
 #include <codecvt>
 #include <locale>
 #endif
@@ -73,7 +73,7 @@
 #include <json.hpp>
 
 // Platform specific includes
-#if ZIB_PLATFORM_WIN
+#if ZIB_TARGET_OS_WIN
 #define WIN32_LEAN_AND_MEAN
 #define NOATOM
 #define NOGDI
@@ -96,12 +96,11 @@
 #include <winuser.h>
 #undef ERROR
 #undef OUT
-#elif ZIB_PLATFORM_LINUX
+#elif ZIB_TARGET_OS_LINUX || ZIB_TARGET_OS_MAC
 #include <dlfcn.h>
 #include <curl/curl.h>
 #else
-// TODO macOS support
-#error Unimplemented
+#error Unexpected OS
 #endif
 
 #define ZRHI_NO_STATIC_API_DECL

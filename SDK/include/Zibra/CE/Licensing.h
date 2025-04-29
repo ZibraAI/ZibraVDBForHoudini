@@ -64,7 +64,7 @@ namespace ZCE_NS::CAPI
     }
     inline void ReleaseLicense() noexcept
     {
-        ZCE_FNPFX(ReleaseLicense);
+        ZCE_FNPFX(ReleaseLicense)();
     }
 } // namespace ZCE_NS::CAPI
 

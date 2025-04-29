@@ -88,12 +88,6 @@ namespace Zibra::UpdateCheck
 
     Status RunReal() noexcept
     {
-        LibraryUtils::LoadLibrary();
-        if (!LibraryUtils::IsLibraryLoaded())
-        {
-            return Status::NotInstalled;
-        }
-
         // Get the current version of the application
         LibraryUtils::Version currentVersion = LibraryUtils::GetLibraryVersion();
         // Get the latest version via web request
@@ -130,6 +124,12 @@ namespace Zibra::UpdateCheck
 
         static Status cachedStatus = Status::Count;
         static time_point_t lastCheckTime;
+
+        LibraryUtils::LoadLibrary();
+        if (!LibraryUtils::IsLibraryLoaded())
+        {
+            return Status::NotInstalled;
+        }
 
         // Throttle update check request to max once every 5 minutes
         time_point_t now = clock_t::now();

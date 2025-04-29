@@ -34,14 +34,6 @@ namespace Zibra
     constexpr auto* ZIBRAVDB_ERROR_MESSAGE_FRAME_INDEX_OUT_OF_RANGE = "Trying to decompress frame out of range of "
                                                                       "input sequence.";
 
-    constexpr auto* ZVDB_MSG_FAILED_TO_DOWNLOAD_LIBRARY = "Failed to download ZibraVDB library.";
-    constexpr auto* ZVDB_MSG_LIB_DOWNLOADED_SUCCESSFULLY_INITIALIZATION_FAILED =
-        "Library downloaded successfully to $HOUDINI_USER_PREF_DIR/zibra/, but initialization failed. Please make sure you have supported "
-        "hardware or software implementation of graphics API installed";
-    constexpr auto* ZVDB_MSG_LIB_DOWNLOADED_SUCCESSFULLY = "Library downloaded successfully to "
-                                                                        "$HOUDINI_USER_PREF_DIR/zibra/. "
-                                                                        "(See the node help page for more information.)";
-
     constexpr auto* LIBRARY_DOWNLOAD_URL = "https://zibra.ai/zibravdb-for-houdini-library-download?version=" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING;
 
     enum class ContextType

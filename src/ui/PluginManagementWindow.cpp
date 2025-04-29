@@ -29,6 +29,7 @@ namespace Zibra
 
         bool ParseUIFile();
         void HandleDownloadLibrary(UI_Event* event);
+        void HandleOpenUserPrefDirectory(UI_Event* event);
         void HandleLoadLibrary(UI_Event* event);
         void HandleUpdateLibrary(UI_Event* event);
         static void HandleUpdateLibraryCalback(UI::MessageBox::Result result);
@@ -101,6 +102,8 @@ namespace Zibra
 
         getValueSymbol("download_library.val")
             ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleDownloadLibrary));
+        getValueSymbol("open_user_pref_directory.val")
+        ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleOpenUserPrefDirectory));
         getValueSymbol("load_library.val")->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleLoadLibrary));
         getValueSymbol("update_library.val")
             ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleUpdateLibrary));
@@ -135,6 +138,19 @@ namespace Zibra
         }
 
         Helpers::OpenInBrowser(LIBRARY_DOWNLOAD_URL);
+        UpdateUI();
+    }
+
+    void PluginManagementWindowImpl::HandleOpenUserPrefDirectory(UI_Event* event)
+    {
+        std::vector<std::string> userPrefDirPath = Helpers::GetHoudiniEnvironmentVariable(ENV_HOUDINI_USER_PREF_DIR, "HOUDINI_USER_PREF_DIR");
+        if (userPrefDirPath.empty())
+        {
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Could not find User Preference Directory path.");
+            return;
+        }
+
+        Helpers::OpenInFileExplorer(userPrefDirPath[0]);
         UpdateUI();
     }
 
@@ -177,8 +193,8 @@ namespace Zibra
         }
 
         UI::MessageBox::Show(UI::MessageBox::Type::OK,
-                             "You will be directed to download page. To update ZibraVDB Library, first close Houdini, then proceed with "
-                             "normal installation flow and when prompted overwrite old version files.",
+                             "You will be directed to download page. To update ZibraVDB Library, open User Pref Directory, close Houdini, "
+                             "then proceed with normal installation flow and when prompted overwrite old version files.",
                              &PluginManagementWindowImpl::HandleUpdateLibraryCalback);
         UpdateUI();
     }
