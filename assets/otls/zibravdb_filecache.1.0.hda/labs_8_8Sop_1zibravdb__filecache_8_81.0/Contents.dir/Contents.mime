@@ -2,6 +2,12 @@ MIME-Version: 1.0
 Content-Type: multipart/mixed; boundary="HOUDINIMIMEBOUNDARY0xD3ADD339-0x00000F49-0x56B122C9-0x00000001HOUDINIMIMEBOUNDARY"
 
 --HOUDINIMIMEBOUNDARY0xD3ADD339-0x00000F49-0x56B122C9-0x00000001HOUDINIMIMEBOUNDARY
+Content-Disposition: attachment; filename=".OPfallbacks"
+Content-Type: application/external-reference
+
+.OPfallbacks
+
+--HOUDINIMIMEBOUNDARY0xD3ADD339-0x00000F49-0x56B122C9-0x00000001HOUDINIMIMEBOUNDARY
 Content-Disposition: attachment; filename=".OPdummydefs"
 Content-Type: application/external-reference
 
@@ -26,17 +32,19 @@ Content-Type: text/plain
 
 sopflags sopflags = 
 comment ""
-position -3.13405 -0.64981
-connectornextid 0
-flags =  lock off model off template off footprint off xray off bypass off display off render off highlight off unload off savedata off compress on colordefault off exposed on displaycomment on
+position -13.5775 -9.16442
+connectornextid 1
+flags =  lock off model off template off footprint off xray off bypass off display on render on highlight off unload off savedata off compress on colordefault off exposed on
 outputsNamed3
 {
 }
 inputsNamed3
 {
+0 	TestVDB 1 1 "input1"
 }
 inputs
 {
+0 	TestVDB 0 1
 }
 stat
 {
@@ -710,7 +718,7 @@ vex_numcount	[ 0	locks=0 ]	(	10	)
 vex_threadjobsize	[ 0	locks=0 ]	(	1024	)
 snippet	[ 0	locks=0 ]	(	"if (primintrinsic(0, \"typename\", @primnum) == \"VDB\")
 {
-    if (primintrinsic(0, \"vdb_value_type\", @primnum) != \"float\")
+    if (primintrinsic(0, \"vdb_value_type\", @primnum) != \"float\" && primintrinsic(0, \"vdb_value_type\", @primnum) != \"vec3s\" )
         setdetailattrib(0, \"_zfc_unsupported\", @name + \", \", \"append\");
 }"	)
 exportlist	[ 0	locks=0 ]	(	*	)
