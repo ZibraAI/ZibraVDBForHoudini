@@ -1,8 +1,7 @@
 #include "Helpers.h"
 
-#include <filesystem>
-
 #include <PY/PY_Python.h>
+#include <filesystem>
 
 namespace Zibra::Helpers
 {
@@ -48,6 +47,19 @@ namespace Zibra::Helpers
                                                 url + "')")
                                                    .c_str(),
                                                "Failed to open URL in browser");
+    }
+
+    void OpenInFileExplorer(std::string path)
+    {
+        // Opens path in default file explorer via Python
+        PYrunPythonStatementsAndExpectNoErrors(("import pathlib\n"
+                                                "import webbrowser\n"
+                                                "path = pathlib.Path(\"" +
+                                                path +
+                                                "\").resolve()\n"
+                                                "webbrowser.open(path.as_uri())")
+                                                   .c_str(),
+                                               "Failed to open folder in file explorer");
     }
 
 } // namespace Zibra::Helpers

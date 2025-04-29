@@ -27,12 +27,6 @@ window.gad = NORMAL_WINDOW "ZibraVDB"
         LABEL "Library version: " WIDTH(0.95);
         LABEL VALUE(library_version.val);
     }
-
-    ROW
-    {
-        ACTION_BUTTON "Download Library" VALUE(download_library.val) WIDTH(2.9);
-        ACTION_BUTTON "Load Library" VALUE(load_library.val) WIDTH(2.9);
-    }
    
     ROW
     {
@@ -44,6 +38,13 @@ window.gad = NORMAL_WINDOW "ZibraVDB"
 
     ROW
     {
+        ACTION_BUTTON "Download Library" VALUE(download_library.val) WIDTH(2.9);
+        ACTION_BUTTON "Open User Pref Directory" VALUE(open_user_pref_directory.val) WIDTH(2.9);
+    }
+
+    ROW
+    {
+        ACTION_BUTTON "Load Library" VALUE(load_library.val) WIDTH(2.9);
         ACTION_BUTTON "Update Library" VALUE(update_library.val) WIDTH(2.9);
     }
 
