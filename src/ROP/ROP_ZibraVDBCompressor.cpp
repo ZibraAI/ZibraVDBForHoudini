@@ -567,7 +567,12 @@ namespace Zibra::ZibraVDBCompressor
         UT_String filename = "";
         OP_Context ctx(tStart);
         evalString(filename, FILENAME_PARAM_NAME, nullptr, 0, tStart);
-        std::filesystem::create_directories(std::filesystem::path{filename.c_str()}.parent_path());
+        
+        std::error_code ec;
+        // Intentionally ignoring errors
+        // This is needed for relative paths to work properly
+        // If path is invalid, we'll error out later on
+        std::filesystem::create_directories(std::filesystem::path{filename.c_str()}.parent_path(), ec);
 
         const int renderMode = static_cast<int>(evalInt("trange", 0, ctx.getTime()));
         const float startFrame = renderMode == 0 ? ctx.getFrame() : evalFloat("f", 0, tStart);
