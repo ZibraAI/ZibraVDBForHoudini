@@ -5,6 +5,7 @@
 #include <Zibra/CE/Literals.h>
 
 #include "bridge/LibraryUtils.h"
+#include "utils/Helpers.h"
 
 namespace Zibra::Helpers
 {
@@ -26,7 +27,7 @@ namespace Zibra::Helpers
         {
             return CE::ZCE_ERROR;
         }
-        RHIFactory->SetGFXAPI(RHI::GFXAPI::Auto);
+        RHIFactory->SetGFXAPI(Helpers::SelectGFXAPI());
 
         RHIstatus = RHIFactory->Create(&m_RHIRuntime);
         if (RHIstatus != RHI::ZRHI_SUCCESS)
