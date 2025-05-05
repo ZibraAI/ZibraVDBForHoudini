@@ -3,6 +3,7 @@
 #include "CompressorManager.h"
 
 #include "bridge/LibraryUtils.h"
+#include "utils/Helpers.h"
 
 namespace Zibra::CE::Compression
 {
@@ -20,7 +21,7 @@ namespace Zibra::CE::Compression
         {
             return CE::ZCE_ERROR;
         }
-        RHIFactory->SetGFXAPI(RHI::GFXAPI::Auto);
+        RHIFactory->SetGFXAPI(Helpers::SelectGFXAPI());
 
         RHIstatus = RHIFactory->Create(&m_RHIRuntime);
         if (RHIstatus != RHI::ZRHI_SUCCESS)
@@ -167,5 +168,4 @@ namespace Zibra::CE::Compression
         }
     }
 
-
-} // namespace Zibra::CE::Decompression
+} // namespace Zibra::CE::Compression

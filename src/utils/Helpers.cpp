@@ -62,4 +62,62 @@ namespace Zibra::Helpers
                                                "Failed to open folder in file explorer");
     }
 
+    Zibra::RHI::GFXAPI SelectGFXAPI()
+    {
+        // Selects the graphics API based on the environment variable "ZIBRAVDB_FOR_HOUDINI_FORCE_GRAPHICS_API"
+        // And limits the selection to the available graphics APIs
+
+        // Available APIs based on OS:
+        // Windows\/ Linux\/ Mac\/
+        // DX12   +       -     -
+        // Vulkan +       +     -
+        // Metal  -       -     +
+
+        std::vector<std::string> envVar = GetHoudiniEnvironmentVariable(ENV_MAX_STR_CONTROLS, "ZIBRAVDB_FOR_HOUDINI_FORCE_GRAPHICS_API");
+        if (envVar.empty())
+        {
+            // Auto means automatic selection for the OS
+            // Windows = DX12, Linux = Vulkan, Mac = Metal
+            return Zibra::RHI::GFXAPI::Auto;
+        }
+
+        std::string envVarValueUpper = envVar[0];
+        std::transform(envVarValueUpper.begin(), envVarValueUpper.end(), envVarValueUpper.begin(), ::toupper);
+
+        Zibra::RHI::GFXAPI result = Zibra::RHI::GFXAPI::Auto;
+        if (envVarValueUpper == "D3D12" || envVarValueUpper == "DX12")
+        {
+            result = Zibra::RHI::GFXAPI::D3D12;
+        }
+        else if (envVarValueUpper == "VULKAN")
+        {
+            result = Zibra::RHI::GFXAPI::Vulkan;
+        }
+        else if (envVarValueUpper == "METAL")
+        {
+            result = Zibra::RHI::GFXAPI::Metal;
+        }
+
+// Filter result based on the available graphics APIs
+#if ZIB_TARGET_OS_WIN
+        if (result != Zibra::RHI::GFXAPI::D3D12 && result != Zibra::RHI::GFXAPI::Vulkan)
+        {
+            return Zibra::RHI::GFXAPI::Auto;
+        }
+#elif ZIB_TARGET_OS_LINUX
+        if (result != Zibra::RHI::GFXAPI::Vulkan)
+        {
+            return Zibra::RHI::GFXAPI::Auto;
+        }
+#elif ZIB_TARGET_OS_MAC
+        if (result != Zibra::RHI::GFXAPI::Metal)
+        {
+            return Zibra::RHI::GFXAPI::Auto;
+        }
+#else
+#error Unexpected OS
+#endif
+        return result;
+    }
+
 } // namespace Zibra::Helpers
