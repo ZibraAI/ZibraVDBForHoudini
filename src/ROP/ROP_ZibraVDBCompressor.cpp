@@ -401,11 +401,6 @@ namespace Zibra::ZibraVDBCompressor
                 m_OrderedChannelNames.emplace_back(gridName);
             }
         }
-        if (m_OrderedChannelNames.empty())
-        {
-            addError(ROP_MESSAGE, "No input VDB primitives found.");
-            return ROP_ABORT_RENDER;
-        }
 
         if (CreateCompressor(tStart) == ROP_ABORT_RENDER)
         {
@@ -488,14 +483,6 @@ namespace Zibra::ZibraVDBCompressor
                 channelNamesUniqueStorage.insert(gridName);
             }
         }
-        if (volumes.empty())
-        {
-            std::string m = "Node input at frame "s + std::to_string(ctx.getFrame()) +
-                            " has no VDB grids."
-                            " Frame will be skipped in resulting sequence.";
-            addWarning(ROP_MESSAGE, m.c_str());
-            return ROP_CONTINUE_RENDER;
-        }
 
         CE::Compression::CompressFrameDesc compressFrameDesc{};
         compressFrameDesc.channelsCount = orderedChannelNames.size();
@@ -545,7 +532,9 @@ namespace Zibra::ZibraVDBCompressor
             return ROP_ABORT_RENDER;
         }
 
-        auto status = m_CompressorManager.FinishSequence();
+        std::string warning;
+
+        auto status = m_CompressorManager.FinishSequence(warning);
         TrialManager::CheckoutTrialCompression();
 
         if (status != CE::ZCE_SUCCESS)
@@ -554,6 +543,11 @@ namespace Zibra::ZibraVDBCompressor
             return ROP_ABORT_RENDER;
         }
         m_CompressorManager.Release();
+
+        if (!warning.empty())
+        {
+            addWarning(ROP_MESSAGE, warning.c_str());
+        }
 
         if (error() < UT_ERROR_ABORT)
         {

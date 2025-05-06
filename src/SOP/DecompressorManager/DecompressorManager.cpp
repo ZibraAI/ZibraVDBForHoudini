@@ -77,7 +77,15 @@ namespace Zibra::Helpers
                 {
                     return CE::ZCE_ERROR;
                 }
+                bufferDesc.buffer = nullptr;
             }
+
+            // Do not create empty buffer
+            if (newSizeInBytes == 0)
+            {
+                return CE::ZCE_SUCCESS;
+            }
+
             auto RHIstatus = m_RHIRuntime->CreateBuffer(
                 newSizeInBytes, RHI::ResourceHeapType::Default,
                 RHI::ResourceUsage::UnorderedAccess | RHI::ResourceUsage::ShaderResource | RHI::ResourceUsage::CopySource,
@@ -169,16 +177,21 @@ namespace Zibra::Helpers
         {
             return status;
         }
-
-        CE::Decompression::DecompressorResources decompressorResources{};
-        decompressorResources.decompressionPerChannelBlockData = m_DecompressionPerChannelBlockDataBuffer.buffer;
-        decompressorResources.decompressionPerChannelBlockInfo = m_DecompressionPerChannelBlockInfoBuffer.buffer;
-        decompressorResources.decompressionPerSpatialBlockInfo = m_DecompressionPerSpatialBlockInfoBuffer.buffer;
-        status = m_Decompressor->RegisterResources(decompressorResources);
-        if (status != CE::ZCE_SUCCESS)
+        
+        if (m_DecompressionPerChannelBlockDataBuffer.buffer != nullptr && m_DecompressionPerChannelBlockInfoBuffer.buffer != nullptr &&
+            m_DecompressionPerSpatialBlockInfoBuffer.buffer != nullptr)
         {
-            return status;
+            CE::Decompression::DecompressorResources decompressorResources{};
+            decompressorResources.decompressionPerChannelBlockData = m_DecompressionPerChannelBlockDataBuffer.buffer;
+            decompressorResources.decompressionPerChannelBlockInfo = m_DecompressionPerChannelBlockInfoBuffer.buffer;
+            decompressorResources.decompressionPerSpatialBlockInfo = m_DecompressionPerSpatialBlockInfoBuffer.buffer;
+            status = m_Decompressor->RegisterResources(decompressorResources);
+            if (status != CE::ZCE_SUCCESS)
+            {
+                return status;
+            }
         }
+
         return CE::ZCE_SUCCESS;
     }
 
