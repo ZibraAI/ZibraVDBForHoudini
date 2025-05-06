@@ -134,10 +134,16 @@ namespace Zibra::CE::Compression
         {
             return CE::ZCE_ERROR;
         }
+
+        if (compressFrameDesc.channelsCount != 0)
+        {
+            m_IsSequenceEmpty = false;
+        }
+
         return CE::ZCE_SUCCESS;
     }
 
-    ReturnCode CompressorManager::FinishSequence() noexcept
+    ReturnCode CompressorManager::FinishSequence(std::string& warning) noexcept
     {
         if (!m_Compressor)
         {
@@ -148,6 +154,11 @@ namespace Zibra::CE::Compression
         if (ostream.fail())
         {
             return CE::ZCE_ERROR;
+        }
+
+        if (m_IsSequenceEmpty)
+        {
+            warning = "Sequence is empty. No grids were compressed.";
         }
 
         return m_Compressor->FinishSequence(&ostream);
