@@ -120,4 +120,21 @@ namespace Zibra::Helpers
         return result;
     }
 
+    bool NeedForceSoftwareDevice()
+    {
+        std::vector<std::string> envVar = GetHoudiniEnvironmentVariable(ENV_MAX_STR_CONTROLS, "ZIBRAVDB_FOR_HOUDINI_FORCE_SOFTWARE_DEVICE");
+        if (envVar.empty())
+        {
+            return false;
+        }
+        
+        std::string envVarValueUpper = envVar[0];
+        std::transform(envVarValueUpper.begin(), envVarValueUpper.end(), envVarValueUpper.begin(), ::toupper);
+        if (envVarValueUpper == "ON" || envVarValueUpper == "TRUE" || envVarValueUpper == "1")
+        {
+            return true;
+        }
+        return false;
+    }
+
 } // namespace Zibra::Helpers
