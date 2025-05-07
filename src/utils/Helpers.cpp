@@ -2,6 +2,7 @@
 
 #include <PY/PY_Python.h>
 #include <filesystem>
+#include <cstdlib>
 
 namespace Zibra::Helpers
 {
@@ -51,6 +52,11 @@ namespace Zibra::Helpers
 
     void OpenInFileExplorer(std::string path)
     {
+#if ZIB_TARGET_OS_LINUX
+        // Have to use xdg-open for Linux
+        // Python codepath opens folder in default browser on Linux
+        std::system(("xdg-open \"" + path + "\"").c_str());
+#else
         // Opens path in default file explorer via Python
         PYrunPythonStatementsAndExpectNoErrors(("import pathlib\n"
                                                 "import webbrowser\n"
@@ -60,6 +66,7 @@ namespace Zibra::Helpers
                                                 "webbrowser.open(path.as_uri())")
                                                    .c_str(),
                                                "Failed to open folder in file explorer");
+#endif
     }
 
     Zibra::RHI::GFXAPI SelectGFXAPI()
@@ -127,7 +134,7 @@ namespace Zibra::Helpers
         {
             return false;
         }
-        
+
         std::string envVarValueUpper = envVar[0];
         std::transform(envVarValueUpper.begin(), envVarValueUpper.end(), envVarValueUpper.begin(), ::toupper);
         if (envVarValueUpper == "ON" || envVarValueUpper == "TRUE" || envVarValueUpper == "1")
