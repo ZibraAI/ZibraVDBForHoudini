@@ -205,3 +205,35 @@ jobs:
         name: ZibraVDBForHoudini-20_5-macOS-x64
         path: package
         if-no-files-found: error
+
+  merge-artifacts:
+    name: Merge artifacts
+    runs-on: macos-latest
+    needs: [build-windows-x64, build-linux-x64, build-macos-arm64, build-macos-x64]
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Merge artifacts
+        shell: bash
+        run: |
+          mkdir merged
+          mv ZibraVDBForHoudini-20_5-Windows-x64/* merged/
+          mv ZibraVDBForHoudini-20_5-Linux-x64/dso/ZibraVDBForHoudini.so merged/dso/ZibraVDBForHoudini.so
+          lipo -create -output merged/dso/ZibraVDBForHoudini.dylib ZibraVDBForHoudini-20_5-macOS-arm64/dso/ZibraVDBForHoudini.dylib ZibraVDBForHoudini-20_5-macOS-x64/dso/ZibraVDBForHoudini.dylib
+      
+      - name: Save merged artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZibraVDBForHoudini-20_5
+          path: merged
+          if-no-files-found: error
+
+      - name: Delete partial artifacts
+        uses: geekyeggo/delete-artifact@f275313e70c08f6120db482d7a6b98377786765b # v5.1.0
+        with:
+          name: |
+            ZibraVDBForHoudini-20_5-Windows-x64
+            ZibraVDBForHoudini-20_5-Linux-x64
+            ZibraVDBForHoudini-20_5-macOS-arm64
+            ZibraVDBForHoudini-20_5-macOS-x64
