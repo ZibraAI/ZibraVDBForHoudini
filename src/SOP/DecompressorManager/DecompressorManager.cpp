@@ -27,7 +27,21 @@ namespace Zibra::Helpers
         {
             return CE::ZCE_ERROR;
         }
-        RHIFactory->SetGFXAPI(Helpers::SelectGFXAPI());
+
+        RHIstatus = RHIFactory->SetGFXAPI(Helpers::SelectGFXAPI());
+        if (RHIstatus != RHI::ZRHI_SUCCESS)
+        {
+            return CE::ZCE_ERROR;
+        }
+
+        if (Helpers::NeedForceSoftwareDevice())
+        {
+            RHIstatus = RHIFactory->ForceSoftwareDevice();
+            if (RHIstatus != RHI::ZRHI_SUCCESS)
+            {
+                return CE::ZCE_ERROR;
+            }
+        }
 
         RHIstatus = RHIFactory->Create(&m_RHIRuntime);
         if (RHIstatus != RHI::ZRHI_SUCCESS)
