@@ -134,7 +134,7 @@ namespace Zibra::Helpers
         {
             return false;
         }
-
+        
         std::string envVarValueUpper = envVar[0];
         std::transform(envVarValueUpper.begin(), envVarValueUpper.end(), envVarValueUpper.begin(), ::toupper);
         if (envVarValueUpper == "ON" || envVarValueUpper == "TRUE" || envVarValueUpper == "1")
