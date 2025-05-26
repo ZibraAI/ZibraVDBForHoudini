@@ -96,9 +96,13 @@
 #include <winuser.h>
 #undef ERROR
 #undef OUT
-#elif ZIB_TARGET_OS_LINUX || ZIB_TARGET_OS_MAC
+#elif ZIB_TARGET_OS_LINUX
 #include <dlfcn.h>
 #include <curl/curl.h>
+#elif ZIB_TARGET_OS_MAC
+#include <dlfcn.h>
+#include <curl/curl.h>
+#include <sys/xattr.h>
 #else
 #error Unexpected OS
 #endif
