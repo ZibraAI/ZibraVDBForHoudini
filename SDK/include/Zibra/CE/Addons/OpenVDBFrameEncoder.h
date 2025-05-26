@@ -38,8 +38,10 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             const VDBGridDesc* desc;
             uint32_t chIdx;
         };
+
     public:
-        explicit FrameEncoder(const VDBGridDesc* gridsDescs, size_t gridsCount, const Decompression::FrameInfo& fInfo) noexcept
+        explicit FrameEncoder(const VDBGridDesc* gridsDescs, size_t gridsCount, const Decompression::FrameInfo& fInfo,
+                              const EncodingMetadata* encodingMetadata = nullptr) noexcept
             : m_FrameInfo(fInfo)
         {
             m_GridDescs.insert(m_GridDescs.begin(), gridsDescs, gridsDescs + gridsCount);
@@ -64,11 +66,21 @@ namespace Zibra::CE::Addons::OpenVDBUtils
 
             for (size_t i = 0; i < m_FrameInfo.channelsCount; ++i)
             {
+                auto& frameInfo = m_FrameInfo.channels[i];
                 m_ChNameToChInfo[m_FrameInfo.channels[i].name] = &m_FrameInfo.channels[i];
+                if (encodingMetadata != nullptr)
+                {
+                    int offsetX = encodingMetadata->offsetX;
+                    int offsetY = encodingMetadata->offsetY;
+                    int offsetZ = encodingMetadata->offsetZ;
+                    frameInfo.gridTransform =
+                        Math3D::Transform::Translation(Math3D::float3(-offsetX, -offsetY, -offsetZ)) * frameInfo.gridTransform;
+                }
             }
         }
 
-        void EncodeChunk(const FrameData& fData, size_t spatialBlocksCount, size_t chunkChBlocksFirstIndex) noexcept
+        void EncodeChunk(const FrameData& fData, size_t spatialBlocksCount, size_t chunkChBlocksFirstIndex,
+                         const EncodingMetadata* encodingMetadata = nullptr) noexcept
         {
             using PackedSpatialBlockInfo = Decompression::Shaders::PackedSpatialBlockInfo;
 
@@ -76,13 +88,24 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             const auto* packedSpatialInfo = static_cast<const PackedSpatialBlockInfo*>(fData.decompressionPerSpatialBlockInfo);
             const auto* channelBlocksSrc = static_cast<const ChannelBlockF16Mem*>(fData.decompressionPerChannelBlockData);
 
+            int offsetX = 0;
+            int offsetY = 0;
+            int offsetZ = 0;
+            if (encodingMetadata != nullptr)
+            {
+                offsetX = encodingMetadata->offsetX / SPARSE_BLOCK_SIZE;
+                offsetY = encodingMetadata->offsetY / SPARSE_BLOCK_SIZE;
+                offsetZ = encodingMetadata->offsetZ / SPARSE_BLOCK_SIZE;
+            }
+
             for (size_t spatialIdx = 0; spatialIdx < spatialBlocksCount; ++spatialIdx)
             {
                 size_t localChannelBlockIdx = 0;
                 for (size_t i = 0; i < MAX_CHANNEL_COUNT; ++i)
                 {
                     const auto& curSpatialInfo = Decompression::UnpackPackedSpatialBlockInfo(packedSpatialInfo[spatialIdx]);
-                    openvdb::Coord blockCoord{curSpatialInfo.coords[0], curSpatialInfo.coords[1], curSpatialInfo.coords[2]};
+                    openvdb::Coord blockCoord{curSpatialInfo.coords[0] + offsetX, curSpatialInfo.coords[1] + offsetY,
+                                              curSpatialInfo.coords[2] + offsetZ};
                     if (curSpatialInfo.channelMask & (1 << i))
                     {
                         const char* chName = m_FrameInfo.channels[i].name;

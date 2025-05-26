@@ -157,7 +157,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             }
         }
 
-        [[nodiscard]] Compression::SparseFrame* LoadFrame() const noexcept
+        [[nodiscard]] Compression::SparseFrame* LoadFrame(EncodingMetadata* encodingMetadata = nullptr) const noexcept
         {
             auto result = new Compression::SparseFrame{};
             std::map<openvdb::Coord, SpatialBlockIntermediate> spatialBlocks{};
@@ -209,8 +209,6 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             result->blocks = resultBlocks;
             result->spatialInfo = resultSpatialInfo;
             result->orderedChannels = orderedChannels;
-
-            result->aabb = totalAABB;
             result->channelIndexPerBlock = resultChannelIndexPerBlock;
 
             // Preparing channel info. Filling known data and setting edge initial values for future statistics calculation.
@@ -294,6 +292,23 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 // Previous cycle has written blocks per channel count to voxelCount field.
                 orderedChannels[i].statistics.voxelCount *= SPARSE_BLOCK_VOXEL_COUNT;
             }
+
+            if (encodingMetadata != nullptr)
+            {
+                *encodingMetadata = {};
+                encodingMetadata->offsetX = totalAABB.minX * SPARSE_BLOCK_SIZE;
+                encodingMetadata->offsetY = totalAABB.minY * SPARSE_BLOCK_SIZE;
+                encodingMetadata->offsetZ = totalAABB.minZ * SPARSE_BLOCK_SIZE;
+            }
+
+            totalAABB.maxX -= totalAABB.minX;
+            totalAABB.maxY -= totalAABB.minY;
+            totalAABB.maxZ -= totalAABB.minZ;
+            totalAABB.minX = 0.0f;
+            totalAABB.minY = 0.0f;
+            totalAABB.minZ = 0.0f;
+
+            result->aabb = totalAABB;
 
             return result;
         }
