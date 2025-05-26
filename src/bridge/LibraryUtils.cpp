@@ -41,7 +41,7 @@ namespace Zibra::LibraryUtils
 #error Unsupported platform
 #endif
 
-    const char* g_LibraryPath = ZIB_LIBRARY_FOLDER "/" ZIB_DYNAMIC_LIB_NAME;
+#define ZIB_LIBRARY_PATH ZIB_LIBRARY_FOLDER "/" ZIB_DYNAMIC_LIB_NAME
 
     bool g_IsLibraryLoaded = false;
     bool g_IsLibraryInitialized = false;
@@ -67,7 +67,7 @@ namespace Zibra::LibraryUtils
             const std::vector<std::string> baseDirs = Helpers::GetHoudiniEnvironmentVariable(envVarEnum, envVarName);
             for (const std::string& baseDir : baseDirs)
             {
-                std::filesystem::path libraryPath = std::filesystem::path(baseDir) / g_LibraryPath;
+                std::filesystem::path libraryPath = std::filesystem::path(baseDir) / ZIB_LIBRARY_PATH;
                 result.push_back(libraryPath.string());
             }
         }
@@ -179,6 +179,12 @@ namespace Zibra::LibraryUtils
         {
             return false;
         }
+
+#if ZIB_TARGET_OS_MAC
+        std::filesystem::path bundlePath = std::filesystem::path(libraryPath).parent_path().parent_path().parent_path();
+        // Remove com.apple.quarantine attribute on macOS
+        ::removexattr(bundlePath.c_str(), "com.apple.quarantine", 0);
+#endif
 
         g_LibraryHandle = dlopen(libraryPath.c_str(), RTLD_LAZY);
 
