@@ -387,6 +387,25 @@ namespace Zibra::Math3D
             : raw{m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33}
         {
         }
+
+        Transform operator*(const Transform& other) const noexcept
+        {
+            Transform result{};
+            for (int i = 0; i < 4; ++i)
+            {
+                for (int j = 0; j < 4; ++j)
+                {
+                    result.raw[i * 4 + j] = raw[i * 4 + 0] * other.raw[0 * 4 + j] + raw[i * 4 + 1] * other.raw[1 * 4 + j] +
+                                            raw[i * 4 + 2] * other.raw[2 * 4 + j] + raw[i * 4 + 3] * other.raw[3 * 4 + j];
+                }
+            }
+            return result;
+        }
+
+        static Transform Translation(const float3& translation) noexcept
+        {
+            return Transform{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, translation.x, translation.y, translation.z, 1};
+        }
     };
     static constexpr Transform Ident = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
 

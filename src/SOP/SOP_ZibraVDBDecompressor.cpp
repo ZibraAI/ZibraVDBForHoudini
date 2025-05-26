@@ -161,15 +161,6 @@ namespace Zibra::ZibraVDBDecompressor
             return error(context);
         }
 
-        // for (const auto& grid : vdbGrids)
-        // {
-        //     const openvdb::math::Vec3d translationFromMetadata(-encodeMetadata.offsetX, -encodeMetadata.offsetY, -encodeMetadata.offsetZ);
-        //     // transform3x3 will apply only 3x3 part of matrix, without translation.
-        //     const openvdb::math::Vec3d frameTranslationInFrameCoordinateSystem =
-        //         grid->transform().baseMap()->getAffineMap()->getMat4().transform3x3(translationFromMetadata);
-        //     grid->transform().postTranslate(frameTranslationInFrameCoordinateSystem);
-        // }
-
         gdp->addStringTuple(GA_ATTRIB_PRIMITIVE, "name", 1);
         GA_RWHandleS nameAttr{gdp->findPrimitiveAttribute("name")};
         for (size_t i = 0; i < vdbGrids.size(); ++i)

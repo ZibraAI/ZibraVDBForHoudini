@@ -238,7 +238,19 @@ namespace Zibra::Helpers
             }
         }
 
-        CE::Addons::OpenVDBUtils::FrameEncoder encoder{gridShuffle.data(), gridShuffle.size(), frameInfo};
+        CE::Addons::OpenVDBUtils::EncodingMetadata encodingMetadataStorage; 
+        CE::Addons::OpenVDBUtils::EncodingMetadata* encodingMetadata = nullptr;
+        const char* encodingMetadataStr = frameContainer->GetMetadataByKey("houdiniDecodeMetadata");
+        if (encodingMetadataStr)
+        {
+            encodingMetadataStorage = {};
+            encodingMetadata = &encodingMetadataStorage;
+
+            std::istringstream metadataStream(encodingMetadataStr);
+            metadataStream >> encodingMetadataStorage.offsetX >> encodingMetadataStorage.offsetY >> encodingMetadataStorage.offsetZ;
+        }
+
+        CE::Addons::OpenVDBUtils::FrameEncoder encoder{gridShuffle.data(), gridShuffle.size(), frameInfo, encodingMetadata};
 
         const CE::Decompression::MaxDimensionsPerSubmit maxDimensionsPerSubmit = m_Decompressor->GetMaxDimensionsPerSubmit();
         const uint32_t maxChunkSize = static_cast<uint32_t>(maxDimensionsPerSubmit.maxSpatialBlocks);
@@ -279,7 +291,7 @@ namespace Zibra::Helpers
             // TODO VDB-1291: Implement read-back circular buffer, to optimize GPU stalls.
             //                Implement cpu circular buffer to optimize RAM allocation for DecompressedFrameData.
             //                Move EncodeChunk into separate thread to overlay CPU and CPU work.
-            encoder.EncodeChunk(fData, decompressDesc.spatialBlocksCount, fFeedback.firstChannelBlockIndex);
+            encoder.EncodeChunk(fData, decompressDesc.spatialBlocksCount, fFeedback.firstChannelBlockIndex, encodingMetadata);
         }
         RHIStatus = m_RHIRuntime->StopRecording();
         if (RHIStatus != RHI::ZRHI_SUCCESS)
