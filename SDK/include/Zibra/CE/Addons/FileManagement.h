@@ -31,6 +31,13 @@ namespace Zibra::CE::Addons::FileManagement
           continue;
         }
 
+        auto tail = fileName.stem().string().substr(mask.size());
+        bool tailIsDigitsOnly = std::all_of(tail.begin(), tail.end(), [](char c){return std::isdigit(static_cast<unsigned char>(c));});
+        if (!tailIsDigitsOnly)
+        {
+          continue;
+        }
+
         std::string fileNameStr = fileName.string();
         std::string fileNameStrUpper = fileNameStr;
         std::transform(fileNameStrUpper.begin(), fileNameStrUpper.end(), fileNameStrUpper.begin(), ::toupper);

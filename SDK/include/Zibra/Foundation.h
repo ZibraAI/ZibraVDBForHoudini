@@ -5,6 +5,12 @@
 
 namespace Zibra
 {
+    template<class T>
+    constexpr auto ZCE_CEIL_TO_MULTIPLE_OF(T intValue, T multiple) noexcept
+    {
+        return ((intValue + multiple - 1) / multiple) * multiple;
+    }
+
     struct Version
     {
         uint32_t major;
@@ -30,7 +36,12 @@ namespace Zibra
 
     public:
         virtual void read(char* s, size_t count) noexcept = 0;
-        [[nodiscard]] virtual size_t gcount() const noexcept = 0;
+        virtual bool fail() const noexcept = 0;
+        virtual bool good() const noexcept = 0;
+        virtual bool bad() const noexcept = 0;
+        virtual IStream& seekg(size_t pos) noexcept = 0;
+        virtual size_t tellg() noexcept = 0;
+        [[nodiscard]] virtual size_t gcount() noexcept = 0;
     };
 
     class STDIStreamWrapper : public IStream
@@ -46,7 +57,33 @@ namespace Zibra
             m_IStream.read(s, count);
         }
 
-        [[nodiscard]] size_t gcount() const noexcept final
+        bool fail() const noexcept final
+        {
+            return m_IStream.fail();
+        }
+
+        bool good() const noexcept final
+        {
+            return m_IStream.good();
+        }
+
+        bool bad() const noexcept final
+        {
+            return m_IStream.bad();
+        }
+
+        IStream& seekg(size_t pos) noexcept final
+        {
+            m_IStream.seekg(pos);
+            return *this;
+        }
+
+        size_t tellg() noexcept final
+        {
+            return m_IStream.tellg();
+        }
+
+        [[nodiscard]] size_t gcount() noexcept final
         {
             return m_IStream.gcount();
         }
@@ -89,6 +126,8 @@ namespace Zibra
     public:
         virtual void write(const char* s, size_t count) noexcept = 0;
         [[nodiscard]] virtual bool fail() const noexcept = 0;
+        [[nodiscard]] virtual size_t tellp() noexcept = 0;
+        virtual OStream& seekp(size_t pos) noexcept = 0;
     };
 
     class STDOStreamWrapper : public OStream
@@ -109,6 +148,17 @@ namespace Zibra
             return m_OStream.fail();
         }
 
+        size_t tellp() noexcept final
+        {
+            return m_OStream.tellp();
+        }
+
+        OStream& seekp(size_t pos) noexcept final
+        {
+            m_OStream.seekp(pos);
+            return *this;
+        }
+
     private:
         std::ostream& m_OStream;
     };
@@ -122,6 +172,8 @@ namespace Zibra
             void (*destructor)(void*);
             void (*write)(void*, const char* s, size_t count);
             bool (*fail)(void*);
+            size_t (*tellp)(void*);
+            OStream& (*seekp)(void*, size_t pos);
         };
 
         inline OStreamVTable VTConvert(OStream* obj) noexcept
@@ -133,6 +185,8 @@ namespace Zibra
             vt.destructor = [](void* o) { delete static_cast<T*>(o); };
             vt.write = [](void* o, const char* s, size_t c) { return static_cast<T*>(o)->write(s, c); };
             vt.fail = [](void* o) { return static_cast<T*>(o)->fail(); };
+            vt.tellp = [](void* o) { return static_cast<T*>(o)->tellp(); };
+            vt.seekp = [](void* o, size_t p) -> OStream& { return static_cast<T*>(o)->seekp(p); };
 
             return vt;
         }
@@ -150,9 +204,20 @@ namespace Zibra
             {
                 m_VT.write(m_VT.obj, s, count);
             }
+
             [[nodiscard]] bool fail() const noexcept final
             {
                 return m_VT.fail(m_VT.obj);
+            }
+
+            size_t tellp() noexcept final
+            {
+                return m_VT.tellp(m_VT.obj);
+            }
+
+            OStream& seekp(size_t pos) noexcept final
+            {
+                return m_VT.seekp(m_VT.obj, pos);
             }
 
         private:

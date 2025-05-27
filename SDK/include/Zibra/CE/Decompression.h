@@ -15,7 +15,7 @@ namespace Zibra::CE::ZibraVDB
 
 namespace Zibra::CE::Decompression
 {
-    constexpr Version ZCE_DECOMPRESSION_VERSION = {0, 9, 5, 0};
+    constexpr Version ZCE_DECOMPRESSION_VERSION = {0, 9, 15, 0};
 
     struct DecompressorResourcesRequirements
     {
@@ -328,6 +328,7 @@ namespace Zibra::CE::Decompression
     Version GetVersion() noexcept;
 
     ReturnCode CreateDecoder(const char* filepath, ZibraVDB::FileDecoder** outInstance) noexcept;
+    ReturnCode CreateDecoderFromStream(Zibra::IStream* stream, ZibraVDB::FileDecoder** outInstance) noexcept;
     uint64_t GetFileFormatVersion(ZibraVDB::FileDecoder* decoder) noexcept;
     void ReleaseDecoder(ZibraVDB::FileDecoder* decoder) noexcept;
 } // namespace Zibra::CE::Decompression
@@ -734,6 +735,7 @@ namespace ZCE_NS::CAPI
     macro(ZCE_DECOMPRESSION_FUNCS_EXPORT_FNPFX(GetVersion));                \
     macro(ZCE_DECOMPRESSION_FUNCS_EXPORT_FNPFX(CreateDecompressorFactory)); \
     macro(ZCE_DECOMPRESSION_FUNCS_EXPORT_FNPFX(CreateDecoder));             \
+    macro(ZCE_DECOMPRESSION_FUNCS_EXPORT_FNPFX(CreateDecoderFromStream));   \
     macro(ZCE_DECOMPRESSION_FUNCS_EXPORT_FNPFX(GetFileFormatVersion));      \
     macro(ZCE_DECOMPRESSION_FUNCS_EXPORT_FNPFX(ReleaseDecoder))
 
@@ -741,7 +743,8 @@ namespace ZCE_NS::CAPI
 
 typedef Zibra::Version (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(GetVersion)))();
 typedef ZCE_NS::ReturnCode (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(CreateDecompressorFactory)))(ZCE_NS::CAPI::DecompressorFactoryHandle* outFactory);
-typedef ZCE_NS::ReturnCode (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(CreateDecoder)))(const char* filepath, Zibra::CE::ZibraVDB::FileDecoder** outInstance);
+typedef ZCE_NS::ReturnCode(ZCE_CALL_CONV* ZCE_PFN(ZCE_FNPFX(CreateDecoder)))(const char* filepath, Zibra::CE::ZibraVDB::FileDecoder** outInstance);
+typedef ZCE_NS::ReturnCode(ZCE_CALL_CONV* ZCE_PFN(ZCE_FNPFX(CreateDecoderFromStream)))(Zibra::IStream* stream, Zibra::CE::ZibraVDB::FileDecoder** outInstance);
 typedef uint64_t (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(GetFileFormatVersion)))(Zibra::CE::ZibraVDB::FileDecoder* decoder);
 typedef void (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(ReleaseDecoder)))(Zibra::CE::ZibraVDB::FileDecoder* decoder);
 
@@ -749,6 +752,7 @@ typedef void (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(ReleaseDecoder)))(Zibra::CE::Zibr
 ZCE_API_IMPORT Zibra::Version ZCE_CALL_CONV ZCE_FNPFX(GetVersion)() noexcept;
 ZCE_API_IMPORT ZCE_NS::ReturnCode ZCE_CALL_CONV ZCE_FNPFX(CreateDecompressorFactory)(ZCE_NS::CAPI::DecompressorFactoryHandle* outFactory) noexcept;
 ZCE_API_IMPORT ZCE_NS::ReturnCode ZCE_CALL_CONV ZCE_FNPFX(CreateDecoder)(const char* filepath, Zibra::CE::ZibraVDB::FileDecoder** outInstance) noexcept;
+ZCE_API_IMPORT ZCE_NS::ReturnCode ZCE_CALL_CONV ZCE_FNPFX(CreateDecoderFromStream)(Zibra::IStream* stream, Zibra::CE::ZibraVDB::FileDecoder** outInstance) noexcept;
 ZCE_API_IMPORT uint64_t ZCE_CALL_CONV ZCE_FNPFX(GetFileFormatVersion)(Zibra::CE::ZibraVDB::FileDecoder* decoder) noexcept;
 ZCE_API_IMPORT void ZCE_CALL_CONV ZCE_FNPFX(ReleaseDecoder)(Zibra::CE::ZibraVDB::FileDecoder* decoder) noexcept;
 #else
@@ -776,6 +780,12 @@ namespace ZCE_NS::CAPI
     {
         return ZCE_FNPFX(CreateDecoder)(filepath, outInstance);
     }
+
+    inline ReturnCode CreateDecoderFromStream(Zibra::IStream* stream, ZibraVDB::FileDecoder** outInstance) noexcept
+    {
+        return ZCE_FNPFX(CreateDecoderFromStream)(stream, outInstance);
+    }
+
     inline uint64_t GetFileFormatVersion(ZibraVDB::FileDecoder* decoder) noexcept
     {
         return ZCE_FNPFX(GetFileFormatVersion)(decoder);
