@@ -39,6 +39,7 @@ namespace Zibra
         virtual bool fail() const noexcept = 0;
         virtual bool good() const noexcept = 0;
         virtual bool bad() const noexcept = 0;
+        virtual bool eof() const noexcept = 0;
         virtual IStream& seekg(size_t pos) noexcept = 0;
         virtual size_t tellg() noexcept = 0;
         [[nodiscard]] virtual size_t gcount() noexcept = 0;
@@ -70,6 +71,11 @@ namespace Zibra
         bool bad() const noexcept final
         {
             return m_IStream.bad();
+        }
+
+        bool eof() const noexcept final
+        {
+            return m_IStream.eof();
         }
 
         IStream& seekg(size_t pos) noexcept final
