@@ -287,10 +287,18 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             }
             for (size_t i = 0; i < result->orderedChannelsCount; ++i)
             {
-                orderedChannels[i].statistics.meanPositiveValue /= static_cast<float>(orderedChannels[i].statistics.voxelCount);
-                orderedChannels[i].statistics.meanNegativeValue /= static_cast<float>(orderedChannels[i].statistics.voxelCount);
-                // Previous cycle has written blocks per channel count to voxelCount field.
-                orderedChannels[i].statistics.voxelCount *= SPARSE_BLOCK_VOXEL_COUNT;
+                if (orderedChannels[i].statistics.voxelCount == 0)
+                {
+                    orderedChannels[i].statistics.minValue = 0;
+                    orderedChannels[i].statistics.maxValue = 0;
+                }
+                else
+                {
+                    orderedChannels[i].statistics.meanPositiveValue /= static_cast<float>(orderedChannels[i].statistics.voxelCount);
+                    orderedChannels[i].statistics.meanNegativeValue /= static_cast<float>(orderedChannels[i].statistics.voxelCount);
+                    // Previous cycle has written blocks per channel count to voxelCount field.
+                    orderedChannels[i].statistics.voxelCount *= SPARSE_BLOCK_VOXEL_COUNT;
+                }
             }
 
             if (encodingMetadata != nullptr)

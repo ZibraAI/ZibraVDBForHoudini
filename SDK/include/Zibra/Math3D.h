@@ -388,7 +388,7 @@ namespace Zibra::Math3D
         {
         }
 
-        Transform operator*(const Transform& other) const noexcept
+        constexpr Transform operator*(const Transform& other) const noexcept
         {
             Transform result{};
             for (int i = 0; i < 4; ++i)

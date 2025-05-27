@@ -18,7 +18,7 @@
 #endif // ZRHI_USE_VULKAN_INTEGRATION
 
 #ifdef ZRHI_USE_METAL_INTEGRATION
-#import <Metal/Metal.h>
+#include <Metal/Metal.hpp>
 #endif // ZRHI_USE_METAL_INTEGRATION
 
 #define ZRHI_DEFINE_BITMASK_ENUM(enumType)                                                 \
@@ -45,7 +45,7 @@
 
 namespace Zibra::RHI
 {
-    constexpr Version ZRHI_VERSION = {2, 0, 0, };
+    constexpr Version ZRHI_VERSION = {2, 1, 3, };
 
     enum class GFXAPI : int8_t
     {
@@ -77,10 +77,7 @@ namespace Zibra::RHI
         ZRHI_ERROR_OUT_OF_CPU_MEMORY = 120,
         ZRHI_ERROR_OUT_OF_GPU_MEMORY = 121,
 
-        ZRHI_ERROR_NOT_INITIALIZED = 200,
-        ZRHI_ERROR_ALREADY_INITIALIZED = 201,
-
-        ZRHI_ERROR_INVALID_ARGUMENTS = 300,
+        ZRHI_ERROR_INVALID_CALL = 300,
         ZRHI_ERROR_NOT_IMPLEMENTED = 310,
         ZRHI_ERROR_NOT_SUPPORTED = 311,
     };
@@ -239,27 +236,27 @@ namespace Zibra::RHI
 #ifdef ZRHI_USE_METAL_INTEGRATION
         struct MetalBufferDesc
         {
-            id<MTLBuffer> buffer = nil;
+            MTL::Buffer* buffer = nullptr;
         };
 
         struct MetalTexture2DDesc
         {
-            id<MTLTexture> texture = nil;
+            MTL::Texture* texture = nullptr;
         };
 
         struct MetalTexture3DDesc
         {
-            id<MTLTexture> texture = nil;
+            MTL::Texture* texture = nullptr;
         };
 
         class MetalGFXCore : public GFXCore
         {
         public:
-            virtual id<MTLDevice> GetDevice() noexcept = 0;
+            virtual MTL::Device* GetDevice() noexcept = 0;
             virtual ReturnCode AccessBuffer(void* bufferHandle, MetalBufferDesc& bufferDesc) noexcept = 0;
             virtual ReturnCode AccessTexture2D(void* bufferHandle, MetalTexture2DDesc& bufferDesc) noexcept = 0;
             virtual ReturnCode AccessTexture3D(void* bufferHandle, MetalTexture3DDesc& bufferDesc) noexcept = 0;
-            virtual id<MTLCommandBuffer> GetCommandBuffer() noexcept = 0;
+            virtual MTL::CommandBuffer* GetCommandBuffer() noexcept = 0;
             virtual ReturnCode StartRecording() noexcept = 0;
             virtual ReturnCode StopRecording() noexcept = 0;
         };
@@ -1966,6 +1963,47 @@ namespace ZRHI_NS::CAPI
 #endif // ZRHI_USE_D3D12_INTEGRATION
 #pragma endregion D3D12GFXCore
 
+#pragma region MetalGFXCore
+#ifdef ZRHI_USE_METAL_INTEGRATION
+namespace ZRHI_NS::CAPI
+{
+    struct MetalGFXCoreVTable
+    {
+        void* obj;
+        GFXAPI (*GetGFXAPI)(void*);
+
+        MTL::Device* (*GetDevice)(void*);
+        ReturnCode (*AccessBuffer)(void*, void* resourceHandle, Integration::MetalBufferDesc& bufferDesc);
+        ReturnCode (*AccessTexture2D)(void*, void* resourceHandle, Integration::MetalTexture2DDesc& texture3dDesc);
+        ReturnCode (*AccessTexture3D)(void*, void* resourceHandle, Integration::MetalTexture3DDesc& texture3dDesc);
+        MTL::CommandBuffer* (*GetCommandBuffer)(void*);
+        ReturnCode (*StartRecording)(void*);
+        ReturnCode (*StopRecording)(void*);
+    };
+
+    inline MetalGFXCoreVTable VTConvert(Integration::MetalGFXCore* obj) noexcept
+    {
+        using namespace Integration;
+        using T = MetalGFXCore;
+
+        MetalGFXCoreVTable vt{};
+        vt.obj = obj;
+
+        vt.GetGFXAPI = [](void* o) { return static_cast<T*>(o)->GetGFXAPI(); };
+        
+        vt.GetDevice = [](void* o) { return static_cast<T*>(o)->GetDevice(); };
+        vt.AccessBuffer = [](void* o, void* r, MetalBufferDesc& b) { return static_cast<T*>(o)->AccessBuffer(r, b); };
+        vt.AccessTexture2D = [](void* o, void* r, MetalTexture2DDesc& t) { return static_cast<T*>(o)->AccessTexture2D(r, t); };
+        vt.AccessTexture3D = [](void* o, void* r, MetalTexture3DDesc& t) { return static_cast<T*>(o)->AccessTexture3D(r, t); };
+        vt.GetCommandBuffer = [](void* o) { return static_cast<T*>(o)->GetCommandBuffer(); };
+        vt.StartRecording = [](void* o) { return static_cast<T*>(o)->StartRecording(); };
+        vt.StopRecording = [](void* o) { return static_cast<T*>(o)->StopRecording(); };
+        return vt;
+    }
+} // namespace ZRHI_NS::CAPI
+#endif // ZRHI_USE_METAL_INTEGRATION
+#pragma endregion MetalGFXCore
+
 #ifndef ZRHI_NO_CAPI_IMPL
 
 #pragma region RHIRuntime
@@ -2640,6 +2678,14 @@ ZRHI_RHIFACTORY_API_APPLY(ZRHI_DECLARE_API_EXTERN_FUNCS);
 #undef ZRHI_DECLARE_API_EXTERN_FUNCS
 #endif
 
+// Disables error C4065: switch statement contains 'default' but no 'case' labels
+#if defined(_MSVC_LANG)
+#pragma warning(push)
+#pragma warning(disable : 4065)
+#elif defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch-default"
+#endif //_MSVC_LANG
 
 namespace ZRHI_NS::CAPI
 {
@@ -2657,32 +2703,34 @@ namespace ZRHI_NS::CAPI
         {
             return ZRHI_FNPFX(SetGFXAPI)(m_NativeInstance, type);
         }
-        ReturnCode UseGFXCore(Integration::GFXCore* engineInterface) noexcept final
+        ReturnCode UseGFXCore(Integration::GFXCore* GFXCorePtr) noexcept final
         {
             using namespace Integration;
-            switch (engineInterface->GetGFXAPI())
+            switch (GFXCorePtr->GetGFXAPI())
             {
 #ifdef ZRHI_USE_D3D11_INTEGRATION
             case GFXAPI::D3D11: {
-                auto vtable = VTConvert(static_cast<D3D11GFXCore*>(engineInterface));
+                auto vtable = VTConvert(static_cast<D3D11GFXCore*>(GFXCorePtr));
                 return ZRHI_FNPFX(UseGFXCore)(m_NativeInstance, &vtable);
             }
 #endif // ZRHI_USE_D3D11_INTEGRATION
 #ifdef ZRHI_USE_D3D12_INTEGRATION
             case GFXAPI::D3D12: {
-                auto vtable = VTConvert(static_cast<D3D12GFXCore*>(engineInterface));
+                auto vtable = VTConvert(static_cast<D3D12GFXCore*>(GFXCorePtr));
                 return ZRHI_FNPFX(UseGFXCore)(m_NativeInstance, &vtable);
             }
 #endif // ZRHI_USE_D3D12_INTEGRATION
 #ifdef ZRHI_USE_VULKAN_INTEGRATION
             case GFXAPI::Vulkan: {
-                auto vtable = VTConvert(static_cast<VulkanGFXCore*>(engineInterface));
+                auto vtable = VTConvert(static_cast<VulkanGFXCore*>(GFXCorePtr));
                 return ZRHI_FNPFX(UseGFXCore)(m_NativeInstance, &vtable);
             }
 #endif // ZRHI_USE_VULKAN_INTEGRATION
 #ifdef ZRHI_USE_METAL_INTEGRATION
-            case GFXAPI::Metal:
-                return ZRHI_ERROR_NOT_SUPPORTED;
+            case GFXAPI::Metal: {
+                auto vtable = VTConvert(static_cast<MetalGFXCore*>(GFXCorePtr));
+                return ZRHI_FNPFX(UseGFXCore)(m_NativeInstance, &vtable);
+            }
 #endif // ZRHI_USE_METAL_INTEGRATION
             default:
                 return ZRHI_ERROR_NOT_SUPPORTED;
@@ -2724,6 +2772,12 @@ namespace ZRHI_NS::CAPI
     };
 } // namespace ZRHI_NS::CAPI
 
+#if defined(_MSVC_LANG)
+#pragma warning(pop)
+#elif defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif //_MSVC_LANG
+
 #undef ZRHI_FNPFX
 #pragma endregion RHIFactory
 
@@ -2758,7 +2812,7 @@ namespace ZRHI_NS::CAPI
     inline ReturnCode CreateRHIFactory(RHIFactory** outFactory) noexcept
     {
         if (!outFactory)
-            return ZRHI_ERROR_INVALID_ARGUMENTS;
+            return ZRHI_ERROR_INVALID_CALL;
         ZRHIFactoryHandle nativeHandle;
         auto status = ZRHI_FNPFX(CreateRHIFactory)(&nativeHandle);
         if (status != ZRHI_SUCCESS)
