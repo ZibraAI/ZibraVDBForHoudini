@@ -197,8 +197,6 @@ target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini)
 
 if (NOT "${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
     target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::openvdb_sesi)
-elseif (${LABS_BUILD})
-    target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::openvdb_sesi Houdini::Dep::tbb)
 endif()
 
 if(${LABS_BUILD})
