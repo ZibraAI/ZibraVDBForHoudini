@@ -100,6 +100,10 @@ set(HeaderFiles
     src/licensing/TrialManager.h
     src/ROP/ROP_ZibraVDBCompressor.h
     src/SOP/SOP_ZibraVDBDecompressor.h
+    src/LOP/LOP_ZibraVDBDecompressor.h
+    src/LOP/ZibraVDBPluginRegistry.h
+    src/LOP/USD/zibraVDBVolume.h
+    src/LOP/USD/tokens.h
     src/ui/MessageBox.h
     src/ui/PluginManagementWindow.h
     src/utils/Helpers.h
@@ -117,6 +121,10 @@ set(SourceFiles
     src/licensing/TrialManager.cpp
     src/ROP/ROP_ZibraVDBCompressor.cpp
     src/SOP/SOP_ZibraVDBDecompressor.cpp
+    src/LOP/LOP_ZibraVDBDecompressor.cpp
+    src/LOP/ZibraVDBPluginRegistry.cpp
+    src/LOP/USD/zibraVDBVolume.cpp
+    src/LOP/USD/tokens.cpp
     src/ui/MessageBox.cpp
     src/ui/PluginManagementWindow.cpp
     src/utils/Helpers.cpp
@@ -126,11 +134,17 @@ set(SourceFiles
 add_library(ZibraVDBForHoudini SHARED ${HeaderFiles} ${SourceFiles})
 target_include_directories(ZibraVDBForHoudini
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/Include)
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/Include
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/USD/ZibraVDBVolumeSchema/src
+    PRIVATE "${HOUDINI_PATH}/toolkit/include/pxr")
 target_precompile_headers(ZibraVDBForHoudini PRIVATE src/PrecompiledHeader.h)
 target_compile_definitions(ZibraVDBForHoudini PRIVATE 
     ZIB_NETWORK_REQUEST_BACKEND_${ZIB_NETWORK_REQUEST_BACKEND}=1
-    ZIB_TARGET_OS_${ZIB_TARGET_OS_NAME}=1)
+    ZIB_TARGET_OS_${ZIB_TARGET_OS_NAME}=1
+    # USD schema definitions
+    ZIBRAVDBVOLUME_EXPORTS
+    MFB_PACKAGE_NAME=ZibraVDBVolume
+    NOMINMAX)
 
 target_include_directories(ZibraVDBForHoudini PRIVATE SDK/include)
 target_include_directories(ZibraVDBForHoudini PRIVATE "${HOUDINI_INCLUDE_DIR}")
@@ -145,6 +159,9 @@ else()
     message(FATAL_ERROR "ZIBRA_HOUDINI_PATH and HFS environment variables are not set. Can't find Houdini installation.")
 endif()
 cmake_print_variables(HOUDINI_PATH)
+
+set(BOOST_PYTHON_LIB "${HOUDINI_PATH}/custom/houdini/dsolib/hboost_python311-mt-x64.lib")
+set(PYTHON_LIB "${HOUDINI_PATH}/python311/libs/python311.lib")
 
 if(DEFINED ZIBRAVDB_OUTPUT_PATH)
     message(STATUS "Using specified install directory")
@@ -193,7 +210,31 @@ endif()
 
 list(APPEND CMAKE_PREFIX_PATH "${HOUDINI_PATH}/toolkit/cmake")
 find_package(Houdini REQUIRED)
-target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini)
+
+#link_directories("${HOUDINI_PATH}/custom/houdini/dsolib")
+#link_directories("${HOUDINI_PATH}/dsolib")
+
+# Find USD libraries with full paths
+set(PXR_LIB_DIR "${HOUDINI_PATH}/custom/houdini/dsolib")
+#set(PXR_LIB_PREFIX "libpxr_")
+
+target_link_libraries(ZibraVDBForHoudini PRIVATE
+        Houdini
+        ${BOOST_PYTHON_LIB}
+        ${PYTHON_LIB}
+        # USD libraries for LOP support using full paths
+        ${PXR_LIB_DIR}/libpxr_tf.lib
+        ${PXR_LIB_DIR}/libpxr_usd.lib
+        ${PXR_LIB_DIR}/libpxr_sdf.lib
+        ${PXR_LIB_DIR}/libpxr_vt.lib
+        ${PXR_LIB_DIR}/libpxr_gf.lib
+        ${PXR_LIB_DIR}/libpxr_usdVol.lib
+        ${PXR_LIB_DIR}/libpxr_usdGeom.lib
+        ${PXR_LIB_DIR}/libpxr_arch.lib
+        ${PXR_LIB_DIR}/libpxr_ar.lib
+        ${PXR_LIB_DIR}/libpxr_plug.lib
+        # Houdini USD libraries
+        ${HOUDINI_PATH}/custom/houdini/dsolib/libHUSD.lib)
 
 if (NOT "${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
     target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::openvdb_sesi)
