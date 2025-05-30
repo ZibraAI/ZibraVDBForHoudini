@@ -11,6 +11,9 @@
 
 namespace Zibra::ZibraVDBDecompressor
 {
+    using namespace CE::Decompression;
+    PXR_NAMESPACE_USING_DIRECTIVE
+
     constexpr const char* LOP_NODE_NAME = "labs::zibravdb_decompress_lop::" ZIB_ZIBRAVDB_VERSION_SHORT;
     constexpr const char* LOP_NODE_LABEL = "Labs ZibraVDB Decompress LOP";
 
@@ -19,9 +22,6 @@ namespace Zibra::ZibraVDBDecompressor
     private:
         static constexpr const char* FILENAME_PARAM_NAME = "filename";
         static constexpr const char* FRAME_PARAM_NAME = "frame";
-        static constexpr const char* PRIMPATH_PARAM_NAME = "primpath";
-        static constexpr const char* CREATE_VDB_PREVIEW_PARAM_NAME = "createvdbpreview";
-        static constexpr const char* VDB_OUTPUT_PATH_PARAM_NAME = "vdboutputpath";
         static constexpr const char* REFRESH_CALLBACK_PARAM_NAME = "reload";
         static constexpr const char* OPEN_PLUGIN_MANAGEMENT_BUTTON_NAME = "openmanagement";
 
@@ -41,7 +41,9 @@ namespace Zibra::ZibraVDBDecompressor
         
         void CreateZibraVDBVolumePrimitive(PXR_NS::UsdStageRefPtr stage, const PXR_NS::SdfPath& primPath, 
                                           const std::string& binaryFilePath, int frameIndex);
-        void InjectOpenVDBVolume(PXR_NS::UsdStageRefPtr stage, const PXR_NS::SdfAssetPath& filePath);
+        void InjectOpenVDBVolume(PXR_NS::UsdStageRefPtr stage, const PXR_NS::SdfAssetPath& filePath, const openvdb::GridPtrVec& vdbGrids);
+        void ApplyVolumeVisualizationMetadata(PXR_NS::UsdStageRefPtr stage, const openvdb::GridPtrVec& vdbGrids, CompressedFrameContainer* const frameContainer);
+        void ApplyGridVisualizationMetadata(PXR_NS::UsdVolVolume& volume, const std::string& gridName, CompressedFrameContainer* const frameContainer);
 
         std::string WriteTemporaryVDBFile(const openvdb::GridPtrVec& vdbGrids, const std::string& basePath);
 
