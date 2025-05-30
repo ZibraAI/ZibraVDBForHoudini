@@ -28,8 +28,6 @@
 namespace Zibra::ZibraVDBDecompressor
 {
     using namespace std::literals;
-    using namespace CE::Decompression;
-    PXR_NAMESPACE_USING_DIRECTIVE
 
     OP_Node* LOP_ZibraVDBDecompressor::Constructor(OP_Network* net, const char* name, OP_Operator* op) noexcept
     {
@@ -44,15 +42,6 @@ namespace Zibra::ZibraVDBDecompressor
         static PRM_Name theFrameName(FRAME_PARAM_NAME, "Sequence Frame");
         static PRM_Default theFrameDefault(0, "$F");
 
-        static PRM_Name thePrimPathName(PRIMPATH_PARAM_NAME, "Primitive Path");
-        static PRM_Default thePrimPathDefault(0, "/ZibraVDB");
-
-        static PRM_Name theCreateVDBPreviewName(CREATE_VDB_PREVIEW_PARAM_NAME, "Create VDB Preview");
-        static PRM_Default theCreateVDBPreviewDefault(1);
-
-        static PRM_Name theVDBOutputPathName(VDB_OUTPUT_PATH_PARAM_NAME, "VDB Output Path");
-        static PRM_Default theVDBOutputPathDefault(0, "$TEMP/zibravdb_preview_$OS_$F.vdb");
-
         static PRM_Name theReloadCacheName(REFRESH_CALLBACK_PARAM_NAME, "Reload Cache");
         static PRM_Callback theReloadCallback{[](void* node, int index, fpreal64 time, const PRM_Template* tplate) -> int {
             auto self = static_cast<LOP_ZibraVDBDecompressor*>(node);
@@ -65,9 +54,6 @@ namespace Zibra::ZibraVDBDecompressor
         static PRM_Template templateList[] = {
             PRM_Template(PRM_FILE, 1, &theFileName, &theFileDefault),
             PRM_Template(PRM_INT, 1, &theFrameName, &theFrameDefault),
-            PRM_Template(PRM_STRING, 1, &thePrimPathName, &thePrimPathDefault),
-            PRM_Template(PRM_TOGGLE, 1, &theCreateVDBPreviewName, &theCreateVDBPreviewDefault),
-            PRM_Template(PRM_FILE, 1, &theVDBOutputPathName, &theVDBOutputPathDefault),
             PRM_Template(PRM_CALLBACK, 1, &theReloadCacheName, nullptr, nullptr, nullptr, theReloadCallback),
             PRM_Template(PRM_CALLBACK, 1, &theOpenPluginManagementButtonName, nullptr, nullptr, nullptr,
                          &LOP_ZibraVDBDecompressor::OpenManagementWindow),
@@ -127,19 +113,9 @@ namespace Zibra::ZibraVDBDecompressor
             return error();
         }
 
-        UT_String primPath = "";
-        evalString(primPath, PRIMPATH_PARAM_NAME, 0, t);
-        if (primPath == "")
-        {
-            addError(LOP_MESSAGE, "Primitive path cannot be empty");
-            return error();
-        }
-
         const exint frameIndex = evalInt(FRAME_PARAM_NAME, 0, t);
-        const bool createVDBPreview = evalInt(CREATE_VDB_PREVIEW_PARAM_NAME, 0, t);
 
         m_DecompressorManager.Initialize();
-
         auto status = m_DecompressorManager.RegisterDecompressor(filename);
         if (status != CE::ZCE_SUCCESS)
         {
@@ -176,7 +152,7 @@ namespace Zibra::ZibraVDBDecompressor
         }
         UsdStageRefPtr stage = writelock.data()->stage();
 
-        SdfPath sdfPath(HUSDgetSdfPath(primPath));
+        SdfPath sdfPath(HUSDgetSdfPath("/ZibraVDB"));
         try {
             CreateZibraVDBVolumePrimitive(stage, sdfPath, filename.toStdString(), frameIndex);
             addMessage(LOP_MESSAGE, ("Created ZibraVDBVolume primitive at " + sdfPath.GetString()).c_str());
@@ -185,42 +161,37 @@ namespace Zibra::ZibraVDBDecompressor
             addError(LOP_MESSAGE, ("Failed to create ZibraVDBVolume primitive: " + std::string(e.what())).c_str());
         }
 
-        if (createVDBPreview)
+        auto gridShuffle = m_DecompressorManager.DeserializeGridShuffleInfo(frameContainer);
+        openvdb::GridPtrVec vdbGrids = {};
+        status = m_DecompressorManager.DecompressFrame(frameContainer, gridShuffle, &vdbGrids);
+        m_DecompressorManager.ReleaseGridShuffleInfo(gridShuffle);
+
+        if (status == CE::ZCE_SUCCESS && !vdbGrids.empty())
         {
-            auto gridShuffle = m_DecompressorManager.DeserializeGridShuffleInfo(frameContainer);
-            openvdb::GridPtrVec vdbGrids = {};
-            status = m_DecompressorManager.DecompressFrame(frameContainer, gridShuffle, &vdbGrids);
-            m_DecompressorManager.ReleaseGridShuffleInfo(gridShuffle);
+            std::filesystem::path p(filename.toStdString());
+            auto folder = p.parent_path().string();
+            auto name = p.stem().string();
+            auto vdbOutputPath = UT_String(folder + "/" + name + "_frame_" + std::to_string(frameIndex) + ".vdb");
 
-            if (status == CE::ZCE_SUCCESS && !vdbGrids.empty())
+            std::string tempVDBPath = WriteTemporaryVDBFile(vdbGrids, vdbOutputPath.toStdString());
+            if (!tempVDBPath.empty())
             {
-                std::filesystem::path p(filename.toStdString());
-                auto folder = p.parent_path().string();
-                auto name = p.stem().string();
-                auto vdbOutputPath = UT_String(folder + "/" + name + "_frame_" + std::to_string(frameIndex) + ".vdb");
-
-//                UT_String vdbOutputPath = "";
-//                evalString(vdbOutputPath, VDB_OUTPUT_PATH_PARAM_NAME, 0, t);
-
-                std::string tempVDBPath = WriteTemporaryVDBFile(vdbGrids, vdbOutputPath.toStdString());
-                if (!tempVDBPath.empty())
-                {
-                    InjectOpenVDBVolume(stage, SdfAssetPath(tempVDBPath));
-                }
-                else
-                {
-                    addWarning(LOP_MESSAGE, "Failed to write temporary VDB file");
-                }
+                InjectOpenVDBVolume(stage, SdfAssetPath(tempVDBPath), vdbGrids);
+//                    ApplyVolumeVisualizationMetadata(stage, vdbGrids, frameContainer);
             }
             else
             {
-                addWarning(LOP_MESSAGE, "VDB decompression failed or no grids found");
+                addWarning(LOP_MESSAGE, "Failed to write temporary VDB file");
             }
+        }
+        else
+        {
+            addWarning(LOP_MESSAGE, "VDB decompression failed or no grids found");
         }
 
         frameContainer->Release();
         flags().setTimeDep(true);
-        setLastModifiedPrims(primPath);
+        setLastModifiedPrims("/ZibraVDB");
 
         return error();
     }
@@ -234,32 +205,138 @@ namespace Zibra::ZibraVDBDecompressor
     void LOP_ZibraVDBDecompressor::CreateZibraVDBVolumePrimitive(UsdStageRefPtr stage, const SdfPath& primPath,
                                                                  const std::string& binaryFilePath, int frameIndex)
     {
-        // Create the ZibraVDBVolume primitive using our custom schema
         ZibraVDBZibraVDBVolume zibraVolume = ZibraVDBZibraVDBVolume::Define(stage, primPath);
 
-        // Set the file path attribute
         SdfAssetPath assetPath(binaryFilePath);
         zibraVolume.CreateFilePathAttr().Set(assetPath);
-
-        // Add frame index as custom data instead of metadata to avoid warnings
         zibraVolume.GetPrim().SetCustomDataByKey(TfToken("frameIndex"), VtValue(frameIndex));
     }
 
-    void LOP_ZibraVDBDecompressor::InjectOpenVDBVolume(UsdStageRefPtr stage, const SdfAssetPath& filePath)
+    void LOP_ZibraVDBDecompressor::InjectOpenVDBVolume(UsdStageRefPtr stage, const SdfAssetPath& filePath, const openvdb::GridPtrVec& vdbGrids)
     {
         SdfPath volPath("/openVDBVolume");
         UsdPrim volPrim = stage->DefinePrim(volPath, TfToken("Volume"));
         UsdVolVolume volume(volPrim);
 
-        SdfPath assetPath = volPath.AppendChild(TfToken("density"));
-        UsdPrim assetPrim = stage->DefinePrim(assetPath, TfToken("OpenVDBAsset"));
-        UsdVolOpenVDBAsset vdbAsset(assetPrim);
+        for (size_t i = 0; i < vdbGrids.size(); ++i)
+        {
+            const openvdb::GridBase::Ptr grid = vdbGrids[i];
+            if (!grid)
+                continue;
+                
+            std::string gridName = grid->getName();
+            
+            SdfPath assetPath = volPath.AppendChild(TfToken(gridName));
+            UsdPrim assetPrim = stage->DefinePrim(assetPath, TfToken("OpenVDBAsset"));
+            UsdVolOpenVDBAsset vdbAsset(assetPrim);
 
-        vdbAsset.GetFilePathAttr().Set(filePath);
-        vdbAsset.GetFieldNameAttr().Set(TfToken("density"));
-        vdbAsset.GetFieldIndexAttr().Set(0);
+            vdbAsset.GetFilePathAttr().Set(filePath);
+            vdbAsset.GetFieldNameAttr().Set(TfToken(gridName));
+            vdbAsset.GetFieldIndexAttr().Set(static_cast<int>(i));
 
-        volume.CreateFieldRelationship(TfToken("density"), assetPrim.GetPath());
+            volume.CreateFieldRelationship(TfToken(gridName), assetPrim.GetPath());
+        }
+    }
+
+    void LOP_ZibraVDBDecompressor::ApplyVolumeVisualizationMetadata(UsdStageRefPtr stage, const openvdb::GridPtrVec& vdbGrids, CompressedFrameContainer* const frameContainer)
+    {
+        const char* detailMetadata = frameContainer->GetMetadataByKey("houdiniDetailAttributes");
+        if (detailMetadata)
+        {
+            auto detailAttribMeta = nlohmann::json::parse(detailMetadata);
+            
+            SdfPath volSettingsPath("/VolumeSettings");
+            UsdPrim volSettingsPrim = stage->GetPrimAtPath(volSettingsPath);
+            if (!volSettingsPrim)
+            {
+                volSettingsPrim = stage->DefinePrim(volSettingsPath, TfToken("Scope"));
+            }
+            
+            for (auto& [key, value] : detailAttribMeta.items())
+            {
+                if (key.find("volvis_") == 0)
+                {
+                    std::string attrName = "houdini:" + key;
+                    if (value["t"] == "string")
+                    {
+                        volSettingsPrim.CreateAttribute(TfToken(attrName), SdfValueTypeNames->String).Set(value["v"].get<std::string>());
+                    }
+                    else if (value["t"] == "float32")
+                    {
+                        if (value["v"].is_array() && !value["v"].empty())
+                        {
+                            volSettingsPrim.CreateAttribute(TfToken(attrName), SdfValueTypeNames->Float).Set(value["v"][0].get<float>());
+                        }
+                    }
+                    else if (value["t"] == "int32")
+                    {
+                        if (value["v"].is_array() && !value["v"].empty())
+                        {
+                            volSettingsPrim.CreateAttribute(TfToken(attrName), SdfValueTypeNames->Int).Set(value["v"][0].get<int>());
+                        }
+                    }
+                }
+            }
+        }
+
+        SdfPath volPath("/openVDBVolume");
+        UsdPrim volPrim = stage->GetPrimAtPath(volPath);
+        if (volPrim)
+        {
+            UsdVolVolume volume(volPrim);
+            for (const auto& grid : vdbGrids)
+            {
+                if (grid)
+                {
+                    ApplyGridVisualizationMetadata(volume, grid->getName(), frameContainer);
+                }
+            }
+        }
+    }
+
+    void LOP_ZibraVDBDecompressor::ApplyGridVisualizationMetadata(UsdVolVolume& volume, const std::string& gridName, CompressedFrameContainer* const frameContainer)
+    {
+        const std::string keyPrefix = "houdiniVisualizationAttributes_"s + gridName;
+
+        const std::string keyVisMode = keyPrefix + "_mode";
+        const char* visModeMetadata = frameContainer->GetMetadataByKey(keyVisMode.c_str());
+
+        const std::string keyVisIso = keyPrefix + "_iso";
+        const char* visIsoMetadata = frameContainer->GetMetadataByKey(keyVisIso.c_str());
+
+        const std::string keyVisDensity = keyPrefix + "_density";
+        const char* visDensityMetadata = frameContainer->GetMetadataByKey(keyVisDensity.c_str());
+
+        const std::string keyVisLod = keyPrefix + "_lod";
+        const char* visLodMetadata = frameContainer->GetMetadataByKey(keyVisLod.c_str());
+
+        std::vector<std::string> metadataKeys;
+        int metadataCount = frameContainer->GetMetadataCount();
+        std::cout << "Metadata count: " << metadataCount << std::endl;
+        for (int i=0; i<metadataCount; i++)
+        {
+            MetadataEntry curEntry;
+            frameContainer->GetMetadataByIndex(i, &curEntry);
+            std::cout << "Metadata key: " << curEntry.key << ", value: " << curEntry.value << std::endl;
+        }
+
+        if (visModeMetadata && visIsoMetadata && visDensityMetadata && visLodMetadata)
+        {
+            UsdPrim volPrim = volume.GetPrim();
+            
+            float densityScale = std::stof(visDensityMetadata);
+            
+            volPrim.CreateAttribute(TfToken("houdini:vis_mode"), SdfValueTypeNames->Int).Set(std::stoi(visModeMetadata));
+            volPrim.CreateAttribute(TfToken("houdini:vis_iso"), SdfValueTypeNames->Float).Set(std::stof(visIsoMetadata));
+            volPrim.CreateAttribute(TfToken("houdini:vis_density"), SdfValueTypeNames->Float).Set(densityScale);
+            volPrim.CreateAttribute(TfToken("houdini:vis_lod"), SdfValueTypeNames->Int).Set(std::stoi(visLodMetadata));
+            
+            if (densityScale != 1.0f)
+            {
+                volPrim.CreateAttribute(TfToken("primvars:density_scale"), SdfValueTypeNames->Float).Set(densityScale);
+                volPrim.CreateAttribute(TfToken("houdini:density_multiplier"), SdfValueTypeNames->Float).Set(densityScale);
+            }
+        }
     }
 
     std::string LOP_ZibraVDBDecompressor::WriteTemporaryVDBFile(const openvdb::GridPtrVec& vdbGrids, const std::string& basePath)

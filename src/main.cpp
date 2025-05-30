@@ -8,31 +8,34 @@
 #include "SOP/SOP_ZibraVDBDecompressor.h"
 #include "LOP/ZibraVDBPluginRegistry.h"
 
-extern "C" SYS_VISIBILITY_EXPORT void newSopOperator(OP_OperatorTable* table)
-{
-    using namespace Zibra;
+extern "C" {
+    SYS_VISIBILITY_EXPORT void newSopOperator(OP_OperatorTable* table)
+    {
+        using namespace Zibra;
 
-    table->addOperator(new ZibraVDBCompressor::ROP_ZibraVDBCompressor_Operator(ContextType::SOP));
-    table->addOperator(new ZibraVDBDecompressor::SOP_ZibraVDBDecompressor_Operator());
-}
+        table->addOperator(new ZibraVDBCompressor::ROP_ZibraVDBCompressor_Operator(ContextType::SOP));
+        table->addOperator(new ZibraVDBDecompressor::SOP_ZibraVDBDecompressor_Operator());
+    }
 
-extern "C" SYS_VISIBILITY_EXPORT void newLopOperator(OP_OperatorTable* table)
-{
-    using namespace Zibra;
-    
-    table->addOperator(new ZibraVDBDecompressor::LOP_ZibraVDBDecompressor_Operator());
-}
+    SYS_VISIBILITY_EXPORT void newLopOperator(OP_OperatorTable* table)
+    {
+        using namespace Zibra;
 
-extern "C" SYS_VISIBILITY_EXPORT void newDriverOperator(OP_OperatorTable* table)
-{
-    using namespace Zibra;
+        table->addOperator(new ZibraVDBDecompressor::LOP_ZibraVDBDecompressor_Operator());
+        ZibraVDBPluginRegistry::GetInstance().Initialize();
+    }
 
-    table->addOperator(new ZibraVDBCompressor::ROP_ZibraVDBCompressor_Operator(ContextType::OUT));
-}
+    SYS_VISIBILITY_EXPORT void newDriverOperator(OP_OperatorTable* table)
+    {
+        using namespace Zibra;
 
-SYS_VISIBILITY_EXPORT void newGeometryPrim(OP_OperatorTable* table)
-{
-    using namespace Zibra;
+        table->addOperator(new ZibraVDBCompressor::ROP_ZibraVDBCompressor_Operator(ContextType::OUT));
+    }
 
-    ZibraVDBPluginRegistry::GetInstance().Initialize();
+    /*SYS_VISIBILITY_EXPORT void newGeometryPrim(OP_OperatorTable* table)
+    {
+        using namespace Zibra;
+
+        ZibraVDBPluginRegistry::GetInstance().Initialize();
+    }*/
 }
