@@ -33,8 +33,6 @@ namespace Zibra
         void ProcessStage(const UsdStagePtr& stage);
         void ProcessZibraVDBVolume(const UsdStagePtr& stage, const UsdPrim& prim);
         void DecompressAndCreateVDBVolume(const UsdStagePtr& stage, const std::string& filePath, int frameIndex, const SdfPath& primPath);
-        std::string WriteTemporaryVDBFile(const openvdb::GridPtrVec& vdbGrids, const std::string& basePath);
-        /*void CreateOpenVDBVolume(const UsdStagePtr& stage, const SdfAssetPath& filePath, const SdfPath& volumePath);*/
 
         class _Impl;
         std::unique_ptr<_Impl> _impl;

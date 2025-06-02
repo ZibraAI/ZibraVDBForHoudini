@@ -108,6 +108,7 @@ set(HeaderFiles
     src/ui/PluginManagementWindow.h
     src/utils/Helpers.h
     src/utils/GAAttributesDump.h
+    src/utils/VDBCacheManager.h
 )
 
 set(SourceFiles
@@ -129,6 +130,7 @@ set(SourceFiles
     src/ui/PluginManagementWindow.cpp
     src/utils/Helpers.cpp
     src/utils/GAAttributesDump.cpp
+    src/utils/VDBCacheManager.cpp
 )
 
 add_library(ZibraVDBForHoudini SHARED ${HeaderFiles} ${SourceFiles})

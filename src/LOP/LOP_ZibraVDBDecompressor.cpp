@@ -70,10 +70,13 @@ namespace Zibra::ZibraVDBDecompressor
         {
             return;
         }
+        Utils::VDBCacheManager::GetInstance().RegisterNode(this, getName().toStdString());
     }
 
     LOP_ZibraVDBDecompressor::~LOP_ZibraVDBDecompressor() noexcept
     {
+        Utils::VDBCacheManager::GetInstance().UnregisterNode(this);
+        
         if (!LibraryUtils::IsLibraryLoaded())
         {
             return;
@@ -168,12 +171,10 @@ namespace Zibra::ZibraVDBDecompressor
 
         if (status == CE::ZCE_SUCCESS && !vdbGrids.empty())
         {
-            std::filesystem::path p(filename.toStdString());
-            auto folder = p.parent_path().string();
-            auto name = p.stem().string();
-            auto vdbOutputPath = UT_String(folder + "/" + name + "_frame_" + std::to_string(frameIndex) + ".vdb");
-
-            std::string tempVDBPath = WriteTemporaryVDBFile(vdbGrids, vdbOutputPath.toStdString());
+            // Update frame tracking and get cached VDB file
+            Utils::VDBCacheManager::GetInstance().UpdateNodeFrame(this, filename.toStdString(), frameIndex);
+            std::string tempVDBPath = Utils::VDBCacheManager::GetInstance().GetOrCreateVDBCache(filename.toStdString(), frameIndex, vdbGrids);
+            
             if (!tempVDBPath.empty())
             {
                 InjectOpenVDBVolume(stage, SdfAssetPath(tempVDBPath), vdbGrids);
@@ -181,7 +182,7 @@ namespace Zibra::ZibraVDBDecompressor
             }
             else
             {
-                addWarning(LOP_MESSAGE, "Failed to write temporary VDB file");
+                addWarning(LOP_MESSAGE, "Failed to create or access VDB cache file");
             }
         }
         else
@@ -338,36 +339,4 @@ namespace Zibra::ZibraVDBDecompressor
             }
         }
     }
-
-    std::string LOP_ZibraVDBDecompressor::WriteTemporaryVDBFile(const openvdb::GridPtrVec& vdbGrids, const std::string& basePath)
-    {
-        if (vdbGrids.empty())
-            return "";
-
-        try
-        {
-            std::filesystem::path outputPath(basePath);
-            std::filesystem::create_directories(outputPath.parent_path());
-
-            openvdb::io::File file(basePath);
-            file.write(vdbGrids);
-            file.close();
-
-            if (std::filesystem::exists(basePath) && std::filesystem::file_size(basePath) > 0)
-            {
-                return basePath;
-            }
-            else
-            {
-                addWarning(LOP_MESSAGE, "VDB file was not written correctly");
-                return "";
-            }
-        }
-        catch (const std::exception& e)
-        {
-            addWarning(LOP_MESSAGE, ("Failed to write temporary VDB file: "s + e.what()).c_str());
-            return "";
-        }
-    }
-
 } // namespace Zibra::ZibraVDBDecompressor
