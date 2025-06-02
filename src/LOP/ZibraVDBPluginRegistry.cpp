@@ -18,6 +18,7 @@
 #include "USD/zibraVDBVolume.h"
 #include "../SOP/DecompressorManager/DecompressorManager.h"
 #include "../bridge/LibraryUtils.h"
+#include "../utils/VDBCacheManager.h"
 
 #include <openvdb/io/File.h>
 #include <filesystem>
@@ -32,6 +33,8 @@ public:
     _Impl() {}
     ~_Impl() 
     {
+        Utils::VDBCacheManager::GetInstance().CleanupAllTempFiles();
+        
         if (LibraryUtils::IsLibraryLoaded())
         {
             m_DecompressorManager.Release();
@@ -236,12 +239,12 @@ void ZibraVDBPluginRegistry::DecompressAndCreateVDBVolume(const UsdStagePtr& sta
 
     if (status == CE::ZCE_SUCCESS && !vdbGrids.empty())
     {
-        std::filesystem::path p(filePath);
-        auto folder = p.parent_path().string();
-        auto name = p.stem().string();
-        auto vdbOutputPath = folder + "/" + name + "_frame_" + std::to_string(frameIndex) + ".vdb";
-
-        std::string tempVDBPath = WriteTemporaryVDBFile(vdbGrids, vdbOutputPath);
+        // Use the unified VDB cache manager instead of local file writing
+        std::string tempVDBPath = Utils::VDBCacheManager::GetInstance().GetOrCreateVDBCache(filePath, frameIndex, vdbGrids);
+        if (tempVDBPath.empty())
+        {
+            std::cerr << "ZibraVDB: Failed to create VDB cache file" << std::endl;
+        }
     }
     else
     {
@@ -250,51 +253,3 @@ void ZibraVDBPluginRegistry::DecompressAndCreateVDBVolume(const UsdStagePtr& sta
 
     frameContainer->Release();
 }
-
-std::string ZibraVDBPluginRegistry::WriteTemporaryVDBFile(const openvdb::GridPtrVec& vdbGrids, const std::string& basePath)
-{
-    if (vdbGrids.empty())
-        return "";
-
-    try
-    {
-        std::filesystem::path outputPath(basePath);
-        std::filesystem::create_directories(outputPath.parent_path());
-
-        openvdb::io::File file(basePath);
-        file.write(vdbGrids);
-        file.close();
-
-        if (std::filesystem::exists(basePath) && std::filesystem::file_size(basePath) > 0)
-        {
-            return basePath;
-        }
-        else
-        {
-            std::cerr << "ZibraVDB: VDB file was not written correctly" << std::endl;
-            return "";
-        }
-    }
-    catch (const std::exception& e)
-    {
-        std::cerr << "ZibraVDB: Failed to write temporary VDB file: " << e.what() << std::endl;
-        return "";
-    }
-}
-
-/*
-void ZibraVDBPluginRegistry::CreateOpenVDBVolume(const UsdStagePtr& stage, const SdfAssetPath& filePath, const SdfPath& volumePath)
-{
-    UsdPrim volPrim = stage->DefinePrim(volumePath, TfToken("Volume"));
-    UsdVolVolume volume(volPrim);
-
-    SdfPath assetPath = volumePath.AppendChild(TfToken("density"));
-    UsdPrim assetPrim = stage->DefinePrim(assetPath, TfToken("OpenVDBAsset"));
-    UsdVolOpenVDBAsset vdbAsset(assetPrim);
-
-    vdbAsset.GetFilePathAttr().Set(filePath);
-    vdbAsset.GetFieldNameAttr().Set(TfToken("density"));
-    vdbAsset.GetFieldIndexAttr().Set(0);
-
-    volume.CreateFieldRelationship(TfToken("density"), assetPrim.GetPath());
-}*/

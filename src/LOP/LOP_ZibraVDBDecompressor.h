@@ -8,6 +8,7 @@
 
 #include "Globals.h"
 #include "SOP/DecompressorManager/DecompressorManager.h"
+#include "utils/VDBCacheManager.h"
 
 namespace Zibra::ZibraVDBDecompressor
 {
@@ -44,8 +45,6 @@ namespace Zibra::ZibraVDBDecompressor
         void InjectOpenVDBVolume(PXR_NS::UsdStageRefPtr stage, const PXR_NS::SdfAssetPath& filePath, const openvdb::GridPtrVec& vdbGrids);
         void ApplyVolumeVisualizationMetadata(PXR_NS::UsdStageRefPtr stage, const openvdb::GridPtrVec& vdbGrids, CompressedFrameContainer* const frameContainer);
         void ApplyGridVisualizationMetadata(PXR_NS::UsdVolVolume& volume, const std::string& gridName, CompressedFrameContainer* const frameContainer);
-
-        std::string WriteTemporaryVDBFile(const openvdb::GridPtrVec& vdbGrids, const std::string& basePath);
 
     private:
         Helpers::DecompressorManager m_DecompressorManager;
