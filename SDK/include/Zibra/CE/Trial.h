@@ -4,6 +4,7 @@ namespace Zibra::CE::Trial
 {
     int RequestTrialCompression() noexcept;
     int TrialCompressionsRemaining() noexcept;
+    const char* GetTrialError() noexcept;
 } // namespace Zibra::CE::Trial
 
 #pragma region CAPI
@@ -16,18 +17,21 @@ namespace Zibra::CE::Trial
 #pragma region Funcs
 #define ZCE_TRIAL_FUNCS_EXPORT_FNPFX(name) Zibra_CE_Trial_##name
 
-#define ZCE_TRIAL_FUNCS_API_APPLY(macro)                         \
-    macro(ZCE_TRIAL_FUNCS_EXPORT_FNPFX(RequestTrialCompression)); \
-    macro(ZCE_TRIAL_FUNCS_EXPORT_FNPFX(TrialCompressionsRemaining));
+#define ZCE_TRIAL_FUNCS_API_APPLY(macro)                             \
+    macro(ZCE_TRIAL_FUNCS_EXPORT_FNPFX(RequestTrialCompression));    \
+    macro(ZCE_TRIAL_FUNCS_EXPORT_FNPFX(TrialCompressionsRemaining)); \
+    macro(ZCE_TRIAL_FUNCS_EXPORT_FNPFX(GetTrialError));
 
 #define ZCE_FNPFX(name) ZCE_TRIAL_FUNCS_EXPORT_FNPFX(name)
 
 typedef int (*ZCE_PFN(ZCE_FNPFX(RequestTrialCompression)))();
 typedef int (*ZCE_PFN(ZCE_FNPFX(TrialCompressionsRemaining)))();
+typedef const char* (*ZCE_PFN(ZCE_FNPFX(GetTrialError)))();
 
 #ifndef ZCE_NO_STATIC_API_DECL
 ZCE_API_IMPORT int ZCE_FNPFX(RequestTrialCompression)() noexcept;
 ZCE_API_IMPORT int ZCE_FNPFX(TrialCompressionsRemaining)() noexcept;
+ZCE_API_IMPORT const char* ZCE_FNPFX(GetTrialError)() noexcept;
 #else
 #define ZCE_DECLARE_API_EXTERN_FUNCS(name) extern ZCE_PFN(name) name;
 ZCE_TRIAL_FUNCS_API_APPLY(ZCE_DECLARE_API_EXTERN_FUNCS);
@@ -44,6 +48,10 @@ namespace ZCE_NS::CAPI
     {
         return ZCE_FNPFX(TrialCompressionsRemaining)();
     }
+    inline const char* GetTrialError() noexcept
+    {
+        return ZCE_FNPFX(GetTrialError)();
+    }
 } // namespace ZCE_NS::CAPI
 
 #undef ZCE_FNPFX
@@ -51,7 +59,7 @@ namespace ZCE_NS::CAPI
 
 #define ZCE_TRIAL_API_APPLY(macro) ZCE_TRIAL_FUNCS_API_APPLY(macro)
 
-#endif //ZCE_NO_CAPI_IMPL
+#endif // ZCE_NO_CAPI_IMPL
 
 #undef ZCE_NS
 #undef ZCE_API_IMPORT

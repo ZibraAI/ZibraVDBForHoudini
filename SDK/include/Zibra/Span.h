@@ -3,22 +3,26 @@
 #include <array>
 #include <cassert>
 #include <cstddef>
+#include <cstring>
+#include <string>
+#include <type_traits>
 #include <vector>
 
 namespace Zibra
 {
     // std::span is not in C++17
+
     template <typename T>
-    class Span
+    class BasicSpan
     {
     public:
-        Span()
+        BasicSpan()
             : m_Data(nullptr)
             , m_Size(0)
         {
         }
 
-        Span(const T* data, size_t size)
+        BasicSpan(const T* data, size_t size)
             : m_Data(data)
             , m_Size(size)
         {
@@ -26,20 +30,20 @@ namespace Zibra
 
         // Automatic conversion from containers
         template <size_t N>
-        Span(const T (&data)[N])
+        BasicSpan(const T (&data)[N])
             : m_Data(data)
             , m_Size(N)
         {
         }
 
-        Span(const std::vector<T>& vec)
+        BasicSpan(const std::vector<T>& vec)
             : m_Data(vec.data())
             , m_Size(vec.size())
         {
         }
 
         template <std::size_t N>
-        Span(const std::array<T, N>& arr)
+        BasicSpan(const std::array<T, N>& arr)
             : m_Data(arr.data())
             , m_Size(N)
         {
@@ -73,7 +77,7 @@ namespace Zibra
         }
 
         // Helper methods
-        bool ContentEquals(const Span<T>& other) const
+        bool ContentEquals(const BasicSpan<T>& other) const
         {
             if (m_Size != other.m_Size)
             {
@@ -86,4 +90,68 @@ namespace Zibra
         const T* m_Data;
         size_t m_Size;
     };
+
+    template <typename T>
+    class ReinterpretSpan : public BasicSpan<T>
+    {
+    public:
+        using BasicSpan<T>::BasicSpan;
+
+        // Specialization for char/unsigned char/std::byte to allow automatic reinterpreting
+        template <typename T2, size_t N>
+        ReinterpretSpan(const T2 (&data)[N])
+            : BasicSpan<T>(reinterpret_cast<const T*>(data), sizeof(data) / sizeof(T))
+        {
+            static_assert(sizeof(T2) % sizeof(T) == 0);
+        }
+
+        template <typename T2>
+        ReinterpretSpan(const std::vector<T2>& vec)
+            : BasicSpan<T>(reinterpret_cast<const T*>(vec.data()), vec.size() * sizeof(T2) / sizeof(T))
+        {
+            static_assert(sizeof(T2) % sizeof(T) == 0);
+        }
+
+        template <typename T2, size_t N>
+        ReinterpretSpan(const std::array<T2, N>& arr)
+            : BasicSpan<T>(reinterpret_cast<const T*>(arr.data()), N * sizeof(T2) / sizeof(T))
+        {
+            static_assert(sizeof(T2) % sizeof(T) == 0);
+        }
+
+        ReinterpretSpan(const std::string& str)
+            : BasicSpan<T>(reinterpret_cast<const T*>(str.data()), str.size())
+        {
+            static_assert(sizeof(T) == 1);
+        }
+    };
+
+    template <typename T>
+    class Span : public BasicSpan<T>
+    {
+    public:
+        using BasicSpan<T>::BasicSpan;
+    };
+
+    template <>
+    class Span<char> : public ReinterpretSpan<char>
+    {
+    public:
+        using ReinterpretSpan<char>::ReinterpretSpan;
+    };
+
+    template <>
+    class Span<unsigned char> : public ReinterpretSpan<unsigned char>
+    {
+    public:
+        using ReinterpretSpan<unsigned char>::ReinterpretSpan;
+    };
+
+    template <>
+    class Span<std::byte> : public ReinterpretSpan<std::byte>
+    {
+    public:
+        using ReinterpretSpan<std::byte>::ReinterpretSpan;
+    };
+
 } // namespace Zibra
