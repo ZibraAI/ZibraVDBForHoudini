@@ -5,6 +5,7 @@
 #include "bridge/LibraryUtils.h"
 #include "licensing/LicenseManager.h"
 #include "ui/PluginManagementWindow.h"
+#include <LOP/USD/zibraVDBVolume.h>
 
 #include <HUSD/HUSD_Constants.h>
 #include <HUSD/HUSD_DataHandle.h>
@@ -18,8 +19,6 @@
 #include <pxr/usd/usdVol/volume.h>
 #include <pxr/usd/usdVol/openVDBAsset.h>
 #include <pxr/usd/sdf/assetPath.h>
-
-#include "../USD/ZibraVDBVolumeSchema/src/zibraVDBVolume.h"
 
 #include <openvdb/io/File.h>
 
