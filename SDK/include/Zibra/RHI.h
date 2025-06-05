@@ -45,7 +45,7 @@
 
 namespace Zibra::RHI
 {
-    constexpr Version ZRHI_VERSION = {2, 1, 3, };
+    constexpr Version ZRHI_VERSION = {2, 1, 5, };
 
     enum class GFXAPI : int8_t
     {
@@ -3066,6 +3066,7 @@ namespace ZRHI_NS::CAPI::ConsumerBridge
         void Release() noexcept final
         {
             m_VT.Release(m_VT.obj);
+            delete this;
         }
         ReturnCode GarbageCollect() noexcept final
         {
