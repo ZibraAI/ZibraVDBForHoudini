@@ -28,6 +28,7 @@ namespace Zibra
         static bool m_IsParsed;
 
         bool ParseUIFile();
+        void InitializeLicenseFields();
         void HandleDownloadLibrary(UI_Event* event);
         void HandleOpenUserPrefDirectory(UI_Event* event);
         void HandleLoadLibrary(UI_Event* event);
@@ -35,6 +36,7 @@ namespace Zibra
         static void HandleUpdateLibraryCalback(UI::MessageBox::Result result);
         void HandleSetLicenseKey(UI_Event* event);
         void HandleSetOfflineLicense(UI_Event* event);
+        void HandleSetLicenseServer(UI_Event* event);
         void HandleRetryLicenseCheck(UI_Event* event);
         void HandleRemoveLicense(UI_Event* event);
         void HandleCopyLicenseToHSITE(UI_Event* event);
@@ -82,6 +84,7 @@ namespace Zibra
         }
 
         LicenseManager::GetInstance().CheckoutLicense();
+        InitializeLicenseFields();
         UpdateUI();
 
         (*getValueSymbol("window.val")) = true;
@@ -111,6 +114,8 @@ namespace Zibra
             ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleSetLicenseKey));
         getValueSymbol("set_offline_license.val")
             ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleSetOfflineLicense));
+        getValueSymbol("set_license_server.val")
+            ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleSetLicenseServer));
         getValueSymbol("retry_license_check.val")
             ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleRetryLicenseCheck));
         getValueSymbol("remove_license.val")
@@ -127,6 +132,13 @@ namespace Zibra
         m_IsParsed = true;
 
         return true;
+    }
+
+    void PluginManagementWindowImpl::InitializeLicenseFields()
+    {
+        SetStringField("license_key.val", LicenseManager::GetInstance().GetLicenseKey().c_str());
+        SetStringField("offline_license.val", LicenseManager::GetInstance().GetOfflineLicense().c_str());
+        SetStringField("license_server.val", LicenseManager::GetInstance().GetLicenseServerAddress().c_str());
     }
 
     void PluginManagementWindowImpl::HandleDownloadLibrary(UI_Event* event)
@@ -207,6 +219,7 @@ namespace Zibra
     void PluginManagementWindowImpl::HandleSetLicenseKey(UI_Event* event)
     {
         auto key = getValueSymbol("license_key.val")->getString();
+        LicenseManager::GetInstance().RemoveLicense();
         LicenseManager::GetInstance().SetLicenseKey(key);
         LicenseManager::GetInstance().CheckoutLicense();
         UpdateUI();
@@ -215,7 +228,17 @@ namespace Zibra
     void PluginManagementWindowImpl::HandleSetOfflineLicense(UI_Event* event)
     {
         auto offlineLicense = getValueSymbol("offline_license.val")->getString();
+        LicenseManager::GetInstance().RemoveLicense();
         LicenseManager::GetInstance().SetOfflineLicense(offlineLicense);
+        LicenseManager::GetInstance().CheckoutLicense();
+        UpdateUI();
+    }
+
+    void PluginManagementWindowImpl::HandleSetLicenseServer(UI_Event* event)
+    {
+        auto offlineLicense = getValueSymbol("license_server.val")->getString();
+        LicenseManager::GetInstance().RemoveLicense();
+        LicenseManager::GetInstance().SetLicenseServer(offlineLicense);
         LicenseManager::GetInstance().CheckoutLicense();
         UpdateUI();
     }
@@ -488,7 +511,7 @@ namespace Zibra
                 activationStatus = "Activated";
                 break;
             case LicenseManager::Status::ValidationError:
-                activationStatus = "Validation Error";
+                activationStatus = LicenseManager::GetInstance().GetActivationError();
                 break;
             case LicenseManager::Status::InvalidKeyFormat:
                 activationStatus = "Invalid Key Format";
@@ -516,6 +539,9 @@ namespace Zibra
             {
             case LicenseManager::ActivationType::Offline:
                 licenseType = "Offline";
+                break;
+            case LicenseManager::ActivationType::LicenseServer:
+                licenseType = "License Server";
                 break;
             case LicenseManager::ActivationType::Online:
                 licenseType = "Online";
@@ -572,8 +598,9 @@ namespace Zibra
 
     void PluginManagementWindowImpl::SetStringField(const char* fieldName, const char* value)
     {
-        (*getValueSymbol(fieldName)) = value;
-        getValueSymbol(fieldName)->changed(this);
+        auto* symbol = getValueSymbol(fieldName);
+        *symbol = value;
+        symbol->changed(this);
     }
 
     EnterHQROOTPathWindow::EnterHQROOTPathWindow(void (*callback)(const char*))

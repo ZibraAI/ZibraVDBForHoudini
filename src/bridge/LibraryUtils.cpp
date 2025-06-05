@@ -57,9 +57,11 @@ namespace Zibra::LibraryUtils
         std::vector<std::string> result;
 
         const std::pair<UT_StrControl, const char*> basePathEnvVars[] = {
-            {ENV_HOUDINI_USER_PREF_DIR, "HOUDINI_USER_PREF_DIR"},
+            // HSite and HQRoot have priority over HOUDINI_USER_PREF_DIR
+            // So that same version of library shared between multiple computers
             {ENV_HSITE, "HSITE"},
             {ENV_MAX_STR_CONTROLS, "HQROOT"},
+            {ENV_HOUDINI_USER_PREF_DIR, "HOUDINI_USER_PREF_DIR"},
         };
 
         for (const auto& [envVarEnum, envVarName] : basePathEnvVars)
@@ -114,6 +116,7 @@ namespace Zibra::LibraryUtils
     functionName = reinterpret_cast<ZCE_PFN(functionName)>(::GetProcAddress(g_LibraryHandle, ZIB_STRINGIFY(functionName))); \
     if (functionName == nullptr)                                                                                         \
     {                                                                                                                    \
+        MessageBoxA(NULL, ZIB_STRINGIFY(functionName), ZIB_STRINGIFY(functionName), NULL);        \
         return false;                                                                                                    \
     }
         ZSDK_RUNTIME_FUNCTION_LIST_APPLY(ZIB_LOAD_FUNCTION_POINTER)
