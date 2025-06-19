@@ -88,28 +88,25 @@ else()
 endif()
 cmake_print_variables(ZIB_NETWORK_REQUEST_BACKEND)
 
-set(HeaderFiles
-    src/PrecompiledHeader.h
-    src/Globals.h
-    src/bridge/networking/NetworkRequest.h
-    src/bridge/LibraryUtils.h
-    src/bridge/UpdateCheck.h
-    src/ROP/CompressorManager/CompressorManager.h
-    src/SOP/DecompressorManager/DecompressorManager.h
-    src/licensing/LicenseManager.h
-    src/licensing/TrialManager.h
-    src/ROP/ROP_ZibraVDBCompressor.h
-    src/SOP/SOP_ZibraVDBDecompressor.h
-    src/LOP/LOP_ZibraVDBDecompressor.h
-    src/LOP/ZibraVDBPluginRegistry.h
-    src/LOP/USD/zibraVDBVolume.h
-    src/LOP/USD/tokens.h
-    src/ui/MessageBox.h
-    src/ui/PluginManagementWindow.h
-    src/utils/Helpers.h
-    src/utils/GAAttributesDump.h
-    src/utils/VDBCacheManager.h
-)
+    set(HeaderFiles
+        src/PrecompiledHeader.h
+        src/Globals.h
+        src/bridge/networking/NetworkRequest.h
+        src/bridge/LibraryUtils.h
+        src/bridge/UpdateCheck.h
+        src/ROP/CompressorManager/CompressorManager.h
+        src/SOP/DecompressorManager/DecompressorManager.h
+        src/licensing/LicenseManager.h
+        src/licensing/TrialManager.h
+        src/ROP/ROP_ZibraVDBCompressor.h
+        src/SOP/SOP_ZibraVDBDecompressor.h
+        src/LOP/LOP_ZibraVDBDecompressor.h
+        src/ui/MessageBox.h
+        src/ui/PluginManagementWindow.h
+        src/utils/Helpers.h
+        src/utils/GAAttributesDump.h
+        src/utils/VDBCacheManager.h
+    )
 
 set(SourceFiles
     src/main.cpp
@@ -123,9 +120,6 @@ set(SourceFiles
     src/ROP/ROP_ZibraVDBCompressor.cpp
     src/SOP/SOP_ZibraVDBDecompressor.cpp
     src/LOP/LOP_ZibraVDBDecompressor.cpp
-    src/LOP/ZibraVDBPluginRegistry.cpp
-    src/LOP/USD/zibraVDBVolume.cpp
-    src/LOP/USD/tokens.cpp
     src/ui/MessageBox.cpp
     src/ui/PluginManagementWindow.cpp
     src/utils/Helpers.cpp
@@ -137,15 +131,11 @@ add_library(ZibraVDBForHoudini SHARED ${HeaderFiles} ${SourceFiles})
 target_include_directories(ZibraVDBForHoudini
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/Include
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/USD/ZibraVDBVolumeSchema/src
     PRIVATE "${HOUDINI_PATH}/toolkit/include/pxr")
 target_precompile_headers(ZibraVDBForHoudini PRIVATE src/PrecompiledHeader.h)
 target_compile_definitions(ZibraVDBForHoudini PRIVATE 
     ZIB_NETWORK_REQUEST_BACKEND_${ZIB_NETWORK_REQUEST_BACKEND}=1
     ZIB_TARGET_OS_${ZIB_TARGET_OS_NAME}=1
-    # USD schema definitions
-    ZIBRAVDBVOLUME_EXPORTS
-    MFB_PACKAGE_NAME=ZibraVDBVolume
     NOMINMAX)
 
 target_include_directories(ZibraVDBForHoudini PRIVATE SDK/include)
@@ -209,6 +199,21 @@ else()
         ${OUTPUT_PATH}/dso/ZibraVDBForHoudiniThirdPartyCopyrightNotices.txt
     )
 endif()
+
+# Configure and install plugInfo.json for USD asset resolver registration
+if(WIN32)
+    set(PLUGIN_LIBRARY_NAME "ZibraVDBForHoudini.dll")
+elseif(APPLE)
+    set(PLUGIN_LIBRARY_NAME "libZibraVDBForHoudini.dylib")
+else()
+    set(PLUGIN_LIBRARY_NAME "libZibraVDBForHoudini.so")
+endif()
+
+add_custom_command(TARGET ZibraVDBForHoudini POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+    ${CMAKE_CURRENT_BINARY_DIR}/plugInfo.json
+    ${HOUDINI_INSTDIR}/plugInfo.json
+)
 
 list(APPEND CMAKE_PREFIX_PATH "${HOUDINI_PATH}/toolkit/cmake")
 find_package(Houdini REQUIRED)

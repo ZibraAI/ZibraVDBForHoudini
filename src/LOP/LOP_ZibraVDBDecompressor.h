@@ -41,10 +41,8 @@ namespace Zibra::ZibraVDBDecompressor
         static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate);
         
         void CreateZibraVDBVolumePrimitive(PXR_NS::UsdStageRefPtr stage, const PXR_NS::SdfPath& primPath, 
-                                          const std::string& binaryFilePath, int frameIndex);
-        void InjectOpenVDBVolume(PXR_NS::UsdStageRefPtr stage, const PXR_NS::SdfAssetPath& filePath, const openvdb::GridPtrVec& vdbGrids);
-        void ApplyVolumeVisualizationMetadata(PXR_NS::UsdStageRefPtr stage, const openvdb::GridPtrVec& vdbGrids, CompressedFrameContainer* const frameContainer);
-        void ApplyGridVisualizationMetadata(PXR_NS::UsdVolVolume& volume, const std::string& gridName, CompressedFrameContainer* const frameContainer);
+                                          const std::string& binaryFilePath, int frameIndex, 
+                                          HUSD_AutoWriteLock& writelock);
 
     private:
         Helpers::DecompressorManager m_DecompressorManager;

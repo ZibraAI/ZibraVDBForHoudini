@@ -6,7 +6,6 @@
 #include "LOP/LOP_ZibraVDBDecompressor.h"
 #include "ROP/ROP_ZibraVDBCompressor.h"
 #include "SOP/SOP_ZibraVDBDecompressor.h"
-#include "LOP/ZibraVDBPluginRegistry.h"
 
 extern "C" {
     SYS_VISIBILITY_EXPORT void newSopOperator(OP_OperatorTable* table)
@@ -22,7 +21,7 @@ extern "C" {
         using namespace Zibra;
 
         table->addOperator(new ZibraVDBDecompressor::LOP_ZibraVDBDecompressor_Operator());
-        ZibraVDBPluginRegistry::GetInstance().Initialize();
+
     }
 
     SYS_VISIBILITY_EXPORT void newDriverOperator(OP_OperatorTable* table)
