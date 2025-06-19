@@ -27,4 +27,7 @@ namespace Zibra::LibraryUtils {
     std::string GetLibraryVersionString() noexcept;
     Version GetLibraryVersion() noexcept;
 
+    bool IsAssetResolverRegistered() noexcept;
+    void RegisterAssetResolver() noexcept;
+
 } // namespace Zibra::LibraryUtils
