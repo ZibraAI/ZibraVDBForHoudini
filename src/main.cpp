@@ -4,8 +4,11 @@
 #include <UT/UT_DSOVersion.h>
 
 #include "LOP/LOP_ZibraVDBDecompressor.h"
+#include "LOP/ZibraVDBOutputProcessor.h"
 #include "ROP/ROP_ZibraVDBCompressor.h"
 #include "SOP/SOP_ZibraVDBDecompressor.h"
+
+#include <HUSD/HUSD_OutputProcessor.h>
 
 extern "C" {
     SYS_VISIBILITY_EXPORT void newSopOperator(OP_OperatorTable* table)
@@ -22,6 +25,11 @@ extern "C" {
 
         table->addOperator(new ZibraVDBDecompressor::LOP_ZibraVDBDecompressor_Operator());
 
+        // Register the output processor
+        HUSD_OutputProcessorRegistry::get().registerOutputProcessor(
+            ZibraVDBOutputProcessor::OUTPUT_PROCESSOR_NAME,
+            ZibraVDBOutputProcessor::createZibraVDBOutputProcessor
+        );
     }
 
     SYS_VISIBILITY_EXPORT void newDriverOperator(OP_OperatorTable* table)

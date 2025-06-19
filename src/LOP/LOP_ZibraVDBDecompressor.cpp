@@ -7,7 +7,6 @@
 #include "ui/PluginManagementWindow.h"
 #include <HUSD/HUSD_Constants.h>
 #include <HUSD/HUSD_DataHandle.h>
-#include <HUSD/HUSD_Info.h>
 #include <HUSD/XUSD_Data.h>
 #include <HUSD/XUSD_Utils.h>
 #include <LOP/LOP_Error.h>
@@ -178,11 +177,13 @@ namespace Zibra::ZibraVDBDecompressor
         UsdPrim volPrim = stage->DefinePrim(primPath, TfToken("Volume"));
         UsdVolVolume volume(volPrim);
 
-        // Get the output file path from the USD ROP context
+        // Get the output file path from the USD stage
         std::string outputPath;
-        HUSD_Info info;
-        if (writelock.data()->getInfo(info) && !info.getRootLayerSaveLocation().empty()) {
-            outputPath = info.getRootLayerSaveLocation();
+        if (stage->GetRootLayer()) {
+            std::string rootLayerPath = stage->GetRootLayer()->GetRealPath();
+            if (!rootLayerPath.empty()) {
+                outputPath = rootLayerPath;
+            }
         }
         
         // Create relative path from USD save location to .zibravdb file

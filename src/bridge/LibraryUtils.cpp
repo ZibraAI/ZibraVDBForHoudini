@@ -350,7 +350,7 @@ namespace Zibra::LibraryUtils
                 std::cout << "Plugin: " << plugin->GetName() << " at " << plugin->GetPath() << std::endl;
             }
             
-                PXR_NS::TfType resolverType = PXR_NS::TfType::FindByName("ZibraVDBAssetResolver");
+            PXR_NS::TfType resolverType = PXR_NS::TfType::FindByName("ZibraVDBAssetResolver");
             std::cout<< "=== Resolver Type: " << resolverType.GetTypeName() << " ===" << std::endl;
             bool isUnknown = resolverType.IsUnknown();
             std::cout<< "=== IsUnknown: " << isUnknown << " ===" << std::endl;
