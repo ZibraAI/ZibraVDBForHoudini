@@ -26,10 +26,12 @@ extern "C" {
         table->addOperator(new ZibraVDBDecompressor::LOP_ZibraVDBDecompressor_Operator());
 
         // Register the output processor
+        std::cout << "[ZibraVDB] Registering output processor: " << ZibraVDBOutputProcessor::OUTPUT_PROCESSOR_NAME << std::endl;
         HUSD_OutputProcessorRegistry::get().registerOutputProcessor(
             ZibraVDBOutputProcessor::OUTPUT_PROCESSOR_NAME,
             ZibraVDBOutputProcessor::createZibraVDBOutputProcessor
         );
+        std::cout << "[ZibraVDB] Output processor registration complete" << std::endl;
     }
 
     SYS_VISIBILITY_EXPORT void newDriverOperator(OP_OperatorTable* table)
