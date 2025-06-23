@@ -14,7 +14,7 @@ namespace Zibra::ZibraVDBOutputProcessor
 {
     using namespace CE::Compression;
 
-    constexpr const char* OUTPUT_PROCESSOR_NAME = "ZibraVDB Compressor";
+    constexpr const char* OUTPUT_PROCESSOR_NAME = "ZibraVDBCompressor";
 
     class ZibraVDBOutputProcessor : public HUSD_OutputProcessor
     {
@@ -35,17 +35,13 @@ namespace Zibra::ZibraVDBOutputProcessor
                                  UT_String &newpath,
                                  UT_String &error) override;
 
+        bool processLayer(const UT_StringRef &identifier,
+                         UT_String &error) override;
+
         UT_StringHolder displayName() const override;
         const PI_EditScriptedParms *parameters() const override;
 
     private:
-        struct VDBCompressionInfo
-        {
-            std::string originalPath;
-            std::string compressedPath;
-            std::vector<int> frameIndices;
-        };
-
         // Check if path is a VDB file that should be compressed
         bool shouldProcessPath(const UT_StringRef &asset_path) const;
 
@@ -57,12 +53,22 @@ namespace Zibra::ZibraVDBOutputProcessor
 
         // Get output directory from referencing layer path
         std::string getOutputDirectory(const UT_StringRef &referencing_layer_path) const;
+        
+        // Public method to process deferred compressions after export completes
+        void processDeferredCompressions();
 
     private:
+        struct DeferredCompressionEntry
+        {
+            std::string vdbPath;
+            std::string outputDir;
+            std::string compressedPath;
+        };
+        
         Zibra::CE::Compression::CompressorManager m_CompressorManager;
-        std::map<std::string, VDBCompressionInfo> m_CompressionCache;
         std::string m_CurrentOutputDir;
         PI_EditScriptedParms *m_Parameters;
+        std::vector<DeferredCompressionEntry> m_DeferredCompressionPaths;
     };
 
     // Factory function for registration

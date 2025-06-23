@@ -336,19 +336,19 @@ namespace Zibra::LibraryUtils
                 std::cout << "PXR_PLUGINPATH_NAME: not set" << std::endl;
             }
             
-            if (const char* path = std::getenv("PATH"))
-            {
-                std::cout << "PATH: " << path << std::endl;
-            }
-            
-            // Log all registered plugins
-            std::cout << "=== All Registered Plugins ===" << std::endl;
-            auto& registry = PXR_NS::PlugRegistry::GetInstance();
-            auto allPlugins = registry.GetAllPlugins();
-            for (const auto& plugin : allPlugins)
-            {
-                std::cout << "Plugin: " << plugin->GetName() << " at " << plugin->GetPath() << std::endl;
-            }
+//            if (const char* path = std::getenv("PATH"))
+//            {
+//                std::cout << "PATH: " << path << std::endl;
+//            }
+//
+//            // Log all registered plugins
+//            std::cout << "=== All Registered Plugins ===" << std::endl;
+//            auto& registry = PXR_NS::PlugRegistry::GetInstance();
+//            auto allPlugins = registry.GetAllPlugins();
+//            for (const auto& plugin : allPlugins)
+//            {
+//                std::cout << "Plugin: " << plugin->GetName() << " at " << plugin->GetPath() << std::endl;
+//            }
             
             PXR_NS::TfType resolverType = PXR_NS::TfType::FindByName("ZibraVDBAssetResolver");
             std::cout<< "=== Resolver Type: " << resolverType.GetTypeName() << " ===" << std::endl;
