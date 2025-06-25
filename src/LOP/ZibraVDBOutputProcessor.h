@@ -29,14 +29,19 @@ namespace Zibra::ZibraVDBOutputProcessor
                       fpreal t,
                       const UT_Options &stage_variables) override;
 
-        bool processReferencePath(const UT_StringRef &asset_path,
-                                 const UT_StringRef &referencing_layer_path,
-                                 bool asset_is_layer,
-                                 UT_String &newpath,
-                                 UT_String &error) override;
+        bool processSavePath(const UT_StringRef &asset_path,
+                            const UT_StringRef &referencing_layer_path,
+                            bool asset_is_layer,
+                            UT_String &newpath,
+                            UT_String &error) override;
 
-        bool processLayer(const UT_StringRef &identifier,
-                         UT_String &error) override;
+//        bool processReferencePath(const UT_StringRef &asset_path,
+//                                 const UT_StringRef &referencing_layer_path,
+//                                 bool asset_is_layer,
+//                                 UT_String &newpath,
+//                                 UT_String &error) override;
+
+//        bool processLayer(const UT_StringRef &identifier, UT_String &error) override;
 
         UT_StringHolder displayName() const override;
         const PI_EditScriptedParms *parameters() const override;
