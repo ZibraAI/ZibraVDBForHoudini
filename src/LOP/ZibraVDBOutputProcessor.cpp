@@ -93,82 +93,168 @@ namespace Zibra::ZibraVDBOutputProcessor
         m_DeferredCompressionPaths.clear();
     }
 
-    bool ZibraVDBOutputProcessor::processReferencePath(const UT_StringRef &asset_path,
-                                                      const UT_StringRef &referencing_layer_path,
-                                                      bool asset_is_layer,
-                                                      UT_String &newpath,
-                                                      UT_String &error)
+    bool ZibraVDBOutputProcessor::processSavePath(const UT_StringRef &asset_path,
+                                                 const UT_StringRef &referencing_layer_path,
+                                                 bool asset_is_layer,
+                                                 UT_String &newpath,
+                                                 UT_String &error)
     {
-        std::cout << "[ZibraVDB] ProcessReferencePath: " << asset_path.toStdString() << std::endl;
-        
-        if (!LibraryUtils::IsLibraryLoaded())
+        std::cout << "[ZibraVDB] ========== processSavePath ==========" << std::endl;
+        std::cout << "[ZibraVDB] Asset path: " << asset_path.toStdString() << std::endl;
+        std::cout << "[ZibraVDB] Layer path: " << referencing_layer_path.toStdString() << std::endl;
+        std::cout << "[ZibraVDB] Is layer: " << (asset_is_layer ? "true" : "false") << std::endl;
+
+        // Check if this is a VDB file being saved
+        std::string pathStr = asset_path.toStdString();
+        if (!asset_is_layer && pathStr.find(".vdb") != std::string::npos)
         {
-            std::cout << "[ZibraVDB] WARNING: Library not loaded" << std::endl;
-            return false;
+            std::cout << "[ZibraVDB] Found VDB save operation, redirecting..." << std::endl;
+
+            // Get output directory
+            std::string outputDir = getOutputDirectory(referencing_layer_path);
+            if (outputDir.empty())
+            {
+                error = "Could not determine output directory";
+                std::cout << "[ZibraVDB] ERROR: Could not determine output directory" << std::endl;
+                return false;
+            }
+
+            // Extract filename and create custom path
+            std::filesystem::path originalPath(pathStr);
+            std::filesystem::path outputPath(outputDir);
+            std::filesystem::path vdbDir = outputPath / "vdb_files";
+
+            // Use original filename but in our custom directory
+            //std::string redirectedPath = (vdbDir / originalPath.filename()).string();
+            std::string redirectedPath = ("zibravdb://" / vdbDir / "compressed.zibravdb").string();
+
+            // Create the directory
+            std::filesystem::create_directories(vdbDir);
+
+            newpath = redirectedPath;
+            std::cout << "[ZibraVDB] Redirecting VDB save from: " << pathStr << std::endl;
+            std::cout << "[ZibraVDB] To: " << newpath.toStdString() << std::endl;
+
+            return true;
         }
 
-        // Only process VDB files
-        if (!shouldProcessPath(asset_path))
-        {
-            return false;
-        }
-
-        std::cout << "[ZibraVDB] Processing VDB asset for compression" << std::endl;
-
-        // Get output directory
-        std::string outputDir = getOutputDirectory(referencing_layer_path);
-        if (outputDir.empty())
-        {
-            error = "Could not determine output directory";
-            std::cout << "[ZibraVDB] ERROR: Could not determine output directory" << std::endl;
-            return false;
-        }
-
-        std::cout << "[ZibraVDB] Output directory: " << outputDir << std::endl;
-
-        // Compress VDB file and get zibravdb:// URI
-        bool result = compressVDBFile(asset_path.toStdString(), outputDir, newpath, error);
-        
-        if (result) {
-            std::cout << "[ZibraVDB] Success: " << newpath.toStdString() << std::endl;
-        } else {
-            std::cout << "[ZibraVDB] ERROR: " << error.toStdString() << std::endl;
-        }
-        
-        return result;
+        return false;
     }
 
-    bool ZibraVDBOutputProcessor::processLayer(const UT_StringRef &identifier,
-                                              UT_String &error)
-    {
-        std::cout << "[ZibraVDB] ========== ProcessLayer ==========" << std::endl;
-        std::cout << "[ZibraVDB] Layer identifier: '" << identifier.toStdString() << "'" << std::endl;
-        
-        // Check if this is the root layer (final layer to be processed)
-        // The root layer typically doesn't have a file extension or is the main USD file
-        std::string identifierStr = identifier.toStdString();
-        
-        // If this looks like the main USD file, trigger deferred compression
-        if (identifierStr.find(".usda") != std::string::npos || 
-            identifierStr.find(".usd") != std::string::npos ||
-            identifierStr.empty())
-        {
-            std::cout << "[ZibraVDB] This appears to be the main layer, triggering deferred compression" << std::endl;
-            
-            // Trigger deferred compression now that export is finishing
-            processDeferredCompressions();
-        }
-        else
-        {
-            std::cout << "[ZibraVDB] This is a sublayer, not triggering compression yet" << std::endl;
-        }
-        
-        return false; // Return false to indicate we didn't modify the layer
-    }
+//    bool ZibraVDBOutputProcessor::processReferencePath(const UT_StringRef &asset_path,
+//                                                      const UT_StringRef &referencing_layer_path,
+//                                                      bool asset_is_layer,
+//                                                      UT_String &newpath,
+//                                                      UT_String &error)
+//    {
+//        std::cout << "[ZibraVDB] ProcessReferencePath: " << asset_path.toStdString() << std::endl;
+//
+//        std::string pathStr = asset_path.toStdString();
+//
+//        // Check if this is a SOP volumes reference that we want to convert to VDB file
+////        if (pathStr.find("op:/") == 0 && pathStr.find("volumes") != std::string::npos)
+////        {
+////            std::cout << "[ZibraVDB] Found SOP volumes reference - converting to VDB file" << std::endl;
+////
+////            // Get output directory
+////            std::string outputDir = getOutputDirectory(referencing_layer_path);
+////            if (outputDir.empty())
+////            {
+////                error = "Could not determine output directory";
+////                std::cout << "[ZibraVDB] ERROR: Could not determine output directory" << std::endl;
+////                return false;
+////            }
+////
+////            std::cout << "[ZibraVDB] Output directory: " << outputDir << std::endl;
+////
+////            // Extract time parameter for frame numbering
+////            std::string frameInfo = "0001";
+////            std::regex timeRegex(R"(t=([0-9.-]+))");
+////            std::smatch match;
+////            if (std::regex_search(pathStr, match, timeRegex))
+////            {
+////                float timeValue = std::stof(match[1].str());
+////                int frameNumber = static_cast<int>(std::round(timeValue * 24.0f)) + 1;
+////                frameInfo = std::to_string(frameNumber);
+////                frameInfo = std::string(4 - std::min(4, (int)frameInfo.length()), '0') + frameInfo;
+////            }
+////
+////            // Create custom VDB file path
+////            std::filesystem::path outputPath(outputDir);
+////            std::filesystem::path vdbDir = outputPath / "vdb_files";
+////            std::string vdbFileName = "volume_frame_" + frameInfo + ".vdb";
+////            std::string fullVdbPath = (vdbDir / vdbFileName).string();
+////
+////            // Create the directory
+////            std::filesystem::create_directories(vdbDir);
+////
+////            newpath = fullVdbPath;
+////            std::cout << "[ZibraVDB] Converting SOP volumes to VDB file: " << newpath.toStdString() << std::endl;
+////            std::cout << "[ZibraVDB] Frame info extracted: " << frameInfo << std::endl;
+////
+////            return true;
+////        }
+//
+//        // Handle regular VDB files
+//        if (shouldProcessPath(asset_path))
+//        {
+//            std::cout << "[ZibraVDB] Found VDB file, attempting redirection..." << std::endl;
+//
+//            // Get output directory
+//            std::string outputDir = getOutputDirectory(referencing_layer_path);
+//            if (outputDir.empty())
+//            {
+//                error = "Could not determine output directory";
+//                std::cout << "[ZibraVDB] ERROR: Could not determine output directory" << std::endl;
+//                return false;
+//            }
+//
+//            // Create custom VDB file path
+//            std::filesystem::path outputPath(outputDir);
+//            std::filesystem::path vdbDir = outputPath / "vdb_files";
+//            std::filesystem::path originalPath(pathStr);
+//            //std::string fullVdbPath = (vdbDir / originalPath.filename()).string();
+//            std::string fullVdbPath = ("zibravdb://" / vdbDir / "compressed.zibravdb").string();
+//
+//            // Create the directory
+//            std::filesystem::create_directories(vdbDir);
+//
+//            newpath = fullVdbPath;
+//            std::cout << "[ZibraVDB] Redirected VDB file to: " << newpath.toStdString() << std::endl;
+//
+//            return true;
+//        }
+//
+//        return false;
+//    }
+
+//    bool ZibraVDBOutputProcessor::processLayer(const UT_StringRef &identifier,
+//                                              UT_String &error)
+//    {
+//        std::cout << "[ZibraVDB] ========== ProcessLayer ==========" << std::endl;
+//        std::cout << "[ZibraVDB] Layer identifier: '" << identifier.toStdString() << "'" << std::endl;
+//
+//        // Compression disabled for now - just logging layer processing
+//        std::string identifierStr = identifier.toStdString();
+//        if (identifierStr.find(".usda") != std::string::npos ||
+//            identifierStr.find(".usd") != std::string::npos ||
+//            identifierStr.empty())
+//        {
+//            std::cout << "[ZibraVDB] Main layer processed (compression disabled)" << std::endl;
+//        }
+//        else
+//        {
+//            std::cout << "[ZibraVDB] Sublayer processed" << std::endl;
+//        }
+//
+//        return false; // Return false to indicate we didn't modify the layer
+//    }
 
     bool ZibraVDBOutputProcessor::shouldProcessPath(const UT_StringRef &asset_path) const
     {
+        std::cout << "[ZibraVDB] We check if the asset path need to be processed "<< std::endl;
         std::string pathStr = asset_path.toStdString();
+        std::cout << "[ZibraVDB] FILEPATH: " << pathStr << std::endl;
         
         // Skip if already a zibravdb:// URI
         if (pathStr.find("zibravdb://") == 0)
@@ -179,14 +265,23 @@ namespace Zibra::ZibraVDBOutputProcessor
         
         // Only process .vdb files
         bool isVDB = pathStr.find(".vdb") != std::string::npos;
-        
-        if (isVDB) {
-            std::cout << "[ZibraVDB] Found VDB file: " << pathStr << std::endl;
-        } else {
-            std::cout << "[ZibraVDB] Skipping non-VDB: " << pathStr << std::endl;
+        bool exists = std::filesystem::exists(pathStr);
+
+        if (isVDB)
+        {
+            if (exists)
+            {
+                std::cout << "[ZibraVDB] FILE ALLREADY EXISTS" << std::endl;
+                return false;
+            }
+            else
+            {
+                std::cout << "[ZibraVDB] FILE DOESNT EXISTS: " << std::endl;
+                return true;
+            }
         }
-        
-        return isVDB;
+        std::cout << "KAPLUN [ZibraVDB] IS NOT VDB" << std::endl;
+        return false;
     }
 
     std::string ZibraVDBOutputProcessor::getOutputDirectory(const UT_StringRef &referencing_layer_path) const
@@ -547,7 +642,6 @@ namespace Zibra::ZibraVDBOutputProcessor
         
         std::cout << "[ZibraVDB] Deferred compression processing complete" << std::endl;
     }
-
 
     // Factory function for registration
     HUSD_OutputProcessorPtr createZibraVDBOutputProcessor()
