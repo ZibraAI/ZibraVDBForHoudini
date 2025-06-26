@@ -27,7 +27,6 @@ namespace Zibra::ZibraVDBOutputProcessor
         ZibraVDBOutputProcessor();
         ~ZibraVDBOutputProcessor() override;
 
-        // HUSD_OutputProcessor interface
         void beginSave(OP_Node *config_node,
                       const UT_Options &config_overrides,
                       OP_Node *lop_node,
@@ -40,13 +39,11 @@ namespace Zibra::ZibraVDBOutputProcessor
                             UT_String &newpath,
                             UT_String &error) override;
 
-//        bool processReferencePath(const UT_StringRef &asset_path,
-//                                 const UT_StringRef &referencing_layer_path,
-//                                 bool asset_is_layer,
-//                                 UT_String &newpath,
-//                                 UT_String &error) override;
-
-//        bool processLayer(const UT_StringRef &identifier, UT_String &error) override;
+        bool processReferencePath(const UT_StringRef &asset_path,
+                                 const UT_StringRef &referencing_layer_path,
+                                 bool asset_is_layer,
+                                 UT_String &newpath,
+                                 UT_String &error) override;
 
         UT_StringHolder displayName() const override;
         const PI_EditScriptedParms *parameters() const override;
