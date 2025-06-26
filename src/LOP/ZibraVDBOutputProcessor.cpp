@@ -1044,25 +1044,8 @@ namespace Zibra::ZibraVDBOutputProcessor
             std::string compressedPath = compressedDir + "/gpu_explosion_frame_0.zibravdb";
             std::cout << "[ZibraVDB] Output file: " << compressedPath << std::endl;
             
-            // Initialize compression with single frame mapping
-            CE::Compression::FrameMappingDecs frameMappingDesc{};
-            frameMappingDesc.sequenceStartIndex = 0;
-            frameMappingDesc.sequenceIndexIncrement = 1;
-            
-            float defaultQuality = 0.6f;
-            std::vector<std::pair<UT_String, float>> perChannelSettings;
-            
-            auto status = m_CompressorManager.Initialize(frameMappingDesc, defaultQuality, perChannelSettings);
-            if (status != CE::ZCE_SUCCESS)
-            {
-                std::cout << "[ZibraVDB] ERROR: Failed to initialize compressor, status: " << static_cast<int>(status) << std::endl;
-                return;
-            }
-            
-            std::cout << "[ZibraVDB] Compressor initialized successfully" << std::endl;
-            
             // Start compression sequence
-            status = m_CompressorManager.StartSequence(UT_String(compressedPath));
+            auto status = m_CompressorManager.StartSequence(UT_String(compressedPath));
             if (status != CE::ZCE_SUCCESS)
             {
                 std::cout << "[ZibraVDB] ERROR: Failed to start sequence, status: " << static_cast<int>(status) << std::endl;
