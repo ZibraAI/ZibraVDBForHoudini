@@ -45,18 +45,14 @@ namespace Zibra::ZibraVDBOutputProcessor
                                  UT_String &newpath,
                                  UT_String &error) override;
 
+        bool processLayer(const UT_StringRef &identifier, UT_String &error) override;
+
         UT_StringHolder displayName() const override;
         const PI_EditScriptedParms *parameters() const override;
 
     private:
         // Check if path is a VDB file that should be compressed
-        bool shouldProcessPath(const UT_StringRef &asset_path) const;
-
-        // Compress VDB file and return zibravdb:// URI
-        bool compressVDBFile(const std::string& vdbPath,
-                           const std::string& outputDir,
-                           UT_String& zibraVDBPath,
-                           UT_String& error);
+        static bool siutableForDeferredCompression(const UT_StringRef &asset_path) ;
 
         // Get output directory from referencing layer path
         std::string getOutputDirectory(const UT_StringRef &referencing_layer_path) const;
