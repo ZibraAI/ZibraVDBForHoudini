@@ -81,6 +81,11 @@ namespace Zibra::ZibraVDBOutputProcessor
         
         // Search for SOP networks with VDB data
         void searchForSOPNetworks(OP_Node* startNode, fpreal t);
+        
+        // Compress VDB grids from memory immediately
+        void compressVDBGridsFromMemory(std::vector<openvdb::GridBase::ConstPtr>& grids,
+                                       std::vector<std::string>& gridNames,
+                                       fpreal t);
 
     private:
         struct DeferredCompressionEntry

@@ -124,41 +124,23 @@ namespace Zibra::ZibraVDBOutputProcessor
                                                  UT_String &newpath,
                                                  UT_String &error)
     {
-        std::cout << "[ZibraVDB] ========== processSavePath ==========" << std::endl;
-        std::cout << "[ZibraVDB] Asset path: " << asset_path.toStdString() << std::endl;
-        std::cout << "[ZibraVDB] Layer path: " << referencing_layer_path.toStdString() << std::endl;
-        std::cout << "[ZibraVDB] Is layer: " << (asset_is_layer ? "true" : "false") << std::endl;
-
-        // Check if this is a VDB file being saved
         std::string pathStr = asset_path.toStdString();
         if (!asset_is_layer && pathStr.find(".vdb") != std::string::npos)
         {
-            std::cout << "[ZibraVDB] Found VDB save operation, redirecting..." << std::endl;
-
-            // Get output directory
             std::string outputDir = getOutputDirectory(referencing_layer_path);
             if (outputDir.empty())
             {
                 error = "Could not determine output directory";
-                std::cout << "[ZibraVDB] ERROR: Could not determine output directory" << std::endl;
                 return false;
             }
 
-            // Extract filename and create custom path
             std::filesystem::path originalPath(pathStr);
             std::filesystem::path outputPath(outputDir);
             std::filesystem::path vdbDir = outputPath / "vdb_files";
+            std::string redirectedPath = (vdbDir / originalPath.filename()).string();
 
-            // Use original filename but in our custom directory
-            //std::string redirectedPath = (vdbDir / originalPath.filename()).string();
-            std::string redirectedPath = ("zibravdb://" / vdbDir / "compressed.zibravdb").string();
-
-            // Create the directory
             std::filesystem::create_directories(vdbDir);
-
             newpath = redirectedPath;
-            std::cout << "[ZibraVDB] Redirecting VDB save from: " << pathStr << std::endl;
-            std::cout << "[ZibraVDB] To: " << newpath.toStdString() << std::endl;
 
             return true;
         }
@@ -931,9 +913,9 @@ namespace Zibra::ZibraVDBOutputProcessor
         if (!grids.empty())
         {
             std::cout << "[ZibraVDB] Found " << grids.size() << " VDB grids in SOP node" << std::endl;
-            // Store grids for later use in compression
-            m_CachedVDBGrids.insert(m_CachedVDBGrids.end(), grids.begin(), grids.end());
-            m_CachedGridNames.insert(m_CachedGridNames.end(), gridNames.begin(), gridNames.end());
+            
+            // Compress the VDB grids immediately
+            compressVDBGridsFromMemory(grids, gridNames, t);
         }
         else
         {
@@ -1051,6 +1033,139 @@ namespace Zibra::ZibraVDBOutputProcessor
                     }
                 }
             }
+        }
+    }
+    
+    void ZibraVDBOutputProcessor::compressVDBGridsFromMemory(std::vector<openvdb::GridBase::ConstPtr>& grids,
+                                                            std::vector<std::string>& gridNames,
+                                                            fpreal t)
+    {
+        std::cout << "[ZibraVDB] ========== Compressing VDB Grids from Memory ==========" << std::endl;
+        std::cout << "[ZibraVDB] Compressing " << grids.size() << " VDB grids immediately" << std::endl;
+        
+        if (grids.empty())
+        {
+            std::cout << "[ZibraVDB] No grids to compress" << std::endl;
+            return;
+        }
+        
+        try
+        {
+            // Determine output path - for now use a default location
+            // In a multi-frame scenario, this would include frame numbers
+            std::string outputDir = "C:/src/usd/ZibraAI/output"; // TODO: Get from actual export path
+            std::string compressedDir = outputDir + "/compressed";
+            std::filesystem::create_directories(compressedDir);
+            
+            std::string compressedPath = compressedDir + "/gpu_explosion_frame_0.zibravdb";
+            std::cout << "[ZibraVDB] Output file: " << compressedPath << std::endl;
+            
+            // Initialize compression with single frame mapping
+            CE::Compression::FrameMappingDecs frameMappingDesc{};
+            frameMappingDesc.sequenceStartIndex = 0;
+            frameMappingDesc.sequenceIndexIncrement = 1;
+            
+            float defaultQuality = 0.6f;
+            std::vector<std::pair<UT_String, float>> perChannelSettings;
+            
+            auto status = m_CompressorManager.Initialize(frameMappingDesc, defaultQuality, perChannelSettings);
+            if (status != CE::ZCE_SUCCESS)
+            {
+                std::cout << "[ZibraVDB] ERROR: Failed to initialize compressor, status: " << static_cast<int>(status) << std::endl;
+                return;
+            }
+            
+            std::cout << "[ZibraVDB] Compressor initialized successfully" << std::endl;
+            
+            // Start compression sequence
+            status = m_CompressorManager.StartSequence(UT_String(compressedPath));
+            if (status != CE::ZCE_SUCCESS)
+            {
+                std::cout << "[ZibraVDB] ERROR: Failed to start sequence, status: " << static_cast<int>(status) << std::endl;
+                return;
+            }
+            
+            std::cout << "[ZibraVDB] Compression sequence started" << std::endl;
+            
+            // Prepare channel names as C strings
+            std::vector<const char*> channelCStrings;
+            for (const auto& name : gridNames)
+            {
+                channelCStrings.push_back(name.c_str());
+                std::cout << "[ZibraVDB] Channel: " << name << std::endl;
+            }
+            
+            // Create frame loader with the in-memory grids
+            CE::Addons::OpenVDBUtils::FrameLoader frameLoader{grids.data(), grids.size()};
+            CE::Addons::OpenVDBUtils::EncodingMetadata encodingMetadata{};
+            
+            // Load frame from memory
+            auto frame = frameLoader.LoadFrame(&encodingMetadata);
+            if (!frame)
+            {
+                std::cout << "[ZibraVDB] ERROR: Failed to load frame from memory grids" << std::endl;
+                return;
+            }
+            
+            std::cout << "[ZibraVDB] Frame loaded from memory grids successfully" << std::endl;
+            
+            // Set up compression descriptor
+            CE::Compression::CompressFrameDesc compressFrameDesc{};
+            compressFrameDesc.channelsCount = gridNames.size();
+            compressFrameDesc.channels = channelCStrings.data();
+            compressFrameDesc.frame = frame;
+            
+            std::cout << "[ZibraVDB] Compressing frame with " << compressFrameDesc.channelsCount << " channels..." << std::endl;
+
+            // Compress frame
+            CE::Compression::FrameManager* frameManager = nullptr;
+            status = m_CompressorManager.CompressFrame(compressFrameDesc, &frameManager);
+            std::cout << "[ZibraVDB] CompressFrame status: " << static_cast<int>(status) << std::endl;
+            
+            if (status == CE::ZCE_SUCCESS && frameManager)
+            {
+                std::cout << "[ZibraVDB] Finishing frame compression..." << std::endl;
+                status = frameManager->Finish();
+                std::cout << "[ZibraVDB] FrameManager Finish status: " << static_cast<int>(status) << std::endl;
+            }
+            else
+            {
+                std::cout << "[ZibraVDB] ERROR: CompressFrame failed or frameManager is null" << std::endl;
+            }
+
+            // Release frame
+            frameLoader.ReleaseFrame(frame);
+
+            if (status == CE::ZCE_SUCCESS)
+            {
+                std::cout << "[ZibraVDB] Frame compression successful" << std::endl;
+            }
+            else
+            {
+                std::cout << "[ZibraVDB] Frame compression failed with status: " << static_cast<int>(status) << std::endl;
+            }
+            
+            // Finish sequence
+            std::string warning;
+            status = m_CompressorManager.FinishSequence(warning);
+            std::cout << "[ZibraVDB] FinishSequence status: " << static_cast<int>(status) << std::endl;
+            
+            if (status == CE::ZCE_SUCCESS)
+            {
+                std::cout << "[ZibraVDB] ========== SUCCESS: VDB compression completed ==========" << std::endl;
+                std::cout << "[ZibraVDB] Compressed file: " << compressedPath << std::endl;
+            }
+            else
+            {
+                std::cout << "[ZibraVDB] ERROR: FinishSequence failed with status: " << static_cast<int>(status) << std::endl;
+                if (!warning.empty()) {
+                    std::cout << "[ZibraVDB] Warning: " << warning << std::endl;
+                }
+            }
+        }
+        catch (const std::exception& e)
+        {
+            std::cout << "[ZibraVDB] ERROR: Exception during compression: " << e.what() << std::endl;
         }
     }
 
