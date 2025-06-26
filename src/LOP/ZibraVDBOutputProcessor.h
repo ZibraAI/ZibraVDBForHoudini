@@ -7,6 +7,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <set>
 #include <openvdb/openvdb.h>
 
 #include "Globals.h"
@@ -60,6 +61,21 @@ namespace Zibra::ZibraVDBOutputProcessor
         // Public method to process deferred compressions after export completes
         void processDeferredCompressions();
         
+        // Detect compression marker nodes connected to USD ROP
+        void detectCompressionMarkerNodes(OP_Node* lop_node, OP_Node* config_node, std::vector<OP_Node*>& markerNodes);
+        
+        // Process a single marker node to determine compression strategy
+//        void processMarkerNode(OP_Node* markerNode, fpreal t);
+        
+        // Recursively search for marker nodes in the input chain
+        void searchForMarkerNodesRecursive(OP_Node* node, std::vector<OP_Node*>& markerNodes, std::set<OP_Node*>& visitedNodes);
+        
+        // Search upstream from marker node for SOP Create nodes
+        void searchUpstreamForSOPCreate(OP_Node* markerNode, fpreal t);
+        
+        // Recursive helper for upstream SOP Create search
+        void searchUpstreamForSOPCreateRecursive(OP_Node* node, fpreal t, std::set<OP_Node*>& visitedNodes);
+        
         // Traverse SOP Create nodes to find VDB data
         void traverseSOPCreateNodes(OP_Node* lop_node, fpreal t);
         
@@ -67,13 +83,13 @@ namespace Zibra::ZibraVDBOutputProcessor
         void extractVDBFromSOP(SOP_Node* sopNode, fpreal t);
         
         // Find LOP networks starting from config_node
-        void findLOPNetworksFromConfig(OP_Node* config_node, fpreal t);
+//        void findLOPNetworksFromConfig(OP_Node* config_node, fpreal t);
         
         // Traverse a LOP network looking for SOP Create nodes
-        void traverseLOPNetwork(OP_Network* network, fpreal t);
+//        void traverseLOPNetwork(OP_Network* network, fpreal t);
         
         // Search for SOP networks with VDB data
-        void searchForSOPNetworks(OP_Node* startNode, fpreal t);
+//        void searchForSOPNetworks(OP_Node* startNode, fpreal t);
         
         // Compress VDB grids from memory immediately
         void compressVDBGridsFromMemory(std::vector<openvdb::GridBase::ConstPtr>& grids,
