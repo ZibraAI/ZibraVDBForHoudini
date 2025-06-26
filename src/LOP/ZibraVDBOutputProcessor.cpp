@@ -6,6 +6,11 @@
 #include <UT/UT_StringHolder.h>
 #include <UT/UT_FileUtil.h>
 #include <OP/OP_Node.h>
+#include <SOP/SOP_Node.h>
+#include <GU/GU_Detail.h>
+#include <GU/GU_PrimVDB.h>
+#include <GA/GA_Iterator.h>
+#include <LOP/LOP_Node.h>
 #include <Zibra/CE/Addons/OpenVDBFrameLoader.h>
 #include <Zibra/CE/Compression.h>
 #include <openvdb/openvdb.h>
@@ -84,6 +89,8 @@ namespace Zibra::ZibraVDBOutputProcessor
                                            fpreal t,
                                            const UT_Options &stage_variables)
     {
+        std::cout << "[ZibraVDBOutputProcessor] Finished scanning VDBs" << std::endl;
+
         std::cout << "[ZibraVDB] BeginSave: Starting USD export processing" << std::endl;
         
         // Extract output directory from stage variables if available
@@ -91,6 +98,24 @@ namespace Zibra::ZibraVDBOutputProcessor
         
         // Clear deferred compression list
         m_DeferredCompressionPaths.clear();
+        
+        // Traverse SOP Create nodes to find VDB data
+        // Use config_node when lop_node is not available
+        OP_Node* nodeToTraverse = lop_node ? lop_node : config_node;
+        if (nodeToTraverse)
+        {
+            if (!lop_node && config_node)
+            {
+                std::cout << "[ZibraVDB] lop_node is null, using config_node for traversal" << std::endl;
+                // Start from config_node and search for LOP networks
+                findLOPNetworksFromConfig(config_node, t);
+            }
+            else
+            {
+                std::cout << "[ZibraVDB] Using lop_node for traversal" << std::endl;
+                traverseSOPCreateNodes(lop_node, t);
+            }
+        }
     }
 
     bool ZibraVDBOutputProcessor::processSavePath(const UT_StringRef &asset_path,
@@ -641,6 +666,392 @@ namespace Zibra::ZibraVDBOutputProcessor
         }
         
         std::cout << "[ZibraVDB] Deferred compression processing complete" << std::endl;
+    }
+
+    void ZibraVDBOutputProcessor::traverseSOPCreateNodes(OP_Node* lop_node, fpreal t)
+    {
+        if (!lop_node)
+            return;
+            
+        std::cout << "[ZibraVDB] Traversing SOP Create nodes: " << lop_node->getName() << std::endl;
+        
+        // Check if this is a SOP Create LOP node
+        if (lop_node->getOperator()->getName().equal("sopcreate"))
+        {
+            std::cout << "[ZibraVDB] Found SOP Create node: " << lop_node->getName() << std::endl;
+            
+            // Debug: List all parameters on this node with their values
+            std::cout << "[ZibraVDB] Examining parameters on node: " << lop_node->getName() << std::endl;
+            for (int i = 0; i < lop_node->getParmList()->getEntries(); ++i)
+            {
+                PRM_Parm* parm = lop_node->getParmList()->getParmPtr(i);
+                if (parm)
+                {
+                    UT_String paramValue;
+                    // Try to get the parameter value
+                    try 
+                    {
+                        lop_node->evalString(paramValue, parm->getToken(), 0, t);
+                        std::cout << "[ZibraVDB] Parameter " << i << ": '" << parm->getToken() 
+                                  << "' = '" << paramValue.toStdString() << "'" << std::endl;
+                    }
+                    catch (...)
+                    {
+                        std::cout << "[ZibraVDB] Parameter " << i << ": '" << parm->getToken() 
+                                  << "' (value not accessible as string)" << std::endl;
+                    }
+                }
+            }
+            
+            // Try common SOP Create LOP parameter names to find the SOP path
+            UT_String sopPath;
+            std::vector<std::string> paramNames = {
+                "soppath", "source", "geometry", "input", "primpattern", "inputgeometry",
+                "soppath1", "soppath0", "pathpattern", "sop_path", "objectpath", 
+                "sourcepath", "rootpath"
+            };
+            
+            for (const auto& paramName : paramNames)
+            {
+                if (lop_node->hasParm(paramName.c_str()))
+                {
+                    lop_node->evalString(sopPath, paramName.c_str(), 0, t);
+                    std::cout << "[ZibraVDB] Parameter '" << paramName << "': '" << sopPath.toStdString() << "'" << std::endl;
+                    if (sopPath.length() > 0) break;
+                }
+            }
+            
+            if (sopPath.length() > 0)
+            {
+                OP_Node* referencedNode = lop_node->findNode(sopPath);
+                if (referencedNode)
+                {
+                    std::cout << "[ZibraVDB] Referenced node found: " << referencedNode->getName() << std::endl;
+                    SOP_Node* sopNode = nullptr;
+                    
+                    if (referencedNode->getOpTypeID() == SOP_OPTYPE_ID)
+                    {
+                        std::cout << "[ZibraVDB] Direct SOP node reference" << std::endl;
+                        sopNode = static_cast<SOP_Node*>(referencedNode);
+                    }
+                    else if (referencedNode->isNetwork())
+                    {
+                        std::cout << "[ZibraVDB] SOP network reference, finding display node" << std::endl;
+                        OP_Network* sopNetwork = static_cast<OP_Network*>(referencedNode);
+                        OP_Node* outputNode = sopNetwork->getDisplayNodePtr();
+                        if (outputNode && outputNode->getOpTypeID() == SOP_OPTYPE_ID)
+                        {
+                            std::cout << "[ZibraVDB] Found display SOP node: " << outputNode->getName() << std::endl;
+                            sopNode = static_cast<SOP_Node*>(outputNode);
+                        }
+                    }
+                    
+                    if (sopNode)
+                    {
+                        extractVDBFromSOP(sopNode, t);
+                        return; // Exit after processing the SOP node - don't continue recursion
+                    }
+                }
+                else
+                {
+                    std::cout << "[ZibraVDB] Referenced node not found: " << sopPath.toStdString() << std::endl;
+                }
+            }
+            else
+            {
+                std::cout << "[ZibraVDB] No SOP path found in parameters, trying alternative methods..." << std::endl;
+                
+                // Alternative 1: Check if there's a direct SOP input connection
+                std::cout << "[ZibraVDB] Checking " << lop_node->nInputs() << " input connections..." << std::endl;
+                for (int input_idx = 0; input_idx < lop_node->nInputs(); ++input_idx)
+                {
+                    OP_Node* inputNode = lop_node->getInput(input_idx);
+                    if (inputNode)
+                    {
+                        std::cout << "[ZibraVDB] Input " << input_idx << ": " << inputNode->getName() 
+                                  << " (type: " << inputNode->getOpTypeID() << ")" << std::endl;
+                        
+                        if (inputNode->getOpTypeID() == SOP_OPTYPE_ID)
+                        {
+                            std::cout << "[ZibraVDB] Found direct SOP input connection: " << inputNode->getName() << std::endl;
+                            extractVDBFromSOP(static_cast<SOP_Node*>(inputNode), t);
+                            return;
+                        }
+                        // Check if input is a SOP network
+                        else if (inputNode->isNetwork())
+                        {
+                            std::cout << "[ZibraVDB] Input is a network, checking for SOP content..." << std::endl;
+                            OP_Network* inputNetwork = static_cast<OP_Network*>(inputNode);
+                            
+                            // Try display node
+                            OP_Node* displayNode = inputNetwork->getDisplayNodePtr();
+                            if (displayNode && displayNode->getOpTypeID() == SOP_OPTYPE_ID)
+                            {
+                                std::cout << "[ZibraVDB] Found SOP via input network display node: " << displayNode->getName() << std::endl;
+                                extractVDBFromSOP(static_cast<SOP_Node*>(displayNode), t);
+                                return;
+                            }
+                            
+                            // Try render node
+                            OP_Node* renderNode = inputNetwork->getRenderNodePtr();
+                            if (renderNode && renderNode->getOpTypeID() == SOP_OPTYPE_ID)
+                            {
+                                std::cout << "[ZibraVDB] Found SOP via input network render node: " << renderNode->getName() << std::endl;
+                                extractVDBFromSOP(static_cast<SOP_Node*>(renderNode), t);
+                                return;
+                            }
+                        }
+                    }
+                }
+                
+                // Alternative 2: Try to access the SOP Create node's internal SOP network
+                std::cout << "[ZibraVDB] Attempting to access internal SOP network of SOP Create node..." << std::endl;
+                
+                if (lop_node->isNetwork())
+                {
+                    OP_Network* sopCreateNetwork = static_cast<OP_Network*>(lop_node);
+                    std::cout << "[ZibraVDB] SOP Create node has " << sopCreateNetwork->getNchildren() << " child nodes" << std::endl;
+                    
+                    // Look for internal SOP nodes
+                    for (int i = 0; i < sopCreateNetwork->getNchildren(); ++i)
+                    {
+                        OP_Node* child = sopCreateNetwork->getChild(i);
+                        if (child)
+                        {
+                            std::cout << "[ZibraVDB] Child " << i << ": " << child->getName() 
+                                      << " (type: " << child->getOpTypeID() << ")" << std::endl;
+                            
+                            if (child->getOpTypeID() == SOP_OPTYPE_ID)
+                            {
+                                std::cout << "[ZibraVDB] Found internal SOP node: " << child->getName() << std::endl;
+                                
+                                // Check if this SOP has VDB data
+                                SOP_Node* sopChild = static_cast<SOP_Node*>(child);
+                                OP_Context context(t);
+                                const GU_Detail* testGdp = sopChild->getCookedGeo(context);
+                                if (testGdp)
+                                {
+                                    // Check for VDB primitives
+                                    bool hasVDB = false;
+                                    for (GA_Iterator it(testGdp->getPrimitiveRange()); !it.atEnd(); ++it)
+                                    {
+                                        const GA_Primitive* prim = testGdp->getPrimitive(*it);
+                                        if (prim->getTypeId() == GEO_PRIMVDB)
+                                        {
+                                            hasVDB = true;
+                                            break;
+                                        }
+                                    }
+                                    
+                                    if (hasVDB)
+                                    {
+                                        std::cout << "[ZibraVDB] Found VDB data in internal SOP: " << child->getName() << std::endl;
+                                        extractVDBFromSOP(sopChild, t);
+                                        return;
+                                    }
+                                }
+                            }
+                            else if (child->isNetwork())
+                            {
+                                // Recursively check child networks for SOPs
+                                OP_Network* childNetwork = static_cast<OP_Network*>(child);
+                                OP_Node* displayNode = childNetwork->getDisplayNodePtr();
+                                if (displayNode && displayNode->getOpTypeID() == SOP_OPTYPE_ID)
+                                {
+                                    std::cout << "[ZibraVDB] Found SOP in child network: " << displayNode->getName() << std::endl;
+                                    extractVDBFromSOP(static_cast<SOP_Node*>(displayNode), t);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                std::cout << "[ZibraVDB] Could not find VDB data in SOP Create node through any method" << std::endl;
+            }
+        }
+        
+        // Only traverse child nodes if this is NOT a SOP Create node (to avoid infinite loops)
+        if (!lop_node->getOperator()->getName().equal("sopcreate") && lop_node->isNetwork())
+        {
+            OP_Network* network = static_cast<OP_Network*>(lop_node);
+            for (int i = 0; i < network->getNchildren(); ++i)
+            {
+                OP_Node* child = network->getChild(i);
+                traverseSOPCreateNodes(child, t);
+            }
+        }
+    }
+    
+    void ZibraVDBOutputProcessor::extractVDBFromSOP(SOP_Node* sopNode, fpreal t)
+    {
+        if (!sopNode)
+            return;
+            
+        std::cout << "[ZibraVDB] Extracting VDB data from SOP node: " << sopNode->getName() << std::endl;
+        
+        // Create context for cooking
+        OP_Context context(t);
+        
+        // Get geometry from SOP node
+        const GU_Detail* gdp = sopNode->getCookedGeo(context);
+        
+        if (!gdp)
+        {
+            std::cout << "[ZibraVDB] Could not get geometry from SOP node" << std::endl;
+            return;
+        }
+        
+        std::cout << "[ZibraVDB] Got geometry, checking for VDB primitives..." << std::endl;
+        
+        // Extract VDB primitives and cache them
+        std::vector<openvdb::GridBase::ConstPtr> grids;
+        std::vector<std::string> gridNames;
+        
+        for (GA_Iterator it(gdp->getPrimitiveRange()); !it.atEnd(); ++it)
+        {
+            const GA_Primitive* prim = gdp->getPrimitive(*it);
+            if (prim->getTypeId() == GEO_PRIMVDB)
+            {
+                const GEO_PrimVDB* vdbPrim = static_cast<const GEO_PrimVDB*>(prim);
+                const char* gridName = vdbPrim->getGridName();
+                
+                openvdb::GridBase::ConstPtr grid = vdbPrim->getConstGridPtr();
+                if (grid)
+                {
+                    grids.push_back(grid);
+                    gridNames.push_back(gridName);
+                    
+                    std::cout << "[ZibraVDB] Found VDB grid: " << gridName 
+                              << ", active voxels: " << grid->activeVoxelCount() << std::endl;
+                }
+            }
+        }
+        
+        if (!grids.empty())
+        {
+            std::cout << "[ZibraVDB] Found " << grids.size() << " VDB grids in SOP node" << std::endl;
+            // Store grids for later use in compression
+            m_CachedVDBGrids.insert(m_CachedVDBGrids.end(), grids.begin(), grids.end());
+            m_CachedGridNames.insert(m_CachedGridNames.end(), gridNames.begin(), gridNames.end());
+        }
+        else
+        {
+            std::cout << "[ZibraVDB] No VDB grids found in SOP node" << std::endl;
+        }
+    }
+    
+    void ZibraVDBOutputProcessor::findLOPNetworksFromConfig(OP_Node* config_node, fpreal t)
+    {
+        if (!config_node)
+            return;
+            
+        std::cout << "[ZibraVDB] Searching for LOP networks from config_node: " << config_node->getName() << std::endl;
+        
+        // Strategy 1: Check if config_node itself is a LOP node
+        if (config_node->getOpTypeID() == LOP_OPTYPE_ID)
+        {
+            std::cout << "[ZibraVDB] config_node is a LOP node, traversing it" << std::endl;
+            traverseSOPCreateNodes(config_node, t);
+            return;
+        }
+        
+        // Strategy 2: Check config_node's inputs for LOP nodes
+        for (int i = 0; i < config_node->nInputs(); ++i)
+        {
+            OP_Node* input = config_node->getInput(i);
+            if (input && input->getOpTypeID() == LOP_OPTYPE_ID)
+            {
+                std::cout << "[ZibraVDB] Found LOP input node: " << input->getName() << std::endl;
+                traverseSOPCreateNodes(input, t);
+            }
+        }
+        
+        // Strategy 3: Look for LOP context in parent network
+        OP_Network* parent = config_node->getParent();
+        if (parent)
+        {
+            std::cout << "[ZibraVDB] Searching parent network for LOP context" << std::endl;
+            
+            // Look for /stage context (common LOP network location)
+            OP_Node* stageContext = parent->findNode("/stage");
+            if (stageContext && stageContext->isNetwork())
+            {
+                std::cout << "[ZibraVDB] Found /stage context, searching for SOP Create nodes" << std::endl;
+                traverseLOPNetwork(static_cast<OP_Network*>(stageContext), t);
+            }
+            
+            // Also search current parent network for LOP nodes
+            traverseLOPNetwork(parent, t);
+        }
+        
+        // Strategy 4: Search for SOP networks with VDB data directly
+        searchForSOPNetworks(config_node, t);
+    }
+    
+    void ZibraVDBOutputProcessor::traverseLOPNetwork(OP_Network* network, fpreal t)
+    {
+        if (!network)
+            return;
+            
+        std::cout << "[ZibraVDB] Traversing LOP network: " << network->getName() << std::endl;
+        
+        for (int i = 0; i < network->getNchildren(); ++i)
+        {
+            OP_Node* child = network->getChild(i);
+            if (child)
+            {
+                // Check if this is a SOP Create LOP node
+                if (child->getOpTypeID() == LOP_OPTYPE_ID && 
+                    child->getOperator()->getName().equal("sopcreate"))
+                {
+                    std::cout << "[ZibraVDB] Found SOP Create LOP node: " << child->getName() << std::endl;
+                    traverseSOPCreateNodes(child, t);
+                }
+                // Recursively traverse child networks
+                else if (child->isNetwork())
+                {
+                    traverseLOPNetwork(static_cast<OP_Network*>(child), t);
+                }
+            }
+        }
+    }
+    
+    void ZibraVDBOutputProcessor::searchForSOPNetworks(OP_Node* startNode, fpreal t)
+    {
+        if (!startNode)
+            return;
+            
+        std::cout << "[ZibraVDB] Searching for SOP networks with VDB data" << std::endl;
+        
+        OP_Network* parent = startNode->getParent();
+        if (parent)
+        {
+            // Look for /obj context (common SOP network location)
+            OP_Node* objContext = parent->findNode("/obj");
+            if (objContext && objContext->isNetwork())
+            {
+                std::cout << "[ZibraVDB] Found /obj context, searching for SOP networks" << std::endl;
+                OP_Network* objNetwork = static_cast<OP_Network*>(objContext);
+                
+                for (int i = 0; i < objNetwork->getNchildren(); i++)
+                {
+                    OP_Node* child = objNetwork->getChild(i);
+                    if (child && child->isNetwork())
+                    {
+                        // Look for SOP networks with VDB content
+                        OP_Network* childNetwork = static_cast<OP_Network*>(child);
+                        OP_Node* displayNode = childNetwork->getDisplayNodePtr();
+                        if (displayNode && displayNode->getOpTypeID() == SOP_OPTYPE_ID)
+                        {
+                            std::cout << "[ZibraVDB] Found SOP network: " << child->getName() << std::endl;
+                            // Check if this SOP has VDB data
+                            extractVDBFromSOP(static_cast<SOP_Node*>(displayNode), t);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // Factory function for registration

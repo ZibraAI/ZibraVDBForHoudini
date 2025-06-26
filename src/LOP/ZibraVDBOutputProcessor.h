@@ -6,9 +6,14 @@
 #include <UT/UT_Options.h>
 #include <string>
 #include <map>
+#include <vector>
+#include <openvdb/openvdb.h>
 
 #include "Globals.h"
 #include "ROP/CompressorManager/CompressorManager.h"
+
+// Forward declarations
+class SOP_Node;
 
 namespace Zibra::ZibraVDBOutputProcessor
 {
@@ -61,6 +66,21 @@ namespace Zibra::ZibraVDBOutputProcessor
         
         // Public method to process deferred compressions after export completes
         void processDeferredCompressions();
+        
+        // Traverse SOP Create nodes to find VDB data
+        void traverseSOPCreateNodes(OP_Node* lop_node, fpreal t);
+        
+        // Extract VDB data from SOP node
+        void extractVDBFromSOP(SOP_Node* sopNode, fpreal t);
+        
+        // Find LOP networks starting from config_node
+        void findLOPNetworksFromConfig(OP_Node* config_node, fpreal t);
+        
+        // Traverse a LOP network looking for SOP Create nodes
+        void traverseLOPNetwork(OP_Network* network, fpreal t);
+        
+        // Search for SOP networks with VDB data
+        void searchForSOPNetworks(OP_Node* startNode, fpreal t);
 
     private:
         struct DeferredCompressionEntry
@@ -74,6 +94,10 @@ namespace Zibra::ZibraVDBOutputProcessor
         std::string m_CurrentOutputDir;
         PI_EditScriptedParms *m_Parameters;
         std::vector<DeferredCompressionEntry> m_DeferredCompressionPaths;
+        
+        // Cached VDB grids found during traversal
+        std::vector<openvdb::GridBase::ConstPtr> m_CachedVDBGrids;
+        std::vector<std::string> m_CachedGridNames;
     };
 
     // Factory function for registration
