@@ -107,6 +107,7 @@ cmake_print_variables(ZIB_NETWORK_REQUEST_BACKEND)
         src/utils/Helpers.h
         src/utils/GAAttributesDump.h
         src/utils/VDBCacheManager.h
+        src/utils/ZibraUSDUtils.h
     )
 
 set(SourceFiles
@@ -127,6 +128,7 @@ set(SourceFiles
     src/utils/Helpers.cpp
     src/utils/GAAttributesDump.cpp
     src/utils/VDBCacheManager.cpp
+    src/utils/ZibraUSDUtils.cpp
 )
 
 add_library(ZibraVDBForHoudini SHARED ${HeaderFiles} ${SourceFiles})
