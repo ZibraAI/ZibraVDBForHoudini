@@ -3,7 +3,7 @@
 // This header must be included exactly once in the plugin!
 #include <UT/UT_DSOVersion.h>
 
-#include "LOP/LOP_ZibraVDBDecompressor.h"
+#include "LOP/LOP_ZibraVDBCompressionMarker.h"
 #include "LOP/ZibraVDBOutputProcessor.h"
 #include "ROP/ROP_ZibraVDBCompressor.h"
 #include "SOP/SOP_ZibraVDBDecompressor.h"
@@ -23,7 +23,7 @@ extern "C" {
     {
         using namespace Zibra;
 
-        table->addOperator(new ZibraVDBDecompressor::LOP_ZibraVDBDecompressor_Operator());
+        table->addOperator(new ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker_Operator());
 
         // Register the output processor
         std::cout << "[ZibraVDB] Registering output processor: " << ZibraVDBOutputProcessor::OUTPUT_PROCESSOR_NAME << std::endl;

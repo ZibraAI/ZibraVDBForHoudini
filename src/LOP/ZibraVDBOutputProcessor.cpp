@@ -48,14 +48,14 @@ namespace Zibra::ZibraVDBOutputProcessor
     {
         LibraryUtils::LoadLibrary();
 
-        //TODO find the better place we can initialize the compression engine
-        CE::Compression::FrameMappingDecs frameMappingDesc{};
-        frameMappingDesc.sequenceStartIndex = 0;
-        frameMappingDesc.sequenceIndexIncrement = 1;
-        float defaultQuality = 0.6f;
-        std::vector<std::pair<UT_String, float>> perChannelSettings;
-        auto status = m_CompressorManager.Initialize(frameMappingDesc, defaultQuality, perChannelSettings);
-        assert(status == CE::ZCE_SUCCESS);
+//        //TODO find the better place we can initialize the compression engine
+//        CE::Compression::FrameMappingDecs frameMappingDesc{};
+//        frameMappingDesc.sequenceStartIndex = 0;
+//        frameMappingDesc.sequenceIndexIncrement = 1;
+//        float defaultQuality = 0.6f;
+//        std::vector<std::pair<UT_String, float>> perChannelSettings;
+//        auto status = m_CompressorManager.Initialize(frameMappingDesc, defaultQuality, perChannelSettings);
+//        assert(status == CE::ZCE_SUCCESS);
 
         m_Parameters = new PI_EditScriptedParms();
     }
@@ -63,10 +63,10 @@ namespace Zibra::ZibraVDBOutputProcessor
     ZibraVDBOutputProcessor::~ZibraVDBOutputProcessor()
     {
         delete m_Parameters;
-        if (LibraryUtils::IsLibraryLoaded())
-        {
-            m_CompressorManager.Release();
-        }
+//        if (LibraryUtils::IsLibraryLoaded())
+//        {
+//            m_CompressorManager.Release();
+//        }
     }
 
     UT_StringHolder ZibraVDBOutputProcessor::displayName() const
@@ -237,10 +237,12 @@ namespace Zibra::ZibraVDBOutputProcessor
             return;
         }
 
+        auto compressorManager = createCompressorManager();
+
         auto first_entry = m_DeferredCompressionPaths.at(0);
         std::filesystem::path compressedDir = std::filesystem::path(first_entry.outputDir) / "compressed";
         std::filesystem::create_directories(compressedDir);
-        auto status = m_CompressorManager.StartSequence(UT_String(first_entry.compressedPath));
+        auto status = compressorManager.StartSequence(UT_String(first_entry.compressedPath));
 
         if (status != CE::ZCE_SUCCESS)
         {
@@ -294,7 +296,7 @@ namespace Zibra::ZibraVDBOutputProcessor
             compressFrameDesc.frame = frame;
 
             CE::Compression::FrameManager* frameManager = nullptr;
-            status = m_CompressorManager.CompressFrame(compressFrameDesc, &frameManager);
+            status = compressorManager.CompressFrame(compressFrameDesc, &frameManager);
             if (status == CE::ZCE_SUCCESS && frameManager)
             {
                 status = frameManager->Finish();
@@ -308,8 +310,9 @@ namespace Zibra::ZibraVDBOutputProcessor
         }
 
         std::string warning;
-        status = m_CompressorManager.FinishSequence(warning);
+        status = compressorManager.FinishSequence(warning);
         assert(status == CE::ZCE_SUCCESS && "FinishSequence failed for deferred VDBs. Status: " + std::to_string(static_cast<int>(status)));
+        compressorManager.Release();
     }
 
     void ZibraVDBOutputProcessor::detectCompressionMarkerNodes(OP_Node* lop_node, OP_Node* config_node, std::vector<OP_Node*>& markerNodes)
@@ -484,6 +487,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         
         try
         {
+            auto compressorManager = createCompressorManager();
             // Determine output path - for now use a default location
             // In a multi-frame scenario, this would include frame numbers
             std::string outputDir = "C:/src/usd/ZibraAI/output"; // TODO: Get from actual export path
@@ -494,7 +498,7 @@ namespace Zibra::ZibraVDBOutputProcessor
             std::cout << "[ZibraVDB] Output file: " << compressedPath << std::endl;
             
             // Start compression sequence
-            auto status = m_CompressorManager.StartSequence(UT_String(compressedPath));
+            auto status = compressorManager.StartSequence(UT_String(compressedPath));
             if (status != CE::ZCE_SUCCESS)
             {
                 std::cout << "[ZibraVDB] ERROR: Failed to start sequence, status: " << static_cast<int>(status) << std::endl;
@@ -535,7 +539,7 @@ namespace Zibra::ZibraVDBOutputProcessor
 
             // Compress frame
             CE::Compression::FrameManager* frameManager = nullptr;
-            status = m_CompressorManager.CompressFrame(compressFrameDesc, &frameManager);
+            status = compressorManager.CompressFrame(compressFrameDesc, &frameManager);
             std::cout << "[ZibraVDB] CompressFrame status: " << static_cast<int>(status) << std::endl;
             
             if (status == CE::ZCE_SUCCESS && frameManager)
@@ -563,7 +567,7 @@ namespace Zibra::ZibraVDBOutputProcessor
             
             // Finish sequence
             std::string warning;
-            status = m_CompressorManager.FinishSequence(warning);
+            status = compressorManager.FinishSequence(warning);
             std::cout << "[ZibraVDB] FinishSequence status: " << static_cast<int>(status) << std::endl;
             
             if (status == CE::ZCE_SUCCESS)
@@ -578,6 +582,7 @@ namespace Zibra::ZibraVDBOutputProcessor
                     std::cout << "[ZibraVDB] Warning: " << warning << std::endl;
                 }
             }
+            compressorManager.Release();
         }
         catch (const std::exception& e)
         {
@@ -778,94 +783,18 @@ namespace Zibra::ZibraVDBOutputProcessor
             //TODO add error to node output
         }
     }
+    Zibra::CE::Compression::CompressorManager ZibraVDBOutputProcessor::createCompressorManager()
+    {
+        //TODO find the better place we can initialize the compression engine
+        CE::Compression::FrameMappingDecs frameMappingDesc{};
+        frameMappingDesc.sequenceStartIndex = 0;
+        frameMappingDesc.sequenceIndexIncrement = 1;
+        float defaultQuality = 0.6f;
+        std::vector<std::pair<UT_String, float>> perChannelSettings;
+        Zibra::CE::Compression::CompressorManager result;
+        auto status = result.Initialize(frameMappingDesc, defaultQuality, perChannelSettings);
+        assert(status == CE::ZCE_SUCCESS);
 
-//    void ZibraVDBOutputProcessor::findLOPNetworksFromConfig(OP_Node* config_node, fpreal t)
-//    {
-//        if (!config_node)
-//            return;
-//
-//        // Strategy 1: Check if config_node itself is a LOP node
-//        if (config_node->getOpTypeID() == LOP_OPTYPE_ID)
-//        {
-//            traverseSOPCreateNodes(config_node, t);
-//            return;
-//        }
-//
-//        // Strategy 2: Check config_node's inputs for LOP nodes
-//        for (int i = 0; i < config_node->nInputs(); ++i)
-//        {
-//            OP_Node* input = config_node->getInput(i);
-//            if (input && input->getOpTypeID() == LOP_OPTYPE_ID)
-//            {
-//                traverseSOPCreateNodes(input, t);
-//            }
-//        }
-//
-//        // Strategy 3: Look for LOP context in parent network
-//        OP_Network* parent = config_node->getParent();
-//        if (parent)
-//        {
-//            OP_Node* stageContext = parent->findNode("/stage");
-//            if (stageContext && stageContext->isNetwork())
-//            {
-//                traverseLOPNetwork(static_cast<OP_Network*>(stageContext), t);
-//            }
-//            traverseLOPNetwork(parent, t);
-//        }
-//
-//        // Strategy 4: Search for SOP networks with VDB data directly
-//        searchForSOPNetworks(config_node, t);
-//    }
-
-//    void ZibraVDBOutputProcessor::traverseLOPNetwork(OP_Network* network, fpreal t)
-//    {
-//        if (!network)
-//            return;
-//
-//        for (int i = 0; i < network->getNchildren(); ++i)
-//        {
-//            OP_Node* child = network->getChild(i);
-//            if (child)
-//            {
-//                if (child->getOpTypeID() == LOP_OPTYPE_ID &&
-//                    child->getOperator()->getName().equal("sopcreate"))
-//                {
-//                    traverseSOPCreateNodes(child, t);
-//                }
-//                else if (child->isNetwork())
-//                {
-//                    traverseLOPNetwork(static_cast<OP_Network*>(child), t);
-//                }
-//            }
-//        }
-//    }
-
-//    void ZibraVDBOutputProcessor::searchForSOPNetworks(OP_Node* startNode, fpreal t)
-//    {
-//        if (!startNode)
-//            return;
-//
-//        OP_Network* parent = startNode->getParent();
-//        if (parent)
-//        {
-//            OP_Node* objContext = parent->findNode("/obj");
-//            if (objContext && objContext->isNetwork())
-//            {
-//                auto* objNetwork = static_cast<OP_Network*>(objContext);
-//                for (int i = 0; i < objNetwork->getNchildren(); i++)
-//                {
-//                    OP_Node* child = objNetwork->getChild(i);
-//                    if (child && child->isNetwork())
-//                    {
-//                        auto* childNetwork = static_cast<OP_Network*>(child);
-//                        OP_Node* displayNode = childNetwork->getDisplayNodePtr();
-//                        if (displayNode && displayNode->getOpTypeID() == SOP_OPTYPE_ID)
-//                        {
-//                            extractVDBFromSOP(static_cast<SOP_Node*>(displayNode), t);
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//    }
+        return result;
+    }
 } // namespace Zibra::ZibraVDBOutputProcessor

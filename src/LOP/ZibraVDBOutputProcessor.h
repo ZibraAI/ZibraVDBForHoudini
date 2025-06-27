@@ -95,7 +95,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         void compressVDBGridsFromMemory(std::vector<openvdb::GridBase::ConstPtr>& grids,
                                        std::vector<std::string>& gridNames,
                                        fpreal t);
-
+        Zibra::CE::Compression::CompressorManager createCompressorManager();
     private:
         struct DeferredCompressionEntry
         {
@@ -104,7 +104,7 @@ namespace Zibra::ZibraVDBOutputProcessor
             std::string compressedPath;
         };
         
-        Zibra::CE::Compression::CompressorManager m_CompressorManager;
+        //Zibra::CE::Compression::CompressorManager m_CompressorManager;
         std::string m_CurrentOutputDir;
         PI_EditScriptedParms *m_Parameters;
         std::vector<DeferredCompressionEntry> m_DeferredCompressionPaths;
