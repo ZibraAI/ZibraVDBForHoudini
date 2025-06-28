@@ -34,9 +34,9 @@ namespace Zibra::Utils
     {
         if (!markerNode)
             return;
-            
+
         std::cout << "[ZibraVDB] ========== Searching upstream from marker: " << markerNode->getName().toStdString() << " ==========" << std::endl;
-        
+
         std::set<OP_Node*> visitedNodes;
         searchUpstreamForSOPCreateRecursive(markerNode, t, visitedNodes, extractVDBCallback);
     }
