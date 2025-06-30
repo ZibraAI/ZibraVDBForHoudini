@@ -30,11 +30,13 @@ namespace Zibra::ZibraVDBOutputProcessor
         {
             Zibra::ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker* markerNode;
             Zibra::CE::Compression::CompressorManager* compressorManager;
+            std::string outputFile;
         };
 
         struct DeferredCompressionEntry
         {
             std::vector<std::string> vdbFiles;
+            std::string outputFile;
         };
 
     public:
@@ -65,7 +67,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         const PI_EditScriptedParms *parameters() const override;
 
     private:
-        void processSOPCreateNode(std::string sopReference);
+        std::string processSOPCreateNode(std::string sopReference);
 
         void processDeferredSequence(const DeferredCompressionEntry& vdbFiles);
 
@@ -78,7 +80,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         bool isNodeInInputChain(OP_Node* sourceNode, OP_Node* targetNode) const;
         
         bool isNodeInInputChainRecursive(OP_Node* currentNode, OP_Node* targetNode, std::set<OP_Node*>& visitedNodes) const;
-        
+
     private:
         std::vector<InMemoryCompressionEntry> m_InMemoryCompressionEntries;
         std::vector<DeferredCompressionEntry> m_DeferredCompressions;
@@ -86,7 +88,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         PI_EditScriptedParms *m_Parameters;
         fpreal m_curTime;
 
-
+        std::string generateOutputFilePath(std::string sequenceID);
     };
 
     HUSD_OutputProcessorPtr createZibraVDBOutputProcessor();
