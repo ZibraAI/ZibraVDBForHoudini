@@ -108,7 +108,7 @@ namespace Zibra::ZibraVDBCompressionMarker
         std::string layerPath = outputDir + "/" + outputFilename;
 
         // Create the output directory
-        std::filesystem::create_directories(outputDir);
+        //std::filesystem::create_directories(outputDir);
 
         // Use editableDataHandle to get write access to our data handle
         HUSD_AutoWriteLock writelock(editableDataHandle());
