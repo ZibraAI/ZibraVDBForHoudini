@@ -150,7 +150,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         return false;
     }
 
-    void ZibraVDBOutputProcessor::processSOPCreateNode(std::string sopReference)
+    std::string ZibraVDBOutputProcessor::processSOPCreateNode(std::string sopReference)
     {
         //TODO re-implement the extractNodeNameFromSopReference
         std::string nodeName = extractNodeNameFromSopReference(sopReference);
@@ -166,7 +166,7 @@ namespace Zibra::ZibraVDBOutputProcessor
 
                 if (entry == m_InMemoryCompressionEntries.end())
                 {
-                    InMemoryCompressionEntry entr = {static_cast<ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker*>(associatedMarker), nullptr};
+                    InMemoryCompressionEntry entr = {static_cast<ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker*>(associatedMarker), nullptr, generateOutputFilePath(nodeName)};
                     m_InMemoryCompressionEntries.emplace_back(entr);
                     entry = std::prev(m_InMemoryCompressionEntries.end());
                 }
@@ -185,23 +185,20 @@ namespace Zibra::ZibraVDBOutputProcessor
                     auto status = entry->compressorManager->Initialize(frameMappingDesc, defaultQuality, perChannelSettings);
                     assert(status == CE::ZCE_SUCCESS);
 
-                    // TODO: Get from actual export path from config node
-                    std::string outputDir = "C:/src/usd/ZibraAI/output/compressed";
-                    std::filesystem::create_directories(outputDir);
-                    // TODO: Get from actual export path from marker node
-                    std::string compressedPath = outputDir + "/" + nodeName + ".zibravdb";
-
-                    status = entry->compressorManager->StartSequence(UT_String(compressedPath));
+                    status = entry->compressorManager->StartSequence(UT_String(entry->outputFile));
                     if (status != CE::ZCE_SUCCESS)
                     {
                         assert(false && "Failed to start sequence for compression, status: " + std::to_string(static_cast<int>(status)));
-                        return;
+                        return "";
                     }
                 }
+
                 //TODO cache the SOP node
                 Zibra::Utils::ZibraUSDUtils::SearchUpstreamForSOPCreate(associatedMarker, m_curTime, [this, cm = entry->compressorManager](SOP_Node* sopNode, fpreal time) { this->extractVDBFromSOP(sopNode, time, cm); });
+                return entry->outputFile;
             }
         }
+        return "";
     }
 
     void ZibraVDBOutputProcessor::processDeferredSequence(const DeferredCompressionEntry& deferredEntry)
@@ -324,13 +321,19 @@ namespace Zibra::ZibraVDBOutputProcessor
                 {
                     m_DeferredCompressions.emplace_back();
                     sequence = std::prev(m_DeferredCompressions.end());
+                    sequence->outputFile = generateOutputFilePath(curSequenceID);
                 }
                 sequence->vdbFiles.push_back(pathStr);
+                
+                newpath = sequence->outputFile;
+                return true;
             }
         }
         else if (pathStr.find("op:/stage/") == 0 && pathStr.find("sopcreate") == std::string::npos)
         {
-            processSOPCreateNode(pathStr);
+            auto zibraVDBFilePath = processSOPCreateNode(pathStr);
+            newpath = zibraVDBFilePath;
+            return true;
         }
         return false;
     }
@@ -522,4 +525,12 @@ namespace Zibra::ZibraVDBOutputProcessor
         return false;
     }
 
+    std::string ZibraVDBOutputProcessor::generateOutputFilePath(std::string sequenceID)
+    {
+        // TODO: Get from actual export path from config node
+        std::string outputDir = "C:/src/usd/ZibraAI/output/compressed";
+        std::filesystem::create_directories(outputDir);
+        // TODO: Get from actual export path from marker node
+        return outputDir + "/" + sequenceID + ".zibravdb";
+    }
 } // namespace Zibra::ZibraVDBOutputProcessor
