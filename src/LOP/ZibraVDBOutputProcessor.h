@@ -26,19 +26,20 @@ namespace Zibra::ZibraVDBOutputProcessor
     class ZibraVDBOutputProcessor : public HUSD_OutputProcessor
     {
     private:
-        struct InMemoryCompressionEntry
+        struct CompressionSequenceEntry
         {
             Zibra::ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker* markerNode;
             Zibra::CE::Compression::CompressorManager* compressorManager;
+            std::vector<std::string> vdbFiles;
             std::string outputFile;
         };
 
-        struct DeferredCompressionEntry
-        {
-            std::vector<std::string> vdbFiles;
-            std::string outputFile;
-            ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker* markerNode = nullptr;
-        };
+//        struct DeferredCompressionEntry
+//        {
+//            std::vector<std::string> vdbFiles;
+//            std::string outputFile;
+//            ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker* markerNode = nullptr;
+//        };
 
     public:
         ZibraVDBOutputProcessor();
@@ -68,29 +69,25 @@ namespace Zibra::ZibraVDBOutputProcessor
         const PI_EditScriptedParms *parameters() const override;
 
     private:
-        std::string processSOPCreateNode(std::string sopReference);
+        std::string processSOPCreateNode(const std::string& layerPath);
 
-        void processDeferredSequence(const DeferredCompressionEntry& vdbFiles);
+        void processDeferredSequence(const CompressionSequenceEntry& vdbFiles);
 
         void extractVDBFromSOP(SOP_Node* sopNode, fpreal t, CompressorManager* compressorManager);
         
-        std::string extractNodeNameFromSopReference(const std::string& sopReference) const;
+        ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker* findMarkerNodeByName(const std::string& nodeName) const;
         
-        OP_Node* findMarkerNodeByNodePath(const std::string& nodeName) const;
-        
-        bool isNodeInInputChain(OP_Node* sourceNode, OP_Node* targetNode) const;
-        
-        bool isNodeInInputChainRecursive(OP_Node* currentNode, OP_Node* targetNode, std::set<OP_Node*>& visitedNodes) const;
+        int parseFrameIndexFromVDBPath(const std::string& vdbPath) const;
 
     private:
-        std::vector<InMemoryCompressionEntry> m_InMemoryCompressionEntries;
-        std::vector<DeferredCompressionEntry> m_DeferredCompressions;
+        std::vector<CompressionSequenceEntry> m_InMemoryCompressionEntries;
+        std::vector<CompressionSequenceEntry> m_DeferredCompressions;
 
         PI_EditScriptedParms *m_Parameters;
         fpreal m_curTime;
 
-        std::string generateOutputFilePath(std::string sequenceID);
-        std::string generateOutputFilePathFromMarker(ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker* markerNode, const std::string& sequenceID, fpreal t);
+//        std::string generateOutputFilePath(std::string sequenceID);
+//        std::string generateOutputFilePathFromMarker(ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker* markerNode, const std::string& sequenceID, fpreal t);
     };
 
     HUSD_OutputProcessorPtr createZibraVDBOutputProcessor();
