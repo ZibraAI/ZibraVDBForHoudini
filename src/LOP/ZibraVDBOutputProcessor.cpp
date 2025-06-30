@@ -166,7 +166,9 @@ namespace Zibra::ZibraVDBOutputProcessor
 
                 if (entry == m_InMemoryCompressionEntries.end())
                 {
-                    InMemoryCompressionEntry entr = {static_cast<ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker*>(associatedMarker), nullptr, generateOutputFilePath(nodeName)};
+                    auto markerNode = static_cast<ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker*>(associatedMarker);
+                    std::string outputPath = generateOutputFilePath(nodeName);
+                    InMemoryCompressionEntry entr = {markerNode, nullptr, outputPath};
                     m_InMemoryCompressionEntries.emplace_back(entr);
                     entry = std::prev(m_InMemoryCompressionEntries.end());
                 }
@@ -175,11 +177,10 @@ namespace Zibra::ZibraVDBOutputProcessor
                 {
                     entry->compressorManager = new Zibra::CE::Compression::CompressorManager();
 
-                    //TODO place these parameters into the marker node
                     CE::Compression::FrameMappingDecs frameMappingDesc{};
                     frameMappingDesc.sequenceStartIndex = 0;
                     frameMappingDesc.sequenceIndexIncrement = 1;
-                    float defaultQuality = 0.6f;
+                    float defaultQuality = entry->markerNode->getCompressionQuality(m_curTime);
                     std::vector<std::pair<UT_String, float>> perChannelSettings;
 
                     auto status = entry->compressorManager->Initialize(frameMappingDesc, defaultQuality, perChannelSettings);
@@ -206,8 +207,13 @@ namespace Zibra::ZibraVDBOutputProcessor
         CE::Compression::FrameMappingDecs frameMappingDesc{};
         frameMappingDesc.sequenceStartIndex = 0;
         frameMappingDesc.sequenceIndexIncrement = 1;
-        //TODO get the default quality from the marker node
-        float defaultQuality = 0.7f;
+        
+        // Get quality from marker node if available, otherwise use default
+        float defaultQuality = 0.7f;  // Fallback default
+        if (deferredEntry.markerNode)
+        {
+            defaultQuality = deferredEntry.markerNode->getCompressionQuality(m_curTime);
+        }
         std::vector<std::pair<UT_String, float>> perChannelSettings;
         Zibra::CE::Compression::CompressorManager compressorManager;
         auto status = compressorManager.Initialize(frameMappingDesc, defaultQuality, perChannelSettings);
@@ -325,14 +331,14 @@ namespace Zibra::ZibraVDBOutputProcessor
                 }
                 sequence->vdbFiles.push_back(pathStr);
                 
-                newpath = sequence->outputFile;
+                newpath = "zibravdb://" + sequence->outputFile + "?frame=0";
                 return true;
             }
         }
         else if (pathStr.find("op:/stage/") == 0 && pathStr.find("sopcreate") == std::string::npos)
         {
             auto zibraVDBFilePath = processSOPCreateNode(pathStr);
-            newpath = zibraVDBFilePath;
+            newpath = "zibravdb://" + zibraVDBFilePath + "?frame=0";
             return true;
         }
         return false;
@@ -532,5 +538,31 @@ namespace Zibra::ZibraVDBOutputProcessor
         std::filesystem::create_directories(outputDir);
         // TODO: Get from actual export path from marker node
         return outputDir + "/" + sequenceID + ".zibravdb";
+    }
+    
+    std::string ZibraVDBOutputProcessor::generateOutputFilePathFromMarker(ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker* markerNode, const std::string& sequenceID, fpreal t)
+    {
+        if (!markerNode)
+        {
+            return generateOutputFilePath(sequenceID);  // Fallback to default
+        }
+        
+        std::string outputDir = markerNode->getOutputDirectory(t);
+        std::string outputFilename = markerNode->getOutputFilename(t);
+        
+        // Replace $OS with the sequence ID if present in the filename
+        std::regex osToken("\\$OS");
+        outputFilename = std::regex_replace(outputFilename, osToken, sequenceID);
+        
+        // If no extension specified, add .zibravdb
+        if (outputFilename.find(".zibravdb") == std::string::npos)
+        {
+            outputFilename += ".zibravdb";
+        }
+        
+        std::filesystem::create_directories(outputDir);
+        std::filesystem::path fullPath = std::filesystem::path(outputDir) / outputFilename;
+        
+        return fullPath.string();
     }
 } // namespace Zibra::ZibraVDBOutputProcessor

@@ -18,6 +18,12 @@ namespace Zibra::ZibraVDBCompressionMarker
 
         OP_ERROR cookMyLop(OP_Context& context) final;
         bool updateParmsFlags() override;
+        
+        // Parameter accessors
+        std::string getOutputDirectory(fpreal t) const;
+        std::string getOutputFilename(fpreal t) const;
+        float getCompressionQuality(fpreal t) const;
+        bool getRemoveOriginalFiles(fpreal t) const;
     };
 
     class LOP_ZibraVDBCompressionMarker_Operator final : public OP_Operator

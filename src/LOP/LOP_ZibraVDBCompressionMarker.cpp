@@ -20,6 +20,19 @@ PXR_NAMESPACE_USING_DIRECTIVE
 
 namespace Zibra::ZibraVDBCompressionMarker
 {
+    // Parameter names and defaults
+    static PRM_Name PRMoutputDirName("output_dir", "Output Directory");
+    static PRM_Default PRMoutputDirDefault(0.0f, "./compressed");
+    
+    static PRM_Name PRMoutputFilenameName("output_filename", "Output Filename");
+    static PRM_Default PRMoutputFilenameDefault(0.0f, "$OS");
+    
+    static PRM_Name PRMremoveOriginalName("remove_original", "Remove Original Files");
+    static PRM_Default PRMremoveOriginalDefault(0);  // 0 = unchecked by default
+    
+    static PRM_Name PRMqualityName("quality", "Compression Quality");
+    static PRM_Default PRMqualityDefault(0.6f);  // Default quality of 0.6
+    static PRM_Range PRMqualityRange(PRM_RANGE_RESTRICTED, 0.0f, PRM_RANGE_RESTRICTED, 1.0f);
     OP_Node* LOP_ZibraVDBCompressionMarker::Constructor(OP_Network* net, const char* name, OP_Operator* op) noexcept
     {
         return new LOP_ZibraVDBCompressionMarker{net, name, op};
@@ -28,7 +41,11 @@ namespace Zibra::ZibraVDBCompressionMarker
     PRM_Template* LOP_ZibraVDBCompressionMarker::GetTemplateList() noexcept
     {
         static PRM_Template templateList[] = {
-            PRM_Template()  // Empty template list - no parameters
+            PRM_Template(PRM_STRING, 1, &PRMoutputDirName, &PRMoutputDirDefault),
+            PRM_Template(PRM_STRING, 1, &PRMoutputFilenameName, &PRMoutputFilenameDefault),
+            PRM_Template(PRM_FLT_J, 1, &PRMqualityName, &PRMqualityDefault, 0, &PRMqualityRange),
+            PRM_Template(PRM_TOGGLE, 1, &PRMremoveOriginalName, &PRMremoveOriginalDefault),
+            PRM_Template()  // Terminator
         };
         return templateList;
     }
@@ -127,6 +144,30 @@ namespace Zibra::ZibraVDBCompressionMarker
         bool changed = LOP_Node::updateParmsFlags();
         flags().setTimeDep(true);
         return changed;
+    }
+    
+    std::string LOP_ZibraVDBCompressionMarker::getOutputDirectory(fpreal t) const
+    {
+        UT_String outputDir;
+        evalString(outputDir, "output_dir", 0, t);
+        return outputDir.toStdString();
+    }
+    
+    std::string LOP_ZibraVDBCompressionMarker::getOutputFilename(fpreal t) const
+    {
+        UT_String outputFilename;
+        evalString(outputFilename, "output_filename", 0, t);
+        return outputFilename.toStdString();
+    }
+    
+    float LOP_ZibraVDBCompressionMarker::getCompressionQuality(fpreal t) const
+    {
+        return static_cast<float>(evalFloat("quality", 0, t));
+    }
+    
+    bool LOP_ZibraVDBCompressionMarker::getRemoveOriginalFiles(fpreal t) const
+    {
+        return evalInt("remove_original", 0, t) != 0;
     }
 
 } // namespace Zibra::ZibraVDBCompressionMarker
