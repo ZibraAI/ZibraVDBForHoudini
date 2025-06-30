@@ -28,7 +28,7 @@ namespace Zibra::ZibraVDBCompressionMarker
 {
     // Parameter names and defaults
     static PRM_Name PRMoutputDirName("output_dir", "Output Directory");
-    static PRM_Default PRMoutputDirDefault(0.0f, "./compressed");
+    static PRM_Default PRMoutputDirDefault(0.0f, "$HIP/ZibraAI/");
     
     static PRM_Name PRMoutputFilenameName("output_filename", "Output Filename");
     static PRM_Default PRMoutputFilenameDefault(0.0f, "$OS");
@@ -74,41 +74,14 @@ namespace Zibra::ZibraVDBCompressionMarker
         std::string outputDir = getOutputDirectory(t);
         std::string outputFilename = getOutputFilename(t);
         
-        // Get marker node name in lowercase for filename
-        std::string markerNodeName = getName().toStdString();
-        std::transform(markerNodeName.begin(), markerNodeName.end(), markerNodeName.begin(), ::tolower);
-        
-        std::string upstreamNodeName = "unknown";
-        if (nInputs() > 0 && getInput(0))
-        {
-            upstreamNodeName = getInput(0)->getName().toStdString();
-            std::transform(upstreamNodeName.begin(), upstreamNodeName.end(), upstreamNodeName.begin(), ::tolower);
-        }
+        std::string layerName = getName().toStdString();
+        std::transform(layerName.begin(), layerName.end(), layerName.begin(), ::tolower);
 
-        std::string layerName = markerNodeName + "_" + upstreamNodeName;
+        // Update the filename field to show nodename.usda
+        std::string updatedFilename = layerName + ".usda";
+        setString(updatedFilename.c_str(), CH_STRING_LITERAL, PRMoutputFilenameName.getToken(), 0, t);
 
-        // Replace $OS token with the generated layer name if present
-        if (outputFilename.find("$OS") != std::string::npos)
-        {
-            std::regex osToken("\\$OS");
-            outputFilename = std::regex_replace(outputFilename, osToken, layerName);
-        }
-        else if (outputFilename == "ZibraVDBCompressor")
-        {
-            // If using default, replace with our generated name
-            outputFilename = layerName;
-        }
-        
-        // Ensure the filename has .usda extension
-        if (outputFilename.find(".usda") == std::string::npos && outputFilename.find(".usd") == std::string::npos)
-        {
-            outputFilename += ".usda";
-        }
-        
-        std::string layerPath = outputDir + "/" + outputFilename;
-
-        // Create the output directory
-        //std::filesystem::create_directories(outputDir);
+        std::string layerPath = outputDir + "/" + updatedFilename;
 
         // Use editableDataHandle to get write access to our data handle
         HUSD_AutoWriteLock writelock(editableDataHandle());

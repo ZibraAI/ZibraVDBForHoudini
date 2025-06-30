@@ -4,8 +4,8 @@
 
 namespace Zibra::ZibraVDBCompressionMarker
 {
-    constexpr const char* LOP_NODE_NAME = "labs::zibravdb_mark_for_compression::" ZIB_ZIBRAVDB_VERSION_SHORT;
-    constexpr const char* LOP_NODE_LABEL = "Labs ZibraVDB Mark for Compression";
+    constexpr const char* LOP_NODE_NAME = "labs::zibravdb_compression::" ZIB_ZIBRAVDB_VERSION_SHORT;
+    constexpr const char* LOP_NODE_LABEL = "Labs ZibraVDB Compression";
 
     class LOP_ZibraVDBCompressionMarker final : public LOP_Node
     {

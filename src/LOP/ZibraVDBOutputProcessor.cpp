@@ -479,7 +479,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         for (int i = 0; i < stageNetwork->getNchildren(); ++i)
         {
             OP_Node* child = stageNetwork->getChild(i);
-            if (child && child->getOperator()->getName().contains("zibravdb_mark_for_compression"))
+            if (child && child->getOperator()->getName().contains("zibravdb_compression"))
             {
                 std::cout << "[ZibraVDB] Found compression marker in network: " << child->getName().toStdString() << std::endl;
                 
