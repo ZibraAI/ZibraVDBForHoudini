@@ -37,6 +37,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         {
             std::vector<std::string> vdbFiles;
             std::string outputFile;
+            ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker* markerNode = nullptr;
         };
 
     public:
@@ -89,6 +90,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         fpreal m_curTime;
 
         std::string generateOutputFilePath(std::string sequenceID);
+        std::string generateOutputFilePathFromMarker(ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker* markerNode, const std::string& sequenceID, fpreal t);
     };
 
     HUSD_OutputProcessorPtr createZibraVDBOutputProcessor();
