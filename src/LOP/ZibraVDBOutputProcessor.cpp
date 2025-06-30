@@ -127,26 +127,30 @@ namespace Zibra::ZibraVDBOutputProcessor
         }
 
         std::string pathStr = asset_path.toStdString();
+        std::cout << "[ZibraVDB] Processing save path: " << asset_path.toStdString() << std::endl;
         if (!asset_is_layer && pathStr.find(".vdb") != std::string::npos)
         {
-            std::string outputDir = "compressed";//getOutputDirectory(referencing_layer_path);
-            if (outputDir.empty())
-            {
-                error = "Could not determine output directory";
-                return false;
-            }
+//            std::string outputDir = "C:/src/usd/ZibraAI/output/compressed";//getOutputDirectory(referencing_layer_path);
+//            if (outputDir.empty())
+//            {
+//                error = "Could not determine output directory";
+//                return false;
+//            }
 
             std::filesystem::path originalPath(pathStr);
-            std::filesystem::path outputPath(outputDir);
+            std::filesystem::path outputPath = originalPath.parent_path();
             std::filesystem::path vdbDir = outputPath / "vdb_files";
-            std::string redirectedPath = (vdbDir / originalPath.filename()).string();
+            std::string redirectedPath = (vdbDir / (originalPath.stem().string() + ".zibravdb")).string();
 
             std::filesystem::create_directories(vdbDir);
             newpath = redirectedPath;
 
+            std::cout << "[ZibraVDB] Redirected to new path: " << redirectedPath << std::endl;
+
             return true;
         }
 
+        std::cout << "[ZibraVDB] Couldn't process save path: " << asset_path.toStdString() << std::endl;
         return false;
     }
 
@@ -307,6 +311,7 @@ namespace Zibra::ZibraVDBOutputProcessor
                                                       UT_String &error)
     {
         std::string pathStr = asset_path.toStdString();
+        std::cout << "[ZibraVDB] Processing reference path: " << asset_path.toStdString() << " for layer" << referencing_layer_path.toStdString() << std::endl;
         if (pathStr.find(".vdb") == pathStr.length() - 4)
         {
             if (std::filesystem::exists(pathStr))
@@ -332,6 +337,7 @@ namespace Zibra::ZibraVDBOutputProcessor
                 sequence->vdbFiles.push_back(pathStr);
                 
                 newpath = "zibravdb://" + sequence->outputFile + "?frame=0";
+                std::cout << "[ZibraVDB] Reference vdb path redirected to: " << newpath << std::endl;
                 return true;
             }
         }
@@ -339,8 +345,10 @@ namespace Zibra::ZibraVDBOutputProcessor
         {
             auto zibraVDBFilePath = processSOPCreateNode(pathStr);
             newpath = "zibravdb://" + zibraVDBFilePath + "?frame=0";
+            std::cout << "[ZibraVDB] Reference op path redirected to: " << newpath << std::endl;
             return true;
         }
+        std::cout << "[ZibraVDB] Reference path didnt processed: " << asset_path.toStdString() << std::endl;
         return false;
     }
 
