@@ -130,13 +130,6 @@ namespace Zibra::ZibraVDBOutputProcessor
         std::cout << "[ZibraVDB] Processing save path: " << asset_path.toStdString() << std::endl;
         if (!asset_is_layer && pathStr.find(".vdb") != std::string::npos)
         {
-//            std::string outputDir = "C:/src/usd/ZibraAI/output/compressed";//getOutputDirectory(referencing_layer_path);
-//            if (outputDir.empty())
-//            {
-//                error = "Could not determine output directory";
-//                return false;
-//            }
-
             std::filesystem::path originalPath(pathStr);
             std::filesystem::path outputPath = originalPath.parent_path();
             std::filesystem::path vdbDir = outputPath / "vdb_files";
@@ -154,85 +147,73 @@ namespace Zibra::ZibraVDBOutputProcessor
         return false;
     }
 
-    std::string ZibraVDBOutputProcessor::processSOPCreateNode(std::string sopReference)
+    std::string ZibraVDBOutputProcessor::processSOPCreateNode(const std::string& layerPath)
     {
-        //TODO re-implement the extractNodeNameFromSopReference
-        std::string nodeName = extractNodeNameFromSopReference(sopReference);
-        if (!nodeName.empty())
+        std::filesystem::path path(layerPath);
+        std::string layerFileName = path.stem().string();
+        
+        auto markerNode = findMarkerNodeByName(layerFileName);
+        if (!markerNode)
         {
-            //TODO re-implement the findMarkerNodeByNodePath
-            OP_Node* associatedMarker = findMarkerNodeByNodePath(nodeName);
-            if (associatedMarker)
+            std::cout << "[ZibraVDB] Could not find marker node: " << layerFileName << std::endl;
+            return "";
+        }
+
+//        auto entry = std::find_if(m_InMemoryCompressionEntries.begin(), m_InMemoryCompressionEntries.end(), [markerNode](const CompressionSequenceEntry& entry) {
+//            return markerNode == entry.markerNode;
+//        });
+//
+//        if (entry == m_InMemoryCompressionEntries.end())
+//        {
+//            auto zibraMarkerNode = static_cast<ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker*>(markerNode);
+//            std::string outputPath = "something";
+//                //generateOutputFilePathFromMarker(zibraMarkerNode, layerFileName, m_curTime);
+//            CompressionSequenceEntry entr = {zibraMarkerNode, nullptr, {},outputPath};
+//            m_InMemoryCompressionEntries.emplace_back(entr);
+//            entry = std::prev(m_InMemoryCompressionEntries.end());
+//        }
+
+        /*if (!entry->compressorManager)
+        {
+            entry->compressorManager = new Zibra::CE::Compression::CompressorManager();
+
+            CE::Compression::FrameMappingDecs frameMappingDesc{};
+            frameMappingDesc.sequenceStartIndex = 0;
+            frameMappingDesc.sequenceIndexIncrement = 1;
+            float defaultQuality = entry->markerNode->getCompressionQuality(m_curTime);
+            std::vector<std::pair<UT_String, float>> perChannelSettings;
+
+            auto status = entry->compressorManager->Initialize(frameMappingDesc, defaultQuality, perChannelSettings);
+            assert(status == CE::ZCE_SUCCESS);
+
+            status = entry->compressorManager->StartSequence(UT_String(entry->outputFile));
+            if (status != CE::ZCE_SUCCESS)
             {
-                auto entry = std::find_if(m_InMemoryCompressionEntries.begin(), m_InMemoryCompressionEntries.end(), [associatedMarker](const InMemoryCompressionEntry& entry) {
-                    return associatedMarker == entry.markerNode;
-                });
-
-                if (entry == m_InMemoryCompressionEntries.end())
-                {
-                    auto markerNode = static_cast<ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker*>(associatedMarker);
-                    std::string outputPath = generateOutputFilePath(nodeName);
-                    InMemoryCompressionEntry entr = {markerNode, nullptr, outputPath};
-                    m_InMemoryCompressionEntries.emplace_back(entr);
-                    entry = std::prev(m_InMemoryCompressionEntries.end());
-                }
-
-                if (!entry->compressorManager)
-                {
-                    entry->compressorManager = new Zibra::CE::Compression::CompressorManager();
-
-                    CE::Compression::FrameMappingDecs frameMappingDesc{};
-                    frameMappingDesc.sequenceStartIndex = 0;
-                    frameMappingDesc.sequenceIndexIncrement = 1;
-                    float defaultQuality = entry->markerNode->getCompressionQuality(m_curTime);
-                    std::vector<std::pair<UT_String, float>> perChannelSettings;
-
-                    auto status = entry->compressorManager->Initialize(frameMappingDesc, defaultQuality, perChannelSettings);
-                    assert(status == CE::ZCE_SUCCESS);
-
-                    status = entry->compressorManager->StartSequence(UT_String(entry->outputFile));
-                    if (status != CE::ZCE_SUCCESS)
-                    {
-                        assert(false && "Failed to start sequence for compression, status: " + std::to_string(static_cast<int>(status)));
-                        return "";
-                    }
-                }
-
-                //TODO cache the SOP node
-                Zibra::Utils::ZibraUSDUtils::SearchUpstreamForSOPCreate(associatedMarker, m_curTime, [this, cm = entry->compressorManager](SOP_Node* sopNode, fpreal time) { this->extractVDBFromSOP(sopNode, time, cm); });
-                return entry->outputFile;
+                assert(false && "Failed to start sequence for compression, status: " + std::to_string(static_cast<int>(status)));
+                return "";
             }
         }
+
+        // Extract VDB from SOP using the existing utility
+        Zibra::Utils::ZibraUSDUtils::SearchUpstreamForSOPCreate(markerNode, m_curTime, [this, cm = entry->compressorManager](SOP_Node* sopNode, fpreal time) { this->extractVDBFromSOP(sopNode, time, cm); });
+        return entry->outputFile;*/
         return "";
     }
 
-    void ZibraVDBOutputProcessor::processDeferredSequence(const DeferredCompressionEntry& deferredEntry)
+    void ZibraVDBOutputProcessor::processDeferredSequence(const CompressionSequenceEntry& deferredEntry)
     {
         CE::Compression::FrameMappingDecs frameMappingDesc{};
         frameMappingDesc.sequenceStartIndex = 0;
         frameMappingDesc.sequenceIndexIncrement = 1;
-        
-        // Get quality from marker node if available, otherwise use default
-        float defaultQuality = 0.7f;  // Fallback default
-        if (deferredEntry.markerNode)
-        {
-            defaultQuality = deferredEntry.markerNode->getCompressionQuality(m_curTime);
-        }
+        float quality = deferredEntry.markerNode->getCompressionQuality(m_curTime);
+
         std::vector<std::pair<UT_String, float>> perChannelSettings;
         Zibra::CE::Compression::CompressorManager compressorManager;
-        auto status = compressorManager.Initialize(frameMappingDesc, defaultQuality, perChannelSettings);
+        auto status = compressorManager.Initialize(frameMappingDesc, quality, perChannelSettings);
         assert(status == CE::ZCE_SUCCESS);
 
-        auto first_entry = deferredEntry.vdbFiles.at(0);
-        auto filename = std::filesystem::path(first_entry).stem().string();
-        filename = filename.substr(0, filename.find('.'));
-
-        std::string outputDir = "C:/src/usd/ZibraAI/output/compressed";
-        std::filesystem::create_directories(outputDir);
-        // TODO: Get from actual export path from marker node
-        std::string compressedPath = outputDir + "/" + filename + ".zibravdb";
-
-        status = compressorManager.StartSequence(UT_String(compressedPath));
+        std::filesystem::create_directories(std::filesystem::path(deferredEntry.outputFile).parent_path());
+        status = compressorManager.StartSequence(UT_String(deferredEntry.outputFile));
         if (status != CE::ZCE_SUCCESS)
         {
             assert(false && "Failed to start compression sequence for deferred VDBs. Status: " + std::to_string(static_cast<int>(status)));
@@ -312,39 +293,65 @@ namespace Zibra::ZibraVDBOutputProcessor
     {
         std::string pathStr = asset_path.toStdString();
         std::cout << "[ZibraVDB] Processing reference path: " << asset_path.toStdString() << " for layer" << referencing_layer_path.toStdString() << std::endl;
-        if (pathStr.find(".vdb") == pathStr.length() - 4)
+        if (!asset_is_layer && pathStr.find(".vdb") == pathStr.length() - 4)
         {
+            std::string outLayer = referencing_layer_path.toStdString();
+            std::filesystem::path outLayerPath(outLayer);
+            std::string outLayerName = outLayerPath.stem().string();
+
+            auto* curMarkerNode = findMarkerNodeByName(outLayerName);
+
+            if (!curMarkerNode)
+            {
+                std::cout << "[ZibraVDB] Could not find marker node: " << outLayerName << std::endl;
+                return false;
+            }
+
+            std::string newFileName = (outLayerPath.parent_path()/outLayerName).string() + ".zibravdb";
+
             if (std::filesystem::exists(pathStr))
             {
-                auto getSequenceID = [](const std::string& path) {
-                    std::regex pattern("^.+\\/[^\\/]+\\.\\d+\\.vdb$");
-                    bool isSqquence = std::regex_match(path, pattern);
-                    std::string filename = isSqquence ? std::filesystem::path(path).stem().string() : std::filesystem::path(path).filename().string();
-                    return filename.substr(0, filename.find('.'));
-                };
-
-                auto curSequenceID = getSequenceID(pathStr);
-                auto sequence = std::find_if(m_DeferredCompressions.begin(), m_DeferredCompressions.end(),
-                    [&curSequenceID, &getSequenceID](const DeferredCompressionEntry& entry) {
-                                                return getSequenceID(entry.vdbFiles.at(0)) == curSequenceID;
-                                             });
+                auto sequence =
+                    std::find_if(m_DeferredCompressions.begin(), m_DeferredCompressions.end(),
+                                 [curMarkerNode](const CompressionSequenceEntry& entry) { return entry.markerNode == curMarkerNode; });
                 if (sequence == m_DeferredCompressions.end())
                 {
-                    m_DeferredCompressions.emplace_back();
-                    sequence = std::prev(m_DeferredCompressions.end());
-                    sequence->outputFile = generateOutputFilePath(curSequenceID);
+                    m_DeferredCompressions.push_back({curMarkerNode, nullptr, {pathStr}, newFileName});
+                }
+                else
+                {
+                    sequence->vdbFiles.push_back(pathStr);
+                }
+            }
+            else
+            {
+                auto sequence =
+                    std::find_if(m_InMemoryCompressionEntries.begin(), m_InMemoryCompressionEntries.end(),
+                                 [curMarkerNode](const CompressionSequenceEntry& entry) { return entry.markerNode == curMarkerNode; });
+                if (sequence == m_InMemoryCompressionEntries.end())
+                {
+                    m_InMemoryCompressionEntries.push_back({});
+                    sequence = std::prev(m_InMemoryCompressionEntries.end());
+                    sequence->markerNode = curMarkerNode;
+                    sequence->outputFile = newFileName;
                 }
                 sequence->vdbFiles.push_back(pathStr);
-                
-                newpath = "zibravdb://" + sequence->outputFile + "?frame=0";
-                std::cout << "[ZibraVDB] Reference vdb path redirected to: " << newpath << std::endl;
-                return true;
             }
+
+            std::cout << "[ZibraVDB] Trying to redirect to: " << newFileName << std::endl;
+            int frameIndex = parseFrameIndexFromVDBPath(pathStr);
+            newpath = "zibravdb://" + newFileName + "?frame=" + std::to_string(frameIndex);
+            std::cout << "[ZibraVDB] Reference vdb path redirected to: " << newpath << std::endl;
+            return true;
         }
         else if (pathStr.find("op:/stage/") == 0 && pathStr.find("sopcreate") == std::string::npos)
         {
-            auto zibraVDBFilePath = processSOPCreateNode(pathStr);
-            newpath = "zibravdb://" + zibraVDBFilePath + "?frame=0";
+//            std::string layerPath = referencing_layer_path.toStdString();
+//            auto zibraVDBFilePath = processSOPCreateNode(layerPath);
+//            newpath = "zibravdb://" + zibraVDBFilePath + "?frame=0";
+//            std::cout << "[ZibraVDB] Reference op path redirected to: " << newpath << std::endl;
+//            return true;
+            newpath = "testtesttest";
             std::cout << "[ZibraVDB] Reference op path redirected to: " << newpath << std::endl;
             return true;
         }
@@ -421,156 +428,99 @@ namespace Zibra::ZibraVDBOutputProcessor
         }
     }
 
-    std::string ZibraVDBOutputProcessor::extractNodeNameFromSopReference(const std::string& sopReference) const
-    {
-        std::cout << "[ZibraVDB] Parsing SOP reference: " << sopReference << std::endl;
-        
-        std::string stagePrefix = "op:/stage/";
-        size_t stagePos = sopReference.find(stagePrefix);
-        if (stagePos == std::string::npos)
-        {
-            std::cout << "[ZibraVDB] No 'op:/stage/' prefix found" << std::endl;
-            return "";
-        }
-        
-        // Find the node name after "/stage/"
-        size_t nodeStart = stagePos + stagePrefix.length();
-        size_t nodeEnd = sopReference.find('/', nodeStart);
-        
-        if (nodeEnd == std::string::npos)
-        {
-            std::cout << "[ZibraVDB] No '/' found after node name" << std::endl;
-            return "";
-        }
-        
-        std::string nodeName = sopReference.substr(nodeStart, nodeEnd - nodeStart);
-        std::cout << "[ZibraVDB] Extracted node name: " << nodeName << std::endl;
-        
-        return nodeName;
-    }
 
-    OP_Node* ZibraVDBOutputProcessor::findMarkerNodeByNodePath(const std::string& nodeName) const
+    ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker* ZibraVDBOutputProcessor::findMarkerNodeByName(const std::string& nodeName) const
     {
-        std::cout << "[ZibraVDB] Looking for marker node controlling: " << nodeName << std::endl;
-        
-        // We need to find the LOP node named "BBB" and then look for compression markers
-        // connected to it (either upstream or downstream)
-        
-        // Start from the root node and search for the named node
         OP_Node* rootNode = OPgetDirector()->findNode("/stage");
         if (!rootNode || !rootNode->isNetwork())
         {
-            std::cout << "[ZibraVDB] Cannot find /stage network" << std::endl;
             return nullptr;
         }
         
         OP_Network* stageNetwork = static_cast<OP_Network*>(rootNode);
-        OP_Node* targetNode = stageNetwork->findNode(nodeName.c_str());
-        
-        if (!targetNode)
+        OP_Node* node = stageNetwork->findNode(nodeName.c_str());
+        if (node && dynamic_cast<ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker*>(node))
         {
-            std::cout << "[ZibraVDB] Cannot find node: " << nodeName << std::endl;
-            return nullptr;
+            return static_cast<ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker*>(node);
         }
         
-        std::cout << "[ZibraVDB] Found target node: " << targetNode->getName().toStdString() << std::endl;
-        
-        // Search the network for compression markers and check if they're connected to our target
-        for (int i = 0; i < stageNetwork->getNchildren(); ++i)
-        {
-            OP_Node* child = stageNetwork->getChild(i);
-            if (child && child->getOperator()->getName().contains("zibravdb_compression"))
-            {
-                std::cout << "[ZibraVDB] Found compression marker in network: " << child->getName().toStdString() << std::endl;
-                
-                // Check if this marker has the target node in its input chain
-                if (isNodeInInputChain(child, targetNode))
-                {
-                    std::cout << "[ZibraVDB] Confirmed marker controls target node" << std::endl;
-                    return child;
-                }
-                
-                // Also check if the target node has this marker in its input chain (reverse direction)
-                if (isNodeInInputChain(targetNode, child))
-                {
-                    std::cout << "[ZibraVDB] Found marker upstream of target node" << std::endl;
-                    return child;
-                }
-            }
-        }
-        
-        std::cout << "[ZibraVDB] No compression marker found for node: " << nodeName << std::endl;
         return nullptr;
     }
 
-    bool ZibraVDBOutputProcessor::isNodeInInputChain(OP_Node* sourceNode, OP_Node* targetNode) const
+    int ZibraVDBOutputProcessor::parseFrameIndexFromVDBPath(const std::string& vdbPath) const
     {
-        if (!sourceNode || !targetNode)
-            return false;
-        
-        // Simple recursive check to see if targetNode is upstream of sourceNode
-        std::set<OP_Node*> visitedNodes;
-        return isNodeInInputChainRecursive(sourceNode, targetNode, visitedNodes);
-    }
-
-    bool ZibraVDBOutputProcessor::isNodeInInputChainRecursive(OP_Node* currentNode, OP_Node* targetNode, std::set<OP_Node*>& visitedNodes) const
-    {
-        if (!currentNode || visitedNodes.find(currentNode) != visitedNodes.end())
-            return false;
-        
-        visitedNodes.insert(currentNode);
-        
-        // Check all inputs of current node
-        for (int i = 0; i < currentNode->nInputs(); ++i)
+        try 
         {
-            OP_Node* input = currentNode->getInput(i);
-            if (input == targetNode)
+            std::filesystem::path path(vdbPath);
+            std::string filename = path.stem().string(); // Remove .vdb extension
+            
+            // Pattern 1: path/name.FRAME_INDEX.vdb (e.g., "volume.1234.vdb")
+            // Pattern 2: path/FRAME_INDEX.vdb (e.g., "1234.vdb") 
+            // Pattern 3: path/name.vdb (no frame, default to 0)
+            
+            // Find the last dot in the filename
+            size_t lastDot = filename.find_last_of('.');
+            if (lastDot != std::string::npos)
             {
-                return true; // Found target node in input chain
+                // Extract potential frame number after the last dot
+                std::string frameStr = filename.substr(lastDot + 1);
+                
+                // Check if it's all digits
+                if (!frameStr.empty() && std::all_of(frameStr.begin(), frameStr.end(), ::isdigit))
+                {
+                    return std::stoi(frameStr);
+                }
             }
             
-            // Recursively check input's input chain
-            if (isNodeInInputChainRecursive(input, targetNode, visitedNodes))
+            // If no dot found or not a valid frame number, check if entire filename is a number
+            if (std::all_of(filename.begin(), filename.end(), ::isdigit) && !filename.empty())
             {
-                return true;
+                return std::stoi(filename);
             }
+            
+            // Default to frame 0 if no frame number found
+            std::cout << "[ZibraVDB] No frame number found in: " << vdbPath << ", defaulting to frame 0" << std::endl;
+            return 0;
         }
-        
-        return false;
+        catch (const std::exception& e)
+        {
+            std::cout << "[ZibraVDB] Error parsing frame from: " << vdbPath << ", defaulting to frame 0. Error: " << e.what() << std::endl;
+            return 0;
+        }
     }
 
-    std::string ZibraVDBOutputProcessor::generateOutputFilePath(std::string sequenceID)
-    {
-        // TODO: Get from actual export path from config node
-        std::string outputDir = "C:/src/usd/ZibraAI/output/compressed";
-        std::filesystem::create_directories(outputDir);
-        // TODO: Get from actual export path from marker node
-        return outputDir + "/" + sequenceID + ".zibravdb";
-    }
-    
-    std::string ZibraVDBOutputProcessor::generateOutputFilePathFromMarker(ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker* markerNode, const std::string& sequenceID, fpreal t)
-    {
-        if (!markerNode)
-        {
-            return generateOutputFilePath(sequenceID);  // Fallback to default
-        }
-        
-        std::string outputDir = markerNode->getOutputDirectory(t);
-        std::string outputFilename = markerNode->getOutputFilename(t);
-        
-        // Replace $OS with the sequence ID if present in the filename
-        std::regex osToken("\\$OS");
-        outputFilename = std::regex_replace(outputFilename, osToken, sequenceID);
-        
-        // If no extension specified, add .zibravdb
-        if (outputFilename.find(".zibravdb") == std::string::npos)
-        {
-            outputFilename += ".zibravdb";
-        }
-        
-        std::filesystem::create_directories(outputDir);
-        std::filesystem::path fullPath = std::filesystem::path(outputDir) / outputFilename;
-        
-        return fullPath.string();
-    }
+//    std::string ZibraVDBOutputProcessor::generateOutputFilePath(std::string sequenceID)
+//    {
+//        // TODO: Get from actual export path from config node
+//        std::string outputDir = "C:/src/usd/ZibraAI/output/compressed";
+//        std::filesystem::create_directories(outputDir);
+//        // TODO: Get from actual export path from marker node
+//        return outputDir + "/" + sequenceID + ".zibravdb";
+//    }
+//
+//    std::string ZibraVDBOutputProcessor::generateOutputFilePathFromMarker(ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker* markerNode, const std::string& sequenceID, fpreal t)
+//    {
+//        if (!markerNode)
+//        {
+//            return generateOutputFilePath(sequenceID);  // Fallback to default
+//        }
+//
+//        std::string outputDir = markerNode->getOutputDirectory(t);
+//        std::string outputFilename = markerNode->getOutputFilename(t);
+//
+//        // Replace $OS with the sequence ID if present in the filename
+//        std::regex osToken("\\$OS");
+//        outputFilename = std::regex_replace(outputFilename, osToken, sequenceID);
+//
+//        // If no extension specified, add .zibravdb
+//        if (outputFilename.find(".zibravdb") == std::string::npos)
+//        {
+//            outputFilename += ".zibravdb";
+//        }
+//
+//        std::filesystem::create_directories(outputDir);
+//        std::filesystem::path fullPath = std::filesystem::path(outputDir) / outputFilename;
+//
+//        return fullPath.string();
+//    }
 } // namespace Zibra::ZibraVDBOutputProcessor
