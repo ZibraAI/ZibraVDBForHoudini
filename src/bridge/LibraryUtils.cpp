@@ -13,7 +13,7 @@
     ZCE_COMPRESSOR_API_APPLY(macro) \
     ZCE_DECOMPRESSION_API_APPLY(macro) \
     ZCE_LICENSING_API_APPLY(macro) \
-    ZCE_TRIAL_API_APPLY(macro) 
+    ZCE_TRIAL_API_APPLY(macro)
 
 // clang-format on
 
@@ -112,21 +112,20 @@ namespace Zibra::LibraryUtils
     bool LoadFunctions() noexcept
     {
 #if ZIB_TARGET_OS_WIN
-#define ZIB_LOAD_FUNCTION_POINTER(functionName)                                                                          \
+#define ZIB_LOAD_FUNCTION_POINTER(functionName)                                                                             \
     functionName = reinterpret_cast<ZCE_PFN(functionName)>(::GetProcAddress(g_LibraryHandle, ZIB_STRINGIFY(functionName))); \
-    if (functionName == nullptr)                                                                                         \
-    {                                                                                                                    \
-        MessageBoxA(NULL, ZIB_STRINGIFY(functionName), ZIB_STRINGIFY(functionName), NULL);        \
-        return false;                                                                                                    \
+    if (functionName == nullptr)                                                                                            \
+    {                                                                                                                       \
+        return false;                                                                                                       \
     }
         ZSDK_RUNTIME_FUNCTION_LIST_APPLY(ZIB_LOAD_FUNCTION_POINTER)
 #undef ZIB_LOAD_FUNCTION_POINTER
 #elif ZIB_TARGET_OS_LINUX || ZIB_TARGET_OS_MAC
-#define ZIB_LOAD_FUNCTION_POINTER(functionName)                                                    \
+#define ZIB_LOAD_FUNCTION_POINTER(functionName)                                                                  \
     functionName = reinterpret_cast<ZCE_PFN(functionName)>(dlsym(g_LibraryHandle, ZIB_STRINGIFY(functionName))); \
-    if (functionName == nullptr)                                                                   \
-    {                                                                                              \
-        return false;                                                                              \
+    if (functionName == nullptr)                                                                                 \
+    {                                                                                                            \
+        return false;                                                                                            \
     }
         ZSDK_RUNTIME_FUNCTION_LIST_APPLY(ZIB_LOAD_FUNCTION_POINTER)
 #undef ZIB_LOAD_FUNCTION_POINTER
@@ -262,8 +261,9 @@ namespace Zibra::LibraryUtils
         {
             return "";
         }
-        std::string result= std::to_string(g_CompressionLibraryVersion.major) + "." + std::to_string(g_CompressionLibraryVersion.minor) + "." +
-                  std::to_string(g_CompressionLibraryVersion.patch) + "." + std::to_string(g_CompressionLibraryVersion.build);
+        std::string result = std::to_string(g_CompressionLibraryVersion.major) + "." + std::to_string(g_CompressionLibraryVersion.minor) +
+                             "." + std::to_string(g_CompressionLibraryVersion.patch) + "." +
+                             std::to_string(g_CompressionLibraryVersion.build);
         result += " / ";
         result += std::to_string(g_DecompressionLibraryVersion.major) + "." + std::to_string(g_DecompressionLibraryVersion.minor) + "." +
                   std::to_string(g_DecompressionLibraryVersion.patch) + "." + std::to_string(g_DecompressionLibraryVersion.build);
