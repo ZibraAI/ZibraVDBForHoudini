@@ -201,7 +201,7 @@ namespace Zibra::Utils
         visitedNodes.insert(node);
             
         // Check if this node is a compression marker
-        if (node->getOperator()->getName().contains("zibravdb_mark_for_compression"))
+        if (node->getOperator()->getName().contains("zibravdb_compression"))
         {
             std::cout << "[ZibraVDB] Found marker node: " << node->getName().toStdString() 
                       << " (op: " << node->getOperator()->getName().toStdString() << ")" << std::endl;
