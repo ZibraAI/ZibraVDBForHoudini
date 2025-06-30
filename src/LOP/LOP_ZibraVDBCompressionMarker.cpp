@@ -2,9 +2,6 @@
 #include "LOP_ZibraVDBCompressionMarker.h"
 #include <HUSD/HUSD_DataHandle.h>
 #include <HUSD/XUSD_Data.h>
-#include <HUSD/HUSD_Utils.h>
-#include <HUSD/HUSD_Constants.h>
-#include <LOP/LOP_Error.h>
 #include <UT/UT_StringHolder.h>
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usd/usd/prim.h>
@@ -14,7 +11,16 @@
 #include <pxr/usd/sdf/assetPath.h>
 #include <pxr/base/tf/token.h>
 #include <pxr/base/vt/value.h>
+#include <pxr/usd/sdf/layer.h>
+#include <HUSD/XUSD_Utils.h>
+#include <HUSD/HUSD_ConfigureLayer.h>
+#include <HUSD/HUSD_FindPrims.h>
+#include <LOP/LOP_PRMShared.h>
 #include <iostream>
+#include <regex>
+#include <filesystem>
+#include <algorithm>
+#include <cctype>
 
 PXR_NAMESPACE_USING_DIRECTIVE
 
@@ -33,6 +39,7 @@ namespace Zibra::ZibraVDBCompressionMarker
     static PRM_Name PRMqualityName("quality", "Compression Quality");
     static PRM_Default PRMqualityDefault(0.6f);  // Default quality of 0.6
     static PRM_Range PRMqualityRange(PRM_RANGE_RESTRICTED, 0.0f, PRM_RANGE_RESTRICTED, 1.0f);
+    
     OP_Node* LOP_ZibraVDBCompressionMarker::Constructor(OP_Network* net, const char* name, OP_Operator* op) noexcept
     {
         return new LOP_ZibraVDBCompressionMarker{net, name, op};
@@ -55,89 +62,67 @@ namespace Zibra::ZibraVDBCompressionMarker
     {
     }
 
-    OP_ERROR LOP_ZibraVDBCompressionMarker::cookMyLop(OP_Context& context)
+    OP_ERROR LOP_ZibraVDBCompressionMarker::cookMyLop(OP_Context &context)
     {
-        // Make this node time-dependent so it cooks every frame
-        flags().setTimeDep(true);
+        if (cookModifyInput(context) >= UT_ERROR_FATAL)
+            return error();
+
+        // Get the current time for other parameter evaluation
+        fpreal t = context.getTime();
         
-        HUSD_DataHandle &dataHandle = editableDataHandle();
-        if (nInputs() > 0)
+        // Build the save path using parameters
+        std::string outputDir = getOutputDirectory(t);
+        std::string outputFilename = getOutputFilename(t);
+        
+        // Get marker node name in lowercase for filename
+        std::string markerNodeName = getName().toStdString();
+        std::transform(markerNodeName.begin(), markerNodeName.end(), markerNodeName.begin(), ::tolower);
+        
+        std::string upstreamNodeName = "unknown";
+        if (nInputs() > 0 && getInput(0))
         {
-            HUSD_DataHandle inputHandle = lockedInputData(context, 0);
-            if (inputHandle.hasData())
-            {
-                dataHandle = inputHandle;
-            }
-            else
-            {
-                addError(LOP_MESSAGE, "Input data handle is empty. Cannot mark for compression.");
-                return error();
-            }
-        }
-        else
-        {
-            addError(LOP_MESSAGE, "ZibraVDBCompressionMarker node requires at least one input");
-            return error();
+            upstreamNodeName = getInput(0)->getName().toStdString();
+            std::transform(upstreamNodeName.begin(), upstreamNodeName.end(), upstreamNodeName.begin(), ::tolower);
         }
 
-        // Now modify the stage with write lock
-        HUSD_AutoWriteLock lock(dataHandle);
-        if (!lock.isStageValid())
+        std::string layerName = markerNodeName + "_" + upstreamNodeName;
+
+        // Replace $OS token with the generated layer name if present
+        if (outputFilename.find("$OS") != std::string::npos)
         {
-            addError(LOP_MESSAGE, "Failed to acquire write lock for adding compression metadata.");
-            return error();
+            std::regex osToken("\\$OS");
+            outputFilename = std::regex_replace(outputFilename, osToken, layerName);
         }
-
-        UsdStageRefPtr stage = lock.data()->stage();
-        if (!stage)
-            return error();
-
-        UsdPrimRange primRange = stage->Traverse();
-        for (UsdPrim prim : primRange)
+        else if (outputFilename == "ZibraVDBCompressor")
         {
-            if (!prim.IsValid() || !prim.IsActive())
-                continue;
-
-            // Example: Match USD Volume prims
-            if (prim.GetTypeName() == TfToken("Volume"))
-            {
-                std::cout << "Found volume: " << prim.GetPath() << std::endl;
-
-                // Print reference paths, if present
-                if (prim.HasAuthoredReferences())
-                {
-                    const UsdReferences &refs = prim.GetReferences();
-                    std::cout << "  Has references." << std::endl;
-                    // (you may need to inspect the reference list here)
-                }
-
-                // Also look for OpenVDB asset children
-                for (const UsdPrim &child : prim.GetChildren())
-                {
-                    if (child.GetTypeName() == TfToken("OpenVDBAsset"))
-                    {
-                        std::cout << "  OpenVDBAsset child: " << child.GetPath() << std::endl;
-
-                        UsdAttribute fileAttr = child.GetAttribute(TfToken("filePath"));
-                        if (fileAttr.HasAuthoredValue())
-                        {
-                            SdfAssetPath asset;
-                            fileAttr.Get(&asset);
-                            std::cout << "    File: " << asset.GetResolvedPath() << std::endl;
-                        }
-                    }
-                }
-
-                // Add ZibraVDB compression marker metadata
-                std::string markerIdentifier = getName().toStdString() + "_" + std::to_string(getUniqueId());
-                prim.SetCustomDataByKey(TfToken("zibravdb:compression_marker"), VtValue(markerIdentifier));
-                
-                std::cout << "  Tagged with ZibraVDB marker: " << markerIdentifier << std::endl;
-            }
+            // If using default, replace with our generated name
+            outputFilename = layerName;
         }
+        
+        // Ensure the filename has .usda extension
+        if (outputFilename.find(".usda") == std::string::npos && outputFilename.find(".usd") == std::string::npos)
+        {
+            outputFilename += ".usda";
+        }
+        
+        std::string layerPath = outputDir + "/" + outputFilename;
+
+        // Create the output directory
+        std::filesystem::create_directories(outputDir);
+
+        // Use editableDataHandle to get write access to our data handle
+        HUSD_AutoWriteLock writelock(editableDataHandle());
+        HUSD_AutoLayerLock layerlock(writelock);
+
+        // Configure the layer for saving to the specified path
+        HUSD_ConfigureLayer configure_layer(writelock);
+        configure_layer.setSavePath(layerPath.c_str(), false); // false = don't flatten
+        
+        std::cout << "[ZibraVDB] Configured layer save to: " << layerPath << std::endl;
 
         return error();
     }
+
 
     bool LOP_ZibraVDBCompressionMarker::updateParmsFlags()
     {
