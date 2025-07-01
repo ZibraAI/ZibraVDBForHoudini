@@ -342,15 +342,15 @@ namespace Zibra::LibraryUtils
 //            }
 //
 //            // Log all registered plugins
-//            std::cout << "=== All Registered Plugins ===" << std::endl;
-//            auto& registry = PXR_NS::PlugRegistry::GetInstance();
-//            auto allPlugins = registry.GetAllPlugins();
-//            for (const auto& plugin : allPlugins)
-//            {
-//                std::cout << "Plugin: " << plugin->GetName() << " at " << plugin->GetPath() << std::endl;
-//            }
+            std::cout << "=== AAAAAAAAAAAAAAAAAAAAAll Registered Plugins ===" << std::endl;
+            auto& registry = PXR_NS::PlugRegistry::GetInstance();
+            auto allPlugins = registry.GetAllPlugins();
+            for (const auto& plugin : allPlugins)
+            {
+                std::cout << "Plugin: " << plugin->GetName() << " at " << plugin->GetPath() << std::endl;
+            }
             
-            PXR_NS::TfType resolverType = PXR_NS::TfType::FindByName("ZibraVDBAssetResolver");
+            PXR_NS::TfType resolverType = PXR_NS::TfType::FindByName("zibraVDBResolver");
             std::cout<< "=== Resolver Type: " << resolverType.GetTypeName() << " ===" << std::endl;
             bool isUnknown = resolverType.IsUnknown();
             std::cout<< "=== IsUnknown: " << isUnknown << " ===" << std::endl;
@@ -387,13 +387,15 @@ namespace Zibra::LibraryUtils
                     continue;
                 }
 
-                std::filesystem::path resourcePath = std::filesystem::path(libraryPath).parent_path() / "resources";
+                std::filesystem::path resourcePath = std::filesystem::path(libraryPath).parent_path()/"resources";
                 std::cout << "  -> Resource path: " << resourcePath.string() << std::endl;
                 
                 if (std::filesystem::exists(resourcePath) && std::filesystem::is_directory(resourcePath))
                 {
                     std::cout << "  -> Resource directory exists, registering plugins" << std::endl;
-                    PXR_NS::PlugRegistry::GetInstance().RegisterPlugins(resourcePath.string());
+                    std::string pathStr = resourcePath.string();
+                    std::replace(pathStr.begin(), pathStr.end(), '\\', '/');
+                    PXR_NS::PlugRegistry::GetInstance().RegisterPlugins(pathStr);
                     
                     if (IsAssetResolverRegistered())
                     {

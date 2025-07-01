@@ -69,7 +69,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         const PI_EditScriptedParms *parameters() const override;
 
     private:
-        std::string processSOPCreateNode(const std::string& layerPath);
+        void compressInMemoryGrids(ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker* markerNode);
 
         void processDeferredSequence(const CompressionSequenceEntry& vdbFiles);
 

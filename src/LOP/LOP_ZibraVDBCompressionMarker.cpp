@@ -16,6 +16,8 @@
 #include <HUSD/HUSD_ConfigureLayer.h>
 #include <HUSD/HUSD_FindPrims.h>
 #include <LOP/LOP_PRMShared.h>
+#include <PRM/PRM_ConditionalType.h>
+#include <PRM/PRM_Conditional.h>
 #include <iostream>
 #include <regex>
 #include <filesystem>
@@ -39,6 +41,20 @@ namespace Zibra::ZibraVDBCompressionMarker
     static PRM_Name PRMqualityName("quality", "Compression Quality");
     static PRM_Default PRMqualityDefault(0.6f);  // Default quality of 0.6
     static PRM_Range PRMqualityRange(PRM_RANGE_RESTRICTED, 0.0f, PRM_RANGE_RESTRICTED, 1.0f);
+
+    static PRM_Name prm_name_primitives("primitives", "Primitives");
+    static PRM_Name thePrimPathName("primpath", "Primitive Path");
+    static PRM_Name prm_label_primitives_enable("enable_primitives", "");
+    static PRM_Default prm_default_enable(1);
+    static PRM_Conditional disable_when(
+        "{ enable_primitives == 0 }",
+        PRM_ConditionalType::PRM_CONDTYPE_DISABLE
+    );
+    static PRM_SpareData theUsdPrimChooser(PRM_SpareArgs()
+                                           << PRM_SpareToken("usdpathtype", "prim")
+                                           << PRM_SpareToken("usdpathinput", "0")
+    );
+    static PRM_Name theSopPathName("soppath", "SOP Path");
     
     OP_Node* LOP_ZibraVDBCompressionMarker::Constructor(OP_Network* net, const char* name, OP_Operator* op) noexcept
     {
@@ -48,6 +64,19 @@ namespace Zibra::ZibraVDBCompressionMarker
     PRM_Template* LOP_ZibraVDBCompressionMarker::GetTemplateList() noexcept
     {
         static PRM_Template templateList[] = {
+            PRM_Template(PRM_TOGGLE, 1, &prm_label_primitives_enable, &prm_default_enable),
+            //PRM_Template(PRM_STRING, 1, &prm_name_primitives, nullptr, nullptr, nullptr, 0, &PRM_SpareData::lopPath, nullptr, 0, nullptr, "disablewhen { { enable_primitives == 0 } }"),
+//            PRM_Template(
+//                PRM_STRING, 1, &theSopPathName, nullptr,
+//                nullptr, nullptr, &PRM_SpareData::sopPath
+//                ),
+            PRM_Template(
+                PRM_STRING, 1,
+                new PRM_Name("soppath", "SOP Path"),
+                nullptr,
+                nullptr, nullptr, 0,
+                &PRM_SpareData::sopPath
+                ),
             PRM_Template(PRM_STRING, 1, &PRMoutputDirName, &PRMoutputDirDefault),
             PRM_Template(PRM_STRING, 1, &PRMoutputFilenameName, &PRMoutputFilenameDefault),
             PRM_Template(PRM_FLT_J, 1, &PRMqualityName, &PRMqualityDefault, 0, &PRMqualityRange),
