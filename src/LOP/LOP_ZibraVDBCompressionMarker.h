@@ -24,6 +24,9 @@ namespace Zibra::ZibraVDBCompressionMarker
         std::string getOutputFilename(fpreal t) const;
         float getCompressionQuality(fpreal t) const;
         bool getRemoveOriginalFiles(fpreal t) const;
+
+    private:
+        std::string getOutputDirectoryRaw(fpreal t) const;
     };
 
     class LOP_ZibraVDBCompressionMarker_Operator final : public OP_Operator
