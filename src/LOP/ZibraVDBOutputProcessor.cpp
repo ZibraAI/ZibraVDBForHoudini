@@ -149,16 +149,6 @@ namespace Zibra::ZibraVDBOutputProcessor
 
     void ZibraVDBOutputProcessor::compressInMemoryGrids(ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker* markerNode)
     {
-        //        std::filesystem::path path(layerPath);
-        //        std::string layerFileName = path.stem().string();
-        //
-        //        auto markerNode = findMarkerNodeByName(layerFileName);
-        //        if (!markerNode)
-        //        {
-        //            std::cout << "[ZibraVDB] Could not find marker node: " << layerFileName << std::endl;
-        //            return;
-        //        }
-
         auto entry = std::find_if(m_InMemoryCompressionEntries.begin(), m_InMemoryCompressionEntries.end(),
                                   [markerNode](const CompressionSequenceEntry& entry) { return markerNode == entry.markerNode; });
 
@@ -189,14 +179,9 @@ namespace Zibra::ZibraVDBOutputProcessor
             }
         }
 
-        Zibra::Utils::ZibraUSDUtils::SearchUpstreamForSOPCreate(markerNode, m_curTime, [this, cm = entry->compressorManager](SOP_Node* sopNode, fpreal time) {
-            this->extractVDBFromSOP(sopNode, time, cm);
-        });
-//        SOP_Node* sopNode = Zibra::Utils::ZibraUSDUtils::FindFirstSOPCreateNode(markerNode, m_curTime);
-//        if (sopNode)
-//        {
-//            this->extractVDBFromSOP(sopNode, m_curTime, entry->compressorManager);
-//        }
+        Zibra::Utils::ZibraUSDUtils::SearchUpstreamForSOPNode(
+            markerNode, m_curTime,
+            [this, cm = entry->compressorManager](SOP_Node* sopNode, fpreal time) { this->extractVDBFromSOP(sopNode, time, cm); });
     }
 
     void ZibraVDBOutputProcessor::processDeferredSequence(const CompressionSequenceEntry& deferredEntry)
@@ -320,39 +305,8 @@ namespace Zibra::ZibraVDBOutputProcessor
                 sequence->vdbFiles.push_back(pathStr);
             }
 
-            //            if (std::filesystem::exists(pathStr))
-//            {
-//                auto sequence =
-//                    std::find_if(m_DeferredCompressions.begin(), m_DeferredCompressions.end(),
-//                                 [curMarkerNode](const CompressionSequenceEntry& entry) { return entry.markerNode == curMarkerNode; });
-//                if (sequence == m_DeferredCompressions.end())
-//                {
-//                    m_DeferredCompressions.push_back({curMarkerNode, nullptr, {pathStr}, newFileName});
-//                }
-//                else
-//                {
-//                    sequence->vdbFiles.push_back(pathStr);
-//                }
-//            }
-//            else
-//            {
-//                auto sequence =
-//                    std::find_if(m_InMemoryCompressionEntries.begin(), m_InMemoryCompressionEntries.end(),
-//                                 [curMarkerNode](const CompressionSequenceEntry& entry) { return entry.markerNode == curMarkerNode; });
-//                if (sequence == m_InMemoryCompressionEntries.end())
-//                {
-//                    m_InMemoryCompressionEntries.push_back({});
-//                    sequence = std::prev(m_InMemoryCompressionEntries.end());
-//                    sequence->markerNode = curMarkerNode;
-//                    sequence->outputFile = newFileName;
-//                }
-//                sequence->vdbFiles.push_back(pathStr);
-//            }
-
-//            std::cout << "[ZibraVDB] Trying to redirect to: " << newFileName << std::endl;
             int frameIndex = parseFrameIndexFromVDBPath(pathStr);
             newpath = "zibravdb://" + newFileName + "?frame=" + std::to_string(frameIndex);
-//            std::cout << "[ZibraVDB] Reference vdb path redirected to: " << newpath << std::endl;
 
             if (!std::filesystem::exists(pathStr))
             {
@@ -361,17 +315,6 @@ namespace Zibra::ZibraVDBOutputProcessor
 
             return true;
         }
-//        else if (pathStr.find("op:/stage/") == 0 && pathStr.find("sopcreate") == std::string::npos)
-//        {
-////            std::string layerPath = referencing_layer_path.toStdString();
-////            auto zibraVDBFilePath = compressInMemoryGrids(layerPath);
-////            newpath = "zibravdb://" + zibraVDBFilePath + "?frame=0";
-////            std::cout << "[ZibraVDB] Reference op path redirected to: " << newpath << std::endl;
-////            return true;
-//            newpath = "testtesttest";
-//            std::cout << "[ZibraVDB] Reference op path redirected to: " << newpath << std::endl;
-//            return true;
-//        }
         std::cout << "[ZibraVDB] Reference path didnt processed: " << asset_path.toStdString() << std::endl;
         return false;
     }

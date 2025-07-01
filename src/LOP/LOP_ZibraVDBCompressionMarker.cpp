@@ -129,8 +129,7 @@ namespace Zibra::ZibraVDBCompressionMarker
                                     // Look through all nodes in the LOP network
                                     for (int i = 0; i < lopNetwork->getNchildren(); i++) {
                                         OP_Node* child = lopNetwork->getChild(i);
-                                        if (child && (child->getOperator()->getName() == "sopimport" ||
-                                                      child->getOperator()->getName() == "sopcreate")) {
+                                        if (child && child->getOperator()->getName() == "sopimport") {
                                             // Check if this SOP Import references our SOP
                                             UT_String sopPath;
                                             child->evalString(sopPath, "soppath", 0, 0);
