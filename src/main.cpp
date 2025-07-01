@@ -1,14 +1,14 @@
 #include "PrecompiledHeader.h"
 
 // This header must be included exactly once in the plugin!
+#include <HUSD/HUSD_OutputProcessor.h>
 #include <UT/UT_DSOVersion.h>
+#include <bridge/LibraryUtils.h>
 
 #include "LOP/LOP_ZibraVDBCompressionMarker.h"
 #include "LOP/ZibraVDBOutputProcessor.h"
 #include "ROP/ROP_ZibraVDBCompressor.h"
 #include "SOP/SOP_ZibraVDBDecompressor.h"
-
-#include <HUSD/HUSD_OutputProcessor.h>
 
 extern "C" {
     SYS_VISIBILITY_EXPORT void newSopOperator(OP_OperatorTable* table)
@@ -32,6 +32,8 @@ extern "C" {
             ZibraVDBOutputProcessor::createZibraVDBOutputProcessor
         );
         std::cout << "[ZibraVDB] Output processor registration complete" << std::endl;
+
+        Zibra::LibraryUtils::RegisterAssetResolver();
     }
 
     SYS_VISIBILITY_EXPORT void newDriverOperator(OP_OperatorTable* table)
