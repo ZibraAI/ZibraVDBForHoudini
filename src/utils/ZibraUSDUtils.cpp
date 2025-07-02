@@ -2,35 +2,9 @@
 #include "ZibraUSDUtils.h"
 #include <iostream>
 
-namespace Zibra::Utils
+namespace Zibra::Utils::USD
 {
-//    void ZibraUSDUtils::DetectCompressionMarkerNodes(OP_Node* lop_node, OP_Node* config_node, std::vector<OP_Node*>& markerNodes)
-//    {
-//        std::cout << "[ZibraVDB] Detecting compression marker nodes..." << std::endl;
-//
-//        // Start from the USD ROP input chain
-//        OP_Node* startNode = lop_node ? lop_node : config_node;
-//        if (!startNode)
-//        {
-//            std::cout << "[ZibraVDB] No starting node available" << std::endl;
-//            return;
-//        }
-//
-//        std::cout << "[ZibraVDB] Starting detection from: " << startNode->getName().toStdString() << std::endl;
-//
-//        // Recursively search through the input chain for marker nodes
-//        std::set<OP_Node*> visitedNodes;
-//        searchForMarkerNodesRecursive(startNode, markerNodes, visitedNodes);
-//
-//        std::cout << "[ZibraVDB] Detection complete. Found " << markerNodes.size() << " marker nodes:" << std::endl;
-//        for (size_t i = 0; i < markerNodes.size(); ++i)
-//        {
-//            std::cout << "[ZibraVDB]   " << (i+1) << ". " << markerNodes[i]->getName().toStdString()
-//                      << " (" << markerNodes[i]->getOperator()->getName().toStdString() << ")" << std::endl;
-//        }
-//    }
-
-    void ZibraUSDUtils::SearchUpstreamForSOPNode(OP_Node* markerNode, fpreal t, std::function<void(SOP_Node*, fpreal)> extractVDBCallback)
+    void SearchUpstreamForSOPNode(OP_Node* markerNode, fpreal t, std::function<void(SOP_Node*, fpreal)> extractVDBCallback)
     {
         if (!markerNode)
             return;
@@ -39,7 +13,7 @@ namespace Zibra::Utils
         SearchUpstreamForSOPNodesRecursive(markerNode, t, visitedNodes, extractVDBCallback);
     }
 
-    void ZibraUSDUtils::TraverseSOPNodes(OP_Node* lop_node, fpreal t, std::function<void(SOP_Node*, fpreal)> extractVDBCallback)
+    void TraverseSOPNodes(OP_Node* lop_node, fpreal t, std::function<void(SOP_Node*, fpreal)> extractVDBCallback)
     {
         if (!lop_node)
             return;
@@ -189,42 +163,7 @@ namespace Zibra::Utils
         }
     }
 
-//    void ZibraUSDUtils::searchForMarkerNodesRecursive(OP_Node* node, std::vector<OP_Node*>& markerNodes, std::set<OP_Node*>& visitedNodes)
-//    {
-//        if (!node)
-//            return;
-//
-//        // Check if we've already visited this node to prevent infinite loops
-//        if (visitedNodes.find(node) != visitedNodes.end())
-//        {
-//            return;
-//        }
-//        visitedNodes.insert(node);
-//
-//        // Check if this node is a compression marker
-//        if (node->getOperator()->getName().contains("zibravdb_compression"))
-//        {
-//            std::cout << "[ZibraVDB] Found marker node: " << node->getName().toStdString()
-//                      << " (op: " << node->getOperator()->getName().toStdString() << ")" << std::endl;
-//            markerNodes.push_back(node);
-//        }
-//
-//        // ONLY traverse the input chain - don't search through all children of networks
-//        // This ensures we only find nodes that are actually connected to the USD ROP
-//        for (int i = 0; i < node->nInputs(); ++i)
-//        {
-//            OP_Node* input = node->getInput(i);
-//            if (input)
-//            {
-//                searchForMarkerNodesRecursive(input, markerNodes, visitedNodes);
-//            }
-//        }
-//
-//        // Do NOT search through network children - that would find unconnected nodes
-//        // Only traverse the actual input connections
-//    }
-
-    void ZibraUSDUtils::SearchUpstreamForSOPNodesRecursive(OP_Node* node, fpreal t, std::set<OP_Node*>& visitedNodes, std::function<void(SOP_Node*, fpreal)> extractVDBCallback)
+    void SearchUpstreamForSOPNodesRecursive(OP_Node* node, fpreal t, std::set<OP_Node*>& visitedNodes, std::function<void(SOP_Node*, fpreal)> extractVDBCallback)
     {
         if (!node || visitedNodes.find(node) != visitedNodes.end())
             return;
@@ -251,4 +190,22 @@ namespace Zibra::Utils
         }
     }
 
-} // namespace Zibra::Utils
+    ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker* findMarkerNodeByName(const std::string& nodeName)
+    {
+        OP_Node* rootNode = OPgetDirector()->findNode("/stage");
+        if (!rootNode || !rootNode->isNetwork())
+        {
+            return nullptr;
+        }
+
+        auto stageNetwork = static_cast<OP_Network*>(rootNode);
+        OP_Node* node = stageNetwork->findNode(nodeName.c_str());
+        if (node && dynamic_cast<ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker*>(node))
+        {
+            return static_cast<ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker*>(node);
+        }
+
+        return nullptr;
+    }
+
+} // namespace Zibra::Utils::USD

@@ -21,7 +21,7 @@ namespace Zibra::ZibraVDBOutputProcessor
 {
     using namespace CE::Compression;
 
-    constexpr const char* OUTPUT_PROCESSOR_NAME = "ZibraVDBCompressor";
+    constexpr const char* OUTPUT_PROCESSOR_NAME = "ZibraVDBCompressionProcessor";
 
     class ZibraVDBOutputProcessor : public HUSD_OutputProcessor
     {
@@ -34,13 +34,6 @@ namespace Zibra::ZibraVDBOutputProcessor
             std::string outputFile;
         };
 
-//        struct DeferredCompressionEntry
-//        {
-//            std::vector<std::string> vdbFiles;
-//            std::string outputFile;
-//            ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker* markerNode = nullptr;
-//        };
-
     public:
         ZibraVDBOutputProcessor();
         ~ZibraVDBOutputProcessor() override;
@@ -50,12 +43,6 @@ namespace Zibra::ZibraVDBOutputProcessor
                       OP_Node *lop_node,
                       fpreal t,
                       const UT_Options &stage_variables) override;
-
-        bool processSavePath(const UT_StringRef &asset_path,
-                            const UT_StringRef &referencing_layer_path,
-                            bool asset_is_layer,
-                            UT_String &newpath,
-                            UT_String &error) override;
 
         bool processReferencePath(const UT_StringRef &asset_path,
                                  const UT_StringRef &referencing_layer_path,
@@ -75,8 +62,6 @@ namespace Zibra::ZibraVDBOutputProcessor
 
         void extractVDBFromSOP(SOP_Node* sopNode, fpreal t, CompressorManager* compressorManager);
         
-        ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker* findMarkerNodeByName(const std::string& nodeName) const;
-        
         int parseFrameIndexFromVDBPath(const std::string& vdbPath) const;
 
     private:
@@ -84,10 +69,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         std::vector<CompressionSequenceEntry> m_DeferredCompressions;
 
         PI_EditScriptedParms *m_Parameters;
-        fpreal m_curTime;
-
-//        std::string generateOutputFilePath(std::string sequenceID);
-//        std::string generateOutputFilePathFromMarker(ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker* markerNode, const std::string& sequenceID, fpreal t);
+        fpreal m_CurTime;
     };
 
     HUSD_OutputProcessorPtr createZibraVDBOutputProcessor();

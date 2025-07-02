@@ -1,29 +1,23 @@
 #pragma once
 
-#include <OP/OP_Node.h>
-#include <SOP/SOP_Node.h>
+#include <GA/GA_Iterator.h>
 #include <GU/GU_Detail.h>
 #include <GU/GU_PrimVDB.h>
-#include <GA/GA_Iterator.h>
 #include <LOP/LOP_Node.h>
+#include <LOP/LOP_ZibraVDBCompressionMarker.h>
+#include <OP/OP_Node.h>
+#include <SOP/SOP_Node.h>
 #include <UT/UT_StringHolder.h>
-#include <vector>
+#include <functional>
 #include <set>
 #include <string>
-#include <functional>
+#include <vector>
 
-namespace Zibra::Utils
+namespace Zibra::Utils::USD
 {
-    class ZibraUSDUtils
-    {
-    public:
-//        static void DetectCompressionMarkerNodes(OP_Node* lop_node, OP_Node* config_node, std::vector<OP_Node*>& markerNodes);
-        static void SearchUpstreamForSOPNode(OP_Node* markerNode, fpreal t, std::function<void(SOP_Node*, fpreal)> extractVDBCallback);
+    void SearchUpstreamForSOPNode(OP_Node* markerNode, fpreal t, std::function<void(SOP_Node*, fpreal)> extractVDBCallback);
+    ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker* findMarkerNodeByName(const std::string& nodeName);
 
-    private:
-        static void TraverseSOPNodes(OP_Node* lop_node, fpreal t, std::function<void(SOP_Node*, fpreal)> extractVDBCallback);
-//        static void searchForMarkerNodesRecursive(OP_Node* node, std::vector<OP_Node*>& markerNodes, std::set<OP_Node*>& visitedNodes);
-        static void SearchUpstreamForSOPNodesRecursive(OP_Node* node, fpreal t, std::set<OP_Node*>& visitedNodes, std::function<void(SOP_Node*, fpreal)> extractVDBCallback);
-    };
-
-} // namespace Zibra::Utils
+    void TraverseSOPNodes(OP_Node* lop_node, fpreal t, std::function<void(SOP_Node*, fpreal)> extractVDBCallback);
+    void SearchUpstreamForSOPNodesRecursive(OP_Node* node, fpreal t, std::set<OP_Node*>& visitedNodes, std::function<void(SOP_Node*, fpreal)> extractVDBCallback);
+} // namespace Zibra::Utils::USD
