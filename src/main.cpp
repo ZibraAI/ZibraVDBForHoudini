@@ -25,14 +25,8 @@ extern "C" {
 
         table->addOperator(new ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker_Operator());
 
-        // Register the output processor
-        std::cout << "[ZibraVDB] Registering output processor: " << ZibraVDBOutputProcessor::OUTPUT_PROCESSOR_NAME << std::endl;
-        HUSD_OutputProcessorRegistry::get().registerOutputProcessor(
-            ZibraVDBOutputProcessor::OUTPUT_PROCESSOR_NAME,
-            ZibraVDBOutputProcessor::createZibraVDBOutputProcessor
-        );
-        std::cout << "[ZibraVDB] Output processor registration complete" << std::endl;
-
+        HUSD_OutputProcessorRegistry::get().registerOutputProcessor(ZibraVDBOutputProcessor::OUTPUT_PROCESSOR_NAME,
+                                                                    ZibraVDBOutputProcessor::createZibraVDBOutputProcessor);
         Zibra::LibraryUtils::RegisterAssetResolver();
     }
 
@@ -42,11 +36,4 @@ extern "C" {
 
         table->addOperator(new ZibraVDBCompressor::ROP_ZibraVDBCompressor_Operator(ContextType::OUT));
     }
-
-    /*SYS_VISIBILITY_EXPORT void newGeometryPrim(OP_OperatorTable* table)
-    {
-        using namespace Zibra;
-
-        ZibraVDBPluginRegistry::GetInstance().Initialize();
-    }*/
 }

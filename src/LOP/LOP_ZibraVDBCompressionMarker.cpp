@@ -65,6 +65,8 @@ namespace Zibra::ZibraVDBCompressionMarker
 
     OP_ERROR LOP_ZibraVDBCompressionMarker::cookMyLop(OP_Context &context)
     {
+        flags().setTimeDep(true);
+
         if (cookModifyInput(context) >= UT_ERROR_FATAL)
             return error();
 
@@ -137,9 +139,9 @@ namespace Zibra::ZibraVDBCompressionMarker
         return outputFilename.toStdString();
     }
     
-    float LOP_ZibraVDBCompressionMarker::getCompressionQuality(fpreal t) const
+    float LOP_ZibraVDBCompressionMarker::getCompressionQuality() const
     {
-        return static_cast<float>(evalFloat("quality", 0, t));
+        return static_cast<float>(evalFloat("quality", 0, 0));
     }
     
     bool LOP_ZibraVDBCompressionMarker::getRemoveOriginalFiles(fpreal t) const

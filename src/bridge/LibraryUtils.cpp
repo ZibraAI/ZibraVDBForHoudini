@@ -251,9 +251,6 @@ namespace Zibra::LibraryUtils
         }
 
         g_IsLibraryLoaded = true;
-        
-        // Register asset resolver if not already registered
-        RegisterAssetResolver();
     }
 
     bool IsLibraryLoaded() noexcept
@@ -323,103 +320,42 @@ namespace Zibra::LibraryUtils
 
     bool IsAssetResolverRegistered() noexcept
     {
-        try
-        {
-            // Log environment variables
-            std::cout << "=== Plugin Environment Check ===" << std::endl;
-            if (const char* pluginPath = std::getenv("PXR_PLUGINPATH_NAME"))
-            {
-                std::cout << "PXR_PLUGINPATH_NAME: " << pluginPath << std::endl;
-            }
-            else
-            {
-                std::cout << "PXR_PLUGINPATH_NAME: not set" << std::endl;
-            }
-            
-//            if (const char* path = std::getenv("PATH"))
-//            {
-//                std::cout << "PATH: " << path << std::endl;
-//            }
-//
-//            // Log all registered plugins
-            std::cout << "=== AAAAAAAAAAAAAAAAAAAAAll Registered Plugins ===" << std::endl;
-            auto& registry = PXR_NS::PlugRegistry::GetInstance();
-            auto allPlugins = registry.GetAllPlugins();
-            for (const auto& plugin : allPlugins)
-            {
-                std::cout << "Plugin: " << plugin->GetName() << " at " << plugin->GetPath() << std::endl;
-            }
-            
-            PXR_NS::TfType resolverType = PXR_NS::TfType::FindByName("zibraVDBResolver");
-            std::cout<< "=== Resolver Type: " << resolverType.GetTypeName() << " ===" << std::endl;
-            bool isUnknown = resolverType.IsUnknown();
-            std::cout<< "=== IsUnknown: " << isUnknown << " ===" << std::endl;
-            return !isUnknown;
-        }
-        catch (...)
-        {
-            return false;
-        }
+        PXR_NS::TfType resolverType = PXR_NS::TfType::FindByName("ZibraVDBResolver");
+        bool isUnknown = resolverType.IsUnknown();
+        assert(!isUnknown && "Couldn't register ZibraVDBResolver");
+        return !isUnknown;
     }
 
     void RegisterAssetResolver() noexcept
     {
-        std::cout << "=== RegisterAssetResolver Called ===" << std::endl;
-        
         if (IsAssetResolverRegistered())
         {
-            std::cout << "Asset resolver already registered, skipping" << std::endl;
             return;
         }
 
-        try
+        const std::vector<std::string> libraryPaths = GetLibraryPaths();
+        for (const std::string& libraryPath : libraryPaths)
         {
-            const std::vector<std::string> libraryPaths = GetLibraryPaths();
-            std::cout << "=== Library Paths for Asset Resolver ===" << std::endl;
-            
-            for (const std::string& libraryPath : libraryPaths)
+            if (libraryPath.empty())
             {
-                std::cout << "Checking library path: " << libraryPath << std::endl;
-                
-                if (libraryPath.empty())
-                {
-                    std::cout << "  -> Path is empty, skipping" << std::endl;
-                    continue;
-                }
+                continue;
+            }
+            std::filesystem::path resourcePath = std::filesystem::path(libraryPath).parent_path()/"resources";
+            if (std::filesystem::exists(resourcePath) && std::filesystem::is_directory(resourcePath))
+            {
+                std::string pathStr = resourcePath.string();
+                std::replace(pathStr.begin(), pathStr.end(), '\\', '/');
+                PXR_NS::PlugRegistry::GetInstance().RegisterPlugins(pathStr);
 
-                std::filesystem::path resourcePath = std::filesystem::path(libraryPath).parent_path()/"resources";
-                std::cout << "  -> Resource path: " << resourcePath.string() << std::endl;
-                
-                if (std::filesystem::exists(resourcePath) && std::filesystem::is_directory(resourcePath))
+                if (IsAssetResolverRegistered())
                 {
-                    std::cout << "  -> Resource directory exists, registering plugins" << std::endl;
-                    std::string pathStr = resourcePath.string();
-                    std::replace(pathStr.begin(), pathStr.end(), '\\', '/');
-                    PXR_NS::PlugRegistry::GetInstance().RegisterPlugins(pathStr);
-                    
-                    if (IsAssetResolverRegistered())
-                    {
-                        std::cout << "  -> Asset resolver successfully registered!" << std::endl;
-                        break;
-                    }
-                    else
-                    {
-                        std::cout << "  -> Asset resolver not found after registration" << std::endl;
-                    }
-                }
-                else
-                {
-                    std::cout << "  -> Resource directory does not exist" << std::endl;
+                    break;
                 }
             }
         }
-        catch (const std::exception& e)
+        if (!IsAssetResolverRegistered())
         {
-            std::cout << "Exception in RegisterAssetResolver: " << e.what() << std::endl;
-        }
-        catch (...)
-        {
-            std::cout << "Unknown exception in RegisterAssetResolver" << std::endl;
+            assert(false && "Failed to register ZibraVDBResolver. Make sure the library file is present.");
         }
     }
 

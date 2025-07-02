@@ -62,14 +62,11 @@ namespace Zibra::ZibraVDBOutputProcessor
 
         void extractVDBFromSOP(SOP_Node* sopNode, fpreal t, CompressorManager* compressorManager);
         
-        int parseFrameIndexFromVDBPath(const std::string& vdbPath) const;
-
     private:
         std::vector<CompressionSequenceEntry> m_InMemoryCompressionEntries;
         std::vector<CompressionSequenceEntry> m_DeferredCompressions;
 
         PI_EditScriptedParms *m_Parameters;
-        fpreal m_CurTime;
     };
 
     HUSD_OutputProcessorPtr createZibraVDBOutputProcessor();
