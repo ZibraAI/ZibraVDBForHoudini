@@ -23,7 +23,6 @@ PXR_NAMESPACE_USING_DIRECTIVE
 
 namespace Zibra::ZibraVDBCompressionMarker
 {
-    // Parameter names and defaults
     static PRM_Name PRMoutputDirName("output_dir", "Output Directory");
     static PRM_Default PRMoutputDirDefault(0.0f, "$HIP/ZibraAI");
     
@@ -83,54 +82,11 @@ namespace Zibra::ZibraVDBCompressionMarker
         HUSD_AutoLayerLock layerlock(writelock);
         auto stage = writelock.data()->stage();
 
-        if (stage) {
-            auto layerStack = stage->GetLayerStack();
-            for (auto& layer : layerStack) {
-                std::string identifier = layer->GetIdentifier();
-                if (!identifier.empty() && identifier != layer->GetRealPath()) {
-                    if (identifier.find("op:/obj/") == 0 && identifier.find(".sop") != std::string::npos) {
-                        size_t start = 7;
-                        size_t end = identifier.find(".sop");
-                        if (end != std::string::npos) {
-                            std::string nodePath = identifier.substr(start, end - start);
-                            OP_Node* sopNode = OPgetDirector()->findNode(("/obj/" + nodePath).c_str());
-                            if (sopNode) {
-                                std::string nodeType = sopNode->getOperator()->getName().toStdString();
-                                OP_Network* lopNetwork = dynamic_cast<OP_Network*>(getParent());
-                                if (lopNetwork) {
-                                    for (int i = 0; i < lopNetwork->getNchildren(); i++) {
-                                        OP_Node* child = lopNetwork->getChild(i);
-                                        if (child && child->getOperator()->getName() == "sopimport") {
-                                            UT_String sopPath;
-                                            child->evalString(sopPath, "soppath", 0, 0);
-                                            
-                                            if (sopPath.toStdString().find(nodePath) != std::string::npos) {
-                                                if (isNodeUpstream(child)) {
-                                                    PRM_Parm* enableSavePathParm = child->getParmPtr("enable_savepath");
-                                                    if (enableSavePathParm) {
-                                                        child->setInt("enable_savepath", 0, 0, 1);
-                                                    }
-                                                    PRM_Parm* savePathParm = child->getParmPtr("savepath");
-                                                    if (savePathParm) {
-                                                        child->setString(UT_String(layerPathRaw), CH_STRING_LITERAL, "savepath", 0, 0);
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        OP_Network* lopNetwork = dynamic_cast<OP_Network*>(getParent());
+        auto lopNetwork = dynamic_cast<OP_Network*>(getParent());
         if (lopNetwork) {
             for (int i = 0; i < lopNetwork->getNchildren(); i++) {
                 OP_Node* child = lopNetwork->getChild(i);
-                if (child && child->getOperator()->getName() == "sopcreate") {
+                if (child && (child->getOperator()->getName() == "sopcreate" || child->getOperator()->getName() == "sopimport")) {
                     if (isNodeUpstream(child)) {
                         PRM_Parm* enableSavePathParm = child->getParmPtr("enable_savepath");
                         if (enableSavePathParm) {
@@ -140,25 +96,14 @@ namespace Zibra::ZibraVDBCompressionMarker
                         if (savePathParm) {
                             child->setString(UT_String(layerPathRaw), CH_STRING_LITERAL, "savepath", 0, 0);
                         }
+                        break;
                     }
                 }
             }
         }
 
-//        // Configure the layer for saving to the specified path
 //        HUSD_ConfigureLayer configure_layer(writelock);
-//
-//        // Try to configure both active layer and root layer
-//        configure_layer.setModifyRootLayer(true);
-//        configure_layer.setSavePath(layerPath.c_str(), false); // false = don't flatten
-//
-//        // Also try to set save control to override upstream settings
-//        configure_layer.setSaveControl("all");
-//
-//        configure_layer.setModifyRootLayer(false);
 //        configure_layer.setSavePath(layerPath.c_str(), false);
-//
-//        std::cout << "[ZibraVDB] Configured layer save to: " << layerPath << std::endl;
 
         return error();
     }
