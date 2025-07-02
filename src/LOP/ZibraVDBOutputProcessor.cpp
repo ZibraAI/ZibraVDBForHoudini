@@ -1,23 +1,26 @@
 #include "PrecompiledHeader.h"
+
 #include "ZibraVDBOutputProcessor.h"
+
+#include <GA/GA_Iterator.h>
+#include <GU/GU_Detail.h>
+#include <GU/GU_PrimVDB.h>
+#include <LOP/LOP_Node.h>
+#include <OP/OP_Director.h>
+#include <OP/OP_Node.h>
+#include <OP/OP_Context.h>
+#include <SOP/SOP_Node.h>
+#include <UT/UT_FileUtil.h>
+#include <UT/UT_StringHolder.h>
+#include <Zibra/CE/Addons/OpenVDBFrameLoader.h>
+#include <Zibra/CE/Compression.h>
+#include <algorithm>
+#include <filesystem>
+#include <openvdb/io/File.h>
+#include <regex>
 
 #include "bridge/LibraryUtils.h"
 #include "licensing/LicenseManager.h"
-#include <UT/UT_StringHolder.h>
-#include <UT/UT_FileUtil.h>
-#include <OP/OP_Node.h>
-#include <OP/OP_Director.h>
-#include <SOP/SOP_Node.h>
-#include <GU/GU_Detail.h>
-#include <GU/GU_PrimVDB.h>
-#include <GA/GA_Iterator.h>
-#include <Zibra/CE/Addons/OpenVDBFrameLoader.h>
-#include <Zibra/CE/Compression.h>
-#include <openvdb/io/File.h>
-
-#include <filesystem>
-#include <regex>
-#include <algorithm>
 
 namespace Zibra::ZibraVDBOutputProcessor
 {
@@ -99,7 +102,6 @@ namespace Zibra::ZibraVDBOutputProcessor
     {
         m_DeferredCompressions.clear();
         m_InMemoryCompressionEntries.clear();
-        m_CurTime = t;
     }
 
     void ZibraVDBOutputProcessor::compressInMemoryGrids(ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker* markerNode)
@@ -120,7 +122,7 @@ namespace Zibra::ZibraVDBOutputProcessor
             CE::Compression::FrameMappingDecs frameMappingDesc{};
             frameMappingDesc.sequenceStartIndex = 0;
             frameMappingDesc.sequenceIndexIncrement = 1;
-            float defaultQuality = entry->markerNode->getCompressionQuality(m_CurTime);
+            float defaultQuality = entry->markerNode->getCompressionQuality();
             std::vector<std::pair<UT_String, float>> perChannelSettings;
 
             auto status = entry->compressorManager->Initialize(frameMappingDesc, defaultQuality, perChannelSettings);
@@ -134,9 +136,17 @@ namespace Zibra::ZibraVDBOutputProcessor
             }
         }
 
+        // TODO get correct time
+        int currentFrame = entry->vdbFiles.size() - 1;
+        fpreal frameRate = 24.0;
+        fpreal frameTime = static_cast<fpreal>(currentFrame) / frameRate;
+        
         SearchUpstreamForSOPNode(
-            markerNode, m_CurTime,
-            [this, cm = entry->compressorManager](SOP_Node* sopNode, fpreal time) { this->extractVDBFromSOP(sopNode, time, cm); });
+            markerNode, frameTime,
+            [this, cm = entry->compressorManager, frameTime, currentFrame](SOP_Node* sopNode, fpreal time) {
+                this->extractVDBFromSOP(sopNode, frameTime, cm);
+            }
+        );
     }
 
     void ZibraVDBOutputProcessor::processDeferredSequence(const CompressionSequenceEntry& deferredEntry)
@@ -144,7 +154,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         CE::Compression::FrameMappingDecs frameMappingDesc{};
         frameMappingDesc.sequenceStartIndex = 0;
         frameMappingDesc.sequenceIndexIncrement = 1;
-        float quality = deferredEntry.markerNode->getCompressionQuality(m_CurTime);
+        float quality = deferredEntry.markerNode->getCompressionQuality();
 
         std::vector<std::pair<UT_String, float>> perChannelSettings;
         Zibra::CE::Compression::CompressorManager compressorManager;
@@ -253,13 +263,14 @@ namespace Zibra::ZibraVDBOutputProcessor
             if (sequence == entries.end())
             {
                 entries.push_back({curMarkerNode, nullptr, {pathStr}, newFileName});
+                sequence = std::prev(entries.end());
             }
             else
             {
                 sequence->vdbFiles.push_back(pathStr);
             }
 
-            int frameIndex = parseFrameIndexFromVDBPath(pathStr);
+            int frameIndex = sequence->vdbFiles.size() - 1;
             newpath = "zibravdb://" + newFileName + "?frame=" + std::to_string(frameIndex);
 
             if (!std::filesystem::exists(pathStr))
@@ -302,7 +313,14 @@ namespace Zibra::ZibraVDBOutputProcessor
         if (!sopNode)
             return;
         OP_Context context(t);
-        const GU_Detail* gdp = sopNode->getCookedGeo(context);
+        //const GU_Detail* gdp = sopNode->getCookedGeo(context);
+
+        sopNode->flags().setTimeDep(true);
+        sopNode->forceRecook();
+
+        GU_DetailHandle gdh = sopNode->getCookedGeoHandle(context);
+        GU_DetailHandleAutoReadLock gdl(gdh);
+        const GU_Detail* gdp = gdl.getGdp();
 
         if (!gdp)
         {
@@ -330,7 +348,6 @@ namespace Zibra::ZibraVDBOutputProcessor
                 }
             }
         }
-
         if (!grids.empty())
         {
             compressGrids(grids, gridNames, compressorManager);
@@ -339,41 +356,6 @@ namespace Zibra::ZibraVDBOutputProcessor
         {
             assert(false && "No VDB grids found in SOP node");
             //TODO add error to node output
-        }
-    }
-
-    int ZibraVDBOutputProcessor::parseFrameIndexFromVDBPath(const std::string& vdbPath) const
-    {
-        try 
-        {
-            std::filesystem::path path(vdbPath);
-            std::string filename = path.stem().string();
-            
-            // Pattern 1: path/name.FRAME_INDEX.vdb (e.g., "volume.1234.vdb")
-            // Pattern 2: path/FRAME_INDEX.vdb (e.g., "1234.vdb") 
-            // Pattern 3: path/name.vdb (no frame, default to 0)
-            
-            size_t lastDot = filename.find_last_of('.');
-            if (lastDot != std::string::npos)
-            {
-                std::string frameStr = filename.substr(lastDot + 1);
-                if (!frameStr.empty() && std::all_of(frameStr.begin(), frameStr.end(), ::isdigit))
-                {
-                    return std::stoi(frameStr);
-                }
-            }
-            
-            if (std::all_of(filename.begin(), filename.end(), ::isdigit) && !filename.empty())
-            {
-                return std::stoi(filename);
-            }
-            
-            return 0;
-        }
-        catch (const std::exception& e)
-        {
-            assert(false && "Error parsing frame index from VDB path: " + vdbPath + ", defaulting to 0");
-            return 0;
         }
     }
 } // namespace Zibra::ZibraVDBOutputProcessor
