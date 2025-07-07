@@ -11,11 +11,14 @@
 #include <vector>
 
 #include "Globals.h"
-#include "LOP_ZibraVDBCompressionMarker.h"
 #include "ROP/CompressorManager/CompressorManager.h"
 #include "utils/ZibraUSDUtils.h"
 
 class SOP_Node;
+
+namespace Zibra::ZibraVDBUSDExport {
+    class SOP_ZibraVDBUSDExport;
+}
 
 namespace Zibra::ZibraVDBOutputProcessor
 {
@@ -26,12 +29,20 @@ namespace Zibra::ZibraVDBOutputProcessor
     class ZibraVDBOutputProcessor : public HUSD_OutputProcessor
     {
     private:
-        struct CompressionSequenceEntry
+        struct CompressionSequenceEntryKey
         {
-            Zibra::ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker* markerNode;
+            Zibra::ZibraVDBUSDExport::SOP_ZibraVDBUSDExport* sopNode;
             Zibra::CE::Compression::CompressorManager* compressorManager;
-            std::vector<std::string> vdbFiles;
             std::string outputFile;
+            float quality;
+            
+            bool operator<(const CompressionSequenceEntryKey& other) const
+            {
+                if (sopNode != other.sopNode) return sopNode < other.sopNode;
+                if (outputFile != other.outputFile) return outputFile < other.outputFile;
+                if (quality != other.quality) return quality < other.quality;
+                return compressorManager < other.compressorManager;
+            }
         };
 
     public:
@@ -43,6 +54,9 @@ namespace Zibra::ZibraVDBOutputProcessor
                       OP_Node *lop_node,
                       fpreal t,
                       const UT_Options &stage_variables) override;
+
+        bool processSavePath(const UT_StringRef& asset_path, const UT_StringRef& referencing_layer_path, bool asset_is_layer,
+                             UT_String& newpath, UT_String& error) override;
 
         bool processReferencePath(const UT_StringRef &asset_path,
                                  const UT_StringRef &referencing_layer_path,
@@ -56,16 +70,12 @@ namespace Zibra::ZibraVDBOutputProcessor
         const PI_EditScriptedParms *parameters() const override;
 
     private:
-        void compressInMemoryGrids(ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker* markerNode);
-
-        void processDeferredSequence(const CompressionSequenceEntry& vdbFiles);
-
         void extractVDBFromSOP(SOP_Node* sopNode, fpreal t, CompressorManager* compressorManager);
-        
-    private:
-        std::vector<CompressionSequenceEntry> m_InMemoryCompressionEntries;
-        std::vector<CompressionSequenceEntry> m_DeferredCompressions;
+        static void compressGrids(std::vector<openvdb::GridBase::ConstPtr>& grids, std::vector<std::string>& gridNames,
+                                  CE::Compression::CompressorManager* compressorManager);
 
+    private:
+        std::map<CompressionSequenceEntryKey, std::vector<std::pair<int, std::string>>> m_InMemoryCompressionEntries;
         PI_EditScriptedParms *m_Parameters;
     };
 

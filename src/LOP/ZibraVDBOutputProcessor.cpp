@@ -21,51 +21,12 @@
 
 #include "bridge/LibraryUtils.h"
 #include "licensing/LicenseManager.h"
+#include "SOP/SOP_ZibraVDBUSDExport.h"
 
 namespace Zibra::ZibraVDBOutputProcessor
 {
     using namespace std::literals;
     using namespace Zibra::Utils::USD;
-
-    void compressGrids(std::vector<openvdb::GridBase::ConstPtr>& grids, std::vector<std::string>& gridNames,
-                       CE::Compression::CompressorManager* compressorManager)
-    {
-        if (grids.empty())
-        {
-            assert(false && "No grids to compress");
-            return;
-        }
-
-        std::vector<const char*> channelCStrings;
-        for (const auto& name : gridNames)
-        {
-            channelCStrings.push_back(name.c_str());
-        }
-        CE::Addons::OpenVDBUtils::FrameLoader frameLoader{grids.data(), grids.size()};
-        CE::Addons::OpenVDBUtils::EncodingMetadata encodingMetadata{};
-        auto frame = frameLoader.LoadFrame(&encodingMetadata);
-        if (!frame)
-        {
-            assert(false && "Failed to load frame from memory grids");
-            return;
-        }
-        CE::Compression::CompressFrameDesc compressFrameDesc{};
-        compressFrameDesc.channelsCount = gridNames.size();
-        compressFrameDesc.channels = channelCStrings.data();
-        compressFrameDesc.frame = frame;
-
-        CE::Compression::FrameManager* frameManager = nullptr;
-        auto status = compressorManager->CompressFrame(compressFrameDesc, &frameManager);
-        if (status == CE::ZCE_SUCCESS && frameManager)
-        {
-            status = frameManager->Finish();
-        }
-        else
-        {
-            assert(false && "CompressFrame failed or frameManager is null for in-memory grids: status " + std::to_string(static_cast<int>(status)));
-        }
-        frameLoader.ReleaseFrame(frame);
-    }
 
     ZibraVDBOutputProcessor::ZibraVDBOutputProcessor()
         : m_Parameters(nullptr)
@@ -100,138 +61,104 @@ namespace Zibra::ZibraVDBOutputProcessor
                                            fpreal t,
                                            const UT_Options &stage_variables)
     {
-        m_DeferredCompressions.clear();
         m_InMemoryCompressionEntries.clear();
     }
 
-    void ZibraVDBOutputProcessor::compressInMemoryGrids(ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker* markerNode)
+    bool ZibraVDBOutputProcessor::processSavePath(const UT_StringRef& asset_path, const UT_StringRef& referencing_layer_path,
+                                                  bool asset_is_layer, UT_String& newpath, UT_String& error)
     {
-        auto entry = std::find_if(m_InMemoryCompressionEntries.begin(), m_InMemoryCompressionEntries.end(),
-                                  [markerNode](const CompressionSequenceEntry& entry) { return markerNode == entry.markerNode; });
-
-        if (entry == m_InMemoryCompressionEntries.end())
+        std::string pathStr = asset_path.toStdString();
+        if (!asset_is_layer && pathStr.find(".zibravdb?") != std::string::npos)
         {
-            assert(false && "Marker node not found in in-memory compression entries. This should not happen.");
-            return;
-        }
+            // Parse the .zibravdb path: path/name.zibravdb?node=nodename&frame=X&quality=Y
+            size_t query_pos = pathStr.find('?');
+            if (query_pos == std::string::npos) return false;
 
-        if (!entry->compressorManager)
-        {
-            entry->compressorManager = new Zibra::CE::Compression::CompressorManager();
+            std::string file_path = pathStr.substr(0, query_pos);
+            std::string query_string = pathStr.substr(query_pos + 1);
 
-            CE::Compression::FrameMappingDecs frameMappingDesc{};
-            frameMappingDesc.sequenceStartIndex = 0;
-            frameMappingDesc.sequenceIndexIncrement = 1;
-            float defaultQuality = entry->markerNode->getCompressionQuality();
-            std::vector<std::pair<UT_String, float>> perChannelSettings;
+            // Parse query parameters
+            std::string node_name, frame_str, quality_str;
+            std::regex param_regex(R"(([^&=]+)=([^&=]+))");
+            std::sregex_iterator iter(query_string.begin(), query_string.end(), param_regex);
+            std::sregex_iterator end;
 
-            auto status = entry->compressorManager->Initialize(frameMappingDesc, defaultQuality, perChannelSettings);
-            assert(status == CE::ZCE_SUCCESS);
 
-            status = entry->compressorManager->StartSequence(UT_String(entry->outputFile));
-            if (status != CE::ZCE_SUCCESS)
-            {
-                assert(false && "Failed to start sequence for compression, status: " + std::to_string(static_cast<int>(status)));
-                return;
+            for (; iter != end; ++iter) {
+                std::string key = (*iter)[1];
+                std::string value = (*iter)[2];
+                if (key == "node") node_name = value;
+                else if (key == "frame") frame_str = value;
+                else if (key == "quality") quality_str = value;
             }
-        }
 
-        // TODO get correct time
-        int currentFrame = entry->vdbFiles.size() - 1;
-        fpreal frameRate = 24.0;
-        fpreal frameTime = static_cast<fpreal>(currentFrame) / frameRate;
-        
-        SearchUpstreamForSOPNode(
-            markerNode, frameTime,
-            [this, cm = entry->compressorManager, frameTime, currentFrame](SOP_Node* sopNode, fpreal time) {
-                this->extractVDBFromSOP(sopNode, frameTime, cm);
+            if (node_name.empty() || frame_str.empty()) return false;
+
+            std::string decoded_node_name = node_name;
+            size_t pos = 0;
+            while ((pos = decoded_node_name.find("%2F", pos)) != std::string::npos) {
+                decoded_node_name.replace(pos, 3, "/");
+                pos += 1;
             }
-        );
-    }
 
-    void ZibraVDBOutputProcessor::processDeferredSequence(const CompressionSequenceEntry& deferredEntry)
-    {
-        CE::Compression::FrameMappingDecs frameMappingDesc{};
-        frameMappingDesc.sequenceStartIndex = 0;
-        frameMappingDesc.sequenceIndexIncrement = 1;
-        float quality = deferredEntry.markerNode->getCompressionQuality();
+            OP_Node* op_node = OPgetDirector()->findNode(decoded_node_name.c_str());
+            if (!op_node) {
+                std::cout << "Could not find node with path: " << decoded_node_name << std::endl;
+                return false;
+            }
 
-        std::vector<std::pair<UT_String, float>> perChannelSettings;
-        Zibra::CE::Compression::CompressorManager compressorManager;
-        auto status = compressorManager.Initialize(frameMappingDesc, quality, perChannelSettings);
-        assert(status == CE::ZCE_SUCCESS);
+            auto* sop_node = dynamic_cast<Zibra::ZibraVDBUSDExport::SOP_ZibraVDBUSDExport*>(op_node);
+            if (!sop_node) return false;
 
-        std::filesystem::create_directories(std::filesystem::path(deferredEntry.outputFile).parent_path());
-        status = compressorManager.StartSequence(UT_String(deferredEntry.outputFile));
-        if (status != CE::ZCE_SUCCESS)
-        {
-            assert(false && "Failed to start compression sequence for deferred VDBs. Status: " + std::to_string(static_cast<int>(status)));
-            return;
-        }
+            int frame_index = std::stoi(frame_str);
+            float quality = sop_node->getCompressionQuality();
 
-        for (const auto& entry : deferredEntry.vdbFiles)
-        {
-            openvdb::io::File vdbFile(entry);
-            vdbFile.open();
+            std::filesystem::path zibravdb_path(file_path);
+            std::string dir = zibravdb_path.parent_path().string();
+            std::string name = zibravdb_path.stem().string();
+            std::string output_file_str = dir + "/" + name + "." + std::to_string(frame_index) + ".vdb";
 
-            std::vector<openvdb::GridBase::ConstPtr> volumes;
-            std::vector<std::string> channelNames;
-            std::vector<const char*> channelCStrings;
+            auto& entries = m_InMemoryCompressionEntries;
+            auto it =
+                std::find_if(entries.begin(), entries.end(), [sop_node](const auto& entry) { return entry.first.sopNode == sop_node; });
+            if (it == entries.end()) {
+                CompressionSequenceEntryKey entryKey{};
+                entryKey.sopNode = sop_node;
+                entryKey.outputFile = file_path;
+                entryKey.quality = quality;
+                entryKey.compressorManager = new Zibra::CE::Compression::CompressorManager();
 
-            for (auto nameIter = vdbFile.beginName(); nameIter != vdbFile.endName(); ++nameIter)
-            {
-                std::string gridName = nameIter.gridName();
-                openvdb::GridBase::ConstPtr grid = vdbFile.readGrid(gridName);
-                if (grid)
+                CE::Compression::FrameMappingDecs frameMappingDesc{};
+                frameMappingDesc.sequenceStartIndex = 0;
+                frameMappingDesc.sequenceIndexIncrement = 1;
+                std::vector<std::pair<UT_String, float>> perChannelSettings;
+                if (sop_node->usePerChannelCompressionSettings())
                 {
-                    volumes.push_back(grid);
-                    channelNames.push_back(gridName);
-                    channelCStrings.push_back(channelNames.back().c_str());
+                    perChannelSettings = sop_node->getPerChannelCompressionSettings();
                 }
-                else
+
+                std::filesystem::create_directories(std::filesystem::path(file_path).parent_path());
+                auto status = entryKey.compressorManager->Initialize(frameMappingDesc, quality, perChannelSettings);
+                assert(status == CE::ZCE_SUCCESS);
+
+                status = entryKey.compressorManager->StartSequence(UT_String(file_path));
+                if (status != CE::ZCE_SUCCESS)
                 {
-                    assert(false && "Failed to read grid from VDB file: "/gridName);
+                    assert(false && "Failed to start sequence for compression, status: " + std::to_string(static_cast<int>(status)));
+                    return false;
                 }
+                entries[entryKey] = {{frame_index, output_file_str}};
+                it = std::prev(entries.end());
             }
-            vdbFile.close();
-
-            if (volumes.empty())
-            {
-                continue;
-            }
-
-            CE::Addons::OpenVDBUtils::FrameLoader frameLoader{volumes.data(), volumes.size()};
-            CE::Addons::OpenVDBUtils::EncodingMetadata encodingMetadata{};
-            auto* frame = frameLoader.LoadFrame(&encodingMetadata);
-            if (!frame)
-            {
-                assert(false && "Failed to load frame from VDB file: " + entry.vdbPath);
-                continue;
+            else {
+                it->second.push_back({frame_index, output_file_str});
             }
 
-            CE::Compression::CompressFrameDesc compressFrameDesc{};
-            compressFrameDesc.channelsCount = channelNames.size();
-            compressFrameDesc.channels = channelCStrings.data();
-            compressFrameDesc.frame = frame;
-
-            CE::Compression::FrameManager* frameManager = nullptr;
-            status = compressorManager.CompressFrame(compressFrameDesc, &frameManager);
-            if (status == CE::ZCE_SUCCESS && frameManager)
-            {
-                status = frameManager->Finish();
-            }
-            else
-            {
-                assert(false && "CompressFrame failed or frameManager is null for VDB: status "/+ std::to_string(static_cast<int>(status)));
-            }
-
-            frameLoader.ReleaseFrame(frame);
+            newpath = output_file_str;
+            return true;
         }
 
-        std::string warning;
-        status = compressorManager.FinishSequence(warning);
-        assert(status == CE::ZCE_SUCCESS && "FinishSequence failed for deferred VDBs. Status: " + std::to_string(static_cast<int>(status)));
-        compressorManager.Release();
+        return false;
     }
 
     bool ZibraVDBOutputProcessor::processReferencePath(const UT_StringRef &asset_path,
@@ -241,69 +168,50 @@ namespace Zibra::ZibraVDBOutputProcessor
                                                       UT_String &error)
     {
         std::string pathStr = asset_path.toStdString();
-        if (!asset_is_layer && pathStr.find(".vdb") == pathStr.length() - 4)
+        if (!asset_is_layer && pathStr.find(".vdb") != std::string::npos)
         {
-            std::string outLayer = referencing_layer_path.toStdString();
-            std::filesystem::path outLayerPath(outLayer);
-            std::string outLayerName = outLayerPath.stem().string();
+            auto it = std::find_if(m_InMemoryCompressionEntries.begin(), m_InMemoryCompressionEntries.end(), [&pathStr](const auto& entry) {
+                return std::find_if(entry.second.begin(), entry.second.end(),
+                                    [&pathStr](const auto& file) { return file.second == pathStr; }) != entry.second.end();
+            });
+            if (it != m_InMemoryCompressionEntries.end()) {
+                auto framesIt = std::find_if(it->second.begin(), it->second.end(), [&pathStr](const auto& file) { return file.second == pathStr; });
+                auto compressedFrameIndex = std::distance(it->second.begin(), framesIt);
+                std::string outputRef = "zibravdb://" + it->first.outputFile + "?frame=" + std::to_string(compressedFrameIndex);
+                newpath = UT_String(outputRef);
 
-            auto* curMarkerNode = findMarkerNodeByName(outLayerName);
-            if (!curMarkerNode)
-            {
-                assert(false && "Could not find marker node for VDB compression: " + outLayerName);
-                return false;
+                auto& entry = *it;
+
+                auto sceneFrameIndex = framesIt->first - 1;
+                fpreal frameRate = OPgetDirector()->getChannelManager()->getSamplesPerSec();
+                fpreal globalStartFrame = OPgetDirector()->getChannelManager()->getGlobalStartFrame();
+                fpreal sceneFrame = globalStartFrame + static_cast<fpreal>(sceneFrameIndex);
+                fpreal sceneFrameTime = OPgetDirector()->getChannelManager()->getTime(sceneFrame);
+
+                extractVDBFromSOP(entry.first.sopNode, sceneFrameTime, entry.first.compressorManager);
+
+                return true;
             }
-
-            std::string newFileName = (outLayerPath.parent_path()/outLayerName).string() + ".zibravdb";
-            std::vector<CompressionSequenceEntry>& entries =
-                std::filesystem::exists(pathStr) ? m_DeferredCompressions : m_InMemoryCompressionEntries;
-            auto sequence =
-                std::find_if(entries.begin(), entries.end(),
-                             [curMarkerNode](const CompressionSequenceEntry& entry) { return entry.markerNode == curMarkerNode; });
-            if (sequence == entries.end())
-            {
-                entries.push_back({curMarkerNode, nullptr, {pathStr}, newFileName});
-                sequence = std::prev(entries.end());
-            }
-            else
-            {
-                sequence->vdbFiles.push_back(pathStr);
-            }
-
-            int frameIndex = sequence->vdbFiles.size() - 1;
-            newpath = "zibravdb://" + newFileName + "?frame=" + std::to_string(frameIndex);
-
-            if (!std::filesystem::exists(pathStr))
-            {
-                compressInMemoryGrids(curMarkerNode);
-            }
-
-            return true;
         }
-
         return false;
     }
 
     bool ZibraVDBOutputProcessor::processLayer(const UT_StringRef& identifier, UT_String& error)
     {
-        for (const auto& deferredEntry : m_DeferredCompressions)
+        for (const auto& sequence : m_InMemoryCompressionEntries)
         {
-            processDeferredSequence(deferredEntry);
-        }
-
-        for (const auto& entry : m_InMemoryCompressionEntries)
-        {
-            if (entry.compressorManager)
+            if (sequence.first.compressorManager)
             {
                 std::string warning;
-                auto status = entry.compressorManager->FinishSequence(warning);
+                auto status = sequence.first.compressorManager->FinishSequence(warning);
                 if (status != CE::ZCE_SUCCESS)
                 {
                     assert(false && "Failed to finish compression sequence for in-memory VDBs. Status: " + std::to_string(static_cast<int>(status)));
                 }
-                entry.compressorManager->Release();
+                sequence.first.compressorManager->Release();
             }
         }
+        m_InMemoryCompressionEntries.clear();
 
         return true;
     }
@@ -312,11 +220,11 @@ namespace Zibra::ZibraVDBOutputProcessor
     {
         if (!sopNode)
             return;
-        OP_Context context(t);
-        //const GU_Detail* gdp = sopNode->getCookedGeo(context);
 
+        OP_Context context(t);
         sopNode->flags().setTimeDep(true);
         sopNode->forceRecook();
+        sopNode->cook(context);
 
         GU_DetailHandle gdh = sopNode->getCookedGeoHandle(context);
         GU_DetailHandleAutoReadLock gdl(gdh);
@@ -357,5 +265,45 @@ namespace Zibra::ZibraVDBOutputProcessor
             assert(false && "No VDB grids found in SOP node");
             //TODO add error to node output
         }
+    }
+
+    void ZibraVDBOutputProcessor::compressGrids(std::vector<openvdb::GridBase::ConstPtr>& grids, std::vector<std::string>& gridNames,
+                                                CE::Compression::CompressorManager* compressorManager)
+    {
+        if (grids.empty())
+        {
+            assert(false && "No grids to compress");
+            return;
+        }
+
+        std::vector<const char*> channelCStrings;
+        for (const auto& name : gridNames)
+        {
+            channelCStrings.push_back(name.c_str());
+        }
+        CE::Addons::OpenVDBUtils::FrameLoader frameLoader{grids.data(), grids.size()};
+        CE::Addons::OpenVDBUtils::EncodingMetadata encodingMetadata{};
+        auto frame = frameLoader.LoadFrame(&encodingMetadata);
+        if (!frame)
+        {
+            assert(false && "Failed to load frame from memory grids");
+            return;
+        }
+        CE::Compression::CompressFrameDesc compressFrameDesc{};
+        compressFrameDesc.channelsCount = gridNames.size();
+        compressFrameDesc.channels = channelCStrings.data();
+        compressFrameDesc.frame = frame;
+
+        CE::Compression::FrameManager* frameManager = nullptr;
+        auto status = compressorManager->CompressFrame(compressFrameDesc, &frameManager);
+        if (status == CE::ZCE_SUCCESS && frameManager)
+        {
+            status = frameManager->Finish();
+        }
+        else
+        {
+            assert(false && "CompressFrame failed or frameManager is null for in-memory grids: status " + std::to_string(static_cast<int>(status)));
+        }
+        frameLoader.ReleaseFrame(frame);
     }
 } // namespace Zibra::ZibraVDBOutputProcessor

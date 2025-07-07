@@ -27,9 +27,9 @@ namespace Zibra::ZibraVDBDecompressor
     public:
         OP_ERROR cookMySop(OP_Context& context) final;
 
-    private:
         static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate);
 
+    private:
         void ApplyGridMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::CompressedFrameContainer* frameContainer);
         void ApplyGridAttributeMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::CompressedFrameContainer* frameContainer);
         void ApplyGridVisualizationMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::CompressedFrameContainer* frameContainer);

@@ -100,6 +100,7 @@ cmake_print_variables(ZIB_NETWORK_REQUEST_BACKEND)
         src/licensing/TrialManager.h
         src/ROP/ROP_ZibraVDBCompressor.h
         src/SOP/SOP_ZibraVDBDecompressor.h
+        src/SOP/SOP_ZibraVDBUSDExport.h
         src/LOP/LOP_ZibraVDBCompressionMarker.h
         src/LOP/ZibraVDBOutputProcessor.h
         src/ui/MessageBox.h
@@ -121,6 +122,7 @@ set(SourceFiles
     src/licensing/TrialManager.cpp
     src/ROP/ROP_ZibraVDBCompressor.cpp
     src/SOP/SOP_ZibraVDBDecompressor.cpp
+    src/SOP/SOP_ZibraVDBUSDExport.cpp
     src/LOP/LOP_ZibraVDBCompressionMarker.cpp
     src/LOP/ZibraVDBOutputProcessor.cpp
     src/ui/MessageBox.cpp
