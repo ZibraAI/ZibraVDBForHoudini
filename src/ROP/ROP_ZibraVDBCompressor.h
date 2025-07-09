@@ -70,9 +70,7 @@ namespace Zibra::ZibraVDBCompressor
         static std::vector<PRM_Template>& GetTemplateListContainer(ContextType contextType) noexcept;
 
         std::vector<std::pair<std::string, std::string>> DumpAttributes(
-            const GU_Detail* gdp, const CE::Addons::OpenVDBUtils::EncodingMetadata& encodingMetadata) noexcept;
-        void DumpDecodeMetadata(std::vector<std::pair<std::string, std::string>>& result,
-                                const CE::Addons::OpenVDBUtils::EncodingMetadata& encodingMetadata);
+            const GU_Detail* gdp) noexcept;
         void DumpVisualisationAttributes(std::vector<std::pair<std::string, std::string>>& attributes, const GEO_PrimVDB* vdbPrim) noexcept;
         nlohmann::json DumpGridsShuffleInfo(const std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridDescs) noexcept;
 

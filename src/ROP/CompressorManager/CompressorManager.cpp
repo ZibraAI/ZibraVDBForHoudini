@@ -7,7 +7,7 @@
 
 namespace Zibra::CE::Compression
 {
-    ReturnCode CompressorManager::Initialize(FrameMappingDecs frameMappingDesc, float defaultQuality,
+    ReturnCode CompressorManager::Initialize(PlaybackInfo playbackInfo, float defaultQuality,
                                              const std::vector<std::pair<UT_String, float>>& perChannelCompressionSettings) noexcept
     {
         if (!Zibra::LibraryUtils::IsLibraryLoaded())
@@ -16,7 +16,7 @@ namespace Zibra::CE::Compression
         }
 
         RHI::RHIFactory* RHIFactory = nullptr;
-        auto RHIstatus = RHI::CAPI::CreateRHIFactory(&RHIFactory);
+        auto RHIstatus = RHI::CreateRHIFactory(&RHIFactory);
         if (RHIstatus != RHI::ZRHI_SUCCESS)
         {
             return CE::ZCE_ERROR;
@@ -52,19 +52,19 @@ namespace Zibra::CE::Compression
         }
 
         CompressorFactory* compressorFactory = nullptr;
-        compressorFactory = CAPI::CreateCompressorFactory();
-        if (compressorFactory == nullptr)
+        auto status = CreateCompressorFactory(&compressorFactory);
+        if (status != ZCE_SUCCESS)
         {
             return CE::ZCE_ERROR;
         }
 
-        auto status = compressorFactory->UseRHI(m_RHIRuntime);
+        status = compressorFactory->UseRHI(m_RHIRuntime);
         if (status != CE::ReturnCode::ZCE_SUCCESS)
         {
             compressorFactory->Release();
             return status;
         }
-        status = compressorFactory->SetFrameMapping(frameMappingDesc);
+        status = compressorFactory->SetPlaybackInfo(playbackInfo);
         if (status != CE::ReturnCode::ZCE_SUCCESS)
         {
             compressorFactory->Release();

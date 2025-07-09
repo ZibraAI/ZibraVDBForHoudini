@@ -86,6 +86,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                     {
                         dst->clear();
                         transformer.transformGrid<openvdb::tools::BoxSampler>(*src, *dst);
+                        dst->setTransform(originGrid->transform().copy());
                     }
                 }
                 else if (mutableCopy->baseTree().isType<openvdb::FloatTree>())
@@ -97,6 +98,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                     {
                         dst->clear();
                         transformer.transformGrid<openvdb::tools::BoxSampler>(*src, *dst);
+                        dst->setTransform(originGrid->transform().copy());
                     }
                 }
                 else

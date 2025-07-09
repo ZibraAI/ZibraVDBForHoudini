@@ -1,5 +1,33 @@
 #pragma once
 
+// Declaring used SDK API function pointers
+namespace Zibra
+{
+    namespace RHI
+    {
+        extern PFN_CreateRHIFactory CreateRHIFactory;
+        extern PFN_GetVersion GetVersion;
+    }
+
+    namespace CE
+    {
+        namespace Decompression
+        {
+            extern PFN_CreateFormatMapper CreateFormatMapper;
+            extern PFN_GetVersion GetVersion;
+        }
+        namespace Compression
+        {
+            extern PFN_CreateCompressorFactory CreateCompressorFactory;
+            extern PFN_GetVersion GetVersion;
+        }
+        namespace Licensing
+        {
+            extern PFN_GetLicenseManager GetLicenseManager;
+        }
+    }
+}
+
 namespace Zibra::LibraryUtils {
 #define ZIB_LIBRARY_FOLDER "zibra/" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING
 

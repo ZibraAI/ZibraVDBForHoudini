@@ -3,7 +3,7 @@
 #include "SOP_ZibraVDBDecompressor.h"
 
 #include "bridge/LibraryUtils.h"
-#include "licensing/LicenseManager.h"
+#include "licensing/HoudiniLicenseManager.h"
 #include "ui/PluginManagementWindow.h"
 #include "utils/GAAttributesDump.h"
 

@@ -22,7 +22,7 @@ namespace Zibra::Helpers
         }
 
         RHI::RHIFactory* RHIFactory = nullptr;
-        auto RHIstatus = RHI::CAPI::CreateRHIFactory(&RHIFactory);
+        auto RHIstatus = RHI::CreateRHIFactory(&RHIFactory);
         if (RHIstatus != RHI::ZRHI_SUCCESS)
         {
             return CE::ZCE_ERROR;
@@ -56,23 +56,6 @@ namespace Zibra::Helpers
             m_RHIRuntime->Release();
             m_RHIRuntime = nullptr;
             return CE::ZCE_ERROR;
-        }
-
-        auto status = CE::Decompression::CAPI::CreateDecompressorFactory(&m_DecompressorFactory);
-        if (status != CE::ZCE_SUCCESS)
-        {
-            return status;
-        }
-
-        using namespace Zibra::CE::Literals::Memory;
-        m_DecompressorFactory->SetMemoryLimitPerResource(128_MiB);
-
-        status = m_DecompressorFactory->UseRHI(m_RHIRuntime);
-        if (status != CE::ZCE_SUCCESS)
-        {
-            m_DecompressorFactory->Release();
-            m_DecompressorFactory = nullptr;
-            return status;
         }
 
         m_IsInitialized = true;
@@ -116,28 +99,20 @@ namespace Zibra::Helpers
 
     CE::ReturnCode DecompressorManager::RegisterDecompressor(const UT_String& filename) noexcept
     {
-        if (m_Decoder)
+        if (m_FileStream.has_value())
         {
-            CE::Decompression::CAPI::ReleaseDecoder(m_Decoder);
-            m_Decoder = nullptr;
+            delete m_FileStream->first;
+            delete m_FileStream->second;
+            m_FileStream = std::nullopt;
         }
 
-        auto status = CE::Decompression::CAPI::CreateDecoder(filename.c_str(), &m_Decoder);
-        if (status != CE::ZCE_SUCCESS)
+        auto stream = new std::ifstream{filename.c_str(), std::ios::binary};
+        if (!stream->is_open() || !stream->good())
         {
-            return status;
-        }
-
-        if (!m_DecompressorFactory)
-        {
+            delete stream;
             return CE::ZCE_ERROR;
         }
-
-        status = m_DecompressorFactory->UseDecoder(m_Decoder);
-        if (status != CE::ZCE_SUCCESS)
-        {
-            return status;
-        }
+        m_FileStream = {stream, new STDIStreamWrapper{*stream}};
 
         if (m_FormatMapper)
         {
@@ -145,13 +120,24 @@ namespace Zibra::Helpers
             m_FormatMapper = nullptr;
         }
 
+        auto status = CE::Decompression::CreateFormatMapper(m_FileStream->second, &m_FormatMapper);
+        if (status != CE::ZCE_SUCCESS)
+        {
+            return status;
+        }
+
         if (m_Decompressor)
         {
-
             m_Decompressor->Release();
             m_Decompressor = nullptr;
         }
-        status = m_DecompressorFactory->Create(&m_Decompressor);
+        CE::Decompression::DecompressorFactory* factory = m_FormatMapper->CreateDecompressorFactory();
+        factory->UseRHI(m_RHIRuntime);
+        using namespace Zibra::CE::Literals::Memory;
+        factory->SetMemoryLimitPerResource(128_MiB);
+
+        status = factory->Create(&m_Decompressor);
+        factory->Release();
         if (status != CE::ZCE_SUCCESS)
         {
             return status;
@@ -159,12 +145,6 @@ namespace Zibra::Helpers
 
         status = m_Decompressor->Initialize();
         if (status != CE::ZCE_SUCCESS)
-        {
-            return status;
-        }
-
-        m_FormatMapper = static_cast<CE::Decompression::CAPI::FormatMapperCAPI*>(m_Decompressor->GetFormatMapper());
-        if (!m_FormatMapper)
         {
             return status;
         }
@@ -191,7 +171,7 @@ namespace Zibra::Helpers
         {
             return status;
         }
-        
+
         if (m_DecompressionPerChannelBlockDataBuffer.buffer != nullptr && m_DecompressionPerChannelBlockInfoBuffer.buffer != nullptr &&
             m_DecompressionPerSpatialBlockInfoBuffer.buffer != nullptr)
         {
@@ -208,7 +188,6 @@ namespace Zibra::Helpers
 
         return CE::ZCE_SUCCESS;
     }
-
     CE::ReturnCode DecompressorManager::DecompressFrame(CE::Decompression::CompressedFrameContainer* frameContainer,
                                                         std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridShuffle,
                                                         openvdb::GridPtrVec* vdbGrids) noexcept
@@ -238,19 +217,7 @@ namespace Zibra::Helpers
             }
         }
 
-        CE::Addons::OpenVDBUtils::EncodingMetadata encodingMetadataStorage; 
-        CE::Addons::OpenVDBUtils::EncodingMetadata* encodingMetadata = nullptr;
-        const char* encodingMetadataStr = frameContainer->GetMetadataByKey("houdiniDecodeMetadata");
-        if (encodingMetadataStr)
-        {
-            encodingMetadataStorage = {};
-            encodingMetadata = &encodingMetadataStorage;
-
-            std::istringstream metadataStream(encodingMetadataStr);
-            metadataStream >> encodingMetadataStorage.offsetX >> encodingMetadataStorage.offsetY >> encodingMetadataStorage.offsetZ;
-        }
-
-        CE::Addons::OpenVDBUtils::FrameEncoder encoder{gridShuffle.data(), gridShuffle.size(), frameInfo, encodingMetadata};
+        CE::Addons::OpenVDBUtils::FrameEncoder encoder{gridShuffle.data(), gridShuffle.size(), frameInfo};
 
         const CE::Decompression::MaxDimensionsPerSubmit maxDimensionsPerSubmit = m_Decompressor->GetMaxDimensionsPerSubmit();
         const uint32_t maxChunkSize = static_cast<uint32_t>(maxDimensionsPerSubmit.maxSpatialBlocks);
@@ -273,7 +240,7 @@ namespace Zibra::Helpers
 
             CE::Decompression::DecompressedFrameFeedback fFeedback{};
 
-            CE::Decompression::ReturnCode status = m_Decompressor->DecompressFrame(decompressDesc, &fFeedback);
+            CE::ReturnCode status = m_Decompressor->DecompressFrame(decompressDesc, &fFeedback);
             if (status != CE::ZCE_SUCCESS)
             {
                 return status;
@@ -291,7 +258,7 @@ namespace Zibra::Helpers
             // TODO VDB-1291: Implement read-back circular buffer, to optimize GPU stalls.
             //                Implement cpu circular buffer to optimize RAM allocation for DecompressedFrameData.
             //                Move EncodeChunk into separate thread to overlay CPU and CPU work.
-            encoder.EncodeChunk(fData, decompressDesc.spatialBlocksCount, fFeedback.firstChannelBlockIndex, encodingMetadata);
+            encoder.EncodeChunk(fData, decompressDesc.spatialBlocksCount, fFeedback.firstChannelBlockIndex);
         }
         RHIStatus = m_RHIRuntime->StopRecording();
         if (RHIStatus != RHI::ZRHI_SUCCESS)
@@ -398,11 +365,6 @@ namespace Zibra::Helpers
         {
             m_Decompressor->Release();
             m_Decompressor = nullptr;
-        }
-        if (m_DecompressorFactory)
-        {
-            m_DecompressorFactory->Release();
-            m_DecompressorFactory = nullptr;
         }
         if (m_RHIRuntime)
         {

@@ -3,9 +3,6 @@
 #include <Zibra/Foundation.h>
 #include <Zibra/Math3D.h>
 
-#define ZCE_CONCAT_HELPER(A, B) A##B
-#define ZCE_PFN(name) ZCE_CONCAT_HELPER(PFN_, name)
-
 namespace Zibra::CE
 {
     static constexpr int SPARSE_BLOCK_SIZE = 8;
@@ -32,10 +29,12 @@ namespace Zibra::CE
         ZCE_ERROR_NOT_SUPPORTED = 311,
 
         ZCE_ERROR_NOT_FOUND = 400,
+        ZCE_ERROR_ALREADY_PRESENT = 401,
         // Out of CPU memory
         ZCE_ERROR_OUT_OF_CPU_MEMORY = 410,
         // Out of GPU memory
         ZCE_ERROR_OUT_OF_GPU_MEMORY = 411,
+        ZCE_ERROR_OUT_OF_BOUNDS = 415,
         // Time out
         ZCE_ERROR_TIME_OUT = 430,
     };
@@ -88,6 +87,13 @@ namespace Zibra::CE
         return coords && (a.channelBlocksOffset == b.channelBlocksOffset) && (a.channelMask == b.channelMask) &&
                (a.channelCount == b.channelCount);
     }
+
+    struct PlaybackInfo
+    {
+        uint32_t framerateNumerator = 30;
+        uint32_t framerateDenominator = 1;
+        uint32_t sequenceIndexIncrement = 1;
+    };
 
     /**
      * Packs 3 coords into 32bit

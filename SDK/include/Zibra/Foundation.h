@@ -2,6 +2,7 @@
 
 #include <istream>
 #include <ostream>
+#include <cstring>
 
 namespace Zibra
 {
@@ -18,15 +19,41 @@ namespace Zibra
         uint32_t patch;
         uint32_t build;
     };
+    inline bool operator==(const Version& l, const Version& r)
+    {
+        return l.major == r.major && l.minor == r.minor && l.patch == r.patch && l.build == r.build;
+    }
+    inline bool operator!=(const Version& l, const Version& r)
+    {
+        return l.major != r.major || l.minor != r.minor || l.patch != r.patch || l.build != r.build;
+    }
+    inline bool operator>(const Version& l, const Version& r)
+    {
+        if (l.major != r.major) return l.major > r.major;
+        if (l.minor != r.minor) return l.minor > r.minor;
+        if (l.patch != r.patch) return l.patch > r.patch;
+        if (l.build != r.build) return l.build > r.build;
+        return false;
+    }
+    inline bool operator>=(const Version& l, const Version& r)
+    {
+        return l == r || l > r;
+    }
+    inline bool operator<(const Version& l, const Version& r)
+    {
+        if (l.major != r.major) return l.major < r.major;
+        if (l.minor != r.minor) return l.minor < r.minor;
+        if (l.patch != r.patch) return l.patch < r.patch;
+        if (l.build != r.build) return l.build < r.build;
+        return false;
+    }
+    inline bool operator<=(const Version& l, const Version& r)
+    {
+        return l == r || l < r;
+    }
     inline bool IsCompatibleVersion(const Version& runtime, const Version& expected) noexcept
     {
-        if (runtime.major != expected.major)
-            return false;
-        if (runtime.minor != expected.minor)
-            return runtime.minor >= expected.minor;
-        if (runtime.patch != expected.patch)
-            return runtime.patch >= expected.patch;
-        return runtime.build >= expected.build;
+        return runtime >= expected && runtime < Version{expected.major + 1, 0, 0, 0};
     }
 
     class IStream
@@ -35,7 +62,7 @@ namespace Zibra
         virtual ~IStream() noexcept = default;
 
     public:
-        virtual void read(char* s, size_t count) noexcept = 0;
+        virtual void read(void* s, size_t count) noexcept = 0;
         virtual bool fail() const noexcept = 0;
         virtual bool good() const noexcept = 0;
         virtual bool bad() const noexcept = 0;
@@ -53,9 +80,9 @@ namespace Zibra
         {
         }
 
-        void read(char* s, size_t count) noexcept final
+        void read(void* s, size_t count) noexcept final
         {
-            m_IStream.read(s, count);
+            m_IStream.read(static_cast<char*>(s), count);
         }
 
         bool fail() const noexcept final
@@ -98,6 +125,63 @@ namespace Zibra
         std::istream& m_IStream;
     };
 
+    class MemoryIStream : public IStream
+    {
+    public:
+        explicit MemoryIStream(const void* memory, size_t size) noexcept
+            : m_Mem(static_cast<const char*>(memory)), m_MemSize(size), m_GPos(0), m_GCount(0)
+        {
+        }
+
+    public:
+        void read(void* s, size_t count) noexcept override
+        {
+            m_Fail = (m_GPos + m_GCount) > m_MemSize;
+            if (m_Fail)
+                return;
+            m_GCount = std::min(count, m_MemSize - m_GPos);
+            memcpy(s, &m_Mem[m_GPos], m_GCount);
+            m_GPos += m_GCount;
+        }
+        bool fail() const noexcept override
+        {
+            return m_Bad || m_Fail;
+        }
+        bool good() const noexcept override
+        {
+            return !eof() && !m_Bad || !m_Fail;
+        }
+        bool bad() const noexcept override
+        {
+            return m_Bad;
+        }
+        bool eof() const noexcept override
+        {
+            return m_GPos >= m_MemSize;
+        }
+        IStream& seekg(size_t pos) noexcept override
+        {
+            m_Fail = pos > m_MemSize;
+            m_GPos = std::min(pos, m_MemSize);
+            return *this;
+        }
+        size_t tellg() noexcept override
+        {
+            return m_GPos;
+        }
+        [[nodiscard]] size_t gcount() noexcept override
+        {
+            return m_GCount;
+        }
+    protected:
+        const char* m_Mem;
+        size_t m_MemSize;
+        size_t m_GPos;
+        size_t m_GCount;
+        bool m_Bad = false;
+        bool m_Fail = false;
+    };
+
 #pragma region IStream CAPI
     namespace CAPI
     {
@@ -105,7 +189,7 @@ namespace Zibra
         {
             void* obj;
             void (*destructor)(void*);
-            void (*read)(void*, char* s, size_t count);
+            void (*read)(void*, void* s, size_t count);
             size_t (*gcount)(void*);
         };
 
@@ -116,7 +200,7 @@ namespace Zibra
             vt.obj = obj;
 
             vt.destructor = [](void* o) { delete static_cast<T*>(o); };
-            vt.read = [](void* o, char* s, size_t c) { return static_cast<T*>(o)->read(s, c); };
+            vt.read = [](void* o, void* s, size_t c) { return static_cast<T*>(o)->read(s, c); };
             vt.gcount = [](void* o) { return static_cast<T*>(o)->gcount(); };
 
             return vt;
@@ -130,7 +214,7 @@ namespace Zibra
         virtual ~OStream() noexcept = default;
 
     public:
-        virtual void write(const char* s, size_t count) noexcept = 0;
+        virtual void write(const void* s, size_t count) noexcept = 0;
         [[nodiscard]] virtual bool fail() const noexcept = 0;
         [[nodiscard]] virtual size_t tellp() noexcept = 0;
         virtual OStream& seekp(size_t pos) noexcept = 0;
@@ -144,9 +228,9 @@ namespace Zibra
         {
         }
 
-        void write(const char* s, size_t count) noexcept final
+        void write(const void* s, size_t count) noexcept final
         {
-            m_OStream.write(s, count);
+            m_OStream.write(static_cast<const char*>(s), count);
         }
 
         [[nodiscard]] bool fail() const noexcept final
@@ -176,7 +260,7 @@ namespace Zibra
         {
             void* obj;
             void (*destructor)(void*);
-            void (*write)(void*, const char* s, size_t count);
+            void (*write)(void*, const void* s, size_t count);
             bool (*fail)(void*);
             size_t (*tellp)(void*);
             OStream& (*seekp)(void*, size_t pos);
@@ -189,7 +273,7 @@ namespace Zibra
             vt.obj = obj;
 
             vt.destructor = [](void* o) { delete static_cast<T*>(o); };
-            vt.write = [](void* o, const char* s, size_t c) { return static_cast<T*>(o)->write(s, c); };
+            vt.write = [](void* o, const void* s, size_t c) { return static_cast<T*>(o)->write(s, c); };
             vt.fail = [](void* o) { return static_cast<T*>(o)->fail(); };
             vt.tellp = [](void* o) { return static_cast<T*>(o)->tellp(); };
             vt.seekp = [](void* o, size_t p) -> OStream& { return static_cast<T*>(o)->seekp(p); };
@@ -206,7 +290,7 @@ namespace Zibra
             }
 
         public:
-            void write(const char* s, size_t count) noexcept final
+            void write(const void* s, size_t count) noexcept final
             {
                 m_VT.write(m_VT.obj, s, count);
             }

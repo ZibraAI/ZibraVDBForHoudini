@@ -6,24 +6,33 @@
 
 #include "utils/Helpers.h"
 
-// clang-format off
+// Defining used SDK API function pointers and putting it back to appropriate namespaces.
+namespace Zibra
+{
+    namespace RHI
+    {
+        PFN_CreateRHIFactory CreateRHIFactory = nullptr;
+        PFN_GetVersion GetVersion = nullptr;
+    }
 
-#define ZSDK_RUNTIME_FUNCTION_LIST_APPLY(macro) \
-    ZRHI_API_APPLY(macro) \
-    ZCE_COMPRESSOR_API_APPLY(macro) \
-    ZCE_DECOMPRESSION_API_APPLY(macro) \
-    ZCE_LICENSING_API_APPLY(macro) \
-    ZCE_TRIAL_API_APPLY(macro) 
-
-// clang-format on
-
-#define ZSDK_CONCAT_HELPER(A, B) A##B
-#define ZSDK_PFN(name) ZSDK_CONCAT_HELPER(PFN_, name)
-#define ZSDK_DEFINE_FUNCTION_POINTER(name) ZSDK_PFN(name) name = nullptr;
-ZSDK_RUNTIME_FUNCTION_LIST_APPLY(ZSDK_DEFINE_FUNCTION_POINTER)
-#undef ZSDK_DEFINE_FUNCTION_POINTER
-#undef ZSDK_PFN
-#undef ZSDK_CONCAT_HELPER
+    namespace CE
+    {
+        namespace Decompression
+        {
+            PFN_CreateFormatMapper CreateFormatMapper = nullptr;
+            PFN_GetVersion GetVersion = nullptr;
+        }
+        namespace Compression
+        {
+            PFN_CreateCompressorFactory CreateCompressorFactory = nullptr;
+            PFN_GetVersion GetVersion = nullptr;
+        }
+        namespace Licensing
+        {
+            PFN_GetLicenseManager GetLicenseManager = nullptr;
+        }
+    }
+}
 
 namespace Zibra::LibraryUtils
 {
@@ -110,26 +119,45 @@ namespace Zibra::LibraryUtils
     bool LoadFunctions() noexcept
     {
 #if ZIB_TARGET_OS_WIN
-#define ZIB_LOAD_FUNCTION_POINTER(functionName)                                                                          \
-    functionName = reinterpret_cast<ZCE_PFN(functionName)>(::GetProcAddress(g_LibraryHandle, ZIB_STRINGIFY(functionName))); \
-    if (functionName == nullptr)                                                                                         \
-    {                                                                                                                    \
-        return false;                                                                                                    \
+#define ZIB_LOAD_FUNCTION_POINTER(functionName, exportName)                                             \
+    functionName = reinterpret_cast<PFN_##functionName>(::GetProcAddress(g_LibraryHandle, exportName)); \
+    if (functionName == nullptr)                                                                        \
+    {                                                                                                   \
+        OutputDebugStringA("Failed to load API function:" #functionName);                               \
+        return false;                                                                                   \
     }
-        ZSDK_RUNTIME_FUNCTION_LIST_APPLY(ZIB_LOAD_FUNCTION_POINTER)
-#undef ZIB_LOAD_FUNCTION_POINTER
+
 #elif ZIB_TARGET_OS_LINUX || ZIB_TARGET_OS_MAC
-#define ZIB_LOAD_FUNCTION_POINTER(functionName)                                                    \
-    functionName = reinterpret_cast<ZCE_PFN(functionName)>(dlsym(g_LibraryHandle, ZIB_STRINGIFY(functionName))); \
-    if (functionName == nullptr)                                                                   \
-    {                                                                                              \
-        return false;                                                                              \
+#define ZIB_LOAD_FUNCTION_POINTER(functionName, exportName)                                  \
+    functionName = reinterpret_cast<PFN_##functionName>(dlsym(g_LibraryHandle, exportName)); \
+    if (functionName == nullptr)                                                             \
+    {                                                                                        \
+        return false;                                                                        \
     }
-        ZSDK_RUNTIME_FUNCTION_LIST_APPLY(ZIB_LOAD_FUNCTION_POINTER)
-#undef ZIB_LOAD_FUNCTION_POINTER
 #else
 #error Unsupported platform
 #endif
+
+        {
+            using namespace Zibra::RHI;
+            ZIB_LOAD_FUNCTION_POINTER(CreateRHIFactory, CreateRHIFactoryExportName);
+            ZIB_LOAD_FUNCTION_POINTER(GetVersion, GetVersionExportName);
+        }
+        {
+            using namespace Zibra::CE::Decompression;
+            ZIB_LOAD_FUNCTION_POINTER(CreateFormatMapper, CreateFormatMapperExportName);
+            ZIB_LOAD_FUNCTION_POINTER(GetVersion, GetVersionExportName);
+        }
+        {
+            using namespace Zibra::CE::Compression;
+            ZIB_LOAD_FUNCTION_POINTER(CreateCompressorFactory, CreateCompressorFactoryExportName);
+            ZIB_LOAD_FUNCTION_POINTER(GetVersion, GetVersionExportName);
+        }
+        {
+            using namespace Zibra::CE::Licensing;
+            ZIB_LOAD_FUNCTION_POINTER(GetLicenseManager, GetLicenseManagerExportName);
+        }
+#undef ZIB_LOAD_FUNCTION_POINTER
         return true;
     }
 
@@ -158,9 +186,9 @@ namespace Zibra::LibraryUtils
             return false;
         }
 
-        g_CompressionLibraryVersion = Zibra_CE_Compression_GetVersion();
-        g_DecompressionLibraryVersion = Zibra_CE_Decompression_GetVersion();
-        g_RHILibraryVersion = Zibra_RHI_GetVersion();
+        g_CompressionLibraryVersion = CE::Compression::GetVersion();
+        g_DecompressionLibraryVersion = CE::Decompression::GetVersion();
+        g_RHILibraryVersion = RHI::GetVersion();
 
         if (!ValidateLoadedVersion())
         {
@@ -314,5 +342,3 @@ namespace Zibra::LibraryUtils
 
 } // namespace Zibra::LibraryUtils
 
-#undef ZCE_CONCAT_HELPER
-#undef ZRHI_CONCAT_HELPER

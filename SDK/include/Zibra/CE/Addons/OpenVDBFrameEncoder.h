@@ -113,13 +113,13 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                         auto gridRefIt = m_ChNameToGridDescs.find(chName);
                         if (gridRefIt != m_ChNameToGridDescs.end())
                         {
-                            const Decompression::ChannelInfo& chInfo = *m_ChNameToChInfo[chName];
+                            const Decompression::ChannelInfo& channelInfo = *m_ChNameToChInfo[chName];
                             for (const VDBGridDescRef& gridRef : gridRefIt->second)
                             {
                                 const char* targetGridName = gridRef.desc->gridName;
 
                                 // Find grid intermediate by name or create empty if it is absent
-                                const auto gridIntermediateToCreate = GridIntermediate{gridRef.desc->voxelType, chInfo.gridTransform, {}};
+                                const auto gridIntermediateToCreate = GridIntermediate{gridRef.desc->voxelType, channelInfo.gridTransform, {}};
                                 auto gridIntermediateIt = gridsIntermediate.find(targetGridName);
                                 if (gridIntermediateIt == gridsIntermediate.end())
                                     gridIntermediateIt = gridsIntermediate.insert({targetGridName, gridIntermediateToCreate}).first;

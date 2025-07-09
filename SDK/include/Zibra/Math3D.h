@@ -419,6 +419,15 @@ namespace Zibra::Math3D
         int32_t maxZ = INT_MIN;
     };
 
+    inline uint3 AABBSize(const AABB& aabb) noexcept
+    {
+        return {
+            static_cast<uint32_t>(std::abs(aabb.maxX - aabb.minX)),
+            static_cast<uint32_t>(std::abs(aabb.maxY - aabb.minY)),
+            static_cast<uint32_t>(std::abs(aabb.maxZ - aabb.minZ))
+        };
+    }
+
     inline bool IsEmpty(const AABB& aabb) noexcept
     {
         return aabb.minX >= aabb.maxX || aabb.minY >= aabb.maxY || aabb.minZ >= aabb.maxZ;

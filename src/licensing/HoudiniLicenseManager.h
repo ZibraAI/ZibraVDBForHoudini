@@ -4,7 +4,7 @@
 
 namespace Zibra
 {
-    class LicenseManager
+    class HoudiniLicenseManager
     {
     public:
         // Must match list of products in ZibraVDB SDK
@@ -49,7 +49,7 @@ namespace Zibra
         };
 
         // Singleton
-        static LicenseManager& GetInstance();
+        static HoudiniLicenseManager& GetInstance();
 
         Status GetLicenseStatus(Product product) const;
         ActivationType GetLicenceType() const;
@@ -74,6 +74,7 @@ namespace Zibra
         static const char* const ms_DefaultLicenseKeyFileName;
         static const char* const ms_DefaultOfflineLicenseFileName;
 
+        CE::Licensing::LicenseManager* m_Manager = nullptr;
         Status m_Status[size_t(Product::Count)] = {Status::Uninitialized};
         ActivationType m_Type = ActivationType::None;
         LicensePathType m_LicensePathType = LicensePathType::None;

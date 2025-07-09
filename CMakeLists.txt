@@ -96,7 +96,7 @@ set(HeaderFiles
     src/bridge/UpdateCheck.h
     src/ROP/CompressorManager/CompressorManager.h
     src/SOP/DecompressorManager/DecompressorManager.h
-    src/licensing/LicenseManager.h
+    src/licensing/HoudiniLicenseManager.h
     src/licensing/TrialManager.h
     src/ROP/ROP_ZibraVDBCompressor.h
     src/SOP/SOP_ZibraVDBDecompressor.h
@@ -113,7 +113,7 @@ set(SourceFiles
     src/bridge/UpdateCheck.cpp
     src/ROP/CompressorManager/CompressorManager.cpp
     src/SOP/DecompressorManager/DecompressorManager.cpp
-    src/licensing/LicenseManager.cpp
+    src/licensing/HoudiniLicenseManager.cpp
     src/licensing/TrialManager.cpp
     src/ROP/ROP_ZibraVDBCompressor.cpp
     src/SOP/SOP_ZibraVDBDecompressor.cpp
