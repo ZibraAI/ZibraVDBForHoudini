@@ -136,9 +136,9 @@ namespace Zibra
 
     void PluginManagementWindowImpl::InitializeLicenseFields()
     {
-        SetStringField("license_key.val", LicenseManager::GetInstance().GetLicenseKey().c_str());
-        SetStringField("offline_license.val", LicenseManager::GetInstance().GetOfflineLicense().c_str());
-        SetStringField("license_server.val", LicenseManager::GetInstance().GetLicenseServerAddress().c_str());
+        SetStringField("license_key.val", HoudiniLicenseManager::GetInstance().GetLicenseKey().c_str());
+        SetStringField("offline_license.val", HoudiniLicenseManager::GetInstance().GetOfflineLicense().c_str());
+        SetStringField("license_server.val", HoudiniLicenseManager::GetInstance().GetLicenseServerAddress().c_str());
     }
 
     void PluginManagementWindowImpl::HandleDownloadLibrary(UI_Event* event)

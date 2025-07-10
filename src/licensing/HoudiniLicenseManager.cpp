@@ -587,7 +587,7 @@ namespace Zibra
                 return Status::OK;
             }
 
-            m_ActivationError = CE::Licensing::CAPI::GetLicenseError();
+            m_ActivationError = m_Manager->GetLicenseError();
 
             return Status::ValidationError;
         }
@@ -607,9 +607,9 @@ namespace Zibra
             m_OfflineLicense = "";
             m_LicenseServerAddress = licenseServerAddress;
 
-            CE::Licensing::CAPI::CheckoutLicenseLicenseServer(licenseServerAddress.c_str());
+            m_Manager->CheckoutLicenseLicenseServer(licenseServerAddress.c_str());
 
-            if (CE::Licensing::CAPI::IsLicenseValidated(CE::Licensing::ProductType::Compression))
+            if (m_Manager->IsLicenseValidated(CE::Licensing::ProductType::Compression))
             {
                 SetStatusFromZibraVDBRuntime();
                 m_Type = ActivationType::LicenseServer;
@@ -618,7 +618,7 @@ namespace Zibra
                 return Status::OK;
             }
 
-            m_ActivationError = CE::Licensing::CAPI::GetLicenseError();
+            m_ActivationError = m_Manager->GetLicenseError();
 
             return Status::ValidationError;
         }
@@ -648,7 +648,7 @@ namespace Zibra
                 return Status::OK;
             }
 
-            m_ActivationError = CE::Licensing::CAPI::GetLicenseError();
+            m_ActivationError = m_Manager->GetLicenseError();
 
             return Status::ValidationError;
         }
