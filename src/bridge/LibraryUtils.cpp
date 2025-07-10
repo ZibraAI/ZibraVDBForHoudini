@@ -228,9 +228,9 @@ namespace Zibra::LibraryUtils
             return false;
         }
 
-        g_CompressionLibraryVersion = Zibra_CE_Compression_GetVersion();
-        g_DecompressionLibraryVersion = Zibra_CE_Decompression_GetVersion();
-        g_RHILibraryVersion = Zibra_RHI_GetVersion();
+        g_CompressionLibraryVersion = CE::Compression::GetVersion();
+        g_DecompressionLibraryVersion = CE::Decompression::GetVersion();
+        g_RHILibraryVersion = RHI::GetVersion();
 
         if (!ValidateLoadedVersion())
         {
