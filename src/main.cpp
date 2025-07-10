@@ -6,6 +6,7 @@
 #include <bridge/LibraryUtils.h>
 
 #include "LOP/LOP_ZibraVDBCompressionMarker.h"
+#include "LOP/LOP_ZibraVDBImport.h"
 #include "LOP/ZibraVDBOutputProcessor.h"
 #include "ROP/ROP_ZibraVDBCompressor.h"
 #include "SOP/SOP_ZibraVDBDecompressor.h"
@@ -26,6 +27,7 @@ extern "C" {
         using namespace Zibra;
 
         //table->addOperator(new ZibraVDBCompressionMarker::LOP_ZibraVDBCompressionMarker_Operator());
+        table->addOperator(new ZibraVDBImport::LOP_ZibraVDBImport_Operator());
 
         HUSD_OutputProcessorRegistry::get().registerOutputProcessor(ZibraVDBOutputProcessor::OUTPUT_PROCESSOR_NAME,
                                                                     ZibraVDBOutputProcessor::createZibraVDBOutputProcessor);

@@ -102,6 +102,7 @@ cmake_print_variables(ZIB_NETWORK_REQUEST_BACKEND)
         src/SOP/SOP_ZibraVDBDecompressor.h
         src/SOP/SOP_ZibraVDBUSDExport.h
         src/LOP/LOP_ZibraVDBCompressionMarker.h
+        src/LOP/LOP_ZibraVDBImport.h
         src/LOP/ZibraVDBOutputProcessor.h
         src/ui/MessageBox.h
         src/ui/PluginManagementWindow.h
@@ -124,6 +125,7 @@ set(SourceFiles
     src/SOP/SOP_ZibraVDBDecompressor.cpp
     src/SOP/SOP_ZibraVDBUSDExport.cpp
     src/LOP/LOP_ZibraVDBCompressionMarker.cpp
+    src/LOP/LOP_ZibraVDBImport.cpp
     src/LOP/ZibraVDBOutputProcessor.cpp
     src/ui/MessageBox.cpp
     src/ui/PluginManagementWindow.cpp
