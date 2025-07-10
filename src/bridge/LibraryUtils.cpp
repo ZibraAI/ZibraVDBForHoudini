@@ -66,9 +66,11 @@ namespace Zibra::LibraryUtils
         std::vector<std::string> result;
 
         const std::pair<UT_StrControl, const char*> basePathEnvVars[] = {
-            {ENV_HOUDINI_USER_PREF_DIR, "HOUDINI_USER_PREF_DIR"},
+            // HSite and HQRoot have priority over HOUDINI_USER_PREF_DIR
+            // So that same version of library shared between multiple computers
             {ENV_HSITE, "HSITE"},
             {ENV_MAX_STR_CONTROLS, "HQROOT"},
+            {ENV_HOUDINI_USER_PREF_DIR, "HOUDINI_USER_PREF_DIR"},
         };
 
         for (const auto& [envVarEnum, envVarName] : basePathEnvVars)
@@ -287,8 +289,9 @@ namespace Zibra::LibraryUtils
         {
             return "";
         }
-        std::string result= std::to_string(g_CompressionLibraryVersion.major) + "." + std::to_string(g_CompressionLibraryVersion.minor) + "." +
-                  std::to_string(g_CompressionLibraryVersion.patch) + "." + std::to_string(g_CompressionLibraryVersion.build);
+        std::string result = std::to_string(g_CompressionLibraryVersion.major) + "." + std::to_string(g_CompressionLibraryVersion.minor) +
+                             "." + std::to_string(g_CompressionLibraryVersion.patch) + "." +
+                             std::to_string(g_CompressionLibraryVersion.build);
         result += " / ";
         result += std::to_string(g_DecompressionLibraryVersion.major) + "." + std::to_string(g_DecompressionLibraryVersion.minor) + "." +
                   std::to_string(g_DecompressionLibraryVersion.patch) + "." + std::to_string(g_DecompressionLibraryVersion.build);

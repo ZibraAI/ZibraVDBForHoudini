@@ -32,6 +32,7 @@ namespace Zibra
         enum class ActivationType
         {
             Offline,
+            LicenseServer,
             Online,
             // Must be last
             None
@@ -62,25 +63,31 @@ namespace Zibra
 
         std::string GetLicenseKey() const;
         std::string GetOfflineLicense() const;
+        std::string GetLicenseServerAddress() const;
 
         void SetLicenseKey(const char* key);
         void SetOfflineLicense(const char* offlineLicense);
+        void SetLicenseServer(const char* licenseServerAddress);
 
         void CopyLicenseFile(const std::string& destFolder);
 
         bool CheckLicense(Product product);
+        const std::string& GetActivationError() const;
 
     private:
         static const char* const ms_DefaultLicenseKeyFileName;
         static const char* const ms_DefaultOfflineLicenseFileName;
+        static const char* const ms_DefaultLicenseServerFileName;
 
         CE::Licensing::LicenseManager* m_Manager = nullptr;
         Status m_Status[size_t(Product::Count)] = {Status::Uninitialized};
+        std::string m_ActivationError;
         ActivationType m_Type = ActivationType::None;
         LicensePathType m_LicensePathType = LicensePathType::None;
         std::string m_LicensePath;
         std::string m_LicenseKey;
         std::string m_OfflineLicense;
+        std::string m_LicenseServerAddress;
 
         static std::string SanitizePath(const std::string& path);
         static std::string SanitizeKey(const std::string& key);
@@ -88,9 +95,11 @@ namespace Zibra
 
         static std::string GetKeyPath(LicensePathType pathType);
         static std::string GetOfflineLicensePath(LicensePathType pathType);
+        static std::string GetLicenseServerAddressPath(LicensePathType pathType);
 
         static std::string ReadKeyFromFile(const std::string& path);
         static std::string ReadOfflineLicenseFromFile(const std::string& path);
+        static std::string ReadLicenseServerAddressFromFile(const std::string& path);
 
         bool IsLicenseValid(Product product) const;
         bool IsAnyLicenseValid() const;

@@ -88,7 +88,7 @@ window.gad = NORMAL_WINDOW "ZibraVDB"
     {
         JUSTIFY(left, center)
 
-        LABEL "License file path: " WIDTH(1.15);
+        LABEL "License info path: " WIDTH(1.15);
         LABEL VALUE(license_file_path.val);
     }
 
@@ -114,6 +114,18 @@ window.gad = NORMAL_WINDOW "ZibraVDB"
         LABEL "" WIDTH(0.1);
 
         ACTION_BUTTON "Set Offline License" VALUE(set_offline_license.val) WIDTH(1.5);
+    }
+
+    ROW
+    {
+        JUSTIFY(left, center)
+
+        LABEL "License Server address" WIDTH(0.9);
+        STRING_FIELD VALUE(license_server.val) WIDTH(3.3);
+
+        LABEL "" WIDTH(0.1);
+
+        ACTION_BUTTON "Set License Server" VALUE(set_license_server.val) WIDTH(1.5);
     }
 
     COLLAPSER "Advanced options"
