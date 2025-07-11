@@ -28,17 +28,11 @@ namespace Zibra::ZibraVDBImport
         std::string getPrimitivePath(fpreal t) const;
         std::string getParentPrimType(fpreal t) const;
         std::string getFields(fpreal t) const;
-        std::string getPrimitiveKind(fpreal t) const;
-        std::string getPurpose(fpreal t) const;
-        bool getCreateParent(fpreal t) const;
-        bool getCreateViewportLOD(fpreal t) const;
-        float getFrame(fpreal t) const;
-        
-        // Update the fields choice list
+
         void updateFieldsChoiceList(const std::vector<std::string>& availableGrids);
 
     private:
-        std::string sanitizeFieldNameForUSD(const std::string& fieldName);
+        //std::string sanitizeFieldNameForUSD(const std::string& fieldName);
         std::vector<std::string> parseSelectedFields(const std::string& fieldsStr, const std::vector<std::string>& availableGrids);
         void readAndDisplayZibraVDBMetadata(const std::string& filePath, std::vector<std::string>& availableGrids);
         void createVolumeStructure(UsdStageRefPtr stage, const std::string& primPath, const std::string& primName,
@@ -46,7 +40,7 @@ namespace Zibra::ZibraVDBImport
         void createOpenVDBAssetPrim(UsdStageRefPtr stage, const std::string& volumePath, const std::string& fieldName,
                                    const std::string& sanitizedFieldName, const std::string& filePath, fpreal t);
         void createFieldRelationship(UsdVolVolume& volumePrim, const std::string& fieldName, const std::string& assetPath);
-        std::string generateZibraVDBURL(const std::string& filePath, const std::string& fieldName) const;
+        std::string generateZibraVDBURL(const std::string& filePath, const std::string& fieldName, int frameNumber) const;
     };
 
     class LOP_ZibraVDBImport_Operator final : public OP_Operator
