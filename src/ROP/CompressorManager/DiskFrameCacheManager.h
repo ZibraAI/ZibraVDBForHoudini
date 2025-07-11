@@ -24,12 +24,12 @@ namespace Zibra::ZibraVDBCompressor
         }
 
     public:
-        ReturnCode StartCacheStore(const char* id, OStream** outStream) noexcept override
+        CE::ReturnCode StartCacheStore(const char* id, OStream** outStream) noexcept override
         {
             auto it = m_Cache.find(id);
             if (it != m_Cache.end() && (it->second.readWrapper || it->second.writeWrapper))
             {
-                return ZCE_ERROR;
+                return CE::ZCE_ERROR;
             }
 
             CacheItem cache{};
@@ -38,7 +38,7 @@ namespace Zibra::ZibraVDBCompressor
             if (!cache.write->is_open())
             {
                 delete cache.write;
-                return ZCE_ERROR;
+                return CE::ZCE_ERROR;
             }
             cache.writeWrapper = new STDOStreamWrapper{*cache.write};
 
@@ -51,71 +51,71 @@ namespace Zibra::ZibraVDBCompressor
                 m_Cache.emplace(id, cache);
             }
             *outStream = cache.writeWrapper;
-            return ZCE_SUCCESS;
+            return CE::ZCE_SUCCESS;
         }
 
-        ReturnCode FinishCacheStore(const char* id) noexcept override
+        CE::ReturnCode FinishCacheStore(const char* id) noexcept override
         {
             auto it = m_Cache.find(id);
             if (it == m_Cache.end())
-                return ZCE_ERROR_NOT_FOUND;
+                return CE::ZCE_ERROR_NOT_FOUND;
 
             delete it->second.writeWrapper;
             it->second.writeWrapper = nullptr;
             delete it->second.write;
             it->second.write = nullptr;
-            return ZCE_SUCCESS;
+            return CE::ZCE_SUCCESS;
         }
 
-        ReturnCode StartCacheRead(const char* id, IStream** outStream) noexcept override
+        CE::ReturnCode StartCacheRead(const char* id, IStream** outStream) noexcept override
         {
             auto it = m_Cache.find(id);
             if (it == m_Cache.end())
-                return ZCE_ERROR_NOT_FOUND;
+                return CE::ZCE_ERROR_NOT_FOUND;
 
             if (it->second.readWrapper || it->second.writeWrapper)
-                return ZCE_ERROR;
+                return CE::ZCE_ERROR;
 
             it->second.read = new std::ifstream{it->second.filepath, std::ios::binary};
             if (!it->second.read->is_open())
             {
                 delete it->second.read;
                 it->second.read = nullptr;
-                return ZCE_ERROR;
+                return CE::ZCE_ERROR;
             }
             it->second.readWrapper = new STDIStreamWrapper{*it->second.read};
             *outStream = it->second.readWrapper;
-            return ZCE_SUCCESS;
+            return CE::ZCE_SUCCESS;
         }
 
-        ReturnCode FinishCacheRead(const char* id) noexcept override
+        CE::ReturnCode FinishCacheRead(const char* id) noexcept override
         {
             auto it = m_Cache.find(id);
             if (it == m_Cache.end())
-                return ZCE_ERROR_NOT_FOUND;
+                return CE::ZCE_ERROR_NOT_FOUND;
 
             delete it->second.readWrapper;
             it->second.readWrapper = nullptr;
             delete it->second.read;
             it->second.read = nullptr;
-            return ZCE_SUCCESS;
+            return CE::ZCE_SUCCESS;
         }
 
-        ReturnCode ReleaseCache(const char* id) noexcept override
+        CE::ReturnCode ReleaseCache(const char* id) noexcept override
         {
             auto it = m_Cache.find(id);
             if (it == m_Cache.end())
-                return ZCE_ERROR_NOT_FOUND;
+                return CE::ZCE_ERROR_NOT_FOUND;
 
             if (it->second.readWrapper || it->second.writeWrapper)
-                return ZCE_ERROR;
+                return CE::ZCE_ERROR;
 
             // dummy error code for noexcept function call.
             std::error_code errorCode = {};
             auto status = std::filesystem::remove(it->second.filepath, errorCode);
             m_Cache.erase(it);
 
-            return status ? ZCE_SUCCESS : ZCE_ERROR;
+            return status ? CE::ZCE_SUCCESS : CE::ZCE_ERROR;
         }
 
         void Release() noexcept
