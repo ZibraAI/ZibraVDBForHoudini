@@ -159,7 +159,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             }
         }
 
-        [[nodiscard]] Compression::SparseFrame* LoadFrame(EncodingMetadata* encodingMetadata = nullptr) const noexcept
+        [[nodiscard]] Compression::SparseFrame* LoadFrame() const noexcept
         {
             auto result = new Compression::SparseFrame{};
             std::map<openvdb::Coord, SpatialBlockIntermediate> spatialBlocks{};
@@ -221,10 +221,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 orderedChannels[i].name = chName;
                 orderedChannels[i].statistics.minValue = std::numeric_limits<float>::max();
                 orderedChannels[i].statistics.maxValue = std::numeric_limits<float>::min();
-
-                auto posVoxelSpaceCompensation = openvdb::math::Vec3d(totalAABB.minX, totalAABB.minY, totalAABB.minZ) * SPARSE_BLOCK_SIZE;
-                auto translatedTransform = TranslateOpenVDBTransform(m_Channels[i].grid->constTransform(), posVoxelSpaceCompensation);
-                orderedChannels[i].gridTransform = OpenVDBTransformToMath3DTransform(translatedTransform);
+                orderedChannels[i].gridTransform = OpenVDBTransformToMath3DTransform(m_Channels[i].grid->constTransform());
             }
 
             // Concurrently moving voxel data from leafs to destination ChannelBlock array using precalculated offsets and other data
@@ -303,23 +300,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 }
             }
 
-            if (encodingMetadata != nullptr)
-            {
-                *encodingMetadata = {};
-                encodingMetadata->offsetX = totalAABB.minX * SPARSE_BLOCK_SIZE;
-                encodingMetadata->offsetY = totalAABB.minY * SPARSE_BLOCK_SIZE;
-                encodingMetadata->offsetZ = totalAABB.minZ * SPARSE_BLOCK_SIZE;
-            }
-
-            totalAABB.maxX -= totalAABB.minX;
-            totalAABB.maxY -= totalAABB.minY;
-            totalAABB.maxZ -= totalAABB.minZ;
-            totalAABB.minX = 0.0f;
-            totalAABB.minY = 0.0f;
-            totalAABB.minZ = 0.0f;
-
             result->aabb = totalAABB;
-
             return result;
         }
 
@@ -392,20 +373,6 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             }
 
             return result;
-        }
-
-        static openvdb::math::Transform TranslateOpenVDBTransform(const openvdb::math::Transform& frameTransform,
-                                                                  const openvdb::math::Vec3d& frameTranslation)
-        {
-            // Update transformation matrix to account for additional frameTranslation that was added to coords.
-            openvdb::math::Transform resultTransform = frameTransform;
-
-            // transform3x3 will apply only 3x3 part of matrix, without translation.
-            const openvdb::math::Vec3d frameTranslationInFrameCoordinateSystem =
-                frameTransform.baseMap()->getAffineMap()->getMat4().transform3x3(frameTranslation);
-            resultTransform.postTranslate(frameTranslationInFrameCoordinateSystem);
-
-            return resultTransform;
         }
 
         static uint32_t FirstChannelIndexFromMask(ChannelMask mask) noexcept

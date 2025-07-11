@@ -653,8 +653,6 @@ namespace Zibra::ZibraVDBCompressor
 
         nlohmann::json detailAttrDump = Utils::DumpAttributesForSingleEntity(gdp, GA_ATTRIB_DETAIL, 0);
         result.emplace_back("houdiniDetailAttributes", detailAttrDump.dump());
-
-        // DumpDecodeMetadata(result, encodingMetadata);
         return result;
     }
 
