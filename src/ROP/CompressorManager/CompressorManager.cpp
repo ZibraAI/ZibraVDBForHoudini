@@ -2,15 +2,16 @@
 
 #include "CompressorManager.h"
 
+#include "DiskFrameCacheManager.h"
 #include "bridge/LibraryUtils.h"
 #include "utils/Helpers.h"
 
-namespace Zibra::CE::Compression
+namespace Zibra::ZibraVDBCompressor
 {
-    ReturnCode CompressorManager::Initialize(PlaybackInfo playbackInfo, float defaultQuality,
-                                             const std::vector<std::pair<UT_String, float>>& perChannelCompressionSettings) noexcept
+    CE::ReturnCode CompressorManager::Initialize(CE::PlaybackInfo playbackInfo, float defaultQuality,
+                                                 const std::vector<std::pair<UT_String, float>>& perChannelCompressionSettings) noexcept
     {
-        if (!Zibra::LibraryUtils::IsLibraryLoaded())
+        if (!LibraryUtils::IsLibraryLoaded())
         {
             return CE::ZCE_ERROR;
         }
@@ -51,27 +52,27 @@ namespace Zibra::CE::Compression
             return CE::ZCE_ERROR;
         }
 
-        CompressorFactory* compressorFactory = nullptr;
-        auto status = CreateCompressorFactory(&compressorFactory);
-        if (status != ZCE_SUCCESS)
+        CE::Compression::CompressorFactory* compressorFactory = nullptr;
+        auto status = CE::Compression::CreateCompressorFactory(&compressorFactory);
+        if (status != CE::ZCE_SUCCESS)
         {
             return CE::ZCE_ERROR;
         }
 
         status = compressorFactory->UseRHI(m_RHIRuntime);
-        if (status != CE::ReturnCode::ZCE_SUCCESS)
+        if (status != CE::ZCE_SUCCESS)
         {
             compressorFactory->Release();
             return status;
         }
         status = compressorFactory->SetPlaybackInfo(playbackInfo);
-        if (status != CE::ReturnCode::ZCE_SUCCESS)
+        if (status != CE::ZCE_SUCCESS)
         {
             compressorFactory->Release();
             return status;
         }
         status = compressorFactory->SetQuality(defaultQuality);
-        if (status != CE::ReturnCode::ZCE_SUCCESS)
+        if (status != CE::ZCE_SUCCESS)
         {
             compressorFactory->Release();
             return status;
@@ -80,7 +81,7 @@ namespace Zibra::CE::Compression
         for (const auto& [channelName, quality] : perChannelCompressionSettings)
         {
             status = compressorFactory->OverrideChannelQuality(channelName.c_str(), quality);
-            if (status != CE::ReturnCode::ZCE_SUCCESS)
+            if (status != CE::ZCE_SUCCESS)
             {
                 compressorFactory->Release();
                 return status;
@@ -88,7 +89,7 @@ namespace Zibra::CE::Compression
         }
 
         status = compressorFactory->Create(&m_Compressor);
-        if (status != Zibra::CE::ReturnCode::ZCE_SUCCESS)
+        if (status != CE::ZCE_SUCCESS)
         {
             compressorFactory->Release();
             return status;
@@ -96,14 +97,14 @@ namespace Zibra::CE::Compression
         compressorFactory->Release();
 
         status = m_Compressor->Initialize();
-        if (status != Zibra::CE::ReturnCode::ZCE_SUCCESS)
+        if (status != CE::ZCE_SUCCESS)
         {
             return status;
         }
         return CE::ZCE_SUCCESS;
     }
 
-    ReturnCode CompressorManager::StartSequence(const UT_String& filename) noexcept
+    CE::ReturnCode CompressorManager::StartSequence(const UT_String& filename) noexcept
     {
         if (!m_Compressor)
         {
@@ -111,7 +112,7 @@ namespace Zibra::CE::Compression
         }
 
         auto status = m_Compressor->StartSequence();
-        if (status != CE::ReturnCode::ZCE_SUCCESS)
+        if (status != CE::ZCE_SUCCESS)
         {
             return status;
         }
@@ -124,7 +125,8 @@ namespace Zibra::CE::Compression
         return CE::ZCE_SUCCESS;
     }
 
-    ReturnCode CompressorManager::CompressFrame(const CompressFrameDesc& compressFrameDesc, FrameManager** frameManager) noexcept
+    CE::ReturnCode CompressorManager::CompressFrame(const CE::Compression::CompressFrameDesc& compressFrameDesc,
+                                                    CE::Compression::FrameManager** frameManager) noexcept
     {
         if (!m_RHIRuntime || !m_Compressor)
         {
@@ -138,7 +140,7 @@ namespace Zibra::CE::Compression
         }
 
         auto status = m_Compressor->CompressFrame(compressFrameDesc, frameManager);
-        if (status != CE::ReturnCode::ZCE_SUCCESS)
+        if (status != CE::ZCE_SUCCESS)
         {
             return status;
         }
@@ -157,14 +159,14 @@ namespace Zibra::CE::Compression
         return CE::ZCE_SUCCESS;
     }
 
-    ReturnCode CompressorManager::FinishSequence(std::string& warning) noexcept
+    CE::ReturnCode CompressorManager::FinishSequence(std::string& warning) noexcept
     {
         if (!m_Compressor)
         {
             return CE::ZCE_ERROR;
         }
 
-        Zibra::STDOStreamWrapper ostream(m_Ofstream);
+        STDOStreamWrapper ostream(m_Ofstream);
         if (ostream.fail())
         {
             return CE::ZCE_ERROR;
@@ -193,4 +195,4 @@ namespace Zibra::CE::Compression
         }
     }
 
-} // namespace Zibra::CE::Compression
+} // namespace Zibra::ZibraVDBCompressor

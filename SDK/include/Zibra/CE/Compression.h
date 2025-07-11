@@ -182,13 +182,12 @@ namespace Zibra::CE::Compression
          * @return ZCE_SUCCESS in case of success or error code otherwise.
          */
         virtual ReturnCode SetPlaybackInfo(const PlaybackInfo& info) noexcept = 0;
-        //TODO: revert after
-        // /**
-        //  * Sets cache manager to use in spawned objects.
-        //  * @param cacheManager - cache manager to use
-        //  * @return ZCE_SUCCESS in case of success or error code otherwise.
-        //  */
-        // virtual ReturnCode UseCacheManager(CacheManager* cacheManager) noexcept = 0;
+        /**
+         * Sets cache manager to use in spawned objects.
+         * @param cacheManager - cache manager to use
+         * @return ZCE_SUCCESS in case of success or error code otherwise.
+         */
+        virtual ReturnCode UseCacheManager(CacheManager* cacheManager) noexcept = 0;
         /**
          *
          * @param [out] outInstance - result compressor instance.
