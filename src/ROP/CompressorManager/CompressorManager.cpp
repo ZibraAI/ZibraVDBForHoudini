@@ -110,6 +110,15 @@ namespace Zibra::ZibraVDBCompressor
         {
             return status;
         }
+
+        m_Compressor->AddPerSequenceMetadata("__ORIGIN", "ZibraVDBForHoudini");
+#ifdef WIN32
+        m_Compressor->AddPerSequenceMetadata("__PLATFORM", "Windows");
+#elif __APPLE__
+        m_Compressor->AddPerSequenceMetadata("_PLATFORM", "Apple");
+#elif __linux__
+        m_Compressor->AddPerSequenceMetadata("_PLATFORM", "Linux");
+#endif
         return CE::ZCE_SUCCESS;
     }
 
