@@ -402,14 +402,14 @@ namespace Zibra::ZibraVDBCompressor
             }
         }
 
+        UT_String filename = "";
+        evalString(filename, FILENAME_PARAM_NAME, nullptr, 0, tStart);
+
         if (CreateCompressor(tStart) == ROP_ABORT_RENDER)
         {
             addError(ROP_MESSAGE, "Failed to create compressor instance.");
             return ROP_ABORT_RENDER;
         }
-
-        UT_String filename = "";
-        evalString(filename, FILENAME_PARAM_NAME, nullptr, 0, tStart);
 
         auto status = m_CompressorManager.StartSequence(filename);
         if (status != CE::ZCE_SUCCESS)
@@ -570,7 +570,6 @@ namespace Zibra::ZibraVDBCompressor
         std::filesystem::create_directories(std::filesystem::path{filename.c_str()}.parent_path(), ec);
 
         const int renderMode = static_cast<int>(evalInt("trange", 0, ctx.getTime()));
-        const float startFrame = renderMode == 0 ? ctx.getFrame() : evalFloat("f", 0, tStart);
         const float frameInc = renderMode == 0 ? 1 : evalFloat("f", 2, tStart);
         CE::PlaybackInfo playbackInfo{};
         playbackInfo.sequenceIndexIncrement = frameInc;
@@ -617,7 +616,8 @@ namespace Zibra::ZibraVDBCompressor
             }
         }
 
-        auto status = m_CompressorManager.Initialize(playbackInfo, defaultQuality, perChannelCompressionSettings);
+        std::filesystem::path basePath = std::filesystem::path{filename.c_str()}.parent_path();
+        auto status = m_CompressorManager.Initialize(playbackInfo, defaultQuality, perChannelCompressionSettings, basePath);
         if (status != CE::ReturnCode::ZCE_SUCCESS)
         {
             addError(ROP_MESSAGE, "Failed to initialize compressor.");

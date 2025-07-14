@@ -11,7 +11,8 @@ namespace Zibra::ZibraVDBCompressor
     {
     public:
         CE::ReturnCode Initialize(CE::PlaybackInfo playbackInfo, float defaultQuality,
-                                  const std::vector<std::pair<UT_String, float>>& perChannelCompressionSettings) noexcept;
+                                  const std::vector<std::pair<UT_String, float>>& perChannelCompressionSettings,
+                                  std::filesystem::path outDir) noexcept;
         CE::ReturnCode StartSequence(const UT_String& filename) noexcept;
         CE::ReturnCode CompressFrame(const CE::Compression::CompressFrameDesc& compressFrameDesc,
                                      CE::Compression::FrameManager** frameManager) noexcept;
@@ -19,6 +20,7 @@ namespace Zibra::ZibraVDBCompressor
         void Release() noexcept;
 
     private:
+        DiskFrameCacheManager* m_CacheManager = nullptr;
         CE::Compression::Compressor* m_Compressor = nullptr;
         RHI::RHIRuntime* m_RHIRuntime = nullptr;
         std::ofstream m_Ofstream;

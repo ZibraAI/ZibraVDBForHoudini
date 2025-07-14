@@ -87,6 +87,6 @@ namespace Zibra::ZibraVDBCompressor
 
         ContextType m_ContextType;
 
-        CE::Compression::CompressorManager m_CompressorManager;
+        CompressorManager m_CompressorManager;
     };
 } // namespace Zibra::ZibraVDBCompressor

@@ -9,7 +9,8 @@
 namespace Zibra::ZibraVDBCompressor
 {
     CE::ReturnCode CompressorManager::Initialize(CE::PlaybackInfo playbackInfo, float defaultQuality,
-                                                 const std::vector<std::pair<UT_String, float>>& perChannelCompressionSettings) noexcept
+                                                 const std::vector<std::pair<UT_String, float>>& perChannelCompressionSettings,
+                                                 std::filesystem::path outDir) noexcept
     {
         if (!LibraryUtils::IsLibraryLoaded())
         {
@@ -52,6 +53,8 @@ namespace Zibra::ZibraVDBCompressor
             return CE::ZCE_ERROR;
         }
 
+        m_CacheManager = new DiskFrameCacheManager{outDir / "temp"};
+
         CE::Compression::CompressorFactory* compressorFactory = nullptr;
         auto status = CE::Compression::CreateCompressorFactory(&compressorFactory);
         if (status != CE::ZCE_SUCCESS)
@@ -72,6 +75,12 @@ namespace Zibra::ZibraVDBCompressor
             return status;
         }
         status = compressorFactory->SetQuality(defaultQuality);
+        if (status != CE::ZCE_SUCCESS)
+        {
+            compressorFactory->Release();
+            return status;
+        }
+        status = compressorFactory->UseCacheManager(m_CacheManager);
         if (status != CE::ZCE_SUCCESS)
         {
             compressorFactory->Release();
@@ -187,6 +196,10 @@ namespace Zibra::ZibraVDBCompressor
         {
             m_Compressor->Release();
             m_Compressor = nullptr;
+        }
+        if (m_CacheManager)
+        {
+            delete m_CacheManager;
         }
         if (m_RHIRuntime)
         {
