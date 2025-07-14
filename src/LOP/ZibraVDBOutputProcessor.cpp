@@ -18,10 +18,12 @@
 #include <filesystem>
 #include <openvdb/io/File.h>
 #include <regex>
+#include <sstream>
 
 #include "bridge/LibraryUtils.h"
 #include "licensing/LicenseManager.h"
 #include "SOP/SOP_ZibraVDBUSDExport.h"
+#include "utils/GAAttributesDump.h"
 
 namespace Zibra::ZibraVDBOutputProcessor
 {
@@ -129,7 +131,7 @@ namespace Zibra::ZibraVDBOutputProcessor
                 entryKey.compressorManager = new Zibra::CE::Compression::CompressorManager();
 
                 CE::Compression::FrameMappingDecs frameMappingDesc{};
-                frameMappingDesc.sequenceStartIndex = 0;
+                frameMappingDesc.sequenceStartIndex = frame_index;
                 frameMappingDesc.sequenceIndexIncrement = 1;
                 std::vector<std::pair<UT_String, float>> perChannelSettings;
                 if (sop_node->usePerChannelCompressionSettings())
@@ -176,17 +178,21 @@ namespace Zibra::ZibraVDBOutputProcessor
             });
             if (it != m_InMemoryCompressionEntries.end()) {
                 auto framesIt = std::find_if(it->second.begin(), it->second.end(), [&pathStr](const auto& file) { return file.second == pathStr; });
-                auto compressedFrameIndex = std::distance(it->second.begin(), framesIt);
-                std::string outputRef = "zibravdb://" + it->first.outputFile + "?frame=" + std::to_string(compressedFrameIndex);
+                auto actualFrameNumber = framesIt->first;
+                std::string outputRef = "zibravdb://" + it->first.outputFile + "?frame=" + std::to_string(actualFrameNumber);
                 newpath = UT_String(outputRef);
 
                 auto& entry = *it;
 
-                auto sceneFrameIndex = framesIt->first - 1;
-                fpreal frameRate = OPgetDirector()->getChannelManager()->getSamplesPerSec();
-                fpreal globalStartFrame = OPgetDirector()->getChannelManager()->getGlobalStartFrame();
-                fpreal sceneFrame = globalStartFrame + static_cast<fpreal>(sceneFrameIndex);
+                //TODO refine this logic
+//                auto sceneFrameIndex = framesIt->first - 1;
+//                fpreal frameRate = OPgetDirector()->getChannelManager()->getSamplesPerSec();
+//                fpreal globalStartFrame = OPgetDirector()->getChannelManager()->getGlobalStartFrame();
+//                fpreal sceneFrame = globalStartFrame + static_cast<fpreal>(sceneFrameIndex);
+                fpreal sceneFrame = std::distance(it->second.begin(), framesIt);
                 fpreal sceneFrameTime = OPgetDirector()->getChannelManager()->getTime(sceneFrame);
+
+                std::cout << "SceneFrameTime is " << sceneFrameTime << std::endl;
 
                 extractVDBFromSOP(entry.first.sopNode, sceneFrameTime, entry.first.compressorManager);
 
@@ -258,7 +264,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         }
         if (!grids.empty())
         {
-            compressGrids(grids, gridNames, compressorManager);
+            compressGrids(grids, gridNames, compressorManager, gdp);
         }
         else
         {
@@ -268,7 +274,7 @@ namespace Zibra::ZibraVDBOutputProcessor
     }
 
     void ZibraVDBOutputProcessor::compressGrids(std::vector<openvdb::GridBase::ConstPtr>& grids, std::vector<std::string>& gridNames,
-                                                CE::Compression::CompressorManager* compressorManager)
+                                                CE::Compression::CompressorManager* compressorManager, const GU_Detail* gdp)
     {
         if (grids.empty())
         {
@@ -298,6 +304,15 @@ namespace Zibra::ZibraVDBOutputProcessor
         auto status = compressorManager->CompressFrame(compressFrameDesc, &frameManager);
         if (status == CE::ZCE_SUCCESS && frameManager)
         {
+            const auto& gridsShuffleInfo = frameLoader.GetGridsShuffleInfo();
+            
+            auto frameMetadata = DumpAttributes(gdp, encodingMetadata);
+            frameMetadata.push_back({"chShuffle", DumpGridsShuffleInfo(gridsShuffleInfo).dump()});
+            for (const auto& [key, val] : frameMetadata)
+            {
+                frameManager->AddMetadata(key.c_str(), val.c_str());
+            }
+            
             status = frameManager->Finish();
         }
         else
@@ -306,4 +321,92 @@ namespace Zibra::ZibraVDBOutputProcessor
         }
         frameLoader.ReleaseFrame(frame);
     }
+
+    std::vector<std::pair<std::string, std::string>> ZibraVDBOutputProcessor::DumpAttributes(const GU_Detail* gdp, const CE::Addons::OpenVDBUtils::EncodingMetadata& encodingMetadata) noexcept
+    {
+        std::vector<std::pair<std::string, std::string>> result{};
+
+        const GEO_Primitive* prim;
+        GA_FOR_ALL_PRIMITIVES(gdp, prim)
+        {
+            if (prim->getTypeId() == GEO_PRIMVDB)
+            {
+                auto vdbPrim = dynamic_cast<const GEO_PrimVDB*>(prim);
+
+                nlohmann::json primAttrDump = Utils::DumpAttributesForSingleEntity(gdp, GA_ATTRIB_PRIMITIVE, prim->getMapOffset());
+                std::string primKeyName = "houdiniPrimitiveAttributes_"s + vdbPrim->getGridName();
+                result.emplace_back(primKeyName, primAttrDump.dump());
+
+                DumpVisualisationAttributes(result, vdbPrim);
+            }
+        }
+
+        nlohmann::json detailAttrDump = Utils::DumpAttributesForSingleEntity(gdp, GA_ATTRIB_DETAIL, 0);
+        result.emplace_back("houdiniDetailAttributes", detailAttrDump.dump());
+
+        DumpDecodeMetadata(result, encodingMetadata);
+        return result;
+    }
+
+    void ZibraVDBOutputProcessor::DumpVisualisationAttributes(std::vector<std::pair<std::string, std::string>>& attributes,
+                                                             const GEO_PrimVDB* vdbPrim) noexcept
+    {
+        const std::string keyPrefix = "houdiniVisualizationAttributes_"s + vdbPrim->getGridName();
+
+        std::string keyVisMode = keyPrefix + "_mode";
+        std::string valueVisMode = std::to_string(static_cast<int>(vdbPrim->getVisualization()));
+        attributes.emplace_back(std::move(keyVisMode), std::move(valueVisMode));
+
+        std::string keyVisIso = keyPrefix + "_iso";
+        std::string valueVisIso = std::to_string(vdbPrim->getVisIso());
+        attributes.emplace_back(std::move(keyVisIso), std::move(valueVisIso));
+
+        std::string keyVisDensity = keyPrefix + "_density";
+        std::string valueVisDensity = std::to_string(vdbPrim->getVisDensity());
+        attributes.emplace_back(std::move(keyVisDensity), std::move(valueVisDensity));
+
+        std::string keyVisLod = keyPrefix + "_lod";
+        std::string valueVisLod = std::to_string(static_cast<int>(vdbPrim->getVisLod()));
+        attributes.emplace_back(std::move(keyVisLod), std::move(valueVisLod));
+    }
+
+    nlohmann::json ZibraVDBOutputProcessor::DumpGridsShuffleInfo(const std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridDescs) noexcept
+    {
+        static std::map<CE::Addons::OpenVDBUtils::GridVoxelType, std::string> voxelTypeToString = {
+            {CE::Addons::OpenVDBUtils::GridVoxelType::Float1, "Float1"},
+            {CE::Addons::OpenVDBUtils::GridVoxelType::Float3, "Float3"}
+        };
+
+        nlohmann::json result = nlohmann::json::array();
+        for (const CE::Addons::OpenVDBUtils::VDBGridDesc& gridDesc : gridDescs)
+        {
+            nlohmann::json serializedDesc = nlohmann::json{
+                {"gridName", gridDesc.gridName},
+                {"voxelType", voxelTypeToString.at(gridDesc.voxelType)},
+            };
+            for (size_t i = 0; i < std::size(gridDesc.chSource); ++i)
+            {
+                std::string name{"chSource"};
+                if (gridDesc.chSource[i])
+                {
+                    serializedDesc[name + std::to_string(i)] = gridDesc.chSource[i];
+                }
+                else
+                {
+                    serializedDesc[name + std::to_string(i)] = nullptr;
+                }
+            }
+            result.emplace_back(serializedDesc);
+        }
+        return result;
+    }
+
+    void ZibraVDBOutputProcessor::DumpDecodeMetadata(std::vector<std::pair<std::string, std::string>>& result,
+                                                    const CE::Addons::OpenVDBUtils::EncodingMetadata& encodingMetadata)
+    {
+        std::ostringstream oss;
+        oss << encodingMetadata.offsetX << " " << encodingMetadata.offsetY << " " << encodingMetadata.offsetZ;
+        result.emplace_back("houdiniDecodeMetadata", oss.str());
+    }
+
 } // namespace Zibra::ZibraVDBOutputProcessor

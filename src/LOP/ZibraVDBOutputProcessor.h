@@ -13,8 +13,11 @@
 #include "Globals.h"
 #include "ROP/CompressorManager/CompressorManager.h"
 #include "utils/ZibraUSDUtils.h"
+#include "external/Include/json.hpp"
 
 class SOP_Node;
+class GEO_PrimVDB;
+class GU_Detail;
 
 namespace Zibra::ZibraVDBUSDExport {
     class SOP_ZibraVDBUSDExport;
@@ -72,7 +75,11 @@ namespace Zibra::ZibraVDBOutputProcessor
     private:
         void extractVDBFromSOP(SOP_Node* sopNode, fpreal t, CompressorManager* compressorManager);
         static void compressGrids(std::vector<openvdb::GridBase::ConstPtr>& grids, std::vector<std::string>& gridNames,
-                                  CE::Compression::CompressorManager* compressorManager);
+                                  CE::Compression::CompressorManager* compressorManager, const GU_Detail* gdp);
+        static std::vector<std::pair<std::string, std::string>> DumpAttributes(const GU_Detail* gdp, const CE::Addons::OpenVDBUtils::EncodingMetadata& encodingMetadata) noexcept;
+        static void DumpVisualisationAttributes(std::vector<std::pair<std::string, std::string>>& attributes, const GEO_PrimVDB* vdbPrim) noexcept;
+        static nlohmann::json DumpGridsShuffleInfo(const std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridDescs) noexcept;
+        static void DumpDecodeMetadata(std::vector<std::pair<std::string, std::string>>& result, const CE::Addons::OpenVDBUtils::EncodingMetadata& encodingMetadata);
 
     private:
         std::map<CompressionSequenceEntryKey, std::vector<std::pair<int, std::string>>> m_InMemoryCompressionEntries;
