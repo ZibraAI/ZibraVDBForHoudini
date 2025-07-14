@@ -10,7 +10,6 @@ namespace Zibra::ZibraVDBUSDExport
     class SOP_ZibraVDBUSDExport final : public SOP_Node
     {
     private:
-        static constexpr const char* INPUT_PRIMS_PARAM_NAME = "prims";
         static constexpr const char* QUALITY_PARAM_NAME = "quality";
         static constexpr const char* USE_PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME = "useperchsettings";
         static constexpr const char* PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME = "perch_settings";
@@ -45,7 +44,7 @@ namespace Zibra::ZibraVDBUSDExport
     public:
         explicit SOP_ZibraVDBUSDExport_Operator() noexcept
             : OP_Operator(SOP_NODE_NAME, SOP_NODE_LABEL, SOP_ZibraVDBUSDExport::Constructor,
-                          SOP_ZibraVDBUSDExport::GetTemplateList(), 1, 1, 0, OP_FLAG_UNORDERED | OP_FLAG_EDITABLE_INPUT_DATA, 0, 1)
+                          SOP_ZibraVDBUSDExport::GetTemplateList(), 1, 1, 0, /*OP_FLAG_UNORDERED | OP_FLAG_EDITABLE_INPUT_DATA*/OP_FLAG_GENERATOR, 0, 1)
         {
             setIconName(ZIBRAVDB_ICON_PATH);
             setOpTabSubMenuPath(ZIBRAVDB_NODES_TAB_NAME);

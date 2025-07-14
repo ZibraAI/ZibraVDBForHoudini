@@ -31,9 +31,6 @@ namespace Zibra::ZibraVDBUSDExport
             return templateList.data();
         }
 
-        static PRM_Name theInputSOP(INPUT_PRIMS_PARAM_NAME, "Primitives");
-        templateList.push_back(PRM_Template{PRM_STRING, PRM_TYPE_DYNAMIC_PATH, 1, &theInputSOP, 0, 0, 0, 0, &PRM_SpareData::sopPath});
-
         static PRM_Name theFileName(FILENAME_PARAM_NAME, "Out File");
         static PRM_Default theFileDefault(0, "$HIP/vol/$HIPNAME.$OS.zibravdb");
 
@@ -111,7 +108,8 @@ namespace Zibra::ZibraVDBUSDExport
 
         if (gdp->getNumPrimitives() == 0)
         {
-            addError(SOP_MESSAGE, "No primitives in input geometry");
+            exint current_frame = context.getFrame();
+            addWarning(SOP_MESSAGE, ("No primitives in input geometry - frame " + std::to_string(current_frame) + " may be empty").c_str());
             return error();
         }
 
