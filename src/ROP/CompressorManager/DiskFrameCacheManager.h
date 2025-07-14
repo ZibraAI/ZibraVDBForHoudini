@@ -131,13 +131,18 @@ namespace Zibra::ZibraVDBCompressor
                 std::filesystem::remove(cache.filepath, errorCode);
             }
             m_Cache.clear();
+
+            if (std::filesystem::is_empty(m_BasePath))
+            {
+                std::filesystem::remove(m_BasePath);
+            }
         }
 
     protected:
         virtual std::filesystem::path MakePathFromID(const std::string& id) noexcept
         {
             using namespace std::string_literals;
-            return "FrameCache."s + id + ".tmp"s;
+            return m_BasePath / ("FrameCache."s + id + ".tmp"s);
         }
 
     protected:

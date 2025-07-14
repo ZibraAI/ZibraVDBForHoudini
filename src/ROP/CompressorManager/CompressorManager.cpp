@@ -53,8 +53,6 @@ namespace Zibra::ZibraVDBCompressor
             return CE::ZCE_ERROR;
         }
 
-        m_CacheManager = new DiskFrameCacheManager{outDir / "temp"};
-
         CE::Compression::CompressorFactory* compressorFactory = nullptr;
         auto status = CE::Compression::CreateCompressorFactory(&compressorFactory);
         if (status != CE::ZCE_SUCCESS)
@@ -80,6 +78,7 @@ namespace Zibra::ZibraVDBCompressor
             compressorFactory->Release();
             return status;
         }
+        m_CacheManager = new DiskFrameCacheManager{outDir / "cache"};
         status = compressorFactory->UseCacheManager(m_CacheManager);
         if (status != CE::ZCE_SUCCESS)
         {
