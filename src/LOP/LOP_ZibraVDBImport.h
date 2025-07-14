@@ -32,7 +32,7 @@ namespace Zibra::ZibraVDBImport
         void updateFieldsChoiceList(const std::vector<std::string>& availableGrids);
 
     private:
-        //std::string sanitizeFieldNameForUSD(const std::string& fieldName);
+        std::string sanitizeFieldNameForUSD(const std::string& fieldName);
         std::vector<std::string> parseSelectedFields(const std::string& fieldsStr, const std::vector<std::string>& availableGrids);
         void readAndDisplayZibraVDBMetadata(const std::string& filePath, std::vector<std::string>& availableGrids);
         void createVolumeStructure(UsdStageRefPtr stage, const std::string& primPath, const std::string& primName,

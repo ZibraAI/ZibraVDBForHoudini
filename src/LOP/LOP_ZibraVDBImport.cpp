@@ -293,7 +293,7 @@ namespace Zibra::ZibraVDBImport
         }
     }
 
-    /*std::string LOP_ZibraVDBImport::sanitizeFieldNameForUSD(const std::string& fieldName)
+    std::string LOP_ZibraVDBImport::sanitizeFieldNameForUSD(const std::string& fieldName)
     {
         std::string sanitized = fieldName;
         
@@ -329,13 +329,8 @@ namespace Zibra::ZibraVDBImport
             sanitized = "field";
         }
         
-        if (sanitized.length() > 64)
-        {
-            sanitized = sanitized.substr(0, 64);
-        }
-        
         return sanitized;
-    }*/
+    }
 
     std::vector<std::string> LOP_ZibraVDBImport::parseSelectedFields(const std::string& fieldsStr, const std::vector<std::string>& availableGrids)
     {
@@ -649,7 +644,7 @@ namespace Zibra::ZibraVDBImport
             addError(LOP_MESSAGE, ("Invalid SdfPath for volume: " + volumePath).c_str());
             return;
         }
-        
+
         UsdVolVolume volumePrim = UsdVolVolume::Define(stage, volumeSdfPath);
         if (!volumePrim)
         {
@@ -657,11 +652,21 @@ namespace Zibra::ZibraVDBImport
             return;
         }
 
+        // TODO currently Transform node effects this volume only in "All geometry" mode. This might potentially be used for default mode.
+//        UsdGeomXformable xformable(volumePrim.GetPrim());
+//        if (xformable) {
+//            UsdGeomXformOp transformOp = xformable.AddTransformOp(UsdGeomXformOp::PrecisionDouble);
+//            if (transformOp) {
+//                GfMatrix4d identityMatrix(1.0);
+//                transformOp.Set(identityMatrix);
+//            }
+//        }
+
         for (const std::string& fieldName : selectedFields)
         {
-            std::string sanitizedFieldName = fieldName;
+            std::string sanitizedFieldName = sanitizeFieldNameForUSD(fieldName);
             createOpenVDBAssetPrim(stage, volumePath, fieldName, sanitizedFieldName, filePath, t);
-            createFieldRelationship(volumePrim, fieldName, volumePath + "/" + sanitizedFieldName);
+            createFieldRelationship(volumePrim, sanitizedFieldName, volumePath + "/" + sanitizedFieldName);
         }
     }
 
