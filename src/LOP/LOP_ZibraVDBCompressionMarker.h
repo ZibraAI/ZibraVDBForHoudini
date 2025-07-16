@@ -23,10 +23,14 @@ namespace Zibra::ZibraVDBCompressionMarker
         std::string getOutputFilename(fpreal t) const;
         float getCompressionQuality() const;
         bool getRemoveOriginalFiles(fpreal t) const;
+        
+        void findAndWireVDBConvertNodes(fpreal t);
 
     private:
         std::string getOutputDirectoryRaw(fpreal t) const;
         bool isNodeUpstream(OP_Node* node) const;
+        void findVDBConvertNodesInNetwork(OP_Network* network, std::vector<OP_Node*>& vdbConvertNodes);
+        void wireNodeBeforeVDBConvert(OP_Node* vdbConvertNode, OP_Node* nodeToWire);
     };
 
     class LOP_ZibraVDBCompressionMarker_Operator final : public OP_Operator

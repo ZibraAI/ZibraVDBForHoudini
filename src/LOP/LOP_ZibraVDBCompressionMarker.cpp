@@ -18,6 +18,9 @@
 #include <PRM/PRM_Conditional.h>
 #include <algorithm>
 #include <cctype>
+#include <vector>
+#include <iostream>
+#include "utils/ZibraUSDUtils.h"
 
 PXR_NAMESPACE_USING_DIRECTIVE
 
@@ -104,6 +107,8 @@ namespace Zibra::ZibraVDBCompressionMarker
             }
         }
 
+        findAndWireVDBConvertNodes(t);
+
 //        HUSD_ConfigureLayer configure_layer(writelock);
 //        configure_layer.setSavePath(layerPath.c_str(), false);
 
@@ -168,6 +173,150 @@ namespace Zibra::ZibraVDBCompressionMarker
         };
         
         return checkUpstream(const_cast<LOP_ZibraVDBCompressionMarker*>(this), node, 0);
+    }
+
+    void LOP_ZibraVDBCompressionMarker::findAndWireVDBConvertNodes(fpreal t)
+    {
+        std::cout << "[ZibraVDB] Starting findAndWireVDBConvertNodes for node: " << getName() << std::endl;
+        
+        Zibra::Utils::USD::SearchUpstreamForSOPNode(this, t, [this](SOP_Node* sopNode, fpreal t) {
+            if (!sopNode) {
+                std::cout << "[ZibraVDB] No SOP node found" << std::endl;
+                return;
+            }
+            
+            std::cout << "[ZibraVDB] Found SOP node: " << sopNode->getName() << std::endl;
+            
+            auto* sopNetwork = dynamic_cast<OP_Network*>(sopNode->getParent());
+            if (!sopNetwork) {
+                std::cout << "[ZibraVDB] SOP node has no parent network" << std::endl;
+                return;
+            }
+            
+            std::cout << "[ZibraVDB] SOP network: " << sopNetwork->getName() << std::endl;
+            
+            std::vector<OP_Node*> vdbConvertNodes;
+            findVDBConvertNodesInNetwork(sopNetwork, vdbConvertNodes);
+            
+            std::cout << "[ZibraVDB] Found " << vdbConvertNodes.size() << " VDBConvert nodes" << std::endl;
+            
+            for (OP_Node* vdbConvertNode : vdbConvertNodes) {
+                std::cout << "[ZibraVDB] Processing VDBConvert node: " << vdbConvertNode->getName() << std::endl;
+                OP_Node* nodeToWire = this;
+                wireNodeBeforeVDBConvert(vdbConvertNode, nodeToWire);
+            }
+        });
+        
+        std::cout << "[ZibraVDB] Finished findAndWireVDBConvertNodes" << std::endl;
+    }
+
+    void LOP_ZibraVDBCompressionMarker::findVDBConvertNodesInNetwork(OP_Network* network, std::vector<OP_Node*>& vdbConvertNodes)
+    {
+        if (!network) {
+            std::cout << "[ZibraVDB] Network is null" << std::endl;
+            return;
+        }
+        
+        std::cout << "[ZibraVDB] Searching network: " << network->getName() << " with " << network->getNchildren() << " children" << std::endl;
+        
+        for (int i = 0; i < network->getNchildren(); i++) {
+            OP_Node* child = network->getChild(i);
+            if (child) {
+                std::cout << "[ZibraVDB] Checking child node: " << child->getName() << " (type: " << child->getOperator()->getName() << ")" << std::endl;
+                
+                if (child->getOperator()->getName().equal("convertvdb")) {
+                    std::cout << "[ZibraVDB] Found VDBConvert node: " << child->getName() << std::endl;
+                    vdbConvertNodes.push_back(child);
+                }
+                
+                if (child->isNetwork()) {
+                    std::cout << "[ZibraVDB] Recursing into network: " << child->getName() << std::endl;
+                    findVDBConvertNodesInNetwork(static_cast<OP_Network*>(child), vdbConvertNodes);
+                }
+            }
+        }
+    }
+
+    void LOP_ZibraVDBCompressionMarker::wireNodeBeforeVDBConvert(OP_Node* vdbConvertNode, OP_Node* nodeToWire)
+    {
+        if (!vdbConvertNode) {
+            std::cout << "[ZibraVDB] VDBConvert node is null" << std::endl;
+            return;
+        }
+        
+        std::cout << "[ZibraVDB] Wiring node before VDBConvert: " << vdbConvertNode->getName() << std::endl;
+        
+        auto* sopNetwork = dynamic_cast<OP_Network*>(vdbConvertNode->getParent());
+        if (!sopNetwork) {
+            std::cout << "[ZibraVDB] VDBConvert node has no parent network" << std::endl;
+            return;
+        }
+        
+        std::cout << "[ZibraVDB] Parent network: " << sopNetwork->getName() << std::endl;
+        
+        OP_Node* vdbConvertInput = vdbConvertNode->getInput(0);
+        if (vdbConvertInput) {
+            std::cout << "[ZibraVDB] VDBConvert input node: " << vdbConvertInput->getName() << std::endl;
+            
+            UT_String nodeName;
+            nodeName.sprintf("%s_zibramarker", vdbConvertNode->getName().c_str());
+            
+            std::cout << "[ZibraVDB] Creating passthrough node with name: " << nodeName << std::endl;
+            
+            OP_Node* existingNode = sopNetwork->findNode(nodeName);
+            if (existingNode) {
+                std::cout << "[ZibraVDB] Node already exists, skipping: " << nodeName << std::endl;
+                return;
+            }
+            
+            std::cout << "[ZibraVDB] Attempting to create attribcreate node in network: " << sopNetwork->getFullPath() << std::endl;
+            
+            OP_Node* passthroughNode = sopNetwork->createNode("attribcreate", nodeName);
+            if (passthroughNode) {
+                std::cout << "[ZibraVDB] Successfully created attribcreate node: " << passthroughNode->getName() << std::endl;
+            } else {
+                std::cout << "[ZibraVDB] Failed to create attribcreate node" << std::endl;
+            }
+            
+            if (passthroughNode) {
+                std::cout << "[ZibraVDB] Successfully created passthrough node: " << passthroughNode->getName() << std::endl;
+                
+                passthroughNode->setInput(0, vdbConvertInput);
+                vdbConvertNode->setInput(0, passthroughNode);
+                
+                std::cout << "[ZibraVDB] Connected: " << vdbConvertInput->getName() << " -> " << passthroughNode->getName() << " -> " << vdbConvertNode->getName() << std::endl;
+                
+                passthroughNode->flags().setDisplay(false);
+                passthroughNode->flags().setRender(false);
+                passthroughNode->flags().setBypass(false);
+                
+                // Set up attribcreate node parameters
+                if (passthroughNode->hasParm("name1")) {
+                    passthroughNode->setString("usdvolumesavepath", CH_STRING_LITERAL, "name1", 0,  0);
+                    std::cout << "[ZibraVDB] Set attribute name to 'usdvolumesavepath'" << std::endl;
+                }
+//                if (passthroughNode->hasParm("class1")) {
+//                    passthroughNode->setString("primitive", CH_STRING_LITERAL, "class1", 0, 0);
+//                    std::cout << "[ZibraVDB] Set attribute class to 'primitive'" << std::endl;
+//                }
+//                if (passthroughNode->hasParm("type1")) {
+//                    passthroughNode->setString("string", CH_STRING_LITERAL, "type1", 0, 0);
+//                    std::cout << "[ZibraVDB] Set attribute type to 'string'" << std::endl;
+//                }
+//                if (passthroughNode->hasParm("string1")) {
+//                    passthroughNode->setString("$HIP/zibra/test_zibra.$F4.vdb", CH_STRING_LITERAL, "string1", 0, 0);
+//                    std::cout << "[ZibraVDB] Set string value to '$HIP/zibra/test_zibra.$F4.vdb'" << std::endl;
+//                }
+                
+                std::cout << "[ZibraVDB] Node wiring completed successfully" << std::endl;
+            } else {
+                std::cout << "[ZibraVDB] Failed to create any passthrough node type" << std::endl;
+                std::cout << "[ZibraVDB] Network path: " << sopNetwork->getFullPath() << std::endl;
+                std::cout << "[ZibraVDB] Network type: " << sopNetwork->getOperator()->getName() << std::endl;
+            }
+        } else {
+            std::cout << "[ZibraVDB] VDBConvert node has no input" << std::endl;
+        }
     }
 
 } // namespace Zibra::ZibraVDBCompressionMarker

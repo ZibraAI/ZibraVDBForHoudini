@@ -25,6 +25,7 @@
 #include <sstream>
 #include <filesystem>
 #include <cmath>
+#include <set>
 #include <Zibra/CE/Decompression.h>
 #include "SOP/DecompressorManager/DecompressorManager.h"
 #include "bridge/LibraryUtils.h"
@@ -103,6 +104,7 @@ namespace Zibra::ZibraVDBImport
 
     OP_ERROR LOP_ZibraVDBImport::cookMyLop(OP_Context &context)
     {
+        //TODO dont output anything out of zibravdb file sequence range
         flags().setTimeDep(true);
 
         if (cookModifyInput(context) >= UT_ERROR_FATAL)
@@ -772,7 +774,7 @@ namespace Zibra::ZibraVDBImport
 
     std::string LOP_ZibraVDBImport::generateZibraVDBURL(const std::string& filePath, const std::string& fieldName, int frameNumber) const
     {
-        std::string url = "zibravdb://" + filePath + "?frame=" + std::to_string(frameNumber);
+        std::string url = ZIB_VDB_SCHEMA + filePath + "?frame=" + std::to_string(frameNumber);
         return url;
     }
 
