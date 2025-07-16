@@ -774,7 +774,7 @@ namespace Zibra::ZibraVDBImport
 
     std::string LOP_ZibraVDBImport::generateZibraVDBURL(const std::string& filePath, const std::string& fieldName, int frameNumber) const
     {
-        std::string url = ZIB_VDB_SCHEMA + filePath + "?frame=" + std::to_string(frameNumber);
+        std::string url = filePath + "?frame=" + std::to_string(frameNumber);
         return url;
     }
 

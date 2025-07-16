@@ -12,7 +12,6 @@
 
 #include "Globals.h"
 #include "ROP/CompressorManager/CompressorManager.h"
-#include "utils/ZibraUSDUtils.h"
 #include "external/Include/json.hpp"
 
 class SOP_Node;

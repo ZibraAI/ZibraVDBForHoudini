@@ -28,7 +28,6 @@
 namespace Zibra::ZibraVDBOutputProcessor
 {
     using namespace std::literals;
-    using namespace Zibra::Utils::USD;
 
     ZibraVDBOutputProcessor::ZibraVDBOutputProcessor()
         : m_Parameters(nullptr)
@@ -179,7 +178,7 @@ namespace Zibra::ZibraVDBOutputProcessor
             if (it != m_InMemoryCompressionEntries.end()) {
                 auto framesIt = std::find_if(it->second.begin(), it->second.end(), [&pathStr](const auto& file) { return file.second == pathStr; });
                 auto actualFrameNumber = framesIt->first;
-                std::string outputRef = ZIB_VDB_SCHEMA + it->first.outputFile + "?frame=" + std::to_string(actualFrameNumber);
+                std::string outputRef = it->first.outputFile + "?frame=" + std::to_string(actualFrameNumber);
                 newpath = UT_String(outputRef);
 
                 auto& entry = *it;
