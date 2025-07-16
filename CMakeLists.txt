@@ -101,7 +101,6 @@ cmake_print_variables(ZIB_NETWORK_REQUEST_BACKEND)
         src/ROP/ROP_ZibraVDBCompressor.h
         src/SOP/SOP_ZibraVDBDecompressor.h
         src/SOP/SOP_ZibraVDBUSDExport.h
-        src/LOP/LOP_ZibraVDBCompressionMarker.h
         src/LOP/LOP_ZibraVDBImport.h
         src/LOP/ZibraVDBOutputProcessor.h
         src/ui/MessageBox.h
@@ -109,7 +108,6 @@ cmake_print_variables(ZIB_NETWORK_REQUEST_BACKEND)
         src/utils/Helpers.h
         src/utils/GAAttributesDump.h
         src/utils/VDBCacheManager.h
-        src/utils/ZibraUSDUtils.h
     )
 
 set(SourceFiles
@@ -124,7 +122,6 @@ set(SourceFiles
     src/ROP/ROP_ZibraVDBCompressor.cpp
     src/SOP/SOP_ZibraVDBDecompressor.cpp
     src/SOP/SOP_ZibraVDBUSDExport.cpp
-    src/LOP/LOP_ZibraVDBCompressionMarker.cpp
     src/LOP/LOP_ZibraVDBImport.cpp
     src/LOP/ZibraVDBOutputProcessor.cpp
     src/ui/MessageBox.cpp
@@ -132,7 +129,6 @@ set(SourceFiles
     src/utils/Helpers.cpp
     src/utils/GAAttributesDump.cpp
     src/utils/VDBCacheManager.cpp
-    src/utils/ZibraUSDUtils.cpp
 )
 
 add_library(ZibraVDBForHoudini SHARED ${HeaderFiles} ${SourceFiles})
