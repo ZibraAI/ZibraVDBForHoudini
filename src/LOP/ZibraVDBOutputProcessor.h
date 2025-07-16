@@ -72,7 +72,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         const PI_EditScriptedParms *parameters() const override;
 
     private:
-        void extractVDBFromSOP(SOP_Node* sopNode, fpreal t, CompressorManager* compressorManager);
+        void extractVDBFromSOP(SOP_Node* sopNode, fpreal t, CompressorManager* compressorManager, bool compress = true);
         static void compressGrids(std::vector<openvdb::GridBase::ConstPtr>& grids, std::vector<std::string>& gridNames,
                                   CE::Compression::CompressorManager* compressorManager, const GU_Detail* gdp);
         static std::vector<std::pair<std::string, std::string>> DumpAttributes(const GU_Detail* gdp, const CE::Addons::OpenVDBUtils::EncodingMetadata& encodingMetadata) noexcept;

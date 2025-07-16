@@ -177,22 +177,27 @@ namespace Zibra::ZibraVDBOutputProcessor
             });
             if (it != m_InMemoryCompressionEntries.end()) {
                 auto framesIt = std::find_if(it->second.begin(), it->second.end(), [&pathStr](const auto& file) { return file.second == pathStr; });
-                auto actualFrameNumber = framesIt->first;
-                std::string outputRef = it->first.outputFile + "?frame=" + std::to_string(actualFrameNumber);
+                auto compressionFrameIndex = framesIt->first;
+                std::string outputRef = it->first.outputFile + "?frame=" + std::to_string(compressionFrameIndex);
                 newpath = UT_String(outputRef);
 
                 auto& entry = *it;
 
-                //TODO refine this logic
-//                auto sceneFrameIndex = framesIt->first - 1;
-//                fpreal frameRate = OPgetDirector()->getChannelManager()->getSamplesPerSec();
-//                fpreal globalStartFrame = OPgetDirector()->getChannelManager()->getGlobalStartFrame();
-//                fpreal sceneFrame = globalStartFrame + static_cast<fpreal>(sceneFrameIndex);
-                fpreal sceneFrame = std::distance(it->second.begin(), framesIt);
-                fpreal sceneFrameTime = OPgetDirector()->getChannelManager()->getTime(sceneFrame);
+                if (compressionFrameIndex == entry.second[0].first)
+                {
+                    if (compressionFrameIndex > 0)
+                    {
+                        for (int i = 0; i < compressionFrameIndex; ++i)
+                        {
+                            fpreal tmpTime = OPgetDirector()->getChannelManager()->getTime(i);
+                            std::cout << "Simulating frame " << i << " with time " << tmpTime << std::endl;
+                            extractVDBFromSOP(entry.first.sopNode, tmpTime, entry.first.compressorManager, false);
+                        }
+                    }
+                }
 
-                std::cout << "SceneFrameTime is " << sceneFrameTime << std::endl;
-
+                fpreal sceneFrameTime = OPgetDirector()->getChannelManager()->getTime(compressionFrameIndex);
+                std::cout << "Compressing frame " << compressionFrameIndex << " with time " << sceneFrameTime << std::endl;
                 extractVDBFromSOP(entry.first.sopNode, sceneFrameTime, entry.first.compressorManager);
 
                 return true;
@@ -221,7 +226,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         return true;
     }
 
-    void ZibraVDBOutputProcessor::extractVDBFromSOP(SOP_Node* sopNode, fpreal t, CompressorManager* compressorManager)
+    void ZibraVDBOutputProcessor::extractVDBFromSOP(SOP_Node* sopNode, fpreal t, CompressorManager* compressorManager, bool compress)
     {
         if (!sopNode)
             return;
@@ -231,6 +236,12 @@ namespace Zibra::ZibraVDBOutputProcessor
         sopNode->forceRecook();
         sopNode->cook(context);
 
+        if (!compress)
+        {
+            // If we are not compressing, we just need to ensure the SOP node is cooked
+            return;
+        }
+
         GU_DetailHandle gdh = sopNode->getCookedGeoHandle(context);
         GU_DetailHandleAutoReadLock gdl(gdh);
         const GU_Detail* gdp = gdl.getGdp();
@@ -238,7 +249,6 @@ namespace Zibra::ZibraVDBOutputProcessor
         if (!gdp)
         {
             assert(false && "SOP node returned null geometry");
-            //TODO add error to node output
             return;
         }
 
@@ -268,7 +278,6 @@ namespace Zibra::ZibraVDBOutputProcessor
         else
         {
             assert(false && "No VDB grids found in SOP node");
-            //TODO add error to node output
         }
     }
 
