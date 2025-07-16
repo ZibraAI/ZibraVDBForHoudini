@@ -100,17 +100,31 @@ namespace Zibra::ZibraVDBImport
         : LOP_Node(net, name, entry)
     {
         setInt("__file_valid", 0, 0, 0);
+        
+        LibraryUtils::LoadLibrary();
+        if (LibraryUtils::IsLibraryLoaded())
+        {
+            m_DecompressorManager.Initialize();
+        }
+    }
+
+    LOP_ZibraVDBImport::~LOP_ZibraVDBImport() noexcept
+    {
+        if (LibraryUtils::IsLibraryLoaded())
+        {
+            m_DecompressorManager.Release();
+        }
     }
 
     OP_ERROR LOP_ZibraVDBImport::cookMyLop(OP_Context &context)
     {
-        //TODO dont output anything out of zibravdb file sequence range
         flags().setTimeDep(true);
 
         if (cookModifyInput(context) >= UT_ERROR_FATAL)
             return error();
 
         fpreal t = context.getTime();
+        int frameIndex = context.getFrame();
         std::string filePath = getFilePath(t);
         std::string fullPrimPath = getPrimitivePath(t);
         std::string parentPrimType = getParentPrimType(t);
@@ -128,12 +142,48 @@ namespace Zibra::ZibraVDBImport
             return error();
         }
 
+        if (!LibraryUtils::IsLibraryLoaded())
+        {
+            addError(LOP_MESSAGE, "ZibraVDB library not loaded");
+            return error();
+        }
+
+        if (m_LastFilePath != filePath)
+        {
+            if (std::filesystem::exists(filePath))
+            {
+                auto status = m_DecompressorManager.RegisterDecompressor(UT_String(filePath));
+                if (status != CE::ZCE_SUCCESS)
+                {
+                    addError(LOP_MESSAGE, "Failed to register ZibraVDB decompressor");
+                    return error();
+                }
+                
+                parseAvailableGrids();
+                updateFieldsChoiceList();
+                m_LastFilePath = filePath;
+            }
+            else
+            {
+                addError(LOP_MESSAGE, "ZibraVDB file does not exist");
+                return error();
+            }
+        }
+
+        auto frameRange = m_DecompressorManager.GetFrameRange();
+        int currentFrame = static_cast<int>(std::round(context.getFrame()));
+        if (currentFrame < frameRange.start || currentFrame > frameRange.end)
+        {
+            addWarning(LOP_MESSAGE, ("No volume data available for frame " + std::to_string(currentFrame) +
+                      " (ZibraVDB range: " + std::to_string(frameRange.start) + "-" + std::to_string(frameRange.end) + ")").c_str());
+            return error();
+        }
+
+        // TODO refine this logic
         std::string primPath;
         std::string primName;
-        
         if (fullPrimPath.empty())
         {
-            // TODO refine this logic
             primPath = "";
             primName = "ZibraVolume";
         }
@@ -156,8 +206,6 @@ namespace Zibra::ZibraVDBImport
                 primName = fullPrimPath.substr(lastSlash + 1);
             }
         }
-        
-        // TODO do we need this?
         if (primName == "ZibraVolume" && !filePath.empty())
         {
             std::filesystem::path path(filePath);
@@ -165,11 +213,7 @@ namespace Zibra::ZibraVDBImport
             primName = filename;
         }
 
-        std::vector<std::string> availableGrids;
-        readAndDisplayZibraVDBMetadata(filePath, availableGrids);
-        updateFieldsChoiceList(availableGrids);
-
-        std::vector<std::string> selectedFields = parseSelectedFields(fields, availableGrids);
+        std::vector<std::string> selectedFields = parseSelectedFields(fields, m_AvailableGrids);
         if (selectedFields.empty())
         {
             addWarning(LOP_MESSAGE, "No valid fields selected");
@@ -185,7 +229,7 @@ namespace Zibra::ZibraVDBImport
             return error();
         }
 
-        createVolumeStructure(stage, primPath, primName, selectedFields, parentPrimType, t);
+        createVolumeStructure(stage, primPath, primName, selectedFields, parentPrimType, t, frameIndex);
         return error();
     }
 
@@ -266,7 +310,7 @@ namespace Zibra::ZibraVDBImport
         return fields.toStdString();
     }
     
-    void LOP_ZibraVDBImport::updateFieldsChoiceList(const std::vector<std::string>& availableGrids)
+    void LOP_ZibraVDBImport::updateFieldsChoiceList()
     {
         static std::vector<std::string> staticGridNames;
         staticGridNames.clear();
@@ -278,7 +322,7 @@ namespace Zibra::ZibraVDBImport
         }
         
         int choiceIndex = 1;
-        for (const auto& gridName : availableGrids)
+        for (const auto& gridName : m_AvailableGrids)
         {
             if (choiceIndex >= 31) break; // Leave room for null terminator
             
@@ -368,202 +412,45 @@ namespace Zibra::ZibraVDBImport
         return selectedFields;
     }
 
-    //TODO this will be further removed/reduced
-    void LOP_ZibraVDBImport::readAndDisplayZibraVDBMetadata(const std::string& filePath, std::vector<std::string>& availableGrids)
+    void LOP_ZibraVDBImport::parseAvailableGrids()
     {
-        std::cout << "\n=== ZibraVDB File Analysis ===" << std::endl;
-        std::cout << "File path: " << filePath << std::endl;
-
-        // Check if file exists
-        if (!std::filesystem::exists(filePath))
-        {
-            std::cout << "ERROR: File does not exist!" << std::endl;
-            addError(LOP_MESSAGE, "ZibraVDB file does not exist");
-            return;
-        }
-
-        // Get file size
-        auto fileSize = std::filesystem::file_size(filePath);
-        std::cout << "File size: " << fileSize << " bytes (" << (fileSize / 1024.0 / 1024.0) << " MB)" << std::endl;
-
-        // Load ZibraVDB library
-        LibraryUtils::LoadLibrary();
         if (!LibraryUtils::IsLibraryLoaded())
         {
-            std::cout << "ERROR: ZibraVDB library not loaded!" << std::endl;
             addError(LOP_MESSAGE, "ZibraVDB library not loaded");
             return;
         }
 
-        // Initialize decompressor manager
-        Zibra::Helpers::DecompressorManager decompressorManager;
-        decompressorManager.Initialize();
+        m_AvailableGrids.clear();
 
-        // Register the decompressor
-        auto status = decompressorManager.RegisterDecompressor(UT_String(filePath));
-        if (status != CE::ZCE_SUCCESS)
-        {
-            std::cout << "ERROR: Failed to register decompressor, status: " << static_cast<int>(status) << std::endl;
-            addError(LOP_MESSAGE, "Failed to register ZibraVDB decompressor");
-            return;
-        }
-
-        // Get frame range
-        auto frameRange = decompressorManager.GetFrameRange();
-        std::cout << "Frame range: " << frameRange.start << " - " << frameRange.end << " (total: " << (frameRange.end - frameRange.start + 1) << " frames)" << std::endl;
-
-        // Try to fetch the first frame to get metadata
+        auto frameRange = m_DecompressorManager.GetFrameRange();
         if (frameRange.start <= frameRange.end)
         {
-            std::cout << "\n=== Frame " << frameRange.start << " Analysis ===" << std::endl;
-            
-            CE::Decompression::CompressedFrameContainer* frameContainer = decompressorManager.FetchFrame(frameRange.start);
+            CE::Decompression::CompressedFrameContainer* frameContainer = m_DecompressorManager.FetchFrame(frameRange.start);
             if (frameContainer)
             {
                 auto frameInfo = frameContainer->GetInfo();
-                std::cout << "Spatial block count: " << frameInfo.spatialBlockCount << std::endl;
-                std::cout << "Channel block count: " << frameInfo.channelBlockCount << std::endl;
-                std::cout << "Channels count: " << frameInfo.channelsCount << std::endl;
-                std::cout << "AABB size: [" << frameInfo.AABBSize[0] << ", " << frameInfo.AABBSize[1] << ", " << frameInfo.AABBSize[2] << "]" << std::endl;
-
-                // Display channel information and collect grid names
-                std::cout << "\n=== Channels ===" << std::endl;
-                availableGrids.clear();
                 for (size_t i = 0; i < frameInfo.channelsCount; ++i)
                 {
-                    std::cout << "Channel " << i << ":" << std::endl;
-                    std::cout << "  Name: " << frameInfo.channels[i].name << std::endl;
-                    std::cout << "  Min grid value: " << frameInfo.channels[i].minGridValue << std::endl;
-                    std::cout << "  Max grid value: " << frameInfo.channels[i].maxGridValue << std::endl;
-                    std::cout << "  Grid transform (4x4 matrix): " << std::endl;
-                    
-                    // Collect grid name for dropdown
                     if (frameInfo.channels[i].name && strlen(frameInfo.channels[i].name) > 0)
                     {
-                        availableGrids.push_back(frameInfo.channels[i].name);
-                    }
-                    
-                    // Display the transformation matrix as 4x4
-                    auto& transform = frameInfo.channels[i].gridTransform;
-                    for (int row = 0; row < 4; ++row)
-                    {
-                        std::cout << "    [";
-                        for (int col = 0; col < 4; ++col)
-                        {
-                            std::cout << transform.raw[row * 4 + col];
-                            if (col < 3) std::cout << ", ";
-                        }
-                        std::cout << "]" << std::endl;
+                        m_AvailableGrids.push_back(frameInfo.channels[i].name);
                     }
                 }
-
-                // Display metadata (get from frame container directly)
-                std::cout << "\n=== Metadata ===" << std::endl;
-                // Try to get common metadata keys
-                const char* keys[] = {
-                    "houdiniDetailAttributes",
-                    "houdiniPrimitiveAttributes",
-                    "houdiniVisualizationAttributes",
-                    "compression_quality",
-                    "frame_index",
-                    "timestamp"
-                };
-                
-                for (const char* key : keys)
-                {
-                    const char* value = frameContainer->GetMetadataByKey(key);
-                    if (value)
-                    {
-                        std::cout << "  " << key << ": " << value << std::endl;
-                    }
-                }
-
-                // Try to get grid shuffle info
-                auto gridShuffle = decompressorManager.DeserializeGridShuffleInfo(frameContainer);
-                if (!gridShuffle.empty())
-                {
-                    std::cout << "\n=== Grid Shuffle Info ===" << std::endl;
-                    std::cout << "Grid shuffle info available" << std::endl;
-                    
-                    // Try to decompress the frame to get more grid information
-                    openvdb::GridPtrVec vdbGrids;
-                    auto decompressStatus = decompressorManager.DecompressFrame(frameContainer, gridShuffle, &vdbGrids);
-                    if (decompressStatus == CE::ZCE_SUCCESS)
-                    {
-                        std::cout << "\n=== VDB Grids ===" << std::endl;
-                        std::cout << "Successfully decompressed " << vdbGrids.size() << " grids:" << std::endl;
-                        
-                        for (size_t i = 0; i < vdbGrids.size(); ++i)
-                        {
-                            if (vdbGrids[i])
-                            {
-                                std::cout << "Grid " << i << ":" << std::endl;
-                                std::cout << "  Name: " << vdbGrids[i]->getName() << std::endl;
-                                std::cout << "  Type: " << vdbGrids[i]->valueType() << std::endl;
-                                std::cout << "  Class: " << vdbGrids[i]->getGridClass() << std::endl;
-                                std::cout << "  Vector type: " << vdbGrids[i]->getVectorType() << std::endl;
-                                std::cout << "  Active voxel count: " << vdbGrids[i]->activeVoxelCount() << std::endl;
-                                
-                                // Get bounding box
-                                auto bbox = vdbGrids[i]->evalActiveVoxelBoundingBox();
-                                std::cout << "  Bounding box: (" << bbox.min().x() << ", " << bbox.min().y() << ", " << bbox.min().z() << ") to (" 
-                                         << bbox.max().x() << ", " << bbox.max().y() << ", " << bbox.max().z() << ")" << std::endl;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        std::cout << "ERROR: Failed to decompress frame, status: " << static_cast<int>(decompressStatus) << std::endl;
-                    }
-                    
-                    decompressorManager.ReleaseGridShuffleInfo(gridShuffle);
-                }
-                else
-                {
-                    std::cout << "ERROR: Failed to get grid shuffle info" << std::endl;
-                }
-
                 frameContainer->Release();
             }
-            else
-            {
-                std::cout << "ERROR: Failed to fetch frame " << frameRange.start << std::endl;
-            }
         }
-        else
-        {
-            std::cout << "ERROR: Invalid frame range" << std::endl;
-        }
-
-        std::cout << "\n=== Available Grids ===" << std::endl;
-        if (!availableGrids.empty())
-        {
-            std::cout << "Found " << availableGrids.size() << " grid(s):" << std::endl;
-            for (size_t i = 0; i < availableGrids.size(); ++i)
-            {
-                std::cout << "  " << i << ": " << availableGrids[i] << std::endl;
-            }
-            
-            // Fields parameter now defaults to "*" so no auto-setting needed
-            std::cout << "Fields parameter: " << getFields(0) << std::endl;
-        }
-        else
-        {
-            std::cout << "No grids found in file!" << std::endl;
-        }
-        
-        std::cout << "\n=== End Analysis ===" << std::endl;
     }
 
-    void LOP_ZibraVDBImport::createVolumeStructure(UsdStageRefPtr stage, const std::string& primPath,
-                                                  const std::string& primName, const std::vector<std::string>& selectedFields, const std::string& parentPrimType, fpreal t)
+    void LOP_ZibraVDBImport::createVolumeStructure(UsdStageRefPtr stage, const std::string& primPath, const std::string& primName,
+                                                   const std::vector<std::string>& selectedFields, const std::string& parentPrimType,
+                                                   fpreal time, int frameIndex)
     {
         if (!stage)
         {
             return;
         }
 
-        std::string filePath = getFilePath(t);
+        std::string filePath = getFilePath(time);
         if (filePath.empty())
         {
             return;
@@ -667,13 +554,13 @@ namespace Zibra::ZibraVDBImport
         for (const std::string& fieldName : selectedFields)
         {
             std::string sanitizedFieldName = sanitizeFieldNameForUSD(fieldName);
-            createOpenVDBAssetPrim(stage, volumePath, fieldName, sanitizedFieldName, filePath, t);
+            createOpenVDBAssetPrim(stage, volumePath, fieldName, sanitizedFieldName, filePath, frameIndex);
             createFieldRelationship(volumePrim, sanitizedFieldName, volumePath + "/" + sanitizedFieldName);
         }
     }
 
-    void LOP_ZibraVDBImport::createOpenVDBAssetPrim(UsdStageRefPtr stage, const std::string& volumePath,
-                                                   const std::string& fieldName, const std::string& sanitizedFieldName, const std::string& filePath, fpreal t)
+    void LOP_ZibraVDBImport::createOpenVDBAssetPrim(UsdStageRefPtr stage, const std::string& volumePath, const std::string& fieldName,
+                                                    const std::string& sanitizedFieldName, const std::string& filePath, int frameIndex)
     {
         if (!stage)
             return;
@@ -715,37 +602,25 @@ namespace Zibra::ZibraVDBImport
             return;
         }
 
-        fpreal frameRate = OPgetDirector()->getChannelManager()->getSamplesPerSec();
-        fpreal currentFrame = t * frameRate + 1;
-        
-        int roundedFrame = static_cast<int>(std::round(currentFrame));
-        fpreal startFrame = evalFloat("fstart", 0, t);
-        int roundedStartFrame = static_cast<int>(std::round(startFrame));
-        int relativeFrame = roundedFrame - roundedStartFrame;
-        
-        if (relativeFrame < 0) {
-            relativeFrame = 0;
-        }
-        
-        std::string zibraURL = generateZibraVDBURL(filePath, fieldName, relativeFrame);
+        std::string zibraURL = generateZibraVDBURL(filePath, fieldName, frameIndex);
         UsdAttribute filePathAttr = openVDBAsset.GetFilePathAttr();
         if (filePathAttr)
         {
-            UsdTimeCode timeCode = UsdTimeCode(roundedFrame);
+            UsdTimeCode timeCode = UsdTimeCode(frameIndex);
             filePathAttr.Set(SdfAssetPath(zibraURL), timeCode);
         }
 
         UsdAttribute fieldIndexAttr = openVDBAsset.GetFieldIndexAttr();
         if (fieldIndexAttr)
         {
-            UsdTimeCode timeCode = UsdTimeCode(roundedFrame);
+            UsdTimeCode timeCode = UsdTimeCode(frameIndex);
             fieldIndexAttr.Set(0, timeCode);
         }
 
         UsdAttribute fieldNameAttr = openVDBAsset.GetFieldNameAttr();
         if (fieldNameAttr)
         {
-            UsdTimeCode timeCode = UsdTimeCode(roundedFrame);
+            UsdTimeCode timeCode = UsdTimeCode(frameIndex);
             fieldNameAttr.Set(TfToken(fieldName), timeCode);
         }
     }

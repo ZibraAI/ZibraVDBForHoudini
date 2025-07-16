@@ -1,5 +1,6 @@
 #pragma once
 #include <LOP/LOP_Node.h>
+#include <SOP/DecompressorManager/DecompressorManager.h>
 #include <pxr/usd/usd/common.h>
 #include <pxr/usd/usdVol/volume.h>
 
@@ -19,7 +20,7 @@ namespace Zibra::ZibraVDBImport
         static PRM_Template* GetTemplateList() noexcept;
 
         LOP_ZibraVDBImport(OP_Network* net, const char* name, OP_Operator* entry) noexcept;
-        ~LOP_ZibraVDBImport() noexcept final = default;
+        ~LOP_ZibraVDBImport() noexcept final;
 
         OP_ERROR cookMyLop(OP_Context& context) final;
         bool updateParmsFlags() override;
@@ -29,18 +30,23 @@ namespace Zibra::ZibraVDBImport
         std::string getParentPrimType(fpreal t) const;
         std::string getFields(fpreal t) const;
 
-        void updateFieldsChoiceList(const std::vector<std::string>& availableGrids);
-
     private:
         std::string sanitizeFieldNameForUSD(const std::string& fieldName);
         std::vector<std::string> parseSelectedFields(const std::string& fieldsStr, const std::vector<std::string>& availableGrids);
-        void readAndDisplayZibraVDBMetadata(const std::string& filePath, std::vector<std::string>& availableGrids);
+        void parseAvailableGrids();
+        void updateFieldsChoiceList();
         void createVolumeStructure(UsdStageRefPtr stage, const std::string& primPath, const std::string& primName,
-                                  const std::vector<std::string>& selectedFields, const std::string& parentPrimType, fpreal t);
+                                   const std::vector<std::string>& selectedFields, const std::string& parentPrimType, fpreal t,
+                                   int frameIndex);
         void createOpenVDBAssetPrim(UsdStageRefPtr stage, const std::string& volumePath, const std::string& fieldName,
-                                   const std::string& sanitizedFieldName, const std::string& filePath, fpreal t);
+                                    const std::string& sanitizedFieldName, const std::string& filePath, int frameIndex);
         void createFieldRelationship(UsdVolVolume& volumePrim, const std::string& fieldName, const std::string& assetPath);
         std::string generateZibraVDBURL(const std::string& filePath, const std::string& fieldName, int frameNumber) const;
+        
+    private:
+        Zibra::Helpers::DecompressorManager m_DecompressorManager;
+        std::string m_LastFilePath;
+        std::vector<std::string> m_AvailableGrids;
     };
 
     class LOP_ZibraVDBImport_Operator final : public OP_Operator
