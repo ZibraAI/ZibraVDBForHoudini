@@ -71,10 +71,9 @@ namespace Zibra::CE::Decompression
          */
         uint32_t channelBlockCount;
         /**
-         * AABB dimensions sizes.
-         * @range [1; INF]
+         * Total frame AABB. Cannot be 0
          */
-        uint16_t AABBSize[3];
+        Math3D::AABB aabb;
     };
 
     class CompressedFrameContainer
