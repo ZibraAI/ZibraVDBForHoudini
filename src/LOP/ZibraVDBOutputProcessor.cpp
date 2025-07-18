@@ -117,7 +117,7 @@ namespace Zibra::ZibraVDBOutputProcessor
             std::filesystem::path zibravdb_path(file_path);
             std::string dir = zibravdb_path.parent_path().string();
             std::string name = zibravdb_path.stem().string();
-            std::string output_file_str = dir + "/" + name + "." + std::to_string(frame_index) + ".vdb";
+            std::string output_file_str = "zibravdb://" + dir + "/" + name + "." + std::to_string(frame_index) + ".vdb";
 
             auto& entries = m_InMemoryCompressionEntries;
             auto it =
@@ -125,6 +125,7 @@ namespace Zibra::ZibraVDBOutputProcessor
             if (it == entries.end()) {
                 CompressionSequenceEntryKey entryKey{};
                 entryKey.sopNode = sop_node;
+                entryKey.referencingLayerPath = referencing_layer_path.toStdString();
                 entryKey.outputFile = file_path;
                 entryKey.quality = quality;
                 entryKey.compressorManager = new Zibra::CE::Compression::CompressorManager();
@@ -149,7 +150,6 @@ namespace Zibra::ZibraVDBOutputProcessor
                     return false;
                 }
                 entries[entryKey] = {{frame_index, output_file_str}};
-                it = std::prev(entries.end());
             }
             else {
                 it->second.push_back({frame_index, output_file_str});
@@ -169,20 +169,28 @@ namespace Zibra::ZibraVDBOutputProcessor
                                                       UT_String &error)
     {
         std::string pathStr = asset_path.toStdString();
-        if (!asset_is_layer && pathStr.find(".vdb") != std::string::npos)
+        if (!asset_is_layer && pathStr.find("op:/") != std::string::npos)
         {
-            auto it = std::find_if(m_InMemoryCompressionEntries.begin(), m_InMemoryCompressionEntries.end(), [&pathStr](const auto& entry) {
-                return std::find_if(entry.second.begin(), entry.second.end(),
-                                    [&pathStr](const auto& file) { return file.second == pathStr; }) != entry.second.end();
-            });
+            std::regex t_regex(R"(&t=([0-9.]+))");
+            std::smatch match;
+            if (!std::regex_search(pathStr, match, t_regex)) {
+                return false;
+            }
+            
+            fpreal t = std::stod(match[1].str());
+            std::string layerPath = referencing_layer_path.toStdString();
+            
+            // Find matching entry by referencingLayerPath
+            auto it = std::find_if(m_InMemoryCompressionEntries.begin(), m_InMemoryCompressionEntries.end(), 
+                [&layerPath](const auto& entry) {
+                    return entry.first.referencingLayerPath == layerPath;
+                });
+                
             if (it != m_InMemoryCompressionEntries.end()) {
-                auto framesIt = std::find_if(it->second.begin(), it->second.end(), [&pathStr](const auto& file) { return file.second == pathStr; });
-                auto compressionFrameIndex = framesIt->first;
-                std::string outputRef = it->first.outputFile + "?frame=" + std::to_string(compressionFrameIndex);
-                newpath = UT_String(outputRef);
-
                 auto& entry = *it;
-
+                int compressionFrameIndex = OPgetDirector()->getChannelManager()->getFrame(t);
+                std::string outputRef = entry.first.outputFile + "?frame=" + std::to_string(compressionFrameIndex);
+                newpath = UT_String(outputRef);
                 if (compressionFrameIndex == entry.second[0].first)
                 {
                     if (compressionFrameIndex > 0)
@@ -190,16 +198,11 @@ namespace Zibra::ZibraVDBOutputProcessor
                         for (int i = 0; i < compressionFrameIndex; ++i)
                         {
                             fpreal tmpTime = OPgetDirector()->getChannelManager()->getTime(i);
-                            std::cout << "Simulating frame " << i << " with time " << tmpTime << std::endl;
                             extractVDBFromSOP(entry.first.sopNode, tmpTime, entry.first.compressorManager, false);
                         }
                     }
                 }
-
-                fpreal sceneFrameTime = OPgetDirector()->getChannelManager()->getTime(compressionFrameIndex);
-                std::cout << "Compressing frame " << compressionFrameIndex << " with time " << sceneFrameTime << std::endl;
-                extractVDBFromSOP(entry.first.sopNode, sceneFrameTime, entry.first.compressorManager);
-
+                extractVDBFromSOP(entry.first.sopNode, t, entry.first.compressorManager);
                 return true;
             }
         }

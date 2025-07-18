@@ -35,12 +35,14 @@ namespace Zibra::ZibraVDBOutputProcessor
         {
             Zibra::ZibraVDBUSDExport::SOP_ZibraVDBUSDExport* sopNode;
             Zibra::CE::Compression::CompressorManager* compressorManager;
+            std::string referencingLayerPath;
             std::string outputFile;
             float quality;
             
             bool operator<(const CompressionSequenceEntryKey& other) const
             {
                 if (sopNode != other.sopNode) return sopNode < other.sopNode;
+                if (referencingLayerPath != other.referencingLayerPath) return referencingLayerPath < other.referencingLayerPath;
                 if (outputFile != other.outputFile) return outputFile < other.outputFile;
                 if (quality != other.quality) return quality < other.quality;
                 return compressorManager < other.compressorManager;
