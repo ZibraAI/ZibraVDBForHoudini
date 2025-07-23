@@ -19,6 +19,7 @@ namespace Zibra
         namespace Compression
         {
             extern PFN_CreateCompressorFactory CreateCompressorFactory;
+            extern PFN_CreateSequenceMerger CreateSequenceMerger;
             extern PFN_GetVersion GetVersion;
         }
         namespace Licensing

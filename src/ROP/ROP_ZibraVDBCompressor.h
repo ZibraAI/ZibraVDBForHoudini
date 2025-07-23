@@ -1,11 +1,7 @@
 #pragma once
 
-#include "CompressorManager/CompressorManager.h"
-
-namespace CE::Addons::OpenVDBUtils
-{
-    struct EncodingMetadata;
-}
+#include <Zibra/CE/Addons/OpenVDBCommon.h>
+#include "OStreamRAMWrapper.h"
 
 namespace Zibra::ZibraVDBCompressor
 {
@@ -77,6 +73,9 @@ namespace Zibra::ZibraVDBCompressor
         static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate) noexcept;
 
         ROP_RENDER_CODE CreateCompressor(fpreal tStart) noexcept;
+        CE::ReturnCode InitCompressor(float defaultQuality, const std::vector<std::pair<UT_String, float>>& perChannelSettings) noexcept;
+        CE::ReturnCode CompressFrame(const CE::Compression::CompressFrameDesc& desc, CE::Compression::FrameManager** outManager) noexcept;
+        CE::ReturnCode MergeSequence(std::filesystem::path outPath) noexcept;
 
     private:
         fpreal m_EndTime = 0;
@@ -87,6 +86,9 @@ namespace Zibra::ZibraVDBCompressor
 
         ContextType m_ContextType;
 
-        CompressorManager m_CompressorManager;
+        std::map<int32_t, OStreamRAMWrapper> m_BakedFrames{};
+
+        CE::Compression::Compressor* m_Compressor = nullptr;
+        RHI::RHIRuntime* m_RHIRuntime = nullptr;
     };
 } // namespace Zibra::ZibraVDBCompressor

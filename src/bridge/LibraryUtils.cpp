@@ -25,6 +25,7 @@ namespace Zibra
         namespace Compression
         {
             PFN_CreateCompressorFactory CreateCompressorFactory = nullptr;
+            PFN_CreateSequenceMerger CreateSequenceMerger = nullptr;
             PFN_GetVersion GetVersion = nullptr;
         }
         namespace Licensing
@@ -153,6 +154,7 @@ namespace Zibra::LibraryUtils
         {
             using namespace Zibra::CE::Compression;
             ZIB_LOAD_FUNCTION_POINTER(CreateCompressorFactory, CreateCompressorFactoryExportName);
+            ZIB_LOAD_FUNCTION_POINTER(CreateSequenceMerger, CreateSequenceMergerExportName);
             ZIB_LOAD_FUNCTION_POINTER(GetVersion, GetVersionExportName);
         }
         {

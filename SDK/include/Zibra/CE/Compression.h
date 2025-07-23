@@ -63,8 +63,6 @@ namespace Zibra::CE::Compression
     {
         /// Sparse frame representation.
         SparseFrame* frame = nullptr;
-        /// Sequence frame index
-        int32_t frameNumber = 0;
         /// Channels names to compress count.
         size_t channelsCount = 0;
         /// Channels names to compress. Will be selected from all present frame channels. Non-present channel names would be skipped.
@@ -73,7 +71,7 @@ namespace Zibra::CE::Compression
 
     class FrameManager
     {
-    public:
+    protected:
         virtual ~FrameManager() noexcept = default;
 
     public:
@@ -88,12 +86,12 @@ namespace Zibra::CE::Compression
          * Finishes frame encoding, adds encoded frame to encoded sequence and releases FrameManager memory.
          * @return ZCE_SUCCESS in case of success or error code otherwise.
          */
-        virtual ReturnCode Finish() noexcept = 0;
+        virtual ReturnCode FinishAndEncode(OStream* stream) noexcept = 0;
     };
 
     class Compressor
     {
-    public:
+    protected:
         virtual ~Compressor() noexcept = default;
 
     public:
@@ -103,27 +101,7 @@ namespace Zibra::CE::Compression
          */
         virtual ReturnCode Initialize() noexcept = 0;
         /**
-         * Destructs Compressor instance and releases it's memory.
-         * After release pointer becomes invalid.
-         */
-        virtual void Release() noexcept = 0;
-
-    public:
-        /**
-         * Starts sequence compression session.
-         * @return ZCE_SUCCESS in case of success or error code otherwise.
-         */
-        virtual ReturnCode StartSequence() noexcept = 0;
-        /**
-         * Adds metadata item to global sequence metadata section.
-         * @param [in] key metadata key
-         * @param [in] value metadata value
-         * @return ZCE_SUCCESS in case of success or error code otherwise.
-         */
-        virtual ReturnCode AddPerSequenceMetadata(const char* key, const char* value) noexcept = 0;
-        /**
-         * Finishes sequence compression session.
-         * @note Sequence session must be in progress. FrameManagers must be finished in their spawn order.
+         * Compresses single frame
          * @param [in] desc frame compression description struct
          * @param [out] outFrame result FrameManager instance.
          * @warning While FrameManager is not finished it occupies RAM for whole compressed frame memory.
@@ -131,29 +109,37 @@ namespace Zibra::CE::Compression
          */
         virtual ReturnCode CompressFrame(const CompressFrameDesc& desc, FrameManager** outFrame) noexcept = 0;
         /**
-         * Finishes sequence compression session.
-         * @param [in] outStream - OStream instance for result zibravdb output.
-         * @return ZCE_SUCCESS in case of success or error code otherwise.
+         * Destructs Compressor instance and releases it's memory.
+         * After release pointer becomes invalid.
          */
-        virtual ReturnCode FinishSequence(OStream* outStream) noexcept = 0;
+        virtual void Release() noexcept = 0;
     };
 
-    class CacheManager
+    class SequenceMerger
     {
+    protected:
+        virtual ~SequenceMerger() noexcept = default;
     public:
-        virtual ~CacheManager() = default;
-
-        virtual ReturnCode StartCacheStore(const char* id, OStream** outStream) noexcept = 0;
-        virtual ReturnCode FinishCacheStore(const char* id) noexcept = 0;
-        virtual ReturnCode StartCacheRead(const char* id, IStream** outStream) noexcept = 0;
-        virtual ReturnCode FinishCacheRead(const char* id) noexcept = 0;
-
-        virtual ReturnCode ReleaseCache(const char* id) noexcept = 0;
+        virtual ReturnCode AddSequence(IStream* stream, int32_t frameOffset) noexcept = 0;
+        /**
+         * Adds metadata item to global sequence metadata section.
+         * @param [in] key metadata key
+         * @param [in] value metadata value
+         * @return ZCE_SUCCESS in case of success or error code otherwise.
+         */
+        virtual ReturnCode AddMetadata(const char* key, const char* value) noexcept = 0;
+        /**
+         * Sets frame mapping (framerate) settings to use in spawned objects.
+         * @param [in] info frame mapping desc.
+         * @return ZCE_SUCCESS in case of success or error code otherwise.
+         */
+        virtual ReturnCode SetPlaybackInfo(const PlaybackInfo& info) noexcept = 0;
+        virtual ReturnCode Finish(OStream* stream) noexcept = 0;
     };
 
     class CompressorFactory
     {
-    public:
+    protected:
         virtual ~CompressorFactory() noexcept = default;
 
     public:
@@ -177,20 +163,8 @@ namespace Zibra::CE::Compression
          */
         virtual ReturnCode OverrideChannelQuality(const char* channelName, float quality) noexcept = 0;
         /**
-         * Sets frame mapping (framerate) settings to use in spawned objects.
-         * @param [in] info frame mapping desc.
-         * @return ZCE_SUCCESS in case of success or error code otherwise.
-         */
-        virtual ReturnCode SetPlaybackInfo(const PlaybackInfo& info) noexcept = 0;
-        /**
-         * Sets cache manager to use in spawned objects.
-         * @param cacheManager - cache manager to use
-         * @return ZCE_SUCCESS in case of success or error code otherwise.
-         */
-        virtual ReturnCode UseCacheManager(CacheManager* cacheManager) noexcept = 0;
-        /**
-         *
-         * @param [out] outInstance - result compressor instance.
+         * Creates a compressor instance.
+         * @param outInstance - out compressor instance.
          * @return ZCE_SUCCESS in case of success or error code otherwise.
          */
         virtual ReturnCode Create(Compressor** outInstance) noexcept = 0;
@@ -208,6 +182,15 @@ namespace Zibra::CE::Compression
     ZCE_API_IMPORT ReturnCode ZCE_CALL_CONV Zibra_CE_Compression_CreateCompressorFactory(CompressorFactory** outInstance) noexcept;
 #else
     constexpr const char* CreateCompressorFactoryExportName = "Zibra_CE_Compression_CreateCompressorFactory";
+#endif
+
+    typedef ReturnCode (ZCE_CALL_CONV *PFN_CreateSequenceMerger)(SequenceMerger** outInstance);
+#ifdef ZCE_STATIC_LINKING
+    ReturnCode CreateSequenceMerger(SequenceMerger** outInstance) noexcept;
+#elif ZCE_DYNAMIC_IMPLICIT_LINKING
+    ZCE_API_IMPORT ReturnCode ZCE_CALL_CONV Zibra_CE_Compression_CreateSequenceMerger(SequenceMerger** outInstance) noexcept;
+#else
+    constexpr const char* CreateSequenceMergerExportName = "Zibra_CE_Compression_CreateSequenceMerger";
 #endif
 
     typedef Version (ZCE_CALL_CONV *PFN_GetVersion)();

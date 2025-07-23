@@ -94,7 +94,6 @@ set(HeaderFiles
     src/bridge/networking/NetworkRequest.h
     src/bridge/LibraryUtils.h
     src/bridge/UpdateCheck.h
-    src/ROP/CompressorManager/CompressorManager.h
     src/SOP/DecompressorManager/DecompressorManager.h
     src/licensing/HoudiniLicenseManager.h
     src/licensing/TrialManager.h
@@ -111,7 +110,6 @@ set(SourceFiles
     src/bridge/networking/NetworkRequest.cpp
     src/bridge/LibraryUtils.cpp
     src/bridge/UpdateCheck.cpp
-    src/ROP/CompressorManager/CompressorManager.cpp
     src/SOP/DecompressorManager/DecompressorManager.cpp
     src/licensing/HoudiniLicenseManager.cpp
     src/licensing/TrialManager.cpp
