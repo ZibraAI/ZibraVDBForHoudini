@@ -307,7 +307,7 @@ namespace Zibra::ZibraVDBCompressor
             return ROP_ABORT_RENDER;
         }
 
-        LibraryUtils::LoadLibrary();
+        LibraryUtils::LoadZibSDKLibrary();
 
         if (!LibraryUtils::IsLibraryLoaded())
         {

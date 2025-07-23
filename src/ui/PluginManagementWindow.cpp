@@ -174,7 +174,7 @@ namespace Zibra
             return;
         }
 
-        LibraryUtils::LoadLibrary();
+        LibraryUtils::LoadZibSDKLibrary();
         UpdateUI();
 
         if (!LibraryUtils::IsLibraryLoaded())
@@ -424,7 +424,7 @@ namespace Zibra
 
     void PluginManagementWindowImpl::UpdateUI()
     {
-        LibraryUtils::LoadLibrary();
+        LibraryUtils::LoadZibSDKLibrary();
         {
             std::string libraryStatus;
             if (!LibraryUtils::IsPlatformSupported())

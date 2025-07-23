@@ -11,7 +11,7 @@ namespace Zibra::LibraryUtils {
         uint32_t build;
     };
 
-    void LoadLibrary() noexcept;
+    void LoadZibSDKLibrary() noexcept;
     bool IsLibraryLoaded() noexcept;
 
     constexpr bool IsPlatformSupported() noexcept

@@ -22,7 +22,7 @@ namespace Zibra
             return true;
         }
 
-        Zibra::LibraryUtils::LoadLibrary();
+        Zibra::LibraryUtils::LoadZibSDKLibrary();
         if (!Zibra::LibraryUtils::IsLibraryLoaded())
         {
             return false;
@@ -46,7 +46,7 @@ namespace Zibra
     {
         assert(LicenseManager::GetInstance().GetLicenseStatus(LicenseManager::Product::Compression) != LicenseManager::Status::OK);
 
-        Zibra::LibraryUtils::LoadLibrary();
+        Zibra::LibraryUtils::LoadZibSDKLibrary();
         if (!Zibra::LibraryUtils::IsLibraryLoaded())
         {
             return -1;

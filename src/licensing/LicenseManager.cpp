@@ -547,7 +547,7 @@ namespace Zibra
 
     LicenseManager::Status LicenseManager::TryCheckoutLicense(ActivationType type, LicensePathType pathType)
     {
-        Zibra::LibraryUtils::LoadLibrary();
+        Zibra::LibraryUtils::LoadZibSDKLibrary();
         if (!Zibra::LibraryUtils::IsLibraryLoaded())
         {
             return Status::LibraryError;

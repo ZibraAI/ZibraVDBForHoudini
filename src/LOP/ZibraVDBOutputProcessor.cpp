@@ -32,7 +32,7 @@ namespace Zibra::ZibraVDBOutputProcessor
     ZibraVDBOutputProcessor::ZibraVDBOutputProcessor()
         : m_Parameters(nullptr)
     {
-        LibraryUtils::LoadLibrary();
+        LibraryUtils::LoadZibSDKLibrary();
         m_Parameters = new PI_EditScriptedParms();
     }
 
@@ -141,12 +141,14 @@ namespace Zibra::ZibraVDBOutputProcessor
 
                 std::filesystem::create_directories(std::filesystem::path(file_path).parent_path());
                 auto status = entryKey.compressorManager->Initialize(frameMappingDesc, quality, perChannelSettings);
+                //std::cout << "ZibraVDBOutputProcessor::processSavePath - CompressorManager initialized with status: " << static_cast<int>(status) << std::endl;
                 assert(status == CE::ZCE_SUCCESS);
 
                 status = entryKey.compressorManager->StartSequence(UT_String(file_path));
                 if (status != CE::ZCE_SUCCESS)
                 {
                     assert(false && "Failed to start sequence for compression, status: " + std::to_string(static_cast<int>(status)));
+                    //std::cout << "ZibraVDBOutputProcessor::processSavePath - Failed to start sequence for compression, status: " << static_cast<int>(status) << std::endl;
                     return false;
                 }
                 entries[entryKey] = {{frame_index, output_file_str}};
@@ -177,13 +179,32 @@ namespace Zibra::ZibraVDBOutputProcessor
                 return false;
             }
             
+            // Extract the SOP path from op:/ URL (e.g., "op:/stage/cloud/sopnet/OUT.sop.volumes" -> "/stage/cloud/sopnet")
+            std::regex op_path_regex(R"(op:(/[^:]+))");
+            std::smatch op_match;
+            std::string extractedPath;
+            if (std::regex_search(pathStr, op_match, op_path_regex)) {
+                std::string fullPath = op_match[1].str();
+                // Remove the last component (e.g., "/OUT.sop.volumes") to get the parent path
+                size_t lastSlash = fullPath.find_last_of('/');
+                if (lastSlash != std::string::npos) {
+                    extractedPath = fullPath.substr(0, lastSlash);
+                } else {
+                    extractedPath = fullPath;
+                }
+            }
+
             fpreal t = std::stod(match[1].str());
             std::string layerPath = referencing_layer_path.toStdString();
             
-            // Find matching entry by referencingLayerPath
+            // Find matching entry by comparing SOP node paths
             auto it = std::find_if(m_InMemoryCompressionEntries.begin(), m_InMemoryCompressionEntries.end(), 
-                [&layerPath](const auto& entry) {
-                    return entry.first.referencingLayerPath == layerPath;
+                [&layerPath, &extractedPath](const auto& entry) {
+                    bool layerMatches = entry.first.referencingLayerPath == layerPath;
+                    std::string sopNodePath = entry.first.sopNode->getFullPath().c_str();
+
+                    bool pathMatches = extractedPath.empty() || sopNodePath.find(extractedPath) == 0;
+                    return layerMatches && pathMatches;
                 });
                 
             if (it != m_InMemoryCompressionEntries.end()) {

@@ -213,11 +213,11 @@ else()
     set(PLUGIN_LIBRARY_NAME "libZibraVDBForHoudini.so")
 endif()
 
-add_custom_command(TARGET ZibraVDBForHoudini POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy
-    ${CMAKE_CURRENT_BINARY_DIR}/plugInfo.json
-    ${HOUDINI_INSTDIR}/plugInfo.json
-)
+#add_custom_command(TARGET ZibraVDBForHoudini POST_BUILD
+#    COMMAND ${CMAKE_COMMAND} -E copy
+#    ${CMAKE_CURRENT_BINARY_DIR}/plugInfo.json
+#    ${HOUDINI_INSTDIR}/plugInfo.json
+#)
 
 list(APPEND CMAKE_PREFIX_PATH "${HOUDINI_PATH}/toolkit/cmake")
 find_package(Houdini REQUIRED)

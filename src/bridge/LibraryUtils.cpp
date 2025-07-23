@@ -225,7 +225,7 @@ namespace Zibra::LibraryUtils
 #endif
     }
 
-    void LoadLibrary() noexcept
+    void LoadZibSDKLibrary() noexcept
     {
         assert(g_IsLibraryLoaded == (g_LibraryHandle != NULL));
 

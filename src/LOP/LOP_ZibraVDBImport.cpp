@@ -101,7 +101,7 @@ namespace Zibra::ZibraVDBImport
     {
         setInt("__file_valid", 0, 0, 0);
         
-        LibraryUtils::LoadLibrary();
+        LibraryUtils::LoadZibSDKLibrary();
         if (LibraryUtils::IsLibraryLoaded())
         {
             m_DecompressorManager.Initialize();
