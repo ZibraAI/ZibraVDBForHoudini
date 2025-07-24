@@ -200,20 +200,20 @@ endif()
 list(APPEND CMAKE_PREFIX_PATH "${HOUDINI_PATH}/toolkit/cmake")
 find_package(Houdini REQUIRED)
 
-target_link_libraries(ZibraVDBForHoudini PRIVATE
-        Houdini
+target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini)
+
+if (NOT "${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
+    target_link_libraries(ZibraVDBForHoudini PRIVATE
+        Houdini::Dep::openvdb_sesi
         Houdini::Dep::python3.11
         Houdini::Dep::hboost_python
-        
+
         Houdini::Dep::pxr_tf
         Houdini::Dep::pxr_sdf
         Houdini::Dep::pxr_usd
         Houdini::Dep::pxr_usdVol
         Houdini::Dep::pxr_plug
-)
-
-if (NOT "${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
-    target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::openvdb_sesi)
+    )
 endif()
 
 if(${LABS_BUILD})
