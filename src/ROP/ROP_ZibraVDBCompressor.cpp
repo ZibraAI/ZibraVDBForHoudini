@@ -768,10 +768,6 @@ namespace Zibra::ZibraVDBCompressor
             status = merger->AddSequence(views.emplace_back(new MemoryIStream{container.data(), container.size()}), frameNumber);
             if (status != CE::ZCE_SUCCESS) return status;
         }
-        for (auto item : views)
-        {
-            delete item;
-        }
 
         merger->AddMetadata("__ORIGIN", "ZibraVDBForHoudini");
 #ifdef WIN32
@@ -788,6 +784,10 @@ namespace Zibra::ZibraVDBCompressor
         STDOStreamWrapper wrapper{outFile};
         status = merger->Finish(&wrapper);
         outFile.close();
+        for (auto item : views)
+        {
+            delete item;
+        }
         return status;
     }
 
