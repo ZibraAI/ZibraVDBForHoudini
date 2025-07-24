@@ -2,8 +2,8 @@ name: Package
 
 on:
   push:
-    branches:
-      - main
+#    branches:
+#      - main
 
 jobs:
   build-windows-x64:
