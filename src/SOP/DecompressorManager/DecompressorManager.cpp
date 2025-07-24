@@ -473,4 +473,13 @@ namespace Zibra::Helpers
         gridDescs.clear();
     }
 
+    CE::Decompression::SequenceInfo DecompressorManager::GetSequenceInfo() const noexcept
+    {
+        if (!m_FormatMapper)
+        {
+            return {};
+        }
+        return m_FormatMapper->GetSequenceInfo();
+    }
+
 } // namespace Zibra::Helpers

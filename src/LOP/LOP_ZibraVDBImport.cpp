@@ -421,39 +421,12 @@ namespace Zibra::ZibraVDBImport
 
         m_AvailableGrids.clear();
 
-        auto frameRange = m_DecompressorManager.GetFrameRange();
-        if (frameRange.start <= frameRange.end)
+        auto sequenceInfo = m_DecompressorManager.GetSequenceInfo();
+        for (uint8_t i = 0; i < sequenceInfo.channelCount; ++i)
         {
-            std::vector<int> framesToTry;
-            framesToTry.push_back(frameRange.start);
-            
-            if (frameRange.end > frameRange.start)
+            if (sequenceInfo.channels[i] && strlen(sequenceInfo.channels[i]) > 0)
             {
-                int middleFrame = frameRange.start + (frameRange.end - frameRange.start) / 2;
-                if (middleFrame != frameRange.start)
-                {
-                    framesToTry.push_back(middleFrame);
-                }
-                framesToTry.push_back(frameRange.end);
-            }
-            
-            for (int frame : framesToTry)
-            {
-                CE::Decompression::CompressedFrameContainer* frameContainer = m_DecompressorManager.FetchFrame(frame);
-                if (frameContainer)
-                {
-                    auto frameInfo = frameContainer->GetInfo();
-
-                    for (size_t i = 0; i < frameInfo.channelsCount; ++i)
-                    {
-                        if (frameInfo.channels[i].name && strlen(frameInfo.channels[i].name) > 0)
-                        {
-                            m_AvailableGrids.insert(frameInfo.channels[i].name);
-                        }
-                    }
-                    
-                    frameContainer->Release();
-                }
+                m_AvailableGrids.insert(sequenceInfo.channels[i]);
             }
         }
     }
