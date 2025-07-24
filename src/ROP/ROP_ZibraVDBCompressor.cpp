@@ -368,6 +368,8 @@ namespace Zibra::ZibraVDBCompressor
         }
         }
 
+        m_FilePerFrameMode = isParmTimeDependent(FILENAME_PARAM_NAME);
+
         const GU_Detail* gdp = m_InputSOP->getCookedGeoHandle(ctx, 0).gdp();
         if (!gdp)
         {
@@ -404,7 +406,7 @@ namespace Zibra::ZibraVDBCompressor
             }
         }
 
-        if (CreateCompressor(tStart) == ROP_ABORT_RENDER)
+        if (CreateCompressor(ctx) == ROP_ABORT_RENDER)
         {
             addError(ROP_MESSAGE, "Failed to create compressor instance.");
             return ROP_ABORT_RENDER;
@@ -426,6 +428,14 @@ namespace Zibra::ZibraVDBCompressor
 
         OP_Context ctx(time);
         const int thread = ctx.getThread();
+
+        UT_String filename = "";
+        evalString(filename, FILENAME_PARAM_NAME, nullptr, 0, time);
+        std::error_code ec;
+        // Intentionally ignoring errors
+        // This is needed for relative paths to work properly
+        // If path is invalid, we'll error out later on
+        std::filesystem::create_directories(std::filesystem::path{filename.c_str()}.parent_path(), ec);
 
         OP_AutoLockInputs inputs{this};
         if (inputs.lock(ctx) >= UT_ERROR_ABORT)
@@ -502,8 +512,21 @@ namespace Zibra::ZibraVDBCompressor
         {
             frameManager->AddMetadata(key.c_str(), val.c_str());
         }
-        auto it = m_BakedFrames.emplace(myCurrentFrame, OStreamRAMWrapper{});
-        status = frameManager->FinishAndEncode(&it.first->second);
+        if (m_FilePerFrameMode)
+        {
+            std::ofstream outFrameFile{filename, std::ios::binary};
+            if (!outFrameFile.is_open() || outFrameFile.fail())
+            {
+                addError(ROP_MESSAGE, "Failed to open file for writing.");
+                return ROP_ABORT_RENDER;
+            }
+            STDOStreamWrapper streamWrapper{outFrameFile};
+            status = frameManager->FinishAndEncode(&streamWrapper);
+        }
+        else
+        {
+            status = frameManager->FinishAndEncode(&m_BakedFrames.emplace(myCurrentFrame, OStreamRAMWrapper{}).first->second);
+        }
         if (status != CE::ReturnCode::ZCE_SUCCESS)
         {
             addError(ROP_MESSAGE, "Failed to dump frame data.");
@@ -535,22 +558,25 @@ namespace Zibra::ZibraVDBCompressor
             m_RHIRuntime = nullptr;
         }
 
-        if (m_BakedFrames.empty())
+        if (!m_FilePerFrameMode)
         {
-            addWarning(ROP_MESSAGE, "Sequence is empty. No grids were compressed.");
-        } else
-        {
-            UT_String filename = "";
-            evalString(filename, FILENAME_PARAM_NAME, nullptr, 0, m_StartTime);
-            auto status = MergeSequence(filename.c_str());
-            if (status != CE::ZCE_SUCCESS)
+            if (m_BakedFrames.empty())
             {
-                addError(ROP_MESSAGE, "Failed to finalize sequence merge.");
-                m_BakedFrames.clear();
-                return ROP_ABORT_RENDER;
+                addWarning(ROP_MESSAGE, "Sequence is empty. No grids were compressed.");
+            } else
+            {
+                UT_String filename = "";
+                evalString(filename, FILENAME_PARAM_NAME, nullptr, 0, m_StartTime);
+                auto status = MergeSequence(filename.c_str());
+                if (status != CE::ZCE_SUCCESS)
+                {
+                    addError(ROP_MESSAGE, "Failed to finalize sequence merge.");
+                    m_BakedFrames.clear();
+                    return ROP_ABORT_RENDER;
+                }
             }
+            m_BakedFrames.clear();
         }
-        m_BakedFrames.clear();
 
         if (error() < UT_ERROR_ABORT)
         {
@@ -559,27 +585,17 @@ namespace Zibra::ZibraVDBCompressor
         return error() < UT_ERROR_ABORT ? ROP_CONTINUE_RENDER : ROP_ABORT_RENDER;
     }
 
-    ROP_RENDER_CODE ROP_ZibraVDBCompressor::CreateCompressor(const fpreal tStart) noexcept
+    ROP_RENDER_CODE ROP_ZibraVDBCompressor::CreateCompressor(const OP_Context& ctx) noexcept
     {
-        UT_String filename = "";
-        OP_Context ctx(tStart);
-        evalString(filename, FILENAME_PARAM_NAME, nullptr, 0, tStart);
-
-        std::error_code ec;
-        // Intentionally ignoring errors
-        // This is needed for relative paths to work properly
-        // If path is invalid, we'll error out later on
-        std::filesystem::create_directories(std::filesystem::path{filename.c_str()}.parent_path(), ec);
-
         const int renderMode = static_cast<int>(evalInt("trange", 0, ctx.getTime()));
-        const float frameInc = renderMode == 0 ? 1 : evalFloat("f", 2, tStart);
+        const float frameInc = renderMode == 0 ? 1 : evalFloat("f", 2, ctx.getTime());
         CE::PlaybackInfo playbackInfo{};
         playbackInfo.sequenceIndexIncrement = frameInc;
 
-        float defaultQuality = static_cast<float>(evalFloat(QUALITY_PARAM_NAME, 0, tStart));
+        float defaultQuality = static_cast<float>(evalFloat(QUALITY_PARAM_NAME, 0, ctx.getTime()));
 
         UT_String usePerChannelCompressionSettingsString;
-        evalString(usePerChannelCompressionSettingsString, USE_PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME, 0, tStart);
+        evalString(usePerChannelCompressionSettingsString, USE_PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME, 0, ctx.getTime());
         std::vector<std::pair<UT_String, float>> perChannelCompressionSettings;
 
         if (usePerChannelCompressionSettingsString == "on")
@@ -587,7 +603,7 @@ namespace Zibra::ZibraVDBCompressor
             // Just in case evalInt return invalid number.
             constexpr int maxPerChannelSettingsCount = 1024;
             const int perChannelSettingsCount = std::max(
-                0, std::min(static_cast<int>(evalInt(PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME, 0, tStart)), maxPerChannelSettingsCount));
+                0, std::min(static_cast<int>(evalInt(PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME, 0, ctx.getTime())), maxPerChannelSettingsCount));
 
             for (int i = 0; i < perChannelSettingsCount; ++i)
             {
@@ -604,21 +620,20 @@ namespace Zibra::ZibraVDBCompressor
                 }
 
                 UT_String channelNameStr;
-                evalString(channelNameStr, channelNameParamNameStr.c_str(), 0, tStart);
+                evalString(channelNameStr, channelNameParamNameStr.c_str(), 0, ctx.getTime());
 
                 if (std::find(m_OrderedChannelNames.begin(), m_OrderedChannelNames.end(), channelNameStr.toStdString()) ==
                     m_OrderedChannelNames.end())
                 {
                     continue;
                 }
-                float quality = static_cast<float>(evalFloat(qualityParamNameStr.c_str(), 0, tStart));
+                float quality = static_cast<float>(evalFloat(qualityParamNameStr.c_str(), 0, ctx.getTime()));
 
                 perChannelCompressionSettings.emplace_back(channelNameStr, quality);
                 perChannelCompressionSettings.back().first.harden();
             }
         }
 
-        std::filesystem::path basePath = std::filesystem::path{filename.c_str()}.parent_path();
         if (InitCompressor(defaultQuality, perChannelCompressionSettings) != CE::ReturnCode::ZCE_SUCCESS)
         {
             addError(ROP_MESSAGE, "Failed to initialize compressor.");
@@ -743,7 +758,7 @@ namespace Zibra::ZibraVDBCompressor
     {
         CE::Compression::SequenceMerger* merger = nullptr;
         auto status = CE::Compression::CreateSequenceMerger(&merger);
-        if (!status)
+        if (status != CE::ZCE_SUCCESS)
             return status;
 
         std::vector<MemoryIStream*> views{};

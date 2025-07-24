@@ -72,7 +72,7 @@ namespace Zibra::ZibraVDBCompressor
 
         static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate) noexcept;
 
-        ROP_RENDER_CODE CreateCompressor(fpreal tStart) noexcept;
+        ROP_RENDER_CODE CreateCompressor(const OP_Context& ctx) noexcept;
         CE::ReturnCode InitCompressor(float defaultQuality, const std::vector<std::pair<UT_String, float>>& perChannelSettings) noexcept;
         CE::ReturnCode CompressFrame(const CE::Compression::CompressFrameDesc& desc, CE::Compression::FrameManager** outManager) noexcept;
         CE::ReturnCode MergeSequence(std::filesystem::path outPath) noexcept;
@@ -81,6 +81,7 @@ namespace Zibra::ZibraVDBCompressor
         fpreal m_EndTime = 0;
         fpreal m_StartTime = 0;
         SOP_Node* m_InputSOP = nullptr;
+        bool m_FilePerFrameMode = false;
 
         std::vector<std::string> m_OrderedChannelNames{};
 
