@@ -32,7 +32,7 @@ namespace Zibra::ZibraVDBImport
 
     private:
         std::string sanitizeFieldNameForUSD(const std::string& fieldName);
-        std::vector<std::string> parseSelectedFields(const std::string& fieldsStr, const std::vector<std::string>& availableGrids);
+        std::vector<std::string> parseSelectedFields(const std::string& fieldsStr, const std::set<std::string>& availableGrids);
         void parseAvailableGrids();
         void updateFieldsChoiceList();
         void createVolumeStructure(UsdStageRefPtr stage, const std::string& primPath, const std::string& primName,
@@ -46,7 +46,7 @@ namespace Zibra::ZibraVDBImport
     private:
         Zibra::Helpers::DecompressorManager m_DecompressorManager;
         std::string m_LastFilePath;
-        std::vector<std::string> m_AvailableGrids;
+        std::set<std::string> m_AvailableGrids;
     };
 
     class LOP_ZibraVDBImport_Operator final : public OP_Operator

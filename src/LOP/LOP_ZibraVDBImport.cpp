@@ -378,7 +378,7 @@ namespace Zibra::ZibraVDBImport
         return sanitized;
     }
 
-    std::vector<std::string> LOP_ZibraVDBImport::parseSelectedFields(const std::string& fieldsStr, const std::vector<std::string>& availableGrids)
+    std::vector<std::string> LOP_ZibraVDBImport::parseSelectedFields(const std::string& fieldsStr, const std::set<std::string>& availableGrids)
     {
         std::vector<std::string> selectedFields;
         
@@ -389,7 +389,7 @@ namespace Zibra::ZibraVDBImport
         
         if (fieldsStr == "*")
         {
-            selectedFields = availableGrids;
+            selectedFields.assign(availableGrids.begin(), availableGrids.end());
             return selectedFields;
         }
         
@@ -397,8 +397,7 @@ namespace Zibra::ZibraVDBImport
         std::string field;
         while (iss >> field)
         {
-            auto it = std::find(availableGrids.begin(), availableGrids.end(), field);
-            if (it != availableGrids.end())
+            if (availableGrids.find(field) != availableGrids.end())
             {
                 selectedFields.push_back(field);
             }
@@ -425,18 +424,36 @@ namespace Zibra::ZibraVDBImport
         auto frameRange = m_DecompressorManager.GetFrameRange();
         if (frameRange.start <= frameRange.end)
         {
-            CE::Decompression::CompressedFrameContainer* frameContainer = m_DecompressorManager.FetchFrame(frameRange.start);
-            if (frameContainer)
+            std::vector<int> framesToTry;
+            framesToTry.push_back(frameRange.start);
+            
+            if (frameRange.end > frameRange.start)
             {
-                auto frameInfo = frameContainer->GetInfo();
-                for (size_t i = 0; i < frameInfo.channelsCount; ++i)
+                int middleFrame = frameRange.start + (frameRange.end - frameRange.start) / 2;
+                if (middleFrame != frameRange.start)
                 {
-                    if (frameInfo.channels[i].name && strlen(frameInfo.channels[i].name) > 0)
-                    {
-                        m_AvailableGrids.push_back(frameInfo.channels[i].name);
-                    }
+                    framesToTry.push_back(middleFrame);
                 }
-                frameContainer->Release();
+                framesToTry.push_back(frameRange.end);
+            }
+            
+            for (int frame : framesToTry)
+            {
+                CE::Decompression::CompressedFrameContainer* frameContainer = m_DecompressorManager.FetchFrame(frame);
+                if (frameContainer)
+                {
+                    auto frameInfo = frameContainer->GetInfo();
+
+                    for (size_t i = 0; i < frameInfo.channelsCount; ++i)
+                    {
+                        if (frameInfo.channels[i].name && strlen(frameInfo.channels[i].name) > 0)
+                        {
+                            m_AvailableGrids.insert(frameInfo.channels[i].name);
+                        }
+                    }
+                    
+                    frameContainer->Release();
+                }
             }
         }
     }

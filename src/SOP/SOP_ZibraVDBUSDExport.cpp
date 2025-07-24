@@ -143,7 +143,6 @@ namespace Zibra::ZibraVDBUSDExport
                     addError(ROP_MESSAGE, m.c_str());
                     break;
                 }
-                //            float quality = evalFloat(QUALITY_PARAM_NAME, 0, context.getTime());
                 exint current_frame = context.getFrame();
 
                 UT_String output_filepath;
@@ -160,7 +159,7 @@ namespace Zibra::ZibraVDBUSDExport
                 }
 
                 std::string new_path = filename + "?node=" + encoded_node_path +
-                                       "&frame=" + std::to_string(current_frame); // + "&quality=" + std::to_string(quality);
+                                       "&frame=" + std::to_string(current_frame);
                 savePathAttrib.set(prim->getMapOffset(), new_path.c_str());
                 m_OrderedChannelNames.emplace_back(gridName);
             }
