@@ -32,7 +32,16 @@ namespace Zibra::ZibraVDBOutputProcessor
     ZibraVDBOutputProcessor::ZibraVDBOutputProcessor()
         : m_Parameters(nullptr)
     {
-        LibraryUtils::LoadZibSDKLibrary();
+        if (!LibraryUtils::IsPlatformSupported() ||
+            !LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Compression))
+        {
+            LibraryUtils::LoadZibSDKLibrary();
+        }
+        else
+        {
+            //TODO add error message to user here
+        }
+
         m_Parameters = new PI_EditScriptedParms();
     }
 
