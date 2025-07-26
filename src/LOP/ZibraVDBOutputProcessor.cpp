@@ -30,24 +30,21 @@ namespace Zibra::ZibraVDBOutputProcessor
     using namespace std::literals;
 
     ZibraVDBOutputProcessor::ZibraVDBOutputProcessor()
-        : m_Parameters(nullptr)
     {
-        if (!LibraryUtils::IsPlatformSupported() ||
-            !LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Compression))
+        if (!LibraryUtils::IsPlatformSupported())
         {
-            LibraryUtils::LoadZibSDKLibrary();
+            //TODO add error message to user
         }
-        else
+        if (!LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Compression))
         {
-            //TODO add error message to user here
+            //TODO add error message to user
         }
 
-        m_Parameters = new PI_EditScriptedParms();
+        LibraryUtils::LoadZibSDKLibrary();
     }
 
     ZibraVDBOutputProcessor::~ZibraVDBOutputProcessor()
     {
-        delete m_Parameters;
     }
 
     UT_StringHolder ZibraVDBOutputProcessor::displayName() const
@@ -57,12 +54,12 @@ namespace Zibra::ZibraVDBOutputProcessor
 
     HUSD_OutputProcessorPtr createZibraVDBOutputProcessor()
     {
-        return HUSD_OutputProcessorPtr(new ZibraVDBOutputProcessor());
+        return static_cast<HUSD_OutputProcessorPtr>(new ZibraVDBOutputProcessor());
     }
 
     const PI_EditScriptedParms *ZibraVDBOutputProcessor::parameters() const
     {
-        return m_Parameters;
+        return nullptr;
     }
 
     void ZibraVDBOutputProcessor::beginSave(OP_Node *config_node,

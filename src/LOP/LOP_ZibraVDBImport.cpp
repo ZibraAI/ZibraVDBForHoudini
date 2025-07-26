@@ -1,34 +1,12 @@
-#include "PrecompiledHeader.h"
 #include "LOP_ZibraVDBImport.h"
+
+#include <PrecompiledHeader.h>
+#include <bridge/LibraryUtils.h>
+
 #include <HUSD/HUSD_DataHandle.h>
-#include <HUSD/XUSD_Data.h>
-#include <UT/UT_StringHolder.h>
-#include <pxr/usd/usd/prim.h>
-#include <pxr/usd/usd/primRange.h>
-#include <pxr/usd/usd/attribute.h>
-#include <pxr/usd/sdf/assetPath.h>
-#include <pxr/base/tf/token.h>
-#include <pxr/usd/sdf/layer.h>
-#include <pxr/usd/usdVol/volume.h>
-#include <pxr/usd/usdVol/openVDBAsset.h>
-#include <pxr/usd/usd/modelAPI.h>
-#include <pxr/usd/usd/timeCode.h>
 #include <HUSD/HUSD_FindPrims.h>
-#include <LOP/LOP_PRMShared.h>
-#include <PRM/PRM_SpareData.h>
-#include <OP/OP_Director.h>
-#include <CH/CH_LocalVariable.h>
-#include <algorithm>
-#include <cctype>
-#include <vector>
-#include <iostream>
-#include <sstream>
-#include <filesystem>
-#include <cmath>
-#include <set>
-#include <Zibra/CE/Decompression.h>
-#include "SOP/DecompressorManager/DecompressorManager.h"
-#include "bridge/LibraryUtils.h"
+#include <HUSD/XUSD_Data.h>
+#include <pxr/usd/usdVol/openVDBAsset.h>
 
 PXR_NAMESPACE_USING_DIRECTIVE
 
@@ -45,9 +23,6 @@ namespace Zibra::ZibraVDBImport
     
     static PRM_Name PRMfields("fields", "Fields");
     static PRM_Default PRMfieldsDefault(0.0f, "*");
-    
-    static PRM_Template::PRM_Export PRMfieldsExport = PRM_Template::PRM_EXPORT_TBX;
-    static const char* PRMfieldsHelp = "Select fields to import. Use '*' for all channels, or space-separated names like 'density temperature'.";
     
     static PRM_Name PRMfileValid("__file_valid", "__file_valid");
     static PRM_Default PRMfileValidDefault(0);

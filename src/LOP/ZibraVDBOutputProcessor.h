@@ -1,26 +1,15 @@
 #pragma once
 
 #include <HUSD/HUSD_OutputProcessor.h>
-#include <PI/PI_EditScriptedParms.h>
-#include <UT/UT_Options.h>
-#include <UT/UT_String.h>
+
 #include <map>
 #include <openvdb/openvdb.h>
 #include <set>
 #include <string>
 #include <vector>
 
-#include "Globals.h"
 #include "ROP/CompressorManager/CompressorManager.h"
-#include "external/Include/json.hpp"
-
-class SOP_Node;
-class GEO_PrimVDB;
-class GU_Detail;
-
-namespace Zibra::ZibraVDBUSDExport {
-    class SOP_ZibraVDBUSDExport;
-}
+#include "SOP/SOP_ZibraVDBUSDExport.h"
 
 namespace Zibra::ZibraVDBOutputProcessor
 {
@@ -84,7 +73,6 @@ namespace Zibra::ZibraVDBOutputProcessor
 
     private:
         std::map<CompressionSequenceEntryKey, std::vector<std::pair<int, std::string>>> m_InMemoryCompressionEntries;
-        PI_EditScriptedParms *m_Parameters;
     };
 
     HUSD_OutputProcessorPtr createZibraVDBOutputProcessor();
