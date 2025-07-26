@@ -12,6 +12,8 @@
 #include <SOP/SOP_Node.h>
 #include <UT/UT_FileUtil.h>
 #include <UT/UT_StringHolder.h>
+#include <UT/UT_WorkBuffer.h>
+#include <UT/UT_ErrorManager.h>
 #include <Zibra/CE/Addons/OpenVDBFrameLoader.h>
 #include <Zibra/CE/Compression.h>
 #include <algorithm>
@@ -33,14 +35,29 @@ namespace Zibra::ZibraVDBOutputProcessor
     {
         if (!LibraryUtils::IsPlatformSupported())
         {
-            //TODO add error message to user
-        }
-        if (!LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Compression))
-        {
-            //TODO add error message to user
+            UT_WorkBuffer buffer;
+            buffer.sprintf("ZibraVDB: Platform not supported. Required: Windows/Linux/macOS");
+            UTaddError("ZibraVDB", UT_ERROR_MESSAGE, buffer.buffer());
+            return;
         }
 
         LibraryUtils::LoadZibSDKLibrary();
+        
+        if (!LibraryUtils::IsLibraryLoaded())
+        {
+            UT_WorkBuffer buffer;
+            buffer.sprintf("ZibraVDB: Failed to load ZibraVDB SDK library. Please check installation.");
+            UTaddError("ZibraVDB", UT_ERROR_MESSAGE, buffer.buffer());
+            return;
+        }
+
+        if (!LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Compression))
+        {
+            UT_WorkBuffer buffer;
+            buffer.sprintf("ZibraVDB: No valid license found for compression. Please check your license.");
+            UTaddError("ZibraVDB", UT_ERROR_MESSAGE, buffer.buffer());
+            return;
+        }
     }
 
     ZibraVDBOutputProcessor::~ZibraVDBOutputProcessor()
