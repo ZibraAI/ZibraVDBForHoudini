@@ -41,8 +41,10 @@ namespace Zibra::CE::Compression
         RHIstatus = RHIFactory->Create(&m_RHIRuntime);
         if (RHIstatus != RHI::ZRHI_SUCCESS)
         {
+            RHIFactory->Release();
             return CE::ZCE_ERROR;
         }
+        RHIFactory->Release();
 
         RHIstatus = m_RHIRuntime->Initialize();
         if (RHIstatus != RHI::ZRHI_SUCCESS)
@@ -155,6 +157,9 @@ namespace Zibra::CE::Compression
             m_IsSequenceEmpty = false;
         }
 
+        // Force GPU memory cleanup after each frame
+        m_RHIRuntime->GarbageCollect();
+
         return CE::ZCE_SUCCESS;
     }
 
@@ -189,6 +194,8 @@ namespace Zibra::CE::Compression
         }
         if (m_RHIRuntime)
         {
+            // Force aggressive cleanup before releasing RHI
+            m_RHIRuntime->GarbageCollect();
             m_RHIRuntime->Release();
             m_RHIRuntime = nullptr;
         }

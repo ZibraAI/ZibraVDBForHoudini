@@ -393,6 +393,12 @@ namespace Zibra::Helpers
             return;
         }
 
+        if (m_Decoder)
+        {
+            CE::Decompression::CAPI::ReleaseDecoder(m_Decoder);
+            m_Decoder = nullptr;
+        }
+
         FreeExternalBuffers();
         if (m_Decompressor)
         {
@@ -406,6 +412,7 @@ namespace Zibra::Helpers
         }
         if (m_RHIRuntime)
         {
+            m_RHIRuntime->GarbageCollect();
             m_RHIRuntime->Release();
             m_RHIRuntime = nullptr;
         }

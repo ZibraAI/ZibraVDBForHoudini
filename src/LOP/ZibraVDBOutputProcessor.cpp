@@ -266,6 +266,7 @@ namespace Zibra::ZibraVDBOutputProcessor
                     assert(false && "Failed to finish compression sequence for in-memory VDBs. Status: " + std::to_string(static_cast<int>(status)));
                 }
                 sequence.first.compressorManager->Release();
+                delete sequence.first.compressorManager;
             }
         }
         m_InMemoryCompressionEntries.clear();
