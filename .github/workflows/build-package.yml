@@ -43,7 +43,7 @@ jobs:
       working-directory: ${{ github.workspace }}
       shell: pwsh
       run: |
-        C:\houdini_win64-vc143_20.5\bin\hotl.exe -l ${{ github.workspace }}\package\otls\zibravdb_filecache.1.0.hda ${{ github.workspace }}\package\otls\zibravdb_filecache.1.0.hda.2
+        C:\Houdini\bin\hotl.exe -l ${{ github.workspace }}\package\otls\zibravdb_filecache.1.0.hda ${{ github.workspace }}\package\otls\zibravdb_filecache.1.0.hda.2
         Remove-Item -Recurse -Force ${{ github.workspace }}\package\otls\zibravdb_filecache.1.0.hda
         Move-Item -Path ${{ github.workspace }}\package\otls\zibravdb_filecache.1.0.hda.2 -Destination ${{ github.workspace }}\package\otls\zibravdb_filecache.1.0.hda
 
