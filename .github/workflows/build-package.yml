@@ -32,7 +32,7 @@ jobs:
       shell: pwsh
       run: cmake -S . -B build -G "Visual Studio 17 2022" -DZIBRAVDB_OUTPUT_PATH=${{ github.workspace }}\package
       env:
-        HFS: C:\houdini_win64-vc143_20.5
+        HFS: C:\Houdini
 
     - name: Build Release
       working-directory: ${{ github.workspace }}
