@@ -204,8 +204,6 @@ namespace Zibra::LibraryUtils
         }
 
         g_CompressionEngineVersion = Zibra_CE_Compression_GetVersion();
-        g_DecompressionLibraryVersion = Zibra_CE_Decompression_GetVersion();
-        g_RHILibraryVersion = Zibra_RHI_GetVersion();
 
         if (!ValidateLoadedVersion())
         {
