@@ -5,6 +5,7 @@ namespace Zibra::CE::Licensing
     enum class ProductType
     {
         Compression,
+        Decompression,
         Count
     };
 
@@ -12,6 +13,8 @@ namespace Zibra::CE::Licensing
     void CheckoutLicenseOffline(const char* license, int licenseSize) noexcept;
     void CheckoutLicenseLicenseServer(const char* licenseServerAddress) noexcept;
     bool IsLicenseValidated(ProductType product) noexcept;
+    int GetProductLicenseTier(ProductType product) noexcept;
+    const char* GetProductLicenseType(ProductType product) noexcept;
     const char* GetHardwareID() noexcept;
     void ReleaseLicense() noexcept;
     const char* GetLicenseError() noexcept;
@@ -32,6 +35,8 @@ namespace Zibra::CE::Licensing
     macro(ZCE_LICENSING_FUNCS_EXPORT_FNPFX(CheckoutLicenseOffline));       \
     macro(ZCE_LICENSING_FUNCS_EXPORT_FNPFX(CheckoutLicenseLicenseServer)); \
     macro(ZCE_LICENSING_FUNCS_EXPORT_FNPFX(IsLicenseValidated));           \
+    macro(ZCE_LICENSING_FUNCS_EXPORT_FNPFX(GetProductLicenseTier));           \
+    macro(ZCE_LICENSING_FUNCS_EXPORT_FNPFX(GetProductLicenseType));           \
     macro(ZCE_LICENSING_FUNCS_EXPORT_FNPFX(GetHardwareID));                \
     macro(ZCE_LICENSING_FUNCS_EXPORT_FNPFX(ReleaseLicense));               \
     macro(ZCE_LICENSING_FUNCS_EXPORT_FNPFX(GetLicenseError));
@@ -42,6 +47,8 @@ typedef void (*ZCE_PFN(ZCE_FNPFX(CheckoutLicenseWithKey)))(const char* licenseKe
 typedef void (*ZCE_PFN(ZCE_FNPFX(CheckoutLicenseOffline)))(const char* license, int licenseSize);
 typedef void (*ZCE_PFN(ZCE_FNPFX(CheckoutLicenseLicenseServer)))(const char* licenseServerAddress);
 typedef bool (*ZCE_PFN(ZCE_FNPFX(IsLicenseValidated)))(ZCE_NS::ProductType product);
+typedef int (*ZCE_PFN(ZCE_FNPFX(GetProductLicenseTier)))(ZCE_NS::ProductType product);
+typedef const char* (*ZCE_PFN(ZCE_FNPFX(GetProductLicenseType)))(ZCE_NS::ProductType product);
 typedef const char* (*ZCE_PFN(ZCE_FNPFX(GetHardwareID)))();
 typedef void (*ZCE_PFN(ZCE_FNPFX(ReleaseLicense)))();
 typedef const char* (*ZCE_PFN(ZCE_FNPFX(GetLicenseError)))();
@@ -51,6 +58,8 @@ ZCE_API_IMPORT void ZCE_FNPFX(CheckoutLicenseWithKey)(const char* licenseKey) no
 ZCE_API_IMPORT void ZCE_FNPFX(CheckoutLicenseOffline)(const char* license, int licenseSize) noexcept;
 ZCE_API_IMPORT void ZCE_FNPFX(CheckoutLicenseLicenseServer)(const char* licenseServerAddress) noexcept;
 ZCE_API_IMPORT bool ZCE_FNPFX(IsLicenseValidated)(ZCE_NS::ProductType product) noexcept;
+ZCE_API_IMPORT int ZCE_FNPFX(GetProductLicenseTier)(ZCE_NS::ProductType product) noexcept;
+ZCE_API_IMPORT const char* ZCE_FNPFX(GetProductLicenseType)(ZCE_NS::ProductType product) noexcept;
 ZCE_API_IMPORT const char* ZCE_FNPFX(GetHardwareID)() noexcept;
 ZCE_API_IMPORT void ZCE_FNPFX(ReleaseLicense)() noexcept;
 ZCE_API_IMPORT const char* ZCE_FNPFX(GetLicenseError)() noexcept;
@@ -77,6 +86,14 @@ namespace ZCE_NS::CAPI
     inline bool IsLicenseValidated(ProductType product) noexcept
     {
         return ZCE_FNPFX(IsLicenseValidated)(product);
+    }
+    inline int GetProductLicenseTier(ProductType product) noexcept
+    {
+        return ZCE_FNPFX(GetProductLicenseTier)(product);
+    }
+    inline const char* GetProductLicenseType(ProductType product) noexcept
+    {
+        return ZCE_FNPFX(GetProductLicenseType)(product);
     }
     inline const char* GetHardwareID() noexcept
     {

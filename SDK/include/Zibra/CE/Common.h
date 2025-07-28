@@ -38,6 +38,13 @@ namespace Zibra::CE
         ZCE_ERROR_OUT_OF_GPU_MEMORY = 411,
         // Time out
         ZCE_ERROR_TIME_OUT = 430,
+
+        ZCE_ERROR_INVALID_FILE = 500,
+        ZCE_ERROR_INCOMPTIBLE_FILE = 501,
+        ZCE_ERROR_CORRUPTED_FILE = 502,
+        ZCE_ERROR_IO_ERROR = 503,
+
+        ZCE_ERROR_LICENSE_TIER_TOO_LOW = 1000,
     };
 
     struct MetadataEntry

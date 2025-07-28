@@ -4,7 +4,6 @@
 
 #include "bridge/LibraryUtils.h"
 #include "licensing/LicenseManager.h"
-#include "licensing/TrialManager.h"
 #include "ui/PluginManagementWindow.h"
 #include "utils/GAAttributesDump.h"
 
@@ -316,11 +315,8 @@ namespace Zibra::ZibraVDBCompressor
 
         if (!LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Compression))
         {
-            if (!TrialManager::RequestTrialCompression())
-            {
-                addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR);
-                return ROP_ABORT_RENDER;
-            }
+            addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR);
+            return ROP_ABORT_RENDER;
         }
 
         m_EndTime = tEnd;
@@ -536,7 +532,6 @@ namespace Zibra::ZibraVDBCompressor
         std::string warning;
 
         auto status = m_CompressorManager.FinishSequence(warning);
-        TrialManager::CheckoutTrialCompression();
 
         if (status != CE::ZCE_SUCCESS)
         {
