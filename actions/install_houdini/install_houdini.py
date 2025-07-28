@@ -4,6 +4,7 @@ import requests
 import subprocess
 import platform
 import argparse
+import hashlib
 from sesiweb import SesiWeb
 from sesiweb.model.service import ProductBuild
 
@@ -12,21 +13,6 @@ def get_secret(secret_name):
         return os.environ[secret_name]
     except KeyError:
         raise Exception(f"Missing secret: {secret_name}")
-
-def get_platform_list(architecture):
-    if sys.platform == "linux":
-        return ["linux_x86_64_gcc11.2"]
-    elif sys.platform == "darwin":
-        if architecture == "arm64":
-            print("Searching for arm64 build")
-            return ["macosx_arm64_clang15"]
-        else:
-            print("Running on x86_64 build")
-            return ["macosx_x86_64_clang15"]
-    elif sys.platform == "win32":
-        return ["win64-vc143"]
-    else:
-        raise Exception("Unexpected platform")
     
 def get_file_extension():
     if sys.platform == "linux":
@@ -40,54 +26,79 @@ def get_file_extension():
         raise Exception("Unexpected platform")
 
 if __name__ == "__main__":
-
     arg_parser = argparse.ArgumentParser(description="Install Houdini")
-    arg_parser.add_argument("--architecture", type=str, help="macOS architecture to install for (arm64 or x86_64)", default="arm64", choices=["arm64", "x86_64"])
-    arg_parser.add_argument("--version", type=str, help="Houdini version to install", default="20.5", choices=["20.5"])
+    arg_parser.add_argument("--platform", type=str, help="Houdini platform to install", required=True)
+    arg_parser.add_argument("--version", type=str, help="Houdini version to install", required=True)
+    arg_parser.add_argument("--build", type=str, help="Houdini build to install", required=False)
     args = arg_parser.parse_args()
 
     HOUDINI_CLIENT_ID = get_secret("HOUDINI_CLIENT_ID")
     HOUDINI_SECRET_KEY = get_secret("HOUDINI_SECRET_KEY")
 
-    platform_list = get_platform_list(args.architecture)
-    product_list = ["houdini"]
-    version_list = [args.version]
+    platform = args.platform
+    product = "houdini"
+    version = args.version
 
     sw = SesiWeb(client_secret=HOUDINI_SECRET_KEY, client_id=HOUDINI_CLIENT_ID)
 
-    for platform in platform_list:
-        for product in product_list:
-            for version in version_list:
-                product_build = {"product": product, "platform": platform, "version": version}
-                build_select = sw.get_latest_build(prodinfo=product_build, only_production=False)
-                build_dl = sw.get_build_download(prodinfo=ProductBuild(**build_select.dict()))
-                full_version_string = f"{build_select.version}.{build_select.build}"
-                print(f"Installing {product} {full_version_string} for {platform}...")
+    build_filter = {}
 
-                r = requests.get(build_dl.download_url)
-                file_name = f"{product}_{version}_{platform}.{get_file_extension()}"
-                with open(file_name, "wb") as f:
-                    f.write(r.content)
+    if args.build:
+        build_filter["build"] = args.build
 
-                # Run the installer
-                if sys.platform == "linux":
-                    # Extract the tarball
-                    subprocess.run(["tar", "-xvf", file_name])
-                    # Find extracted directory that starts with houdini_
-                    extracted_dir = [d for d in os.listdir() if d.startswith("houdini-") and os.path.isdir(d)][0]
-                    # Make installer executable
-                    subprocess.run(["chmod", "+x", f"{extracted_dir}/houdini.install"])
-                    # Run installer
-                    subprocess.run([f"{extracted_dir}/houdini.install", "--install-houdini", "--no-install-engine-maya", "--no-install-engine-unity", "--no-install-engine-unreal", "--no-install-menus", "--no-install-hfs-symlink", "--no-install-license", "--no-install-avahi", "--no-install-sidefxlabs", "--no-install-hqueue-server", "--no-install-hqueue-client", "--auto-install", "--make-dir", "--accept-EULA", "2021-10-13", "/opt/hfs20.5"])
-                elif sys.platform == "darwin":
-                    # Mount the DMG
-                    subprocess.run(["hdiutil", "attach", file_name])
-                    # Mounted volume is /Volumes/Houdini
-                    # Run the installer
-                    subprocess.run(["sudo", "installer", "-pkg", "/Volumes/Houdini/Houdini.pkg", "-target", "/"])
-                    # Unmount the DMG
-                    subprocess.run(["hdiutil", "detach", "/Volumes/Houdini"])          
-                elif sys.platform == "win32":
-                    subprocess.run([file_name, "/S", f"/InstallDir=C:\\{product}_{platform}_{version}", "/acceptEULA=2021-10-13"], check=True)
-                else:
-                    raise Exception("Unexpected platform")
+    build_selection = {"product": product, "platform": platform, "version": version}
+    build_list = sw.get_latest_builds(prodinfo=build_selection, prodfilter=build_filter, only_production=False)
+    if not build_list:
+        raise Exception(f"No builds found for {product} {version} on {platform} with filter {build_filter}")
+    build = build_list[0]
+    build_dl = sw.get_build_download(prodinfo=ProductBuild(**build.dict()))
+    full_version_string = f"{build.version}.{build.build}"
+    print(f"Installing {product} {full_version_string} for {platform}...")
+    
+    r = requests.get(build_dl.download_url)
+    if r.status_code != 200:
+        raise Exception(f"Download failed with code {r.status_code}")
+    if not r.content:
+        raise Exception("Downloaded content is empty")
+    if len(r.content) != build_dl.size:
+        raise Exception(f"Downloaded content size {len(r.content)} does not match expected size {build_dl.size}")
+    print(f"Download successful")
+
+    hash_md5 = hashlib.md5()
+    hash_md5.update(r.content)
+    if hash_md5.hexdigest() != build_dl.hash:
+        raise Exception(f"Downloaded file hash {hash_md5.hexdigest()} does not match expected hash {build_dl.hash}")
+    print(f"Hash verified")
+
+    with open(build_dl.filename, "wb") as f:
+        f.write(r.content)
+
+    print(f"Starting install")
+    if sys.platform == "linux":
+        # Extract the tarball
+        subprocess.run(["tar", "-xvf", build_dl.filename])
+        # Find extracted directory that starts with houdini_
+        extracted_dir = [d for d in os.listdir() if d.startswith("houdini-") and os.path.isdir(d)][0]
+        # Make installer executable
+        subprocess.run(["chmod", "+x", f"{extracted_dir}/houdini.install"])
+        # If /opt/hfs exists, delete it
+        if os.path.exists("/opt/hfs"):
+            os.rmtree("/opt/hfs")
+        # Run installer
+        subprocess.run([f"{extracted_dir}/houdini.install", "--install-houdini", "--no-install-engine-maya", "--no-install-engine-unity", "--no-install-engine-unreal", "--no-install-menus", "--no-install-hfs-symlink", "--no-install-license", "--no-install-avahi", "--no-install-sidefxlabs", "--no-install-hqueue-server", "--no-install-hqueue-client", "--auto-install", "--make-dir", "--accept-EULA", "2021-10-13", "/opt/hfs"])
+    elif sys.platform == "darwin":
+        # Mount the DMG
+        subprocess.run(["hdiutil", "attach", build_dl.filename])
+        # Mounted volume is /Volumes/Houdini
+        # Run the installer
+        subprocess.run(["sudo", "installer", "-pkg", "/Volumes/Houdini/Houdini.pkg", "-target", "/"])
+        # Unmount the DMG
+        subprocess.run(["hdiutil", "detach", "/Volumes/Houdini"])          
+    elif sys.platform == "win32":
+        # If C:\Houdini exists delete it
+        if os.path.exists("C:\\Houdini"):
+            os.rmtree("C:\\Houdini")
+        # Run installer
+        subprocess.run([build_dl.filename, "/S", f"/InstallDir=C:\\Houdini", "/acceptEULA=2021-10-13"], check=True)
+    else:
+        raise Exception("Unexpected platform")
