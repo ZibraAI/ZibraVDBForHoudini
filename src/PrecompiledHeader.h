@@ -107,6 +107,8 @@
 #error Unexpected OS
 #endif
 
+#include <Zibra/StreamWrapper.h>
+
 #define ZRHI_NO_STATIC_API_DECL
 #include <Zibra/RHI.h>
 
@@ -114,7 +116,6 @@
 #include <Zibra/CE/Compression.h>
 #include <Zibra/CE/Decompression.h>
 #include <Zibra/CE/Licensing.h>
-#include <Zibra/CE/Trial.h>
 
 // Project includes
 #include "Globals.h"

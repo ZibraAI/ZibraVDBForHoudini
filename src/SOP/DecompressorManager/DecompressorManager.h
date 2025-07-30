@@ -34,8 +34,7 @@ namespace Zibra::Helpers
         CE::ReturnCode FreeExternalBuffers() noexcept;
 
     private:
-        CE::Decompression::DecompressorFactory* m_DecompressorFactory = nullptr;
-        CE::ZibraVDB::FileDecoder* m_Decoder = nullptr;
+        std::optional<std::pair<std::ifstream*, IStream*>> m_FileStream = std::nullopt;
         CE::Decompression::Decompressor* m_Decompressor = nullptr;
         CE::Decompression::FormatMapper* m_FormatMapper = nullptr;
         RHI::RHIRuntime* m_RHIRuntime = nullptr;

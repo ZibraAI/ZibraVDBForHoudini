@@ -1,11 +1,7 @@
 #pragma once
 
-#include "CompressorManager/CompressorManager.h"
-
-namespace CE::Addons::OpenVDBUtils
-{
-    struct EncodingMetadata;
-}
+#include <Zibra/CE/Addons/OpenVDBCommon.h>
+#include "OStreamRAMWrapper.h"
 
 namespace Zibra::ZibraVDBCompressor
 {
@@ -70,25 +66,30 @@ namespace Zibra::ZibraVDBCompressor
         static std::vector<PRM_Template>& GetTemplateListContainer(ContextType contextType) noexcept;
 
         std::vector<std::pair<std::string, std::string>> DumpAttributes(
-            const GU_Detail* gdp, const CE::Addons::OpenVDBUtils::EncodingMetadata& encodingMetadata) noexcept;
-        void DumpDecodeMetadata(std::vector<std::pair<std::string, std::string>>& result,
-                                const CE::Addons::OpenVDBUtils::EncodingMetadata& encodingMetadata);
+            const GU_Detail* gdp) noexcept;
         void DumpVisualisationAttributes(std::vector<std::pair<std::string, std::string>>& attributes, const GEO_PrimVDB* vdbPrim) noexcept;
         nlohmann::json DumpGridsShuffleInfo(const std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridDescs) noexcept;
 
         static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate) noexcept;
 
-        ROP_RENDER_CODE CreateCompressor(fpreal tStart) noexcept;
+        ROP_RENDER_CODE CreateCompressor(const OP_Context& ctx) noexcept;
+        CE::ReturnCode InitCompressor(float defaultQuality, const std::vector<std::pair<UT_String, float>>& perChannelSettings) noexcept;
+        CE::ReturnCode CompressFrame(const CE::Compression::CompressFrameDesc& desc, CE::Compression::FrameManager** outManager) noexcept;
+        CE::ReturnCode MergeSequence(std::filesystem::path outPath) noexcept;
 
     private:
         fpreal m_EndTime = 0;
         fpreal m_StartTime = 0;
         SOP_Node* m_InputSOP = nullptr;
+        bool m_FilePerFrameMode = false;
 
         std::vector<std::string> m_OrderedChannelNames{};
 
         ContextType m_ContextType;
 
-        CE::Compression::CompressorManager m_CompressorManager;
+        std::map<int32_t, OStreamRAMWrapper*> m_BakedFrames{};
+
+        CE::Compression::Compressor* m_Compressor = nullptr;
+        RHI::RHIRuntime* m_RHIRuntime = nullptr;
     };
 } // namespace Zibra::ZibraVDBCompressor

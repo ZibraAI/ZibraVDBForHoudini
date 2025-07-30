@@ -1,10 +1,7 @@
 #pragma once
 
-#include <Zibra/Foundation.h>
-#include <Zibra/Math3D.h>
-
-#define ZCE_CONCAT_HELPER(A, B) A##B
-#define ZCE_PFN(name) ZCE_CONCAT_HELPER(PFN_, name)
+#include <Zibra/Version.h>
+#include <Zibra/Math.h>
 
 namespace Zibra::CE
 {
@@ -32,10 +29,12 @@ namespace Zibra::CE
         ZCE_ERROR_NOT_SUPPORTED = 311,
 
         ZCE_ERROR_NOT_FOUND = 400,
+        ZCE_ERROR_ALREADY_PRESENT = 401,
         // Out of CPU memory
         ZCE_ERROR_OUT_OF_CPU_MEMORY = 410,
         // Out of GPU memory
         ZCE_ERROR_OUT_OF_GPU_MEMORY = 411,
+        ZCE_ERROR_OUT_OF_BOUNDS = 415,
         // Time out
         ZCE_ERROR_TIME_OUT = 430,
     };
@@ -89,12 +88,19 @@ namespace Zibra::CE
                (a.channelCount == b.channelCount);
     }
 
+    struct PlaybackInfo
+    {
+        uint32_t framerateNumerator = 30;
+        uint32_t framerateDenominator = 1;
+        uint32_t sequenceIndexIncrement = 1;
+    };
+
     /**
      * Packs 3 coords into 32bit
      * @param [in] coords uint3 coords
      * @return packed 32-bit value
      */
-    inline uint32_t PackCoords(Math3D::uint3 coords) noexcept
+    inline uint32_t PackCoords(Math::uint3 coords) noexcept
     {
         return coords.x & 1023 | (coords.y & 1023) << 10 | (coords.z & 1023) << 20;
     }
@@ -103,7 +109,7 @@ namespace Zibra::CE
      * @param [in] packedCoords packed 32-bit value
      * @return uint3 coords
      */
-    inline Math3D::uint3 UnpackCoords(uint32_t packedCoords) noexcept
+    inline Math::uint3 UnpackCoords(uint32_t packedCoords) noexcept
     {
         return {packedCoords & 1023, (packedCoords >> 10) & 1023, (packedCoords >> 20) & 1023};
     }

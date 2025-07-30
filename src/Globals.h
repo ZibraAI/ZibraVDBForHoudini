@@ -8,9 +8,9 @@ namespace Zibra
 
 #define ZIB_ZIBRAVDB_VERSION_SHORT "1.0"
 
-#define ZIB_COMPRESSION_MAJOR_VERSION 0
-#define ZIB_DECOMPRESSION_MAJOR_VERSION 0
-#define ZIB_RHI_MAJOR_VERSION 2
+#define ZIB_COMPRESSION_MAJOR_VERSION 1
+#define ZIB_DECOMPRESSION_MAJOR_VERSION 1
+#define ZIB_RHI_MAJOR_VERSION 4
 
 #define ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING \
     ZIB_STRINGIFY(ZIB_COMPRESSION_MAJOR_VERSION) "_" ZIB_STRINGIFY(ZIB_DECOMPRESSION_MAJOR_VERSION) "_" ZIB_STRINGIFY(ZIB_RHI_MAJOR_VERSION)
@@ -31,8 +31,7 @@ namespace Zibra
     constexpr auto* ZIBRAVDB_ERROR_MESSAGE_FILE_NOT_FOUND = "Specified file could not be found. Please make sure the file exists and that path is valid.";
     constexpr auto* ZIBRAVDB_ERROR_MESSAGE_COULDNT_DECOMPRESS_FRAME = "Couldn't decompress frame. Please verify "
                                                                       "decompression settings.";
-    constexpr auto* ZIBRAVDB_ERROR_MESSAGE_FRAME_INDEX_OUT_OF_RANGE = "Trying to decompress frame out of range of "
-                                                                      "input sequence.";
+    constexpr auto* ZIBRAVDB_ERROR_MESSAGE_FRAME_NOT_PRESENT = "Trying to decompress frame that isn't present in sequence.";
 
     constexpr auto* LIBRARY_DOWNLOAD_URL = "https://zibra.ai/zibravdb-for-houdini-library-download?version=" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING;
 
