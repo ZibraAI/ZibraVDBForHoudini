@@ -130,6 +130,10 @@ target_compile_definitions(ZibraVDBForHoudini PRIVATE
     ZIB_NETWORK_REQUEST_BACKEND_${ZIB_NETWORK_REQUEST_BACKEND}=1
     ZIB_TARGET_OS_${ZIB_TARGET_OS_NAME}=1)
 
+if(${LABS_BUILD})
+    target_compile_definitions(ZibraVDBForHoudini PRIVATE LABS_BUILD)
+endif()
+
 target_include_directories(ZibraVDBForHoudini PRIVATE SDK/include)
 target_include_directories(ZibraVDBForHoudini PRIVATE "${HOUDINI_INCLUDE_DIR}")
 
