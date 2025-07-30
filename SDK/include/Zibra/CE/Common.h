@@ -1,7 +1,7 @@
 #pragma once
 
-#include <Zibra/Foundation.h>
-#include <Zibra/Math3D.h>
+#include <Zibra/Version.h>
+#include <Zibra/Math.h>
 
 namespace Zibra::CE
 {
@@ -100,7 +100,7 @@ namespace Zibra::CE
      * @param [in] coords uint3 coords
      * @return packed 32-bit value
      */
-    inline uint32_t PackCoords(Math3D::uint3 coords) noexcept
+    inline uint32_t PackCoords(Math::uint3 coords) noexcept
     {
         return coords.x & 1023 | (coords.y & 1023) << 10 | (coords.z & 1023) << 20;
     }
@@ -109,7 +109,7 @@ namespace Zibra::CE
      * @param [in] packedCoords packed 32-bit value
      * @return uint3 coords
      */
-    inline Math3D::uint3 UnpackCoords(uint32_t packedCoords) noexcept
+    inline Math::uint3 UnpackCoords(uint32_t packedCoords) noexcept
     {
         return {packedCoords & 1023, (packedCoords >> 10) & 1023, (packedCoords >> 20) & 1023};
     }

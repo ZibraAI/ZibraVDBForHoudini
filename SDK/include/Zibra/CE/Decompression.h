@@ -1,8 +1,9 @@
 #pragma once
 
 #include <Zibra/CE/Common.h>
-#include <Zibra/Math3D.h>
+#include <Zibra/Math.h>
 #include <Zibra/RHI.h>
+#include <Zibra/Stream.h>
 #include <cstdint>
 
 #include "shaders/ZCEDecompressionShaderTypes.hlsli"
@@ -41,11 +42,11 @@ namespace Zibra::CE::Decompression
         /**1
          * Axis aligned bounding box. Cannot be 0.
          */
-        Math3D::AABB aabb;
+        Math::AABB aabb;
         /**
          * Affine transformation matrix. Cannot be 0.
          */
-        Math3D::Transform gridTransform;
+        Math::Transform gridTransform;
     };
 
     struct FrameInfo
@@ -73,7 +74,7 @@ namespace Zibra::CE::Decompression
         /**
          * Total frame AABB. Cannot be 0
          */
-        Math3D::AABB aabb;
+        Math::AABB aabb;
     };
 
     class CompressedFrameContainer
@@ -274,7 +275,7 @@ namespace Zibra::CE::Decompression
     struct SequenceInfo
     {
         uint64_t fileUUID[2];
-        Math3D::uint3 maxAABBSize;
+        Math::uint3 maxAABBSize;
         uint64_t originalSize;
         uint8_t channelCount;
         const char* channels[MAX_CHANNEL_COUNT];

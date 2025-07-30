@@ -1,53 +1,46 @@
 #pragma once
 
+#include <array>
 #include <cassert>
 #include <climits>
 #include <cmath>
 #include <cstdint>
-#include <array>
+#include <limits>
+#include <type_traits>
 
-namespace Zibra::Math3D
+namespace Zibra::Math
 {
-    using float32_t = float;
-    using float64_t = double;
+    template <class T, std::enable_if_t<std::is_integral_v<T>, int> = 0>
+    constexpr auto CeilToMultipleOf(T intValue, T multiple) noexcept
+    {
+        return ((intValue + multiple - 1) / multiple) * multiple;
+    }
 
-    using uint = uint32_t;
-
-    inline float Lerp(float a, float b, float t) noexcept
+    template <class T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
+    constexpr inline T Lerp(T a, T b, T t) noexcept
     {
         return a + t * (b - a);
     }
-    inline double Lerp(double a, double b, double t) noexcept
+
+    template <class T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
+    constexpr inline bool IsNearlyEqual(T a, T b) noexcept
     {
-        return a + t * (b - a);
+        return std::abs(a - b) < std::numeric_limits<T>::epsilon();
     }
 
-    inline bool IsNearlyEqual(float a, float b) noexcept
+    template <class T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
+    constexpr inline bool IsNearlyInteger(T value) noexcept
     {
-        return std::abs(a - b) < std::numeric_limits<float>::epsilon();
-    }
-    inline bool IsNearlyEqual(double a, double b) noexcept
-    {
-        return std::abs(a - b) < std::numeric_limits<double>::epsilon();
-    }
-
-    inline bool IsNearlyInteger(float value) noexcept
-    {
-        float dummy;
-        float frac = std::modf(value, &dummy);
-        return IsNearlyEqual(frac, 0.0f);
-    }
-    inline bool IsNearlyInteger(double value) noexcept
-    {
-        double dummy;
-        double frac = std::modf(value, &dummy);
-        return IsNearlyEqual(frac, 0.0);
+        T dummy = 0.0f;
+        T frac = std::modf(value, &dummy);
+        return IsNearlyEqual(frac, T(0.0));
     }
 
-    inline float RoundIfNearlyZero(float value) noexcept
+    template <class T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
+    constexpr inline float RoundIfNearlyZero(T value) noexcept
     {
-        if (value < std::numeric_limits<float>::epsilon())
-            return 0.0f;
+        if (value < std::numeric_limits<T>::epsilon())
+            return T(0.0);
         return value;
     }
 
@@ -75,73 +68,73 @@ namespace Zibra::Math3D
     struct Vector2
     {
         T x, y;
-        Vector2()
+        constexpr Vector2()
             : x(0)
             , y(0)
         {
         }
-        explicit Vector2(T val)
+        constexpr explicit Vector2(T val)
             : x(val)
             , y(val)
         {
         }
-        Vector2(T _x, T _y)
+        constexpr Vector2(T _x, T _y)
             : x(_x)
             , y(_y)
         {
         }
-        explicit Vector2(const std::array<T, 2>& arr)
+        constexpr explicit Vector2(const std::array<T, 2>& arr)
             : x(arr[0])
             , y(arr[1])
         {
         }
-        Vector2 operator-() const
+        constexpr Vector2 operator-() const
         {
             return {-x, -y};
         }
-        Vector2 operator-(const Vector2& v) const
+        constexpr Vector2 operator-(const Vector2& v) const
         {
             return {x - v.x, y - v.y};
         }
-        Vector2 operator+() const
+        constexpr Vector2 operator+() const
         {
             return *this;
         }
-        Vector2 operator+(const Vector2& v) const
+        constexpr Vector2 operator+(const Vector2& v) const
         {
             return {x + v.x, y + v.y};
         }
-        Vector2 operator*(T scalar) const
+        constexpr Vector2 operator*(T scalar) const
         {
             return {x * scalar, y * scalar};
         }
-        Vector2 operator*(const Vector2& v) const
+        constexpr Vector2 operator*(const Vector2& v) const
         {
             return {x * v.x, y * v.y};
         }
-        Vector2 operator/(T scalar) const
+        constexpr Vector2 operator/(T scalar) const
         {
             assert(scalar != 0);
             return {x / scalar, y / scalar};
         }
-        Vector2 operator/(const Vector2& v) const
+        constexpr Vector2 operator/(const Vector2& v) const
         {
             assert(v.x != 0 && v.y != 0);
             return {x / v.x, y / v.y};
         }
-        bool operator==(const Vector2& v) const
+        constexpr bool operator==(const Vector2& v) const
         {
             return x == v.x && y == v.y;
         }
-        bool operator!=(const Vector2& v) const
+        constexpr bool operator!=(const Vector2& v) const
         {
             return !(*this == v);
         }
-        bool IsNearlyEqualTo(const Vector2& v) noexcept
+        constexpr bool IsNearlyEqualTo(const Vector2& v) noexcept
         {
             return IsNearlyEqual(x, v.x) && IsNearlyEqual(y, v.y);
         }
-        explicit operator std::array<T, 2>() const
+        constexpr explicit operator std::array<T, 2>() const
         {
             return {x, y};
         }
@@ -151,77 +144,77 @@ namespace Zibra::Math3D
     struct Vector3
     {
         T x, y, z;
-        Vector3()
+        constexpr Vector3()
             : x(0)
             , y(0)
             , z(0)
         {
         }
-        explicit Vector3(T val)
+        constexpr explicit Vector3(T val)
             : x(val)
             , y(val)
             , z(val)
         {
         }
-        Vector3(T _x, T _y, T _z)
+        constexpr Vector3(T _x, T _y, T _z)
             : x(_x)
             , y(_y)
             , z(_z)
         {
         }
-        explicit Vector3(const std::array<T, 3>& arr)
+        constexpr explicit Vector3(const std::array<T, 3>& arr)
             : x(arr[0])
             , y(arr[1])
             , z(arr[2])
         {
         }
-        Vector3 operator+() const
+        constexpr Vector3 operator+() const
         {
             return *this;
         }
-        Vector3 operator+(const Vector3& v) const
+        constexpr Vector3 operator+(const Vector3& v) const
         {
             return {x + v.x, y + v.y, z + v.z};
         }
-        Vector3 operator-() const
+        constexpr Vector3 operator-() const
         {
             return {-x, -y, -z};
         }
-        Vector3 operator-(const Vector3& v) const
+        constexpr Vector3 operator-(const Vector3& v) const
         {
             return {x - v.x, y - v.y, z - v.z};
         }
-        Vector3 operator*(T scalar) const
+        constexpr Vector3 operator*(T scalar) const
         {
             return {x * scalar, y * scalar, z * scalar};
         }
-        Vector3 operator*(const Vector3& v) const
+        constexpr Vector3 operator*(const Vector3& v) const
         {
             return {x * v.x, y * v.y, z * v.z};
         }
-        Vector3 operator/(T scalar) const
+        constexpr Vector3 operator/(T scalar) const
         {
             assert(scalar != 0);
             return {x / scalar, y / scalar, z / scalar};
         }
-        Vector3 operator/(const Vector3& v) const
+        constexpr Vector3 operator/(const Vector3& v) const
         {
             assert(v.x != 0 && v.y != 0 && v.z != 0);
             return {x / v.x, y / v.y, z / v.z};
         }
-        bool operator==(const Vector3& v) const
+        constexpr bool operator==(const Vector3& v) const
         {
             return x == v.x && y == v.y && z == v.z;
         }
-        bool operator!=(const Vector3& v) const
+        constexpr bool operator!=(const Vector3& v) const
         {
             return !(*this == v);
         }
-        bool IsNearlyEqualTo(const Vector3& v) noexcept
+        constexpr bool IsNearlyEqualTo(const Vector3& v) noexcept
         {
             return IsNearlyEqual(x, v.x) && IsNearlyEqual(y, v.y) && IsNearlyEqual(z, v.z);
         }
-        explicit operator std::array<T, 3>() const
+        constexpr explicit operator std::array<T, 3>() const
         {
             return {x, y, z};
         }
@@ -231,96 +224,96 @@ namespace Zibra::Math3D
     struct Vector4
     {
         T x, y, z, w;
-        Vector4()
+        constexpr Vector4()
             : x(0)
             , y(0)
             , z(0)
             , w(0)
         {
         }
-        explicit Vector4(T val)
+        constexpr explicit Vector4(T val)
             : x(val)
             , y(val)
             , z(val)
             , w(val)
         {
         }
-        Vector4(T _x, T _y, T _z, T _w)
+        constexpr Vector4(T _x, T _y, T _z, T _w)
             : x(_x)
             , y(_y)
             , z(_z)
             , w(_w)
         {
         }
-        explicit Vector4(const std::array<T, 4>& arr)
+        constexpr explicit Vector4(const std::array<T, 4>& arr)
             : x(arr[0])
             , y(arr[1])
             , z(arr[2])
             , w(arr[3])
         {
         }
-        Vector4 operator+() const
+        constexpr Vector4 operator+() const
         {
             return *this;
         }
-        Vector4 operator+(const Vector4& v) const
+        constexpr Vector4 operator+(const Vector4& v) const
         {
             return {x + v.x, y + v.y, z + v.z, w + v.w};
         }
-        Vector4 operator-() const
+        constexpr Vector4 operator-() const
         {
             return {-x, -y, -z, -w};
         }
-        Vector4 operator-(const Vector4& v) const
+        constexpr Vector4 operator-(const Vector4& v) const
         {
             return {x - v.x, y - v.y, z - v.z, w - v.w};
         }
-        Vector4 operator*(T scalar) const
+        constexpr Vector4 operator*(T scalar) const
         {
             return {x * scalar, y * scalar, z * scalar, w * scalar};
         }
-        Vector4 operator*(const Vector4& v) const
+        constexpr Vector4 operator*(const Vector4& v) const
         {
             return {x * v.x, y * v.y, z * v.z, w * v.w};
         }
-        Vector4 operator/(T scalar) const
+        constexpr Vector4 operator/(T scalar) const
         {
             assert(scalar != 0);
             return {x / scalar, y / scalar, z / scalar, w / scalar};
         }
-        Vector4 operator/(const Vector4& v) const
+        constexpr Vector4 operator/(const Vector4& v) const
         {
             assert(v.x != 0 && v.y != 0 && v.z != 0 && v.w != 0);
             return {x / v.x, y / v.y, z / v.z, w / v.w};
         }
-        bool operator==(const Vector4& v) const
+        constexpr bool operator==(const Vector4& v) const
         {
             return x == v.x && y == v.y && z == v.z && w == v.w;
         }
-        bool operator!=(const Vector4& v) const
+        constexpr bool operator!=(const Vector4& v) const
         {
             return !(*this == v);
         }
-        bool IsNearlyEqualTo(const Vector4& v) noexcept
+        constexpr bool IsNearlyEqualTo(const Vector4& v) noexcept
         {
             return IsNearlyEqual(x, v.x) && IsNearlyEqual(y, v.y) && IsNearlyEqual(z, v.z) && IsNearlyEqual(w, v.w);
         }
-        explicit operator std::array<T, 4>() const
+        constexpr explicit operator std::array<T, 4>() const
         {
             return {x, y, z, w};
         }
     };
 
-    using float2 = Vector2<float32_t>;
-    using double2 = Vector2<float64_t>;
+    using float2 = Vector2<float>;
+    using double2 = Vector2<double>;
     using int2 = Vector2<int32_t>;
     using uint2 = Vector2<uint32_t>;
-    using float3 = Vector3<float32_t>;
-    using double3 = Vector3<float64_t>;
+    using float3 = Vector3<float>;
+    using double3 = Vector3<double>;
     using int3 = Vector3<int32_t>;
     using uint3 = Vector3<uint32_t>;
-    using float4 = Vector4<float32_t>;
-    using double4 = Vector4<float64_t>;
+    using float4 = Vector4<float>;
+    using double4 = Vector4<double>;
     using int4 = Vector4<int32_t>;
     using uint4 = Vector4<uint32_t>;
 
@@ -329,8 +322,8 @@ namespace Zibra::Math3D
     {
         Vector2<T> x;
         Vector2<T> y;
-        Matrix2x2() = default;
-        Matrix2x2(Vector2<T> _x, Vector2<T> _y)
+        constexpr Matrix2x2() = default;
+        constexpr Matrix2x2(Vector2<T> _x, Vector2<T> _y)
             : x(_x)
             , y(_y) {};
     };
@@ -340,8 +333,8 @@ namespace Zibra::Math3D
         Vector3<T> x;
         Vector3<T> y;
         Vector3<T> z;
-        Matrix3x3() = default;
-        Matrix3x3(Vector3<T> _x, Vector3<T> _y, Vector3<T> _z)
+        constexpr Matrix3x3() = default;
+        constexpr Matrix3x3(Vector3<T> _x, Vector3<T> _y, Vector3<T> _z)
             : x(_x)
             , y(_y)
             , z(_z) {};
@@ -353,23 +346,23 @@ namespace Zibra::Math3D
         Vector4<T> y;
         Vector4<T> z;
         Vector4<T> w;
-        Matrix4x4() = default;
-        Matrix4x4(Vector4<T> _x, Vector4<T> _y, Vector4<T> _z, Vector4<T> _w)
+        constexpr Matrix4x4() = default;
+        constexpr Matrix4x4(Vector4<T> _x, Vector4<T> _y, Vector4<T> _z, Vector4<T> _w)
             : x(_x)
             , y(_y)
             , z(_z)
             , w(_w) {};
     };
-    using float2x2 = Matrix2x2<float32_t>;
-    using double2x2 = Matrix2x2<float64_t>;
+    using float2x2 = Matrix2x2<float>;
+    using double2x2 = Matrix2x2<double>;
     using int2x2 = Matrix2x2<int32_t>;
     using uint2x2 = Matrix2x2<uint32_t>;
-    using float3x3 = Matrix3x3<float32_t>;
-    using double3x3 = Matrix3x3<float64_t>;
+    using float3x3 = Matrix3x3<float>;
+    using double3x3 = Matrix3x3<double>;
     using int3x3 = Matrix3x3<int32_t>;
     using uint3x3 = Matrix3x3<uint32_t>;
-    using float4x4 = Matrix4x4<float32_t>;
-    using double4x4 = Matrix4x4<float64_t>;
+    using float4x4 = Matrix4x4<float>;
+    using double4x4 = Matrix4x4<double>;
     using int4x4 = Matrix4x4<int32_t>;
     using uint4x4 = Matrix4x4<uint32_t>;
 
@@ -381,10 +374,15 @@ namespace Zibra::Math3D
             : raw{}
         {
         }
-        
+
         constexpr Transform(float m00, float m01, float m02, float m03, float m10, float m11, float m12, float m13, float m20, float m21,
                             float m22, float m23, float m30, float m31, float m32, float m33)
             : raw{m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33}
+        {
+        }
+
+        constexpr Transform(float4 m0, float4 m1, float4 m2, float4 m3)
+            : raw{m0.x, m0.y, m0.z, m0.w, m1.x, m1.y, m1.z, m1.w, m2.x, m2.y, m2.z, m2.w, m3.x, m3.y, m3.z, m3.w}
         {
         }
 
@@ -417,78 +415,74 @@ namespace Zibra::Math3D
         int32_t maxX = INT_MIN;
         int32_t maxY = INT_MIN;
         int32_t maxZ = INT_MIN;
+
+        uint3 GetSize() const noexcept
+        {
+            return {static_cast<uint32_t>(std::abs(maxX - minX)), static_cast<uint32_t>(std::abs(maxY - minY)),
+                    static_cast<uint32_t>(std::abs(maxZ - minZ))};
+        }
+
+        bool IsEmpty() const noexcept
+        {
+            return minX >= maxX || minY >= maxY || minZ >= maxZ;
+        }
+
+        AABB operator&(const AABB& other)
+        {
+            AABB result{};
+            result.minX = std::max(minX, other.minX);
+            result.minY = std::max(minY, other.minY);
+            result.minZ = std::max(minZ, other.minZ);
+            result.maxX = std::min(maxX, other.maxX);
+            result.maxY = std::min(maxY, other.maxY);
+            result.maxZ = std::min(maxZ, other.maxZ);
+            return result;
+        }
+
+        AABB operator|(const AABB& other)
+        {
+            AABB result{};
+            result.minX = std::min(minX, other.minX);
+            result.minY = std::min(minY, other.minY);
+            result.minZ = std::min(minZ, other.minZ);
+            result.maxX = std::max(maxX, other.maxX);
+            result.maxY = std::max(maxY, other.maxY);
+            result.maxZ = std::max(maxZ, other.maxZ);
+            return result;
+        }
+
+        AABB& operator&=(const AABB& other)
+        {
+            minX = std::max(minX, other.minX);
+            minY = std::max(minY, other.minY);
+            minZ = std::max(minZ, other.minZ);
+            maxX = std::min(maxX, other.maxX);
+            maxY = std::min(maxY, other.maxY);
+            maxZ = std::min(maxZ, other.maxZ);
+            return *this;
+        }
+
+        AABB& operator|=(const AABB& other)
+        {
+            minX = std::min(minX, other.minX);
+            minY = std::min(minY, other.minY);
+            minZ = std::min(minZ, other.minZ);
+            maxX = std::max(maxX, other.maxX);
+            maxY = std::max(maxY, other.maxY);
+            maxZ = std::max(maxZ, other.maxZ);
+            return *this;
+        }
+
+        bool operator==(const AABB& other) const noexcept
+        {
+            return minX == other.minX && minY == other.minY && minZ == other.minZ && maxX == other.maxX && maxY == other.maxY &&
+                   maxZ == other.maxZ;
+        }
+
+        bool operator!=(const AABB& other) const noexcept
+        {
+            return !(*this == other);
+        }
     };
 
-    inline uint3 AABBSize(const AABB& aabb) noexcept
-    {
-        return {
-            static_cast<uint32_t>(std::abs(aabb.maxX - aabb.minX)),
-            static_cast<uint32_t>(std::abs(aabb.maxY - aabb.minY)),
-            static_cast<uint32_t>(std::abs(aabb.maxZ - aabb.minZ))
-        };
-    }
-
-    inline bool IsEmpty(const AABB& aabb) noexcept
-    {
-        return aabb.minX >= aabb.maxX || aabb.minY >= aabb.maxY || aabb.minZ >= aabb.maxZ;
-    }
-
-    /**
-     * a AND b
-     * @return AABB Intersection
-     */
-    inline AABB operator&(const AABB& a, const AABB& b) noexcept
-    {
-        AABB result{};
-        result.minX = std::max(a.minX, b.minX);
-        result.minY = std::max(a.minY, b.minY);
-        result.minZ = std::max(a.minZ, b.minZ);
-        result.maxX = std::min(a.maxX, b.maxX);
-        result.maxY = std::min(a.maxY, b.maxY);
-        result.maxZ = std::min(a.maxZ, b.maxZ);
-        return result;
-    }
-
-    /**
-     * a OR b
-     * @return AABB Union
-     */
-    inline AABB operator|(const AABB& a, const AABB& b) noexcept
-    {
-        AABB result{};
-        result.minX = std::min(a.minX, b.minX);
-        result.minY = std::min(a.minY, b.minY);
-        result.minZ = std::min(a.minZ, b.minZ);
-        result.maxX = std::max(a.maxX, b.maxX);
-        result.maxY = std::max(a.maxY, b.maxY);
-        result.maxZ = std::max(a.maxZ, b.maxZ);
-        return result;
-    }
-
-    inline bool operator>(const AABB& a, const AABB& b) noexcept
-    {
-        const int32_t volA = (a.maxX - a.minX) * (a.maxY - a.minY) * (a.maxZ - a.minZ);
-        const int32_t volB = (b.maxX - b.minX) * (b.maxY - b.minY) * (b.maxZ - b.minZ);
-        return volA > volB;
-    }
-
-    inline bool operator<(const AABB& a, const AABB& b) noexcept
-    {
-        const int32_t volA = (a.maxX - a.minX) * (a.maxY - a.minY) * (a.maxZ - a.minZ);
-        const int32_t volB = (b.maxX - b.minX) * (b.maxY - b.minY) * (b.maxZ - b.minZ);
-        return volA < volB;
-    }
-
-    inline bool operator==(const AABB& a, const AABB& b) noexcept
-    {
-        const bool lowerBound = a.minX == b.minX && a.minY == b.minY && a.minZ == b.minZ;
-        const bool upperBound = a.maxX == b.maxX && a.maxY == b.maxY && a.maxZ == b.maxZ;
-        return lowerBound && upperBound;
-    }
-
-    inline bool operator!=(const AABB& a, const AABB& b) noexcept
-    {
-        return !(a == b);
-    }
-
-} // namespace Zibra::Math3D
+} // namespace Zibra::Math

@@ -107,6 +107,8 @@
 #error Unexpected OS
 #endif
 
+#include <Zibra/StreamWrapper.h>
+
 #define ZRHI_NO_STATIC_API_DECL
 #include <Zibra/RHI.h>
 

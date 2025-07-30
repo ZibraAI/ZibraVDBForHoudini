@@ -2,13 +2,14 @@
 #define __ZCE_DECOMPRESSION_SHADER_TYPES_HLSLI_
 
 #ifdef __cplusplus
-#include <Zibra/Math3D.h>
+#include <Zibra/Math.h>
 #endif // __cplusplus
 
 
 #ifdef __cplusplus
 namespace Zibra::CE::Decompression::Shaders {
-using namespace Math3D;
+    using namespace Math;
+    using uint = uint32_t;
 #endif // __cplusplus
 
 struct ZCEDecompressionPackedSpatialBlockInfo {

@@ -127,25 +127,15 @@ namespace Zibra::ZibraVDBDecompressor
 
         const exint frameIndex = evalInt(FRAME_PARAM_NAME, 0, context.getTime());
 
-        CompressedFrameContainer* frameContainer = nullptr;
-        FrameRange frameRange = m_DecompressorManager.GetFrameRange();
-
-        if (frameIndex < frameRange.start || frameIndex > frameRange.end)
+        CompressedFrameContainer* frameContainer = m_DecompressorManager.FetchFrame(frameIndex);
+        if (frameContainer == nullptr)
         {
-            addWarning(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_FRAME_INDEX_OUT_OF_RANGE);
+            addWarning(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_FRAME_NOT_PRESENT);
             return error(context);
         }
-
-        frameContainer = m_DecompressorManager.FetchFrame(frameIndex);
         if (frameContainer->GetInfo().spatialBlockCount == 0)
         {
             frameContainer->Release();
-            return error(context);
-        }
-
-        if (frameContainer == nullptr)
-        {
-            addError(SOP_MESSAGE, "Error when trying to fetch frame.");
             return error(context);
         }
 

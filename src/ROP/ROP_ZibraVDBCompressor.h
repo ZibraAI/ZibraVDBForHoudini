@@ -87,7 +87,7 @@ namespace Zibra::ZibraVDBCompressor
 
         ContextType m_ContextType;
 
-        std::map<int32_t, OStreamRAMWrapper> m_BakedFrames{};
+        std::map<int32_t, OStreamRAMWrapper*> m_BakedFrames{};
 
         CE::Compression::Compressor* m_Compressor = nullptr;
         RHI::RHIRuntime* m_RHIRuntime = nullptr;

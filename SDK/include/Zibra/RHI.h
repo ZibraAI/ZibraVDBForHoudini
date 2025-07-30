@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <cstddef>
 
-#include <Zibra/Foundation.h>
+#include <Zibra/Version.h>
 
 #if defined(_MSC_VER)
 #define ZRHI_API_IMPORT extern "C" __declspec(dllimport)

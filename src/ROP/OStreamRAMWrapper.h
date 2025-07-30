@@ -5,12 +5,12 @@ namespace Zibra
     class OStreamRAMWrapper : public OStream
     {
     public:
-        void write(const void* s, size_t size) noexcept final
+        void write(Span<const char> data) noexcept final
         {
             assert(!m_Fail);
-            EnsureDataFits(size);
-            memcpy(m_Data.data() + m_Pos, s, size);
-            m_Pos += size;
+            EnsureDataFits(data.size());
+            memcpy(m_Data.data() + m_Pos, data.data(), data.size());
+            m_Pos += data.size();
         }
         [[nodiscard]] bool fail() const noexcept final
         {
@@ -26,13 +26,14 @@ namespace Zibra
             if (pos >= m_Data.size())
             {
                 m_Data.resize(m_Pos);
-                if (m_Data.size() != m_Pos) m_Fail = true;
+                if (m_Data.size() != m_Pos)
+                    m_Fail = true;
             }
             return *this;
         }
 
     public:
-        const std::vector<uint8_t>& GetContainer() noexcept
+        const std::vector<char>& GetContainer() noexcept
         {
             return m_Data;
         }
@@ -48,6 +49,6 @@ namespace Zibra
     private:
         size_t m_Pos = 0;
         bool m_Fail = false;
-        std::vector<uint8_t> m_Data = {};
+        std::vector<char> m_Data = {};
     };
 } // namespace Zibra

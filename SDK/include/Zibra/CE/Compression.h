@@ -1,8 +1,9 @@
 #pragma once
 
 #include <Zibra/CE/Common.h>
-#include <Zibra/Math3D.h>
+#include <Zibra/Math.h>
 #include <Zibra/RHI.h>
+#include <Zibra/Stream.h>
 #include <cstdint>
 
 #if defined(_MSC_VER)
@@ -35,14 +36,14 @@ namespace Zibra::CE::Compression
     {
         /// Channel unique name
         const char* name = nullptr;
-        Math3D::Transform gridTransform = {};
+        Math::Transform gridTransform = {};
         VoxelStatistics statistics = {};
     };
 
     struct SparseFrame
     {
         /// Axis aligned bounding box.
-        Math3D::AABB aabb = {};
+        Math::AABB aabb = {};
         size_t spatialInfoCount = 0;
         /// ChannelBlocks array lookup info per spatial block.
         const SpatialBlockInfo* spatialInfo = nullptr;

@@ -163,7 +163,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         {
             auto result = new Compression::SparseFrame{};
             std::map<openvdb::Coord, SpatialBlockIntermediate> spatialBlocks{};
-            Math3D::AABB totalAABB = {};
+            Math::AABB totalAABB = {};
 
             // Resolving leaf data to spatial descriptors structure for future concurrent processing.
             for (size_t i = 0; i < m_Channels.size(); ++i)
@@ -221,7 +221,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 orderedChannels[i].name = chName;
                 orderedChannels[i].statistics.minValue = std::numeric_limits<float>::max();
                 orderedChannels[i].statistics.maxValue = std::numeric_limits<float>::min();
-                orderedChannels[i].gridTransform = OpenVDBTransformToMath3DTransform(m_Channels[i].grid->constTransform());
+                orderedChannels[i].gridTransform = OpenVDBTransformToMathTransform(m_Channels[i].grid->constTransform());
             }
 
             // Concurrently moving voxel data from leafs to destination ChannelBlock array using precalculated offsets and other data
@@ -333,15 +333,15 @@ namespace Zibra::CE::Addons::OpenVDBUtils
          * @return Total channel AABB
          */
         template <typename T>
-        Math3D::AABB ResolveBlocks(const ChannelDescriptor& ch, std::map<openvdb::Coord, SpatialBlockIntermediate>& spatialMap) const noexcept
+        Math::AABB ResolveBlocks(const ChannelDescriptor& ch, std::map<openvdb::Coord, SpatialBlockIntermediate>& spatialMap) const noexcept
         {
             auto grid = openvdb::gridPtrCast<T>(ch.grid);
 
-            Math3D::AABB totalAABB = {};
+            Math::AABB totalAABB = {};
             for (auto leafIt = grid->tree().cbeginLeaf(); leafIt; ++leafIt)
             {
                 const auto leaf = leafIt.getLeaf();
-                const Math3D::AABB leafAABB = CalculateAABB(leaf->getNodeBoundingBox());
+                const Math::AABB leafAABB = CalculateAABB(leaf->getNodeBoundingBox());
                 totalAABB = totalAABB | leafAABB;
                 openvdb::Coord origin = openvdb::Coord(leafAABB.minX, leafAABB.minY, leafAABB.minZ);
 
@@ -361,9 +361,9 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             return totalAABB;
         }
 
-        static Math3D::Transform OpenVDBTransformToMath3DTransform(const openvdb::math::Transform& transform) noexcept
+        static Math::Transform OpenVDBTransformToMathTransform(const openvdb::math::Transform& transform) noexcept
         {
-            Math3D::Transform result{};
+            Math::Transform result{};
 
             const openvdb::math::Mat4 map = transform.baseMap()->getAffineMap()->getMat4();
             for (int i = 0; i < 16; ++i)
@@ -405,20 +405,20 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             return result;
         }
 
-        static Math3D::AABB CalculateAABB(const openvdb::CoordBBox bbox)
+        static Math::AABB CalculateAABB(const openvdb::CoordBBox bbox)
         {
-            Math3D::AABB result{};
+            Math::AABB result{};
 
             const openvdb::math::Vec3d transformedBBoxMin = bbox.min().asVec3d();
             const openvdb::math::Vec3d transformedBBoxMax = bbox.max().asVec3d();
 
-            result.minX = FloorToBlockSize(Math3D::FloorWithEpsilon(transformedBBoxMin.x())) / SPARSE_BLOCK_SIZE;
-            result.minY = FloorToBlockSize(Math3D::FloorWithEpsilon(transformedBBoxMin.y())) / SPARSE_BLOCK_SIZE;
-            result.minZ = FloorToBlockSize(Math3D::FloorWithEpsilon(transformedBBoxMin.z())) / SPARSE_BLOCK_SIZE;
+            result.minX = FloorToBlockSize(Math::FloorWithEpsilon(transformedBBoxMin.x())) / SPARSE_BLOCK_SIZE;
+            result.minY = FloorToBlockSize(Math::FloorWithEpsilon(transformedBBoxMin.y())) / SPARSE_BLOCK_SIZE;
+            result.minZ = FloorToBlockSize(Math::FloorWithEpsilon(transformedBBoxMin.z())) / SPARSE_BLOCK_SIZE;
 
-            result.maxX = CeilToBlockSize(Math3D::CeilWithEpsilon(transformedBBoxMax.x())) / SPARSE_BLOCK_SIZE;
-            result.maxY = CeilToBlockSize(Math3D::CeilWithEpsilon(transformedBBoxMax.y())) / SPARSE_BLOCK_SIZE;
-            result.maxZ = CeilToBlockSize(Math3D::CeilWithEpsilon(transformedBBoxMax.z())) / SPARSE_BLOCK_SIZE;
+            result.maxX = CeilToBlockSize(Math::CeilWithEpsilon(transformedBBoxMax.x())) / SPARSE_BLOCK_SIZE;
+            result.maxY = CeilToBlockSize(Math::CeilWithEpsilon(transformedBBoxMax.y())) / SPARSE_BLOCK_SIZE;
+            result.maxZ = CeilToBlockSize(Math::CeilWithEpsilon(transformedBBoxMax.z())) / SPARSE_BLOCK_SIZE;
 
             return result;
         }

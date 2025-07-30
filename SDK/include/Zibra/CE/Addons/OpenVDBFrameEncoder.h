@@ -30,7 +30,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         struct GridIntermediate
         {
             GridVoxelType voxelType;
-            Math3D::Transform transform;
+            Math::Transform transform;
             std::map<openvdb::Coord, LeafIntermediate> leafs;
         };
         struct VDBGridDescRef
@@ -228,12 +228,12 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 chIt = chNameToGridDescs.insert({gridDesc.chSource[chSrcIdx], {}}).first;
             chIt->second.push_back(VDBGridDescRef{&gridDesc, chSrcIdx});
         }
-        static openvdb::math::Transform::Ptr SanitizeTransform(const Math3D::Transform& inTransform) noexcept
+        static openvdb::math::Transform::Ptr SanitizeTransform(const Math::Transform& inTransform) noexcept
         {
             bool isEmpty = true;
             for (float value : inTransform.raw)
             {
-                if (!Math3D::IsNearlyEqual(value, 0.0f))
+                if (!Math::IsNearlyEqual(value, 0.0f))
                 {
                     isEmpty = false;
                     break;

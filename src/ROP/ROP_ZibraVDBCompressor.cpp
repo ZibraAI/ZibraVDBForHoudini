@@ -522,10 +522,14 @@ namespace Zibra::ZibraVDBCompressor
             }
             STDOStreamWrapper streamWrapper{outFrameFile};
             status = frameManager->FinishAndEncode(&streamWrapper);
+            outFrameFile.close();
         }
         else
         {
-            status = frameManager->FinishAndEncode(&m_BakedFrames.emplace(myCurrentFrame, OStreamRAMWrapper{}).first->second);
+            auto frameOutStream = new OStreamRAMWrapper{};
+            status = frameManager->FinishAndEncode(frameOutStream);
+            m_BakedFrames.emplace(ctx.getFrame(), frameOutStream);
+
         }
         if (status != CE::ReturnCode::ZCE_SUCCESS)
         {
@@ -572,10 +576,18 @@ namespace Zibra::ZibraVDBCompressor
                 {
                     addError(ROP_MESSAGE, "Failed to finalize sequence merge.");
                     m_BakedFrames.clear();
+                    for (auto item : m_BakedFrames)
+                    {
+                        delete item.second;
+                    }
                     return ROP_ABORT_RENDER;
                 }
             }
             m_BakedFrames.clear();
+            for (auto item : m_BakedFrames)
+            {
+                delete item.second;
+            }
         }
 
         if (error() < UT_ERROR_ABORT)
@@ -764,7 +776,7 @@ namespace Zibra::ZibraVDBCompressor
         std::vector<MemoryIStream*> views{};
         for (auto [frameNumber, frameStream] : m_BakedFrames)
         {
-            auto& container = frameStream.GetContainer();
+            auto& container = frameStream->GetContainer();
             status = merger->AddSequence(views.emplace_back(new MemoryIStream{container.data(), container.size()}), frameNumber);
             if (status != CE::ZCE_SUCCESS) return status;
         }
