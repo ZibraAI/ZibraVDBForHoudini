@@ -306,11 +306,11 @@ namespace Zibra::LibraryUtils
             return "Out of GPU memory";
         case Zibra::CE::ZCE_ERROR_TIME_OUT:
             return "Time out";
-        case Zibra::CE::ZCE_ERROR_INVALID_FILE:
+        case Zibra::CE::ZCE_ERROR_INVALID_SOURCE:
             return "Invalid file";
-        case Zibra::CE::ZCE_ERROR_INCOMPTIBLE_FILE:
+        case Zibra::CE::ZCE_ERROR_INCOMPTIBLE_SOURCE:
             return "Incompatible file";
-        case Zibra::CE::ZCE_ERROR_CORRUPTED_FILE:
+        case Zibra::CE::ZCE_ERROR_CORRUPTED_SOURCE:
             return "Corrupted file";
         case Zibra::CE::ZCE_ERROR_IO_ERROR:
             return "I/O error";
