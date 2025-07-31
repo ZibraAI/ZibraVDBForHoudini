@@ -11,7 +11,7 @@ namespace Zibra::LibraryUtils {
         uint32_t build;
     };
 
-    void LoadLibrary() noexcept;
+    void LoadZibSDKLibrary() noexcept;
     bool IsLibraryLoaded() noexcept;
 
     constexpr bool IsPlatformSupported() noexcept
@@ -26,5 +26,8 @@ namespace Zibra::LibraryUtils {
 
     std::string GetLibraryVersionString() noexcept;
     Version GetLibraryVersion() noexcept;
+
+    bool IsAssetResolverRegistered() noexcept;
+    void RegisterAssetResolver() noexcept;
 
 } // namespace Zibra::LibraryUtils

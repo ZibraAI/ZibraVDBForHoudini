@@ -100,6 +100,9 @@ set(HeaderFiles
     src/licensing/TrialManager.h
     src/ROP/ROP_ZibraVDBCompressor.h
     src/SOP/SOP_ZibraVDBDecompressor.h
+    src/SOP/SOP_ZibraVDBUSDExport.h
+    src/LOP/LOP_ZibraVDBImport.h
+    src/LOP/ZibraVDBOutputProcessor.h
     src/ui/MessageBox.h
     src/ui/PluginManagementWindow.h
     src/utils/Helpers.h
@@ -117,6 +120,9 @@ set(SourceFiles
     src/licensing/TrialManager.cpp
     src/ROP/ROP_ZibraVDBCompressor.cpp
     src/SOP/SOP_ZibraVDBDecompressor.cpp
+    src/SOP/SOP_ZibraVDBUSDExport.cpp
+    src/LOP/LOP_ZibraVDBImport.cpp
+    src/LOP/ZibraVDBOutputProcessor.cpp
     src/ui/MessageBox.cpp
     src/ui/PluginManagementWindow.cpp
     src/utils/Helpers.cpp
@@ -197,10 +203,21 @@ endif()
 
 list(APPEND CMAKE_PREFIX_PATH "${HOUDINI_PATH}/toolkit/cmake")
 find_package(Houdini REQUIRED)
+
 target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini)
 
 if (NOT "${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
-    target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::openvdb_sesi)
+    target_link_libraries(ZibraVDBForHoudini PRIVATE
+        Houdini::Dep::openvdb_sesi
+        Houdini::Dep::python3.11
+        Houdini::Dep::hboost_python
+
+        Houdini::Dep::pxr_tf
+        Houdini::Dep::pxr_sdf
+        Houdini::Dep::pxr_usd
+        Houdini::Dep::pxr_usdVol
+        Houdini::Dep::pxr_plug
+    )
 endif()
 
 if(${LABS_BUILD})
