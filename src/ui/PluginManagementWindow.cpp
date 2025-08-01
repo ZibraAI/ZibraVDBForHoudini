@@ -282,7 +282,7 @@ namespace Zibra
         }
 
         UI::MessageBox::Show(UI::MessageBox::Type::YesNo,
-                             "This will copy your license key or your offline license to HSITE. This is intended for site-wide "
+                             "This will copy your license key, offline license or license server address to HSITE. This is intended for site-wide "
                              "installation of the license. Note that \"Remove License\" button can not remove license from HSITE. In case "
                              "you'll want to remove it, please manually remove the file. Do you wish to proceed?",
                              &PluginManagementWindowImpl::HandleCopyLicenseToHSITECalback);
@@ -508,9 +508,11 @@ namespace Zibra
                     }
                 }
                 break;
-            case LicenseManager::Status::ValidationError:
-                activationStatus = licenseManager.GetActivationError();
+            case LicenseManager::Status::ValidationError: {
+                std::string activationError = licenseManager.GetActivationError();
+                activationStatus = std::string("License validation failed") + (activationError.empty() ? "" : ": ") + activationError;
                 break;
+            }
             case LicenseManager::Status::InvalidKeyFormat:
                 activationStatus = "Invalid Key Format";
                 break;

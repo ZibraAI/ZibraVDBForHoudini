@@ -23,7 +23,9 @@ namespace Zibra
     constexpr auto* ZIBRAVDB_ERROR_MESSAGE_LIBRARY_NOT_INITIALIZED =
         "Initialization of ZibraVDB failed. Make sure you have supported hardware or software implementation of graphics API installed.";
     constexpr auto* ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR = "License is not verified. Visit "
-                                                           "'https://effects.zibra.ai/zibravdbhoudini' for activation.";
+                                                           "'https://www.zibra.ai/zibravdb-pricing' for activation.";
+    constexpr auto* ZIBRAVDB_ERROR_MESSAGE_LICENSE_NO_COMPRESSION = "Your license does not include Compression. Visit "
+                                                                    "'https://www.zibra.ai/zibravdb-pricing' for activation.";
     constexpr auto* ZIBRAVDB_ERROR_MESSAGE_NO_FILE_SELECTED = "No file was selected to decompress.";
     constexpr auto* ZIBRAVDB_ERROR_MESSAGE_FILE_NOT_FOUND =
         "Specified file could not be found. Please make sure the file exists and that path is valid.";
