@@ -91,8 +91,9 @@ namespace Zibra::UpdateCheck
         // Get the current version of the application
         LibraryUtils::Version currentVersion = LibraryUtils::GetLibraryVersion();
         // Get the latest version via web request
-        std::string latestVersionJson =
-            NetworkRequest::Get("https://generation.zibra.ai/api/pluginVersion?effect=zibravdb&engine=houdini&sku=pro");
+        std::string latestVersionJson = NetworkRequest::Get(
+            "https://generation.zibra.ai/api/pluginVersion?effect=zibravdb_" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING
+            "&engine=houdini&sku=pro");
 
         if (latestVersionJson.empty())
         {

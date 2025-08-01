@@ -19,12 +19,42 @@ namespace Zibra
         return instance;
     }
 
+    bool LicenseManager::IsAnyLicenseValid() const
+    {
+        for (size_t i = 0; i < size_t(Product::Count); ++i)
+        {
+            if (m_Status[i] == Status::OK)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     Zibra::LicenseManager::Status LicenseManager::GetLicenseStatus(Product product) const
     {
         return m_Status[size_t(product)];
     }
 
-    LicenseManager::ActivationType LicenseManager::GetLicenceType() const
+    int LicenseManager::GetLicenseTier(Product product) const
+    {
+        if (m_Status[size_t(product)] == Status::OK)
+        {
+            return CE::Licensing::CAPI::GetProductLicenseTier(CE::Licensing::ProductType(size_t(product)));
+        }
+        return -1; // Return -1 if the license is not valid
+    }
+
+    const char* LicenseManager::GetLicenseType(Product product) const
+    {
+        if (m_Status[size_t(product)] == Status::OK)
+        {
+            return CE::Licensing::CAPI::GetProductLicenseType(CE::Licensing::ProductType(size_t(product)));
+        }
+        return "None";
+    }
+
+    LicenseManager::ActivationType LicenseManager::GetActivationType() const
     {
         return m_Type;
     }
@@ -533,18 +563,6 @@ namespace Zibra
         return m_Status[size_t(product)] == Status::OK;
     }
 
-    bool LicenseManager::IsAnyLicenseValid() const
-    {
-        for (size_t i = 0; i < size_t(Product::Count); ++i)
-        {
-            if (m_Status[i] == Status::OK)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
     LicenseManager::Status LicenseManager::TryCheckoutLicense(ActivationType type, LicensePathType pathType)
     {
         Zibra::LibraryUtils::LoadLibrary();
@@ -573,7 +591,8 @@ namespace Zibra
 
             CE::Licensing::CAPI::CheckoutLicenseOffline(offlineLicense.c_str(), static_cast<int>(offlineLicense.size()));
 
-            if (CE::Licensing::CAPI::IsLicenseValidated(CE::Licensing::ProductType::Compression))
+            if (CE::Licensing::CAPI::IsLicenseValidated(CE::Licensing::ProductType::Compression) ||
+                CE::Licensing::CAPI::IsLicenseValidated(CE::Licensing::ProductType::Decompression))
             {
                 SetStatusFromZibraVDBRuntime();
                 m_Type = ActivationType::Offline;
@@ -604,7 +623,8 @@ namespace Zibra
 
             CE::Licensing::CAPI::CheckoutLicenseLicenseServer(licenseServerAddress.c_str());
 
-            if (CE::Licensing::CAPI::IsLicenseValidated(CE::Licensing::ProductType::Compression))
+            if (CE::Licensing::CAPI::IsLicenseValidated(CE::Licensing::ProductType::Compression) ||
+                CE::Licensing::CAPI::IsLicenseValidated(CE::Licensing::ProductType::Decompression))
             {
                 SetStatusFromZibraVDBRuntime();
                 m_Type = ActivationType::LicenseServer;
@@ -634,7 +654,8 @@ namespace Zibra
             m_LicenseServerAddress = "";
 
             CE::Licensing::CAPI::CheckoutLicenseWithKey(licenseKey.c_str());
-            if (CE::Licensing::CAPI::IsLicenseValidated(CE::Licensing::ProductType::Compression))
+            if (CE::Licensing::CAPI::IsLicenseValidated(CE::Licensing::ProductType::Compression) ||
+                CE::Licensing::CAPI::IsLicenseValidated(CE::Licensing::ProductType::Decompression))
             {
                 SetStatusFromZibraVDBRuntime();
                 m_Type = ActivationType::Online;
