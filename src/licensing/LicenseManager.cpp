@@ -123,6 +123,12 @@ namespace Zibra
         m_LicensePath = "";
         m_LicenseKey = "";
         m_OfflineLicense = "";
+
+        Zibra::LibraryUtils::LoadLibrary();
+        if (!Zibra::LibraryUtils::IsLibraryLoaded())
+        {
+            return;
+        }
         CE::Licensing::CAPI::ReleaseLicense();
     }
 
@@ -676,6 +682,12 @@ namespace Zibra
 
     void LicenseManager::SetStatusFromZibraVDBRuntime()
     {
+        assert(Zibra::LibraryUtils::IsLibraryLoaded());
+        if (!Zibra::LibraryUtils::IsLibraryLoaded())
+        {
+            return;
+        }
+
         for (size_t i = 0; i < size_t(Product::Count); ++i)
         {
             m_Status[i] = CE::Licensing::CAPI::IsLicenseValidated(CE::Licensing::ProductType(i)) ? Status::OK : Status::ValidationError;
