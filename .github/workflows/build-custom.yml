@@ -18,14 +18,10 @@ on:
             description: 'Houdini architecture to use for Linux x64 build'
             required: true
             default: 'linux_x86_64_gcc11.2'
-        houdini-mac-x64-architecture:
-            description: 'Houdini architecture to use for macOS x64 build'
+        houdini-mac-universal-architecture:
+            description: 'Houdini architecture to use for macOS universal build'
             required: true
             default: 'macosx_x86_64_clang15'
-        houdini-mac-arm64-architecture:
-            description: 'Houdini architecture to use for macOS x64 build'
-            required: true
-            default: 'macosx_arm64_clang15'
         
 jobs:
   build-windows-x64:
@@ -124,11 +120,11 @@ jobs:
       shell: pwsh
       run: Remove-Item -Recurse -Force /opt/hfs
 
-  build-macos-arm64:
-    name: Build ZibraVDB for Houdini 20.5 (macOS-arm64)
+  build-macos-universal:
+    name: Build ZibraVDB for Houdini 20.5 (macOS-Universal)
     runs-on: macos-latest
     concurrency:
-      group: macos-arm64-${{ github.workflow }}-${{ github.ref }}
+      group: macos-universal-${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     steps:
     - name: Sync
@@ -141,7 +137,7 @@ jobs:
         python3 -m venv actions/install_houdini/venv
         ./actions/install_houdini/venv/bin/Activate.ps1
         pip3 install -r actions/install_houdini/requirements.txt
-        python3 actions/install_houdini/install_houdini.py --version "${{ inputs.houdini-version }}" --build "${{ inputs.houdini-build }}" --platform "${{ inputs.houdini-mac-arm64-architecture }}"
+        python3 actions/install_houdini/install_houdini.py --version "${{ inputs.houdini-version }}" --build "${{ inputs.houdini-build }}" --platform "${{ inputs.houdini-mac-universal-architecture }}"
       env:
         HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
         HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
@@ -149,7 +145,7 @@ jobs:
     - name: Configure Cmake
       working-directory: ${{ github.workspace }}
       shell: pwsh
-      run: cmake -S . -B build -G "Xcode" -DCMAKE_OSX_ARCHITECTURES=arm64 -DZIBRAVDB_OUTPUT_PATH=${{ github.workspace }}/package
+      run: cmake -S . -B build -G "Xcode" -DZIBRAVDB_OUTPUT_PATH=${{ github.workspace }}/package
       env:
         HFS: /Applications/Houdini/Current/Frameworks/Houdini.framework/Versions/Current/Resources
 
@@ -180,74 +176,14 @@ jobs:
     - name: Save artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: ZibraVDBForHoudini-macOS-arm64
-        path: package
-        if-no-files-found: error
-
-  build-macos-x64:
-    name: Build ZibraVDB for Houdini 20.5 (macOS-x64)
-    runs-on: macos-latest
-    concurrency:
-      group: macos-x64-${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
-    steps:
-    - name: Sync
-      uses: actions/checkout@v4
-
-    - name: Install Houdini
-      working-directory: ${{ github.workspace }}
-      shell: pwsh
-      run: |
-        python3 -m venv actions/install_houdini/venv
-        ./actions/install_houdini/venv/bin/Activate.ps1
-        pip3 install -r actions/install_houdini/requirements.txt
-        python3 actions/install_houdini/install_houdini.py --version "${{ inputs.houdini-version }}" --build "${{ inputs.houdini-build }}" --platform "${{ inputs.houdini-mac-x64-architecture}}"
-      env:
-        HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
-        HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
-
-    - name: Configure Cmake
-      working-directory: ${{ github.workspace }}
-      shell: pwsh
-      run: cmake -S . -B build -G "Xcode" -DCMAKE_OSX_ARCHITECTURES=x86_64 -DZIBRAVDB_OUTPUT_PATH=${{ github.workspace }}/package
-      env:
-        HFS: /Applications/Houdini/Current/Frameworks/Houdini.framework/Versions/Current/Resources
-
-    - name: Build Release
-      working-directory: ${{ github.workspace }}
-      shell: pwsh
-      run: cmake --build build --config Release
-
-    - name: Apple sign and notarize
-      shell: bash
-      run: ${{ github.workspace }}/actions/apple/sign_and_notarize_dylib.sh ${{ github.workspace }}/package/dso/ZibraVDBForHoudini.dylib
-      env:
-        DEVELOPER_ID_APPLICATION_CERT: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_CERT }}
-        DEVELOPER_ID_APPLICATION_PASS: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_PASS }}
-        DEVELOPER_ID_APPLICATION_NAME: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_NAME }}
-        APPLE_DEVELOPER_TEAM: ${{ secrets.APPLE_DEVELOPER_ZIBRA_AI_TEAM }}
-        NOTARIZATION_USER: ${{ secrets.NOTARIZATION_ZIBRA_AI_USER }}
-        NOTARIZATION_PASS: ${{ secrets.NOTARIZATION_ZIBRA_AI_PASS }}
-
-    - name: Repack HDA into Binary format
-      working-directory: ${{ github.workspace }}
-      shell: pwsh
-      run: |
-        /Applications/Houdini/Current/Frameworks/Houdini.framework/Versions/Current/Resources/bin/hotl -l ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda.2
-        Remove-Item -Recurse -Force ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda
-        Move-Item -Path ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda.2 -Destination ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda
-
-    - name: Save artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: ZibraVDBForHoudini-macOS-x64
+        name: ZibraVDBForHoudini-macOS-Universal
         path: package
         if-no-files-found: error
 
   merge-artifacts:
     name: Merge artifacts
     runs-on: macos-latest
-    needs: [build-windows-x64, build-linux-x64, build-macos-arm64, build-macos-x64]
+    needs: [build-windows-x64, build-linux-x64, build-macos-universal]
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -258,7 +194,7 @@ jobs:
           mkdir merged
           mv ZibraVDBForHoudini-Windows-x64/* merged/
           mv ZibraVDBForHoudini-Linux-x64/dso/ZibraVDBForHoudini.so merged/dso/ZibraVDBForHoudini.so
-          lipo -create -output merged/dso/ZibraVDBForHoudini.dylib ZibraVDBForHoudini-macOS-arm64/dso/ZibraVDBForHoudini.dylib ZibraVDBForHoudini-macOS-x64/dso/ZibraVDBForHoudini.dylib
+          mv ZibraVDBForHoudini-macOS-Universal/dso/ZibraVDBForHoudini.dylib merged/dso/ZibraVDBForHoudini.dylib
       
       - name: Save merged artifacts
         uses: actions/upload-artifact@v4
@@ -273,5 +209,4 @@ jobs:
           name: |
             ZibraVDBForHoudini-Windows-x64
             ZibraVDBForHoudini-Linux-x64
-            ZibraVDBForHoudini-macOS-arm64
-            ZibraVDBForHoudini-macOS-x64
+            ZibraVDBForHoudini-macOS-Universal
