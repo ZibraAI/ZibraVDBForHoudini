@@ -171,7 +171,7 @@ namespace Zibra::ZibraVDBOutputProcessor
                 status = entryKey.compressorManager->StartSequence(UT_String(file_path));
                 if (status != CE::ZCE_SUCCESS)
                 {
-                    assert(false && "Failed to start sequence for compression, status: " + std::to_string(static_cast<int>(status)));
+                    assert(false && ("Failed to start sequence for compression, status: " + std::to_string(static_cast<int>(status))).c_str());
                     //std::cout << "ZibraVDBOutputProcessor::processSavePath - Failed to start sequence for compression, status: " << static_cast<int>(status) << std::endl;
                     return false;
                 }
@@ -271,7 +271,7 @@ namespace Zibra::ZibraVDBOutputProcessor
                 auto status = sequence.first.compressorManager->FinishSequence(warning);
                 if (status != CE::ZCE_SUCCESS)
                 {
-                    assert(false && "Failed to finish compression sequence for in-memory VDBs. Status: " + std::to_string(static_cast<int>(status)));
+                    assert(false && ("Failed to finish compression sequence for in-memory VDBs. Status: " + std::to_string(static_cast<int>(status))).c_str());
                 }
                 sequence.first.compressorManager->Release();
                 delete sequence.first.compressorManager;
@@ -391,7 +391,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         }
         else
         {
-            assert(false && "CompressFrame failed or frameManager is null for in-memory grids: status " + std::to_string(static_cast<int>(status)));
+            assert(false && ("CompressFrame failed or frameManager is null for in-memory grids: status " + std::to_string(static_cast<int>(status))).c_str());
         }
         frameLoader.ReleaseFrame(frame);
     }

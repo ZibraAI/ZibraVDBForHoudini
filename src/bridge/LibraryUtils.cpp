@@ -321,9 +321,7 @@ namespace Zibra::LibraryUtils
     bool IsAssetResolverRegistered() noexcept
     {
         PXR_NS::TfType resolverType = PXR_NS::TfType::FindByName("ZibraVDBResolver");
-        bool isUnknown = resolverType.IsUnknown();
-        assert(!isUnknown && "Couldn't register ZibraVDBResolver");
-        return !isUnknown;
+        return !resolverType.IsUnknown();
     }
 
     void RegisterAssetResolver() noexcept

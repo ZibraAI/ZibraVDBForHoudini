@@ -202,7 +202,7 @@ find_package(Houdini REQUIRED)
 
 target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini)
 
-if (NOT "${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
+if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
     target_link_libraries(ZibraVDBForHoudini PRIVATE
         Houdini::Dep::openvdb_sesi
         Houdini::Dep::python3.11
