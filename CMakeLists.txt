@@ -214,6 +214,11 @@ if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
         Houdini::Dep::pxr_usdVol
         Houdini::Dep::pxr_plug
     )
+elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
+    target_link_libraries(ZibraVDBForHoudini PRIVATE
+        Houdini::Dep::python3.11
+        Houdini::Dep::hboost_python
+    )
 endif()
 
 if(${LABS_BUILD})
