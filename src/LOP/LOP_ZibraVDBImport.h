@@ -42,7 +42,9 @@ namespace Zibra::ZibraVDBImport
                                     const std::string& sanitizedFieldName, const std::string& filePath, int frameIndex);
         void createFieldRelationship(UsdVolVolume& volumePrim, const std::string& fieldName, const std::string& assetPath);
         std::string generateZibraVDBURL(const std::string& filePath, const std::string& fieldName, int frameNumber) const;
-        
+
+        static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate);
+
     private:
         Zibra::Helpers::DecompressorManager m_DecompressorManager;
         std::string m_LastFilePath;

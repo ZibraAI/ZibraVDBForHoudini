@@ -2,6 +2,7 @@
 
 #include <PrecompiledHeader.h>
 #include <bridge/LibraryUtils.h>
+#include <ui/PluginManagementWindow.h>
 
 #include <HUSD/HUSD_DataHandle.h>
 #include <HUSD/HUSD_FindPrims.h>
@@ -26,6 +27,8 @@ namespace Zibra::ZibraVDBImport
     
     static PRM_Name PRMfileValid("__file_valid", "__file_valid");
     static PRM_Default PRMfileValidDefault(0);
+    
+    static PRM_Name PRMopenPluginManagement("openmanagement", "Open Plugin Management");
     
     static PRM_Name fieldsChoiceNames[32];
     static bool fieldsChoiceNamesInitialized = false;
@@ -66,6 +69,7 @@ namespace Zibra::ZibraVDBImport
             PRM_Template(PRM_STRING, 1, &PRMprimitivePath, &PRMprimitivePathDefault),
             PRM_Template(PRM_ORD, 1, &PRMparentPrimType, &PRMparentPrimTypeDefault, &PRMparentPrimTypeChoiceList),
             PRM_Template(PRM_STRING, 1, &PRMfields, &PRMfieldsDefault, &PRMfieldsChoiceList),
+            PRM_Template(PRM_CALLBACK, 1, &PRMopenPluginManagement, nullptr, nullptr, nullptr, &LOP_ZibraVDBImport::OpenManagementWindow),
             PRM_Template()
         };
         return templateList;
@@ -255,6 +259,12 @@ namespace Zibra::ZibraVDBImport
         }
         
         return changed;
+    }
+    
+    int LOP_ZibraVDBImport::OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate)
+    {
+        PluginManagementWindow::ShowWindow();
+        return 0;
     }
     
     std::string LOP_ZibraVDBImport::getFilePath(fpreal t) const
