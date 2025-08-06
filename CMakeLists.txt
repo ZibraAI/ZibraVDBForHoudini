@@ -215,10 +215,29 @@ if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
         Houdini::Dep::pxr_plug
     )
 elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
-    target_link_libraries(ZibraVDBForHoudini PRIVATE
-        Houdini::Dep::python3.11
-        Houdini::Dep::hboost_python
-    )
+    # macOS requires explicit Python library linking for undefined symbol resolution
+    if(TARGET Houdini::Dep::python3.11)
+        target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::python3.11)
+    elseif(TARGET Houdini::Dep::python)
+        target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::python)
+    else()
+        find_library(PYTHON_LIB NAMES
+            python3.11 libpython3.11
+            python3.10 libpython3.10
+            python3.9 libpython3.9
+            python3 libpython3
+            python Python
+        )
+        if(PYTHON_LIB)
+            target_link_libraries(ZibraVDBForHoudini PRIVATE ${PYTHON_LIB})
+        endif()
+    endif()
+    
+    if(TARGET Houdini::Dep::hboost_python)
+        target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::hboost_python)
+    elseif(TARGET Houdini::Dep::hboost_python311)
+        target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::hboost_python311)
+    endif()
 endif()
 
 if(${LABS_BUILD})
