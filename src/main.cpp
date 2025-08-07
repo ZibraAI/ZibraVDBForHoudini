@@ -1,14 +1,17 @@
 #include "PrecompiledHeader.h"
 
-// If compiling with MSVC
+// If not Labs build
+#ifndef LABS_BUILD
+// And compiling with MSVC
 #ifdef _MSC_VER
 // And compiling with build tools version higher than 14.39 but lower than 15.0
 #if _MSC_VER > 1939 && _MSC_VER < 2000
 // We misreport build tools version to be 14.39 to trick older Houdini 20.5 versions into loading our DSO
 #undef _MSC_VER
 #define _MSC_VER 1939
-#endif
-#endif
+#endif // _MSC_VER > 1939 && _MSC_VER < 2000
+#endif // _MSC_VER
+#endif // !LABS_BUILD
 
 // This header must be included exactly once in the plugin!
 #include <HUSD/HUSD_OutputProcessor.h>

@@ -97,7 +97,6 @@ set(HeaderFiles
     src/ROP/CompressorManager/CompressorManager.h
     src/SOP/DecompressorManager/DecompressorManager.h
     src/licensing/LicenseManager.h
-    src/licensing/TrialManager.h
     src/ROP/ROP_ZibraVDBCompressor.h
     src/SOP/SOP_ZibraVDBDecompressor.h
     src/SOP/SOP_ZibraVDBUSDExport.h
@@ -117,7 +116,6 @@ set(SourceFiles
     src/ROP/CompressorManager/CompressorManager.cpp
     src/SOP/DecompressorManager/DecompressorManager.cpp
     src/licensing/LicenseManager.cpp
-    src/licensing/TrialManager.cpp
     src/ROP/ROP_ZibraVDBCompressor.cpp
     src/SOP/SOP_ZibraVDBDecompressor.cpp
     src/SOP/SOP_ZibraVDBUSDExport.cpp
@@ -137,6 +135,10 @@ target_precompile_headers(ZibraVDBForHoudini PRIVATE src/PrecompiledHeader.h)
 target_compile_definitions(ZibraVDBForHoudini PRIVATE 
     ZIB_NETWORK_REQUEST_BACKEND_${ZIB_NETWORK_REQUEST_BACKEND}=1
     ZIB_TARGET_OS_${ZIB_TARGET_OS_NAME}=1)
+
+if(${LABS_BUILD})
+    target_compile_definitions(ZibraVDBForHoudini PRIVATE LABS_BUILD)
+endif()
 
 target_include_directories(ZibraVDBForHoudini PRIVATE SDK/include)
 target_include_directories(ZibraVDBForHoudini PRIVATE "${HOUDINI_INCLUDE_DIR}")

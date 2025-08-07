@@ -4,7 +4,6 @@
 
 #include "bridge/LibraryUtils.h"
 #include "licensing/LicenseManager.h"
-#include "licensing/TrialManager.h"
 #include "ui/PluginManagementWindow.h"
 #include "utils/GAAttributesDump.h"
 
@@ -317,11 +316,15 @@ namespace Zibra::ZibraVDBCompressor
 
         if (!LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Compression))
         {
-            if (!TrialManager::RequestTrialCompression())
+            if (LicenseManager::GetInstance().IsAnyLicenseValid())
+            {
+                addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_NO_COMPRESSION);
+            }
+            else
             {
                 addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR);
-                return ROP_ABORT_RENDER;
             }
+            return ROP_ABORT_RENDER;
         }
 
         m_EndTime = tEnd;
@@ -473,7 +476,8 @@ namespace Zibra::ZibraVDBCompressor
 
                 const auto gridDimensions = vdbPrim->getGrid().evalActiveVoxelBoundingBox().dim();
                 constexpr size_t MAX_GRID_DIMENSION = 4096;
-                if (gridDimensions.x() > MAX_GRID_DIMENSION || gridDimensions.y() > MAX_GRID_DIMENSION || gridDimensions.z() > MAX_GRID_DIMENSION)
+                if (gridDimensions.x() > MAX_GRID_DIMENSION || gridDimensions.y() > MAX_GRID_DIMENSION ||
+                    gridDimensions.z() > MAX_GRID_DIMENSION)
                 {
                     addError(ROP_MESSAGE, "Grid dimension for one of the axis is larger than maximum supported (4096 voxels).");
                     return ROP_ABORT_RENDER;
@@ -490,7 +494,6 @@ namespace Zibra::ZibraVDBCompressor
         compressFrameDesc.channels = orderedChannelNames.data();
 
         CE::Compression::FrameManager* frameManager = nullptr;
-
 
         CE::Addons::OpenVDBUtils::FrameLoader vdbFrameLoader{volumes.data(), volumes.size()};
         CE::Addons::OpenVDBUtils::EncodingMetadata encodingMetadata{};
@@ -537,7 +540,6 @@ namespace Zibra::ZibraVDBCompressor
         std::string warning;
 
         auto status = m_CompressorManager.FinishSequence(warning);
-        TrialManager::CheckoutTrialCompression();
 
         if (status != CE::ZCE_SUCCESS)
         {
@@ -563,7 +565,7 @@ namespace Zibra::ZibraVDBCompressor
         UT_String filename = "";
         OP_Context ctx(tStart);
         evalString(filename, FILENAME_PARAM_NAME, nullptr, 0, tStart);
-        
+
         std::error_code ec;
         // Intentionally ignoring errors
         // This is needed for relative paths to work properly
@@ -634,7 +636,8 @@ namespace Zibra::ZibraVDBCompressor
         evalString(filename, "filename", nullptr, 0, m_StartTime);
     }
 
-    std::vector<std::pair<std::string, std::string>> ROP_ZibraVDBCompressor::DumpAttributes(const GU_Detail* gdp, const CE::Addons::OpenVDBUtils::EncodingMetadata& encodingMetadata) noexcept
+    std::vector<std::pair<std::string, std::string>> ROP_ZibraVDBCompressor::DumpAttributes(
+        const GU_Detail* gdp, const CE::Addons::OpenVDBUtils::EncodingMetadata& encodingMetadata) noexcept
     {
         std::vector<std::pair<std::string, std::string>> result{};
 
@@ -685,9 +688,7 @@ namespace Zibra::ZibraVDBCompressor
     nlohmann::json ROP_ZibraVDBCompressor::DumpGridsShuffleInfo(const std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridDescs) noexcept
     {
         static std::map<CE::Addons::OpenVDBUtils::GridVoxelType, std::string> voxelTypeToString = {
-            {CE::Addons::OpenVDBUtils::GridVoxelType::Float1, "Float1"},
-            {CE::Addons::OpenVDBUtils::GridVoxelType::Float3, "Float3"}
-        };
+            {CE::Addons::OpenVDBUtils::GridVoxelType::Float1, "Float1"}, {CE::Addons::OpenVDBUtils::GridVoxelType::Float3, "Float3"}};
 
         nlohmann::json result = nlohmann::json::array();
         for (const CE::Addons::OpenVDBUtils::VDBGridDesc& gridDesc : gridDescs)

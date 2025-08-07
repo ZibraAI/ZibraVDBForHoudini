@@ -7,7 +7,6 @@
 #include "bridge/LibraryUtils.h"
 #include "bridge/UpdateCheck.h"
 #include "licensing/LicenseManager.h"
-#include "licensing/TrialManager.h"
 #include "utils/Helpers.h"
 
 namespace Zibra
@@ -106,7 +105,7 @@ namespace Zibra
         getValueSymbol("download_library.val")
             ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleDownloadLibrary));
         getValueSymbol("open_user_pref_directory.val")
-        ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleOpenUserPrefDirectory));
+            ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleOpenUserPrefDirectory));
         getValueSymbol("load_library.val")->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleLoadLibrary));
         getValueSymbol("update_library.val")
             ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleUpdateLibrary));
@@ -155,7 +154,8 @@ namespace Zibra
 
     void PluginManagementWindowImpl::HandleOpenUserPrefDirectory(UI_Event* event)
     {
-        std::vector<std::string> userPrefDirPath = Helpers::GetHoudiniEnvironmentVariable(ENV_HOUDINI_USER_PREF_DIR, "HOUDINI_USER_PREF_DIR");
+        std::vector<std::string> userPrefDirPath =
+            Helpers::GetHoudiniEnvironmentVariable(ENV_HOUDINI_USER_PREF_DIR, "HOUDINI_USER_PREF_DIR");
         if (userPrefDirPath.empty())
         {
             UI::MessageBox::Show(UI::MessageBox::Type::OK, "Could not find User Preference Directory path.");
@@ -268,7 +268,7 @@ namespace Zibra
 
     void PluginManagementWindowImpl::HandleCopyLicenseToHSITE(UI_Event* event)
     {
-        if (!LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Compression))
+        if (!LicenseManager::GetInstance().IsAnyLicenseValid())
         {
             UI::MessageBox::Show(UI::MessageBox::Type::OK, "No license found to copy.");
             return;
@@ -282,7 +282,7 @@ namespace Zibra
         }
 
         UI::MessageBox::Show(UI::MessageBox::Type::YesNo,
-                             "This will copy your license key or your offline license to HSITE. This is intended for site-wide "
+                             "This will copy your license key, offline license or license server address to HSITE. This is intended for site-wide "
                              "installation of the license. Note that \"Remove License\" button can not remove license from HSITE. In case "
                              "you'll want to remove it, please manually remove the file. Do you wish to proceed?",
                              &PluginManagementWindowImpl::HandleCopyLicenseToHSITECalback);
@@ -309,7 +309,7 @@ namespace Zibra
     {
         static EnterHQROOTPathWindow dialog(&HandleCopyLicenseToHQROOTCallback);
 
-        if (!LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Compression))
+        if (!LicenseManager::GetInstance().IsAnyLicenseValid())
         {
             UI::MessageBox::Show(UI::MessageBox::Type::OK, "No license found to copy.");
             return;
@@ -425,6 +425,7 @@ namespace Zibra
     void PluginManagementWindowImpl::UpdateUI()
     {
         LibraryUtils::LoadZibSDKLibrary();
+        const auto& licenseManager = LicenseManager::GetInstance();
         {
             std::string libraryStatus;
             if (!LibraryUtils::IsPlatformSupported())
@@ -469,50 +470,49 @@ namespace Zibra
             SetStringField("update_status.val", updateStatusString.c_str());
         }
         {
-            std::string trialStatus;
-
-            if (!LibraryUtils::IsLibraryLoaded())
-            {
-                trialStatus = "Download library to see trial status.";
-            }
-            else if (LicenseManager::GetInstance().GetLicenseStatus(LicenseManager::Product::Compression) == LicenseManager::Status::OK)
-            {
-                trialStatus = "License activated, no trial required.";
-            }
-            else
-            {
-                int remainingTrialCompressions = TrialManager::GetRemainingTrialCompressions();
-                if (remainingTrialCompressions == -1)
-                {
-                    trialStatus = "Failed to get trial status.";
-                }
-                else
-                {
-                    trialStatus = std::to_string(remainingTrialCompressions) + " trial compressions remaining.";
-                }
-            }
-
-            SetStringField("trial_status.val", trialStatus.c_str());
-        }
-        {
             std::string activationStatus;
             LicenseManager::Status status = LicenseManager::Status::Uninitialized;
             for (size_t i = 0; i < size_t(LicenseManager::Product::Count); ++i)
             {
-                auto productStatus = LicenseManager::GetInstance().GetLicenseStatus(LicenseManager::Product(i));
+                auto productStatus = licenseManager.GetLicenseStatus(LicenseManager::Product(i));
                 if (productStatus < status)
                 {
                     status = productStatus;
                 }
             }
+
             switch (status)
             {
             case LicenseManager::Status::OK:
-                activationStatus = "Activated";
+                if (licenseManager.GetLicenseStatus(LicenseManager::Product::Compression) == LicenseManager::Status::OK)
+                {
+                    if (licenseManager.GetLicenseStatus(LicenseManager::Product::Decompression) == LicenseManager::Status::OK)
+                    {
+                        activationStatus = "Activated";
+                    }
+                    else
+                    {
+                        activationStatus = "Activated (Only Compression)";
+                    }
+                }
+                else
+                {
+                    if (licenseManager.GetLicenseStatus(LicenseManager::Product::Decompression) == LicenseManager::Status::OK)
+                    {
+                        activationStatus = "Activated (Only Decompression)";
+                    }
+                    else
+                    {
+                        assert(0);
+                        activationStatus = "You should never see this.";
+                    }
+                }
                 break;
-            case LicenseManager::Status::ValidationError:
-                activationStatus = LicenseManager::GetInstance().GetActivationError();
+            case LicenseManager::Status::ValidationError: {
+                std::string activationError = licenseManager.GetActivationError();
+                activationStatus = std::string("License validation failed") + (activationError.empty() ? "" : ": ") + activationError;
                 break;
+            }
             case LicenseManager::Status::InvalidKeyFormat:
                 activationStatus = "Invalid Key Format";
                 break;
@@ -533,32 +533,45 @@ namespace Zibra
             SetStringField("activation_status.val", activationStatus.c_str());
         }
         {
-            std::string licenseType;
-            auto type = LicenseManager::GetInstance().GetLicenceType();
+            std::string licenseType = "None";
+            for (size_t i = 0; i < size_t(LicenseManager::Product::Count); ++i)
+            {
+                LicenseManager::Product currentProduct = LicenseManager::Product(i);
+                if (licenseManager.GetLicenseStatus(currentProduct) == LicenseManager::Status::OK)
+                {
+                    licenseType = licenseManager.GetLicenseType(currentProduct);
+                    break;
+                }
+            }
+            SetStringField("license_type.val", licenseType.c_str());
+        }
+        {
+            std::string activationType;
+            auto type = licenseManager.GetActivationType();
             switch (type)
             {
             case LicenseManager::ActivationType::Offline:
-                licenseType = "Offline";
+                activationType = "Offline";
                 break;
             case LicenseManager::ActivationType::LicenseServer:
-                licenseType = "License Server";
+                activationType = "License Server";
                 break;
             case LicenseManager::ActivationType::Online:
-                licenseType = "Online";
+                activationType = "Online";
                 break;
             case LicenseManager::ActivationType::None:
-                licenseType = "None";
+                activationType = "None";
                 break;
             default:
                 assert(0);
                 break;
             }
 
-            SetStringField("license_type.val", licenseType.c_str());
+            SetStringField("activation_type.val", activationType.c_str());
         }
         {
             std::string licensePathType;
-            auto type = LicenseManager::GetInstance().GetLicensePathType();
+            auto type = licenseManager.GetLicensePathType();
             switch (type)
             {
             case LicenseManager::LicensePathType::EnvVar:
@@ -584,7 +597,7 @@ namespace Zibra
             SetStringField("license_file_loaded_via.val", licensePathType.c_str());
         }
         {
-            const std::string& licenseFilePath = LicenseManager::GetInstance().GetLicensePath();
+            const std::string& licenseFilePath = licenseManager.GetLicensePath();
             if (licenseFilePath.empty())
             {
                 SetStringField("license_file_path.val", "None");

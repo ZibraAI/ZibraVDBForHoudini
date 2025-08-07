@@ -7,6 +7,7 @@
 #include <pxr/base/plug/plugin.h>
 #include <pxr/base/tf/type.h>
 
+#include "licensing/LicenseManager.h"
 #include "utils/Helpers.h"
 
 // clang-format off
@@ -15,8 +16,7 @@
     ZRHI_API_APPLY(macro) \
     ZCE_COMPRESSOR_API_APPLY(macro) \
     ZCE_DECOMPRESSION_API_APPLY(macro) \
-    ZCE_LICENSING_API_APPLY(macro) \
-    ZCE_TRIAL_API_APPLY(macro)
+    ZCE_LICENSING_API_APPLY(macro)
 
 // clang-format on
 
@@ -48,9 +48,7 @@ namespace Zibra::LibraryUtils
 
     bool g_IsLibraryLoaded = false;
     bool g_IsLibraryInitialized = false;
-    Zibra::Version g_CompressionLibraryVersion = {};
-    Zibra::Version g_DecompressionLibraryVersion = {};
-    Zibra::Version g_RHILibraryVersion = {};
+    Zibra::Version g_CompressionEngineVersion = {};
 
     // Returns vector of paths that can be used to search for the library
     // First element is the path used for downloading the library
@@ -89,17 +87,22 @@ namespace Zibra::LibraryUtils
 
     bool ValidateLoadedVersion()
     {
-        if (g_CompressionLibraryVersion.major != ZIB_COMPRESSION_MAJOR_VERSION)
+        static_assert(CE::Compression::ZCE_COMPRESSION_VERSION.major == ZIB_COMPRESSION_ENGINE_MAJOR_VERSION);
+        if (g_CompressionEngineVersion.major != CE::Compression::ZCE_COMPRESSION_VERSION.major)
         {
             return false;
         }
-        if (g_DecompressionLibraryVersion.major != ZIB_DECOMPRESSION_MAJOR_VERSION)
+        if (g_CompressionEngineVersion.minor != CE::Compression::ZCE_COMPRESSION_VERSION.minor)
         {
-            return false;
+            return g_CompressionEngineVersion.minor > CE::Compression::ZCE_COMPRESSION_VERSION.minor;
         }
-        if (g_RHILibraryVersion.major != ZIB_RHI_MAJOR_VERSION)
+        if (g_CompressionEngineVersion.patch != CE::Compression::ZCE_COMPRESSION_VERSION.patch)
         {
-            return false;
+            return g_CompressionEngineVersion.patch > CE::Compression::ZCE_COMPRESSION_VERSION.patch;
+        }
+        if (g_CompressionEngineVersion.build != CE::Compression::ZCE_COMPRESSION_VERSION.build)
+        {
+            return g_CompressionEngineVersion.build > CE::Compression::ZCE_COMPRESSION_VERSION.build;
         }
         return true;
     }
@@ -163,9 +166,7 @@ namespace Zibra::LibraryUtils
             return false;
         }
 
-        g_CompressionLibraryVersion = Zibra_CE_Compression_GetVersion();
-        g_DecompressionLibraryVersion = Zibra_CE_Decompression_GetVersion();
-        g_RHILibraryVersion = Zibra_RHI_GetVersion();
+        g_CompressionEngineVersion = Zibra_CE_Compression_GetVersion();
 
         if (!ValidateLoadedVersion())
         {
@@ -205,9 +206,7 @@ namespace Zibra::LibraryUtils
             return false;
         }
 
-        g_CompressionLibraryVersion = Zibra_CE_Compression_GetVersion();
-        g_DecompressionLibraryVersion = Zibra_CE_Decompression_GetVersion();
-        g_RHILibraryVersion = Zibra_RHI_GetVersion();
+        g_CompressionEngineVersion = Zibra_CE_Compression_GetVersion();
 
         if (!ValidateLoadedVersion())
         {
@@ -264,16 +263,8 @@ namespace Zibra::LibraryUtils
         {
             return "";
         }
-        std::string result = std::to_string(g_CompressionLibraryVersion.major) + "." + std::to_string(g_CompressionLibraryVersion.minor) +
-                             "." + std::to_string(g_CompressionLibraryVersion.patch) + "." +
-                             std::to_string(g_CompressionLibraryVersion.build);
-        result += " / ";
-        result += std::to_string(g_DecompressionLibraryVersion.major) + "." + std::to_string(g_DecompressionLibraryVersion.minor) + "." +
-                  std::to_string(g_DecompressionLibraryVersion.patch) + "." + std::to_string(g_DecompressionLibraryVersion.build);
-        result += " / ";
-        result += std::to_string(g_RHILibraryVersion.major) + "." + std::to_string(g_RHILibraryVersion.minor) + "." +
-                  std::to_string(g_RHILibraryVersion.patch) + "." + std::to_string(g_RHILibraryVersion.build);
-        return result;
+        return std::to_string(g_CompressionEngineVersion.major) + "." + std::to_string(g_CompressionEngineVersion.minor) + "." +
+               std::to_string(g_CompressionEngineVersion.patch) + "." + std::to_string(g_CompressionEngineVersion.build);
     }
 
     Version ToLibraryUtilsVersion(const Zibra::Version& version) noexcept
@@ -284,38 +275,61 @@ namespace Zibra::LibraryUtils
     Version GetLibraryVersion() noexcept
     {
         assert(g_IsLibraryLoaded);
-        const auto& compression = g_CompressionLibraryVersion;
-        const auto& decompression = g_DecompressionLibraryVersion;
+        return ToLibraryUtilsVersion(g_CompressionEngineVersion);
+    }
 
-        // Return newer out of compression and decompression library versions
-        if (compression.major > decompression.major)
+    std::string ErrorCodeToString(CE::ReturnCode errorCode)
+    {
+        switch (errorCode)
         {
-            return ToLibraryUtilsVersion(compression);
+        case Zibra::CE::ZCE_SUCCESS:
+            assert(0);
+            return "";
+        case Zibra::CE::ZCE_ERROR:
+            return "Unexpected error";
+        case Zibra::CE::ZCE_FATAL_ERROR:
+            return "Fatal error";
+        case Zibra::CE::ZCE_ERROR_NOT_INITIALIZED:
+            return "ZibraVDB SDK is not initialized";
+        case Zibra::CE::ZCE_ERROR_ALREADY_INITIALIZED:
+            return "ZibraVDB SDK is already initialized";
+        case Zibra::CE::ZCE_ERROR_INVALID_USAGE:
+            return "ZibraVDB SDK invalid call";
+        case Zibra::CE::ZCE_ERROR_INVALID_ARGUMENTS:
+            return "ZibraVDB SDK invalid arguments";
+        case Zibra::CE::ZCE_ERROR_NOT_IMPLEMENTED:
+            return "Not implemented";
+        case Zibra::CE::ZCE_ERROR_NOT_SUPPORTED:
+            return "Unsupported";
+        case Zibra::CE::ZCE_ERROR_NOT_FOUND:
+            return "Not found";
+        case Zibra::CE::ZCE_ERROR_OUT_OF_CPU_MEMORY:
+            return "Out of CPU memory";
+        case Zibra::CE::ZCE_ERROR_OUT_OF_GPU_MEMORY:
+            return "Out of GPU memory";
+        case Zibra::CE::ZCE_ERROR_TIME_OUT:
+            return "Time out";
+        case Zibra::CE::ZCE_ERROR_INVALID_SOURCE:
+            return "Invalid file";
+        case Zibra::CE::ZCE_ERROR_INCOMPTIBLE_SOURCE:
+            return "Incompatible file";
+        case Zibra::CE::ZCE_ERROR_CORRUPTED_SOURCE:
+            return "Corrupted file";
+        case Zibra::CE::ZCE_ERROR_IO_ERROR:
+            return "I/O error";
+        case Zibra::CE::ZCE_ERROR_LICENSE_TIER_TOO_LOW:
+            if (LicenseManager::GetInstance().GetLicenseStatus(LicenseManager::Product::Decompression) == LicenseManager::Status::OK)
+            {
+                return "Your license does not allow decompression of this effect.";
+            }
+            else
+            {
+                return "Decompression of this file requires active license.";
+            }
+        default:
+            assert(0);
+            return "Unknown error: " + std::to_string(errorCode);
         }
-        else if (g_CompressionLibraryVersion.major < g_DecompressionLibraryVersion.major)
-        {
-            return ToLibraryUtilsVersion(decompression);
-        }
-
-        if (compression.minor > decompression.minor)
-        {
-            return ToLibraryUtilsVersion(compression);
-        }
-        else if (compression.minor < decompression.minor)
-        {
-            return ToLibraryUtilsVersion(decompression);
-        }
-
-        if (compression.patch > decompression.patch)
-        {
-            return ToLibraryUtilsVersion(compression);
-        }
-        else if (compression.patch < decompression.patch)
-        {
-            return ToLibraryUtilsVersion(decompression);
-        }
-
-        return compression.build > decompression.build ? ToLibraryUtilsVersion(compression) : ToLibraryUtilsVersion(decompression);
     }
 
     bool IsAssetResolverRegistered() noexcept
