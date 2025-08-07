@@ -124,7 +124,7 @@ namespace Zibra
         m_LicenseKey = "";
         m_OfflineLicense = "";
 
-        Zibra::LibraryUtils::LoadLibrary();
+        Zibra::LibraryUtils::LoadZibSDKLibrary();
         if (!Zibra::LibraryUtils::IsLibraryLoaded())
         {
             return;
