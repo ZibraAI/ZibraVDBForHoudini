@@ -131,7 +131,7 @@ jobs:
         APPLE_DEVELOPER_TEAM: ${{ secrets.APPLE_DEVELOPER_ZIBRA_AI_TEAM }}
         NOTARIZATION_USER: ${{ secrets.NOTARIZATION_ZIBRA_AI_USER }}
         NOTARIZATION_PASS: ${{ secrets.NOTARIZATION_ZIBRA_AI_PASS }}
-      
+
     - name: Repack HDA into Binary format
       working-directory: ${{ github.workspace }}
       shell: pwsh
@@ -222,7 +222,7 @@ jobs:
           mv ZibraVDBForHoudini-20_5-Windows-x64/* merged/
           mv ZibraVDBForHoudini-20_5-Linux-x64/dso/ZibraVDBForHoudini.so merged/dso/ZibraVDBForHoudini.so
           lipo -create -output merged/dso/ZibraVDBForHoudini.dylib ZibraVDBForHoudini-20_5-macOS-arm64/dso/ZibraVDBForHoudini.dylib ZibraVDBForHoudini-20_5-macOS-x64/dso/ZibraVDBForHoudini.dylib
-      
+
       - name: Save merged artifacts
         uses: actions/upload-artifact@v4
         with:

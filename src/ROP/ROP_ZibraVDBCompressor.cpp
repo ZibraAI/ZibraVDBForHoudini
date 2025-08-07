@@ -67,6 +67,7 @@ namespace Zibra::ZibraVDBCompressor
 
     unsigned ROP_ZibraVDBCompressor_Operator::GetOperatorFlags(ContextType contextType)
     {
+        //TODO double-check same on USD exporter
         switch (contextType)
         {
         case ContextType::SOP:
@@ -305,7 +306,7 @@ namespace Zibra::ZibraVDBCompressor
             return ROP_ABORT_RENDER;
         }
 
-        LibraryUtils::LoadLibrary();
+        LibraryUtils::LoadZibSDKLibrary();
 
         if (!LibraryUtils::IsLibraryLoaded())
         {

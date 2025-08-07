@@ -99,6 +99,9 @@ set(HeaderFiles
     src/licensing/LicenseManager.h
     src/ROP/ROP_ZibraVDBCompressor.h
     src/SOP/SOP_ZibraVDBDecompressor.h
+    src/SOP/SOP_ZibraVDBUSDExport.h
+    src/LOP/LOP_ZibraVDBImport.h
+    src/LOP/ZibraVDBOutputProcessor.h
     src/ui/MessageBox.h
     src/ui/PluginManagementWindow.h
     src/utils/Helpers.h
@@ -115,6 +118,9 @@ set(SourceFiles
     src/licensing/LicenseManager.cpp
     src/ROP/ROP_ZibraVDBCompressor.cpp
     src/SOP/SOP_ZibraVDBDecompressor.cpp
+    src/SOP/SOP_ZibraVDBUSDExport.cpp
+    src/LOP/LOP_ZibraVDBImport.cpp
+    src/LOP/ZibraVDBOutputProcessor.cpp
     src/ui/MessageBox.cpp
     src/ui/PluginManagementWindow.cpp
     src/utils/Helpers.cpp
@@ -195,10 +201,45 @@ endif()
 
 list(APPEND CMAKE_PREFIX_PATH "${HOUDINI_PATH}/toolkit/cmake")
 find_package(Houdini REQUIRED)
+
 target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini)
 
-if (NOT "${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
-    target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::openvdb_sesi)
+if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
+    target_link_libraries(ZibraVDBForHoudini PRIVATE
+        Houdini::Dep::openvdb_sesi
+        Houdini::Dep::python3.11
+        Houdini::Dep::hboost_python
+
+        Houdini::Dep::pxr_tf
+        Houdini::Dep::pxr_sdf
+        Houdini::Dep::pxr_usd
+        Houdini::Dep::pxr_usdVol
+        Houdini::Dep::pxr_plug
+    )
+elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
+    # macOS requires explicit Python library linking for undefined symbol resolution
+    if(TARGET Houdini::Dep::python3.11)
+        target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::python3.11)
+    elseif(TARGET Houdini::Dep::python)
+        target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::python)
+    else()
+        find_library(PYTHON_LIB NAMES
+            python3.11 libpython3.11
+            python3.10 libpython3.10
+            python3.9 libpython3.9
+            python3 libpython3
+            python Python
+        )
+        if(PYTHON_LIB)
+            target_link_libraries(ZibraVDBForHoudini PRIVATE ${PYTHON_LIB})
+        endif()
+    endif()
+    
+    if(TARGET Houdini::Dep::hboost_python)
+        target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::hboost_python)
+    elseif(TARGET Houdini::Dep::hboost_python311)
+        target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::hboost_python311)
+    endif()
 endif()
 
 if(${LABS_BUILD})
