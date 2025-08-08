@@ -389,8 +389,8 @@ namespace Zibra::ZibraVDBCompressor
                 auto gridName = vdbPrim->getGridName();
                 if (m_OrderedChannelNames.size() >= Zibra::CE::MAX_CHANNEL_COUNT)
                 {
-                    std::string m = "Input has quantity of VDB primitives greater than "s +
-                                    std::to_string(Zibra::CE::MAX_CHANNEL_COUNT) + " supported. Skipping '"s + gridName + "'.";
+                    std::string m = "Input has quantity of VDB primitives greater than "s + std::to_string(Zibra::CE::MAX_CHANNEL_COUNT) +
+                                    " supported. Skipping '"s + gridName + "'.";
                     addError(ROP_MESSAGE, m.c_str());
                     break;
                 }
@@ -507,6 +507,7 @@ namespace Zibra::ZibraVDBCompressor
         auto status = CompressFrame(compressFrameDesc, &frameManager);
         if (status != CE::ZCE_SUCCESS)
         {
+            RenameGrids(gdp, originalGridNames);
             addError(ROP_MESSAGE, "Failed to compress sequence frame.");
             return ROP_ABORT_RENDER;
         }
@@ -524,6 +525,7 @@ namespace Zibra::ZibraVDBCompressor
             std::ofstream outFrameFile{filename, std::ios::binary};
             if (!outFrameFile.is_open() || outFrameFile.fail())
             {
+                RenameGrids(gdp, originalGridNames);
                 addError(ROP_MESSAGE, "Failed to open file for writing.");
                 return ROP_ABORT_RENDER;
             }
@@ -539,6 +541,7 @@ namespace Zibra::ZibraVDBCompressor
         }
         if (status != CE::ReturnCode::ZCE_SUCCESS)
         {
+            RenameGrids(gdp, originalGridNames);
             addError(ROP_MESSAGE, "Failed to dump frame data.");
             return ROP_ABORT_RENDER;
         }
@@ -548,19 +551,22 @@ namespace Zibra::ZibraVDBCompressor
             executePostFrameScript(time);
         }
 
-        // Renamed grids back to original names, just in case.
+        RenameGrids(gdp, originalGridNames);
+        return ROP_CONTINUE_RENDER;
+    }
+
+    void ROP_ZibraVDBCompressor::RenameGrids(const GU_Detail* gdp, const std::vector<std::string>& newGridNames) noexcept
+    {
+        const GEO_Primitive* prim;
+        size_t gridIndex = 0;
+        GA_FOR_ALL_PRIMITIVES(gdp, prim)
         {
-            size_t gridIndex = 0;
-            GA_FOR_ALL_PRIMITIVES(gdp, prim)
+            if (prim->getTypeId() == GEO_PRIMVDB)
             {
-                if (prim->getTypeId() == GEO_PRIMVDB)
-                {
-                    auto vdbPrim = const_cast<GEO_PrimVDB*>(dynamic_cast<const GEO_PrimVDB*>(prim));
-                    vdbPrim->getGrid().setName(originalGridNames[gridIndex++].c_str());
-                }
+                auto vdbPrim = const_cast<GEO_PrimVDB*>(dynamic_cast<const GEO_PrimVDB*>(prim));
+                vdbPrim->getGrid().setName(newGridNames[gridIndex++].c_str());
             }
         }
-        return ROP_CONTINUE_RENDER;
     }
 
     ROP_RENDER_CODE ROP_ZibraVDBCompressor::endRender()
