@@ -7,7 +7,7 @@ namespace Zibra::CE
 {
     static constexpr int SPARSE_BLOCK_SIZE = 8;
     static constexpr int SPARSE_BLOCK_VOXEL_COUNT = SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE;
-    static constexpr size_t MAX_CHANNEL_COUNT = 8;
+    static constexpr size_t MAX_CHANNEL_COUNT = 32;
 
     using ChannelMask = uint32_t;
 

@@ -3,6 +3,7 @@
 #include "ROP_ZibraVDBCompressor.h"
 
 #include "Zibra/CE/Addons/OpenVDBFrameLoader.h"
+#include "Zibra/CE/Common.h"
 #include "bridge/LibraryUtils.h"
 #include "licensing/HoudiniLicenseManager.h"
 #include "licensing/TrialManager.h"
@@ -378,7 +379,7 @@ namespace Zibra::ZibraVDBCompressor
         }
 
         m_OrderedChannelNames.clear();
-        m_OrderedChannelNames.reserve(8);
+        m_OrderedChannelNames.reserve(Zibra::CE::MAX_CHANNEL_COUNT);
         const GEO_Primitive* prim;
         GA_FOR_ALL_PRIMITIVES(gdp, prim)
         {
@@ -386,9 +387,10 @@ namespace Zibra::ZibraVDBCompressor
             {
                 auto vdbPrim = dynamic_cast<const GEO_PrimVDB*>(prim);
                 auto gridName = vdbPrim->getGridName();
-                if (m_OrderedChannelNames.size() >= 8)
+                if (m_OrderedChannelNames.size() >= Zibra::CE::MAX_CHANNEL_COUNT)
                 {
-                    std::string m = "Input has quantity of VDB primitives greater than 8 supported. Skipping '"s + gridName + "'.";
+                    std::string m = "Input has quantity of VDB primitives greater than "s + std::to_string(Zibra::CE::MAX_CHANNEL_COUNT) +
+                                    " supported. Skipping '"s + gridName + "'.";
                     addError(ROP_MESSAGE, m.c_str());
                     break;
                 }
@@ -452,12 +454,13 @@ namespace Zibra::ZibraVDBCompressor
         std::vector<const char*> orderedChannelNames{};
         std::vector<openvdb::GridBase::ConstPtr> volumes{};
         std::vector<openvdb::GridBase::Ptr> garbage{};
+        std::vector<std::string> originalGridNames{};
         const GEO_Primitive* prim;
         GA_FOR_ALL_PRIMITIVES(gdp, prim)
         {
             if (prim->getTypeId() == GEO_PRIMVDB)
             {
-                auto vdbPrim = dynamic_cast<const GEO_PrimVDB*>(prim);
+                auto vdbPrim = const_cast<GEO_PrimVDB*>(dynamic_cast<const GEO_PrimVDB*>(prim));
                 const char* gridName = vdbPrim->getGridName();
                 if (channelNamesUniqueStorage.find(gridName) != channelNamesUniqueStorage.cend())
                 {
@@ -474,13 +477,18 @@ namespace Zibra::ZibraVDBCompressor
 
                 const auto gridDimensions = vdbPrim->getGrid().evalActiveVoxelBoundingBox().dim();
                 constexpr size_t MAX_GRID_DIMENSION = 4096;
-                if (gridDimensions.x() > MAX_GRID_DIMENSION || gridDimensions.y() > MAX_GRID_DIMENSION || gridDimensions.z() > MAX_GRID_DIMENSION)
+                if (gridDimensions.x() > MAX_GRID_DIMENSION || gridDimensions.y() > MAX_GRID_DIMENSION ||
+                    gridDimensions.z() > MAX_GRID_DIMENSION)
                 {
                     addError(ROP_MESSAGE, "Grid dimension for one of the axis is larger than maximum supported (4096 voxels).");
                     return ROP_ABORT_RENDER;
                 }
 
-                volumes.emplace_back(vdbPrim->getGridPtr());
+                openvdb::GridBase::Ptr grid = vdbPrim->getGridPtr();
+                originalGridNames.push_back(grid->getName());
+                grid->setName(gridName);
+
+                volumes.emplace_back(grid);
                 orderedChannelNames.push_back(gridName);
                 channelNamesUniqueStorage.insert(gridName);
             }
@@ -492,7 +500,6 @@ namespace Zibra::ZibraVDBCompressor
 
         CE::Compression::FrameManager* frameManager = nullptr;
 
-
         CE::Addons::OpenVDBUtils::FrameLoader vdbFrameLoader{volumes.data(), volumes.size()};
         compressFrameDesc.frame = vdbFrameLoader.LoadFrame();
         const auto& gridsShuffleInfo = vdbFrameLoader.GetGridsShuffleInfo();
@@ -500,6 +507,7 @@ namespace Zibra::ZibraVDBCompressor
         auto status = CompressFrame(compressFrameDesc, &frameManager);
         if (status != CE::ZCE_SUCCESS)
         {
+            RenameGrids(gdp, originalGridNames);
             addError(ROP_MESSAGE, "Failed to compress sequence frame.");
             return ROP_ABORT_RENDER;
         }
@@ -517,6 +525,7 @@ namespace Zibra::ZibraVDBCompressor
             std::ofstream outFrameFile{filename, std::ios::binary};
             if (!outFrameFile.is_open() || outFrameFile.fail())
             {
+                RenameGrids(gdp, originalGridNames);
                 addError(ROP_MESSAGE, "Failed to open file for writing.");
                 return ROP_ABORT_RENDER;
             }
@@ -529,10 +538,10 @@ namespace Zibra::ZibraVDBCompressor
             auto frameOutStream = new OStreamRAMWrapper{};
             status = frameManager->FinishAndEncode(frameOutStream);
             m_BakedFrames.emplace(ctx.getFrame(), frameOutStream);
-
         }
         if (status != CE::ReturnCode::ZCE_SUCCESS)
         {
+            RenameGrids(gdp, originalGridNames);
             addError(ROP_MESSAGE, "Failed to dump frame data.");
             return ROP_ABORT_RENDER;
         }
@@ -541,7 +550,23 @@ namespace Zibra::ZibraVDBCompressor
         {
             executePostFrameScript(time);
         }
+
+        RenameGrids(gdp, originalGridNames);
         return ROP_CONTINUE_RENDER;
+    }
+
+    void ROP_ZibraVDBCompressor::RenameGrids(const GU_Detail* gdp, const std::vector<std::string>& newGridNames) noexcept
+    {
+        const GEO_Primitive* prim;
+        size_t gridIndex = 0;
+        GA_FOR_ALL_PRIMITIVES(gdp, prim)
+        {
+            if (prim->getTypeId() == GEO_PRIMVDB)
+            {
+                auto vdbPrim = const_cast<GEO_PrimVDB*>(dynamic_cast<const GEO_PrimVDB*>(prim));
+                vdbPrim->getGrid().setName(newGridNames[gridIndex++].c_str());
+            }
+        }
     }
 
     ROP_RENDER_CODE ROP_ZibraVDBCompressor::endRender()
@@ -567,7 +592,8 @@ namespace Zibra::ZibraVDBCompressor
             if (m_BakedFrames.empty())
             {
                 addWarning(ROP_MESSAGE, "Sequence is empty. No grids were compressed.");
-            } else
+            }
+            else
             {
                 UT_String filename = "";
                 evalString(filename, FILENAME_PARAM_NAME, nullptr, 0, m_StartTime);
@@ -614,8 +640,9 @@ namespace Zibra::ZibraVDBCompressor
         {
             // Just in case evalInt return invalid number.
             constexpr int maxPerChannelSettingsCount = 1024;
-            const int perChannelSettingsCount = std::max(
-                0, std::min(static_cast<int>(evalInt(PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME, 0, ctx.getTime())), maxPerChannelSettingsCount));
+            const int perChannelSettingsCount =
+                std::max(0, std::min(static_cast<int>(evalInt(PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME, 0, ctx.getTime())),
+                                     maxPerChannelSettingsCount));
 
             for (int i = 0; i < perChannelSettingsCount; ++i)
             {
@@ -778,7 +805,8 @@ namespace Zibra::ZibraVDBCompressor
         {
             auto& container = frameStream->GetContainer();
             status = merger->AddSequence(views.emplace_back(new MemoryIStream{container.data(), container.size()}), frameNumber);
-            if (status != CE::ZCE_SUCCESS) return status;
+            if (status != CE::ZCE_SUCCESS)
+                return status;
         }
 
         merger->AddMetadata("__ORIGIN", "ZibraVDBForHoudini");
@@ -857,9 +885,7 @@ namespace Zibra::ZibraVDBCompressor
     nlohmann::json ROP_ZibraVDBCompressor::DumpGridsShuffleInfo(const std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridDescs) noexcept
     {
         static std::map<CE::Addons::OpenVDBUtils::GridVoxelType, std::string> voxelTypeToString = {
-            {CE::Addons::OpenVDBUtils::GridVoxelType::Float1, "Float1"},
-            {CE::Addons::OpenVDBUtils::GridVoxelType::Float3, "Float3"}
-        };
+            {CE::Addons::OpenVDBUtils::GridVoxelType::Float1, "Float1"}, {CE::Addons::OpenVDBUtils::GridVoxelType::Float3, "Float3"}};
 
         nlohmann::json result = nlohmann::json::array();
         for (const CE::Addons::OpenVDBUtils::VDBGridDesc& gridDesc : gridDescs)
