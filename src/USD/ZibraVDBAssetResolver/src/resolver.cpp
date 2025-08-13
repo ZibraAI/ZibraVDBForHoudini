@@ -26,7 +26,7 @@ AR_DEFINE_RESOLVER(ZibraVDBResolver, ArResolver);
 
 std::unordered_map<std::string, std::unordered_set<std::string>> ZibraVDBResolver::s_globalDecompressedFilesDict;
 std::mutex ZibraVDBResolver::s_globalDecompressedFilesMutex;
-std::unordered_map<std::string, std::unique_ptr<Zibra::Decompression::DecompressorManager>> ZibraVDBResolver::s_decompressorManagers;
+std::unordered_map<std::string, std::unique_ptr<Zibra::Helpers::DecompressorManager>> ZibraVDBResolver::s_decompressorManagers;
 std::mutex ZibraVDBResolver::s_decompressorManagersMutex;
 
 ZibraVDBResolver::ZibraVDBResolver()
@@ -364,7 +364,7 @@ void ZibraVDBResolver::_CleanupAllDecompressedFilesStatic()
     TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_CleanupAllDecompressedFilesStatic - Static cleanup completed\n");
 }
 
-Zibra::Decompression::DecompressorManager* ZibraVDBResolver::_GetOrCreateDecompressorManager(const std::string& compressedFile) const
+Zibra::Helpers::DecompressorManager* ZibraVDBResolver::_GetOrCreateDecompressorManager(const std::string& compressedFile) const
 {
     std::lock_guard<std::mutex> lock(s_decompressorManagersMutex);
 
@@ -374,7 +374,7 @@ Zibra::Decompression::DecompressorManager* ZibraVDBResolver::_GetOrCreateDecompr
         return it->second.get();
     }
 
-    auto manager = std::make_unique<Zibra::Decompression::DecompressorManager>();
+    auto manager = std::make_unique<Zibra::Helpers::DecompressorManager>();
     auto result = manager->Initialize();
     if (result != Zibra::CE::ZCE_SUCCESS)
     {

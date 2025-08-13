@@ -1,15 +1,16 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
-#include <mutex>
 
-#include "DecompressorManager.h"
+#include "SOP/DecompressorManager/DecompressorManager.h"
 #include "debugCodes.h"
 #include "pxr/pxr.h"
 #include "pxr/usd/ar/resolver.h"
+#include "utils/Helpers.h"
 
 #ifdef ZIB_TARGET_OS_WIN
     #ifdef ZIBRAVDBRESOLVER_EXPORTS
@@ -77,12 +78,12 @@ private:
     void _CleanupUnneededDecompressedFiles(const std::string& currentCompressedFile, const std::string& currentDecompressedFile) const;
     static void _CleanupAllDecompressedFilesStatic();
 
-    Zibra::Decompression::DecompressorManager* _GetOrCreateDecompressorManager(const std::string& compressedFile) const;
+    Zibra::Helpers::DecompressorManager* _GetOrCreateDecompressorManager(const std::string& compressedFile) const;
     static void _CleanupAllDecompressorManagers();
 
     static std::unordered_map<std::string, std::unordered_set<std::string>> s_globalDecompressedFilesDict;
     static std::mutex s_globalDecompressedFilesMutex;
-    static std::unordered_map<std::string, std::unique_ptr<Zibra::Decompression::DecompressorManager>> s_decompressorManagers;
+    static std::unordered_map<std::string, std::unique_ptr<Zibra::Helpers::DecompressorManager>> s_decompressorManagers;
     static std::mutex s_decompressorManagersMutex;
 };
 
