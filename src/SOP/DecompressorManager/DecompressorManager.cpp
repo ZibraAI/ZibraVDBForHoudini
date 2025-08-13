@@ -221,7 +221,7 @@ namespace Zibra::Helpers
 
         const CE::Decompression::MaxDimensionsPerSubmit maxDimensionsPerSubmit = m_Decompressor->GetMaxDimensionsPerSubmit();
         const uint32_t maxChunkSize = static_cast<uint32_t>(maxDimensionsPerSubmit.maxSpatialBlocks);
-        const uint32_t chunksCount = (frameInfo.spatialBlockCount + maxChunkSize - 1) / maxChunkSize;
+        const uint32_t chunksCount = (frameInfo.spatialInfoCount + maxChunkSize - 1) / maxChunkSize;
 
         std::vector<CE::Decompression::Shaders::PackedSpatialBlockInfo> readbackDecompressionPerSpatialBlockInfo{};
         readbackDecompressionPerSpatialBlockInfo.reserve(maxChunkSize);
@@ -233,7 +233,7 @@ namespace Zibra::Helpers
             CE::Decompression::DecompressFrameDesc decompressDesc{};
             decompressDesc.frameContainer = frameContainer;
             decompressDesc.firstSpatialBlockIndex = maxChunkSize * chunkIdx;
-            decompressDesc.spatialBlocksCount = std::min(maxChunkSize, frameInfo.spatialBlockCount - maxChunkSize * chunkIdx);
+            decompressDesc.spatialBlocksCount = std::min(maxChunkSize, frameInfo.spatialInfoCount - maxChunkSize * chunkIdx);
             decompressDesc.decompressionPerChannelBlockDataOffset = 0;
             decompressDesc.decompressionPerChannelBlockInfoOffset = 0;
             decompressDesc.decompressionPerSpatialBlockInfoOffset = 0;

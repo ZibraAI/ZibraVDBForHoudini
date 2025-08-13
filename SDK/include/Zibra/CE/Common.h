@@ -7,7 +7,7 @@ namespace Zibra::CE
 {
     static constexpr int SPARSE_BLOCK_SIZE = 8;
     static constexpr int SPARSE_BLOCK_VOXEL_COUNT = SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE;
-    static constexpr size_t MAX_CHANNEL_COUNT = 8;
+    static constexpr size_t MAX_CHANNEL_COUNT = 32;
 
     using ChannelMask = uint32_t;
 
@@ -87,6 +87,73 @@ namespace Zibra::CE
         return coords && (a.channelBlocksOffset == b.channelBlocksOffset) && (a.channelMask == b.channelMask) &&
                (a.channelCount == b.channelCount);
     }
+
+    struct ChannelVoxelStatistics
+    {
+        /**
+         * Min voxel value for entire channel gird.
+         * @range [-INF; INF]
+         */
+        float minValue = 0.f;
+        /**
+         * Max voxel value for entire channel gird.
+         * @range [-INF; INF]
+         */
+        float maxValue = 0.f;
+        float meanPositiveValue = 0.f;
+        float meanNegativeValue = 0.f;
+        /**
+         * Total voxels count per channel grid.
+         * @range [0; INF]
+         */
+        uint32_t voxelCount = 0;
+    };
+
+    struct ChannelInfo
+    {
+        /**
+         * Channel name.
+         */
+        const char* name = nullptr;
+        /**
+         * Axis aligned bounding box. Cannot be 0.
+         */
+        Math::AABB aabb = {};
+        /**
+         * Affine transformation matrix. Cannot be 0.
+         */
+        Math::Transform gridTransform = {};
+        ChannelVoxelStatistics voxelStatistics = {};
+    };
+
+    struct FrameInfo
+    {
+        /**
+         * Count of channels present in frame.
+         * @range [0; MAX_CHANNEL_COUNT]
+         */
+        size_t channelsCount = 0;
+        /**
+         * Per channel information.
+         * @range Length: =channelsCount
+         */
+        ChannelInfo channels[MAX_CHANNEL_COUNT] = {};
+        /**
+         * Spatial info count
+         * @range [1; INF]
+         */
+        uint32_t spatialInfoCount = 0;
+        /**
+         * Channel blocks count
+         * @range [1; INF]
+         */
+        uint32_t channelBlockCount = 0;
+        /**
+         * Total frame AABB.
+         * @range Volume must be greater than 0.
+         */
+        Math::AABB aabb = {};
+    };
 
     struct PlaybackInfo
     {

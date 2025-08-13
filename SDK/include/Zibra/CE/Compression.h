@@ -20,44 +20,15 @@ namespace Zibra::CE::Compression
 {
     constexpr Version ZCE_COMPRESSION_VERSION = {1, 0, 0, 0};
 
-    struct VoxelStatistics
-    {
-        /// min voxel value for entire channel gird.
-        float minValue = 0.f;
-        /// max voxel value for entire channel grid.
-        float maxValue = 0.f;
-        float meanPositiveValue = 0.f;
-        float meanNegativeValue = 0.f;
-        /// total voxels count per channel grid.
-        uint32_t voxelCount = 0;
-    };
-
-    struct ChannelInfo
-    {
-        /// Channel unique name
-        const char* name = nullptr;
-        Math::Transform gridTransform = {};
-        VoxelStatistics statistics = {};
-    };
-
     struct SparseFrame
     {
-        /// Axis aligned bounding box.
-        Math::AABB aabb = {};
-        size_t spatialInfoCount = 0;
-        /// ChannelBlocks array lookup info per spatial block.
+        FrameInfo info = {};
+        size_t originalSize = 0;
+        /// Spatial blocks info array
         const SpatialBlockInfo* spatialInfo = nullptr;
-        /// ChannelBlocks array count.
-        size_t blocksCount = 0;
         /// ChannelBlocks array.
         const ChannelBlock* blocks = nullptr;
         const uint32_t* channelIndexPerBlock = nullptr;
-        /// Ordered channels count.
-        size_t orderedChannelsCount = 0;
-        /// Channel info ordered to match bits order in SpatialBlockInfo::channelMask.
-        const ChannelInfo* orderedChannels = nullptr;
-        /// Original file size in bytes.
-        size_t originalSize = 0;
     };
 
     struct CompressFrameDesc

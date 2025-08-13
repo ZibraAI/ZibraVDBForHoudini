@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <execution>
+#include <map>
 #include <Zibra/CE/Decompression.h>
 #include <openvdb/tools/Dense.h>
 
@@ -40,7 +41,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         };
 
     public:
-        explicit FrameEncoder(const VDBGridDesc* gridsDescs, size_t gridsCount, const Decompression::FrameInfo& fInfo) noexcept
+        explicit FrameEncoder(const VDBGridDesc* gridsDescs, size_t gridsCount, const FrameInfo& fInfo) noexcept
             : m_FrameInfo(fInfo)
         {
             m_GridDescs.insert(m_GridDescs.begin(), gridsDescs, gridsDescs + gridsCount);
@@ -93,7 +94,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                         auto gridRefIt = m_ChNameToGridDescs.find(chName);
                         if (gridRefIt != m_ChNameToGridDescs.end())
                         {
-                            const Decompression::ChannelInfo& channelInfo = *m_ChNameToChInfo[chName];
+                            const ChannelInfo& channelInfo = *m_ChNameToChInfo[chName];
                             for (const VDBGridDescRef& gridRef : gridRefIt->second)
                             {
                                 const char* targetGridName = gridRef.desc->gridName;
@@ -120,7 +121,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
 
             std::for_each(
                 #if !ZIB_TARGET_OS_MAC
-                std::execution::par_unseq, 
+                std::execution::par_unseq,
                 #endif
                 gridsIntermediate.begin(), gridsIntermediate.end(), [&](auto& gridIt) {
                 auto outGridIt = m_Grids.find(gridIt.first);
@@ -168,7 +169,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             const auto& leafIntermediates = gridIntermediate.leafs;
             std::for_each(
                 #if !ZIB_TARGET_OS_MAC
-                std::execution::par_unseq, 
+                std::execution::par_unseq,
                 #endif
                 leafIntermediates.begin(), leafIntermediates.end(), [&](auto leafIt) {
                 using TreeT = typename GridT::TreeType;
@@ -247,9 +248,9 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         }
     private:
         std::vector<VDBGridDesc> m_GridDescs{};
-        Decompression::FrameInfo m_FrameInfo{};
+        FrameInfo m_FrameInfo{};
         std::map<std::string, std::vector<VDBGridDescRef>> m_ChNameToGridDescs{};
-        std::map<std::string, const Decompression::ChannelInfo*> m_ChNameToChInfo{};
+        std::map<std::string, const ChannelInfo*> m_ChNameToChInfo{};
 
         std::map<std::string, openvdb::GridBase::Ptr> m_Grids{};
     };

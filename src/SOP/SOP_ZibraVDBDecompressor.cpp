@@ -133,7 +133,7 @@ namespace Zibra::ZibraVDBDecompressor
             addWarning(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_FRAME_NOT_PRESENT);
             return error(context);
         }
-        if (frameContainer->GetInfo().spatialBlockCount == 0)
+        if (frameContainer->GetInfo().spatialInfoCount == 0)
         {
             frameContainer->Release();
             return error(context);
@@ -163,10 +163,8 @@ namespace Zibra::ZibraVDBDecompressor
                 continue;
             }
 
-            GU_PrimVDB* vdbPrim = GU_PrimVDB::build(gdp);
+            GU_PrimVDB* vdbPrim = GU_PrimVDB::buildFromGrid(*gdp, grid);
             nameAttr.set(vdbPrim->getMapOffset(), grid->getName());
-            vdbPrim->setGrid(*grid);
-
             ApplyGridMetadata(vdbPrim, frameContainer);
         }
 

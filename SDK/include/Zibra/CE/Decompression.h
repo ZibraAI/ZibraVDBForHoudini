@@ -22,61 +22,6 @@ namespace Zibra::CE::Decompression
 {
     constexpr Version ZCE_DECOMPRESSION_VERSION = {1, 0, 0, 0};
 
-    struct ChannelInfo
-    {
-        /**
-         * Channel name.
-         */
-        const char* name;
-        /**
-         * Min grid's voxel value.
-         * @range [-INF; INF]
-         */
-        float minGridValue;
-
-        /**
-         * Max grid's voxel value.
-         * @range [-INF; INF]
-         */
-        float maxGridValue;
-        /**1
-         * Axis aligned bounding box. Cannot be 0.
-         */
-        Math::AABB aabb;
-        /**
-         * Affine transformation matrix. Cannot be 0.
-         */
-        Math::Transform gridTransform;
-    };
-
-    struct FrameInfo
-    {
-        /**
-         * Count of channels present in frame.
-         * @range [0; MAX_CHANNEL_COUNT]
-         */
-        size_t channelsCount;
-        /**
-         * Per channel information.
-         * @range Length: =channelsCount
-         */
-        ChannelInfo channels[MAX_CHANNEL_COUNT];
-        /**
-         * Spatial blocks count in DecompressorResources::decompressionBlockInfo
-         * @range [1; INF]
-         */
-        uint32_t spatialBlockCount;
-        /**
-         * Channel blocks count in DecompressorResources::decompressionBlockData.
-         * @range [1; INF]
-         */
-        uint32_t channelBlockCount;
-        /**
-         * Total frame AABB. Cannot be 0
-         */
-        Math::AABB aabb;
-    };
-
     class CompressedFrameContainer
     {
     protected:
@@ -106,6 +51,11 @@ namespace Zibra::CE::Decompression
 
         size_t decompressionPerChannelBlockInfoSizeInBytes;
         size_t decompressionPerChannelBlockInfoStride;
+    };
+
+    struct DecompressorVRAMRequirements
+    {
+        size_t totalMemorySize;
     };
 
     /**
@@ -210,16 +160,24 @@ namespace Zibra::CE::Decompression
         virtual ~Decompressor() noexcept = default;
 
     public:
+        virtual DecompressorVRAMRequirements GetVRAMRequirements() noexcept = 0;
+        /**
+         * Resource requirements getter.
+         * @return Resource requirements desc structure. Should be used for DecompressorResources initialization.
+         */
+        virtual DecompressorResourcesRequirements GetResourcesRequirements() noexcept = 0;
+        /**
+         * Maximum allowed dispatch decompression parameters, based on max VRAM limit per resource provided by user.
+         * @return MaxDimensionsPerSubmit structure. Should be used for calculating chunks sizes and count during decompression of large
+         * effects.
+         */
+        [[nodiscard]] virtual MaxDimensionsPerSubmit GetMaxDimensionsPerSubmit() const noexcept = 0;
         /**
          * Initializes decompressor instance. Can enqueue RHI commands and submit work.
          * Must be called before any other method.
          */
+    public:
         virtual ReturnCode Initialize() noexcept = 0;
-        /**
-         * Destructs Decompressor instance and releases it's memory.
-         * After release pointer becomes invalid.
-         */
-        virtual void Release() noexcept = 0;
         /**
          * Registers external output RHI resources.
          * Must be called before calling Decompress method.
@@ -227,25 +185,17 @@ namespace Zibra::CE::Decompression
          */
         virtual ReturnCode RegisterResources(const DecompressorResources& resources) noexcept = 0;
         /**
-         * Resource requirements getter.
-         * @return Resource requirements desc structure. Should be used for DecompressorResources initialization.
-         */
-        virtual DecompressorResourcesRequirements GetResourcesRequirements() noexcept = 0;
-
-        /**
-         * Maximum allowed dispatch decompression parameters, based on max VRAM limit per resource provided by user.
-         * @return MaxDimensionsPerSubmit structure. Should be used for calculating chunks sizes and count during decompression of large
-         * effects.
-         */
-        [[nodiscard]] virtual MaxDimensionsPerSubmit GetMaxDimensionsPerSubmit() const noexcept = 0;
-
-        /**
          * Enqueues GPU frame decompression work for provided spatial blocks range.
          * @param desc - DecompressFrameDesc structure that contains input frame container and decompression spatial blocks range.
-         * @param outStats - [Output] DecompressedFrameStats structure that contains statistics of decompressed frame.
+         * @param outFeedback - [Output] DecompressedFrameStats structure that contains statistics of decompressed frame.
          * @return Writes data to registered resources on GPU side, and decompression channel blocks range to output DecompressedFrameStats.
          */
         virtual ReturnCode DecompressFrame(const DecompressFrameDesc& desc, DecompressedFrameFeedback* outFeedback) noexcept = 0;
+        /**
+         * Destructs Decompressor instance and releases it's memory.
+         * After release pointer becomes invalid.
+         */
+        virtual void Release() noexcept = 0;
     };
 
     class DecompressorFactory
@@ -276,6 +226,8 @@ namespace Zibra::CE::Decompression
     {
         uint64_t fileUUID[2];
         Math::uint3 maxAABBSize;
+        uint32_t maxChannelBlocksCount;
+        uint32_t maxSpatialBlocksCount;
         uint64_t originalSize;
         uint8_t channelCount;
         const char* channels[MAX_CHANNEL_COUNT];
