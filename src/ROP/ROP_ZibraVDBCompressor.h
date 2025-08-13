@@ -69,6 +69,7 @@ namespace Zibra::ZibraVDBCompressor
             const GU_Detail* gdp) noexcept;
         void DumpVisualisationAttributes(std::vector<std::pair<std::string, std::string>>& attributes, const GEO_PrimVDB* vdbPrim) noexcept;
         nlohmann::json DumpGridsShuffleInfo(const std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridDescs) noexcept;
+        void RenameGrids(const GU_Detail* gdp, const std::vector<std::string>& newGridNames) noexcept;
 
         static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate) noexcept;
 
