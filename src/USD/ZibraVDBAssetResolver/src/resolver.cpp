@@ -34,7 +34,6 @@ ZibraVDBResolver::ZibraVDBResolver()
     static bool cleanupRegistered = false;
     if (!cleanupRegistered) {
         std::atexit([]() {
-            std::cout << "[ZibraVDBResolver] Process exit cleanup called" << std::endl;
             TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver - Process exit cleanup called\n");
             _CleanupAllDecompressorManagers();
             _CleanupAllDecompressedFilesStatic();
@@ -139,7 +138,6 @@ ArResolvedPath ZibraVDBResolver::_ResolveForNewAsset(const std::string& assetPat
 
 std::shared_ptr<ArAsset> ZibraVDBResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
 {
-    std::cout << "[ZibraVDBResolver] _OpenAsset called with path: " << resolvedPath.GetPathString() << std::endl;
     return ArFilesystemAsset::Open(resolvedPath);
 }
 
@@ -183,31 +181,6 @@ std::string ZibraVDBResolver::_ParseZibraVDBURI(const std::string& uri, int& fra
     }
     return path;
 }
-
-// bool ZibraVDBResolver::CheckLicenseAndLoadLib() const
-// {
-//     std::cout << "[ZibraVDBResolver] CheckLicenseAndLoadLib called" << std::endl;
-//     std::cout << "[ZibraVDBResolver] Checking license..." << std::endl;
-//     // License may or may not be required depending on .zibravdb file
-//     // So we need to trigger license check, but if it fails we proceed with decompression
-//
-//     if (Zibra::LibraryUtils::IsLibraryLoaded())
-//     {
-//         std::cout << "[ZibraVDBResolver] ZibraVDB library already loaded" << std::endl;
-//         return true;
-//     }
-//
-//     std::cout << "[ZibraVDBResolver] Loading ZibraVDB library..." << std::endl;
-//     Zibra::LibraryUtils::LoadZibSDKLibrary();
-//     if (!Zibra::LibraryUtils::IsLibraryLoaded())
-//     {
-//         std::cout << "[ZibraVDBResolver] ERROR: Library not loaded, cannot initialize resolver" << std::endl;
-//         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::ZibraVDBResolver - Library not loaded, cannot initialize resolver\n");
-//         return false;
-//     }
-//     std::cout << "[ZibraVDBResolver] ZibraVDB library loaded successfully" << std::endl;
-//     return true;
-// }
 
 std::string ZibraVDBResolver::_DecompressZibraVDBFile(const std::string& zibraVDBPath, int frame) const
 {

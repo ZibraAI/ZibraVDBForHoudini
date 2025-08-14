@@ -1,0 +1,18 @@
+{
+    "Plugins": [
+        {
+            "Info": {
+                "Types": {
+                    "ZibraVDBResolver": {
+                        "bases": ["ArResolver"],
+                        "implementsContexts" : true
+                    }
+                }
+            },
+            "LibraryPath": "../lib/libzibraVDBResolver.dylib",
+            "Name": "zibraVDBResolver",
+            "Root": ".",
+            "Type": "library"
+        }
+    ]
+}
