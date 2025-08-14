@@ -81,3 +81,35 @@ elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
         target_link_libraries(zibraVDBResolver PRIVATE Houdini::Dep::hboost_python311)
     endif()
 endif()
+
+# Copy zibraVDBResolver library to $OUTPUT_PATH/zibra/0/lib
+add_custom_command(TARGET zibraVDBResolver POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+    ${OUTPUT_PATH}/zibra/0/lib
+)
+
+add_custom_command(TARGET zibraVDBResolver POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+    $<TARGET_FILE:zibraVDBResolver>
+    ${OUTPUT_PATH}/zibra/0/lib/
+)
+
+# Copy plugInfo.json files to $OUTPUT_PATH/zibra/0/resources
+add_custom_command(TARGET zibraVDBResolver POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+    ${OUTPUT_PATH}/zibra/0/resources
+)
+
+if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
+    add_custom_command(TARGET zibraVDBResolver POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_CURRENT_SOURCE_DIR}/plugInfo.win.json
+        ${OUTPUT_PATH}/zibra/0/resources/plugInfo.json
+    )
+elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "LINUX")
+    add_custom_command(TARGET zibraVDBResolver POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_CURRENT_SOURCE_DIR}/plugInfo.linux.json
+        ${OUTPUT_PATH}/zibra/0/resources/plugInfo.json
+    )
+endif()
