@@ -202,6 +202,9 @@ endif()
 list(APPEND CMAKE_PREFIX_PATH "${HOUDINI_PATH}/toolkit/cmake")
 find_package(Houdini REQUIRED)
 
+# Add USD Asset Resolver subdirectory
+add_subdirectory(src/USD/ZibraVDBAssetResolver)
+
 target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini)
 
 if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
