@@ -36,7 +36,9 @@ jobs:
     - name: Build Release
       working-directory: ${{ github.workspace }}
       shell: pwsh
-      run: cmake --build build-20_5-windows --config Release
+      run: |
+        cmake --build build-20_5-windows --config Release
+        cmake --build build-20_5-windows --config Release --target zibraVDBResolver
 
     - name: Build Debug
       working-directory: ${{ github.workspace }}
@@ -59,7 +61,9 @@ jobs:
     - name: Build Release
       working-directory: ${{ github.workspace }}
       shell: pwsh
-      run: cmake --build build-20_5-linux --config Release
+      run: |
+        cmake --build build-20_5-linux --config Release
+        cmake --build build-20_5-linux --config Release --target zibraVDBResolver
 
     - name: Build Debug
       working-directory: ${{ github.workspace }}
@@ -98,7 +102,9 @@ jobs:
     - name: Build Release
       working-directory: ${{ github.workspace }}
       shell: pwsh
-      run: cmake --build build-20_5-macos --config Release
+      run: |
+        cmake --build build-20_5-macos --config Release
+        cmake --build build-20_5-macos --config Release --target zibraVDBResolver
 
     - name: Build Debug
       working-directory: ${{ github.workspace }}
@@ -138,7 +144,9 @@ jobs:
     - name: Build Release
       working-directory: ${{ github.workspace }}
       shell: pwsh
-      run: cmake --build build-20_5-macos --config Release
+      run: |
+        cmake --build build-20_5-macos --config Release
+        cmake --build build-20_5-macos --config Release --target zibraVDBResolver
 
     - name: Build Debug
       working-directory: ${{ github.workspace }}
