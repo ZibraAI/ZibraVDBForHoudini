@@ -3,9 +3,6 @@
 #include "LibraryUtils.h"
 
 #include <UT/UT_EnvControl.h>
-#include <pxr/base/plug/registry.h>
-#include <pxr/base/plug/plugin.h>
-#include <pxr/base/tf/type.h>
 
 #include "licensing/LicenseManager.h"
 #include "utils/Helpers.h"
@@ -53,7 +50,7 @@ namespace Zibra::LibraryUtils
     // Returns vector of paths that can be used to search for the library
     // First element is the path used for downloading the library
     // Other elements are alternative load paths for manual library installation
-    std::vector<std::string> GetLibraryPaths()
+    std::vector<std::string> GetLibraryPaths() noexcept
     {
         std::vector<std::string> result;
 
@@ -329,45 +326,6 @@ namespace Zibra::LibraryUtils
         default:
             assert(0);
             return "Unknown error: " + std::to_string(errorCode);
-        }
-    }
-
-    bool IsAssetResolverRegistered() noexcept
-    {
-        PXR_NS::TfType resolverType = PXR_NS::TfType::FindByName("ZibraVDBResolver");
-        return !resolverType.IsUnknown();
-    }
-
-    void RegisterAssetResolver() noexcept
-    {
-        if (IsAssetResolverRegistered())
-        {
-            return;
-        }
-
-        const std::vector<std::string> libraryPaths = GetLibraryPaths();
-        for (const std::string& libraryPath : libraryPaths)
-        {
-            if (libraryPath.empty())
-            {
-                continue;
-            }
-            std::filesystem::path resourcePath = std::filesystem::path(libraryPath).parent_path()/"resources";
-            if (std::filesystem::exists(resourcePath) && std::filesystem::is_directory(resourcePath))
-            {
-                std::string pathStr = resourcePath.string();
-                std::replace(pathStr.begin(), pathStr.end(), '\\', '/');
-                PXR_NS::PlugRegistry::GetInstance().RegisterPlugins(pathStr);
-
-                if (IsAssetResolverRegistered())
-                {
-                    break;
-                }
-            }
-        }
-        if (!IsAssetResolverRegistered())
-        {
-            assert(false && "Failed to register ZibraVDBResolver. Make sure the library file is present.");
         }
     }
 
