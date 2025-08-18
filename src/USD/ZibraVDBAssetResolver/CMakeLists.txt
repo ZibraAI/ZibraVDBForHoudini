@@ -88,6 +88,7 @@ else()
     set(ASSET_RESOLVER_OUTPUT_PATH ${OUTPUT_PATH})
 endif()
 
+#TODO remove hardcoded 0 version
 add_custom_command(TARGET zibraVDBResolver POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory
     ${ASSET_RESOLVER_OUTPUT_PATH}/zibra/0/lib
