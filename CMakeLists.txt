@@ -210,7 +210,6 @@ target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini)
 if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
     target_link_libraries(ZibraVDBForHoudini PRIVATE
         Houdini::Dep::openvdb_sesi
-        Houdini::Dep::python3.11
         Houdini::Dep::hboost_python
 
         Houdini::Dep::pxr_tf
@@ -219,6 +218,17 @@ if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
         Houdini::Dep::pxr_usdVol
         Houdini::Dep::pxr_plug
     )
+    if(DEFINED _houdini_python_version)
+        set(PYTHON_TARGET_NAME "python${_houdini_python_version}")
+        if(TARGET Houdini::Dep::${PYTHON_TARGET_NAME})
+            target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::${PYTHON_TARGET_NAME})
+            message(STATUS "ZibraVDBForHoudini linking with Houdini::Dep::${PYTHON_TARGET_NAME}")
+        else()
+            message(WARNING "ZibraVDBForHoudini: Target Houdini::Dep::${PYTHON_TARGET_NAME} not found")
+        endif()
+    else()
+        message(WARNING "ZibraVDBForHoudini: Houdini Python version not detected")
+    endif()
 elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
     # macOS requires explicit Python library linking for undefined symbol resolution
     if(TARGET Houdini::Dep::python3.11)
