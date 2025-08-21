@@ -91,7 +91,6 @@ namespace Zibra::ZibraVDBOutputProcessor
     bool ZibraVDBOutputProcessor::processSavePath(const UT_StringRef& asset_path, const UT_StringRef& referencing_layer_path,
                                                   bool asset_is_layer, UT_String& newpath, UT_String& error)
     {
-        std::cout << "[LINUX DEBUG] ZibraVDBOutputProcessor::processSavePath - filename: " << asset_path.c_str() << ", layer: " << referencing_layer_path.c_str() << std::endl;
         std::string pathStr = asset_path.toStdString();
         if (!asset_is_layer && pathStr.find(".zibravdb?") != std::string::npos)
         {
@@ -128,7 +127,6 @@ namespace Zibra::ZibraVDBOutputProcessor
 
             OP_Node* op_node = OPgetDirector()->findNode(decoded_node_name.c_str());
             if (!op_node) {
-                std::cout << "Could not find node with path: " << decoded_node_name << std::endl;
                 return false;
             }
 
@@ -165,14 +163,12 @@ namespace Zibra::ZibraVDBOutputProcessor
 
                 std::filesystem::create_directories(std::filesystem::path(file_path).parent_path());
                 auto status = entryKey.compressorManager->Initialize(frameMappingDesc, quality, perChannelSettings);
-                //std::cout << "ZibraVDBOutputProcessor::processSavePath - CompressorManager initialized with status: " << static_cast<int>(status) << std::endl;
                 assert(status == CE::ZCE_SUCCESS);
 
                 status = entryKey.compressorManager->StartSequence(UT_String(file_path));
                 if (status != CE::ZCE_SUCCESS)
                 {
                     assert(false && ("Failed to start sequence for compression, status: " + std::to_string(static_cast<int>(status))).c_str());
-                    //std::cout << "ZibraVDBOutputProcessor::processSavePath - Failed to start sequence for compression, status: " << static_cast<int>(status) << std::endl;
                     return false;
                 }
                 entries[entryKey] = {{frame_index, output_file_str}};
@@ -184,7 +180,6 @@ namespace Zibra::ZibraVDBOutputProcessor
             // Store the zibravdb path for processReferencePath lookup, but return invalid path to prevent original VDB saving
             // This makes Linux behavior consistent with Windows where original VDBs are not saved
             newpath = "."; // Return illegal path "." to prevent saving original VDB
-            std::cout << "[LINUX DEBUG] ZibraVDBOutputProcessor::processSavePath - preventing original VDB save with illegal path, stored zibravdb path: " << output_file_str << std::endl;
             return true;
         }
 
@@ -197,7 +192,6 @@ namespace Zibra::ZibraVDBOutputProcessor
                                                       UT_String &newpath,
                                                       UT_String &error)
     {
-        std::cout << "[LINUX DEBUG] ZibraVDBOutputProcessor::processReferencePath - filename: " << asset_path.c_str() << ", layer: " << referencing_layer_path.c_str() << std::endl;
         std::string pathStr = asset_path.toStdString();
         if (!asset_is_layer && pathStr.find("op:/") != std::string::npos)
         {
@@ -240,7 +234,6 @@ namespace Zibra::ZibraVDBOutputProcessor
                 int compressionFrameIndex = OPgetDirector()->getChannelManager()->getFrame(t);
                 std::string outputRef = entry.first.outputFile + "?frame=" + std::to_string(compressionFrameIndex);
                 newpath = UT_String(outputRef);
-                std::cout << "[LINUX DEBUG] ZibraVDBOutputProcessor::processReferencePath - redirected path: " << outputRef << std::endl;
                 if (compressionFrameIndex == entry.second[0].first)
                 {
                     if (compressionFrameIndex > 0)
@@ -248,12 +241,10 @@ namespace Zibra::ZibraVDBOutputProcessor
                         for (int i = 0; i < compressionFrameIndex; ++i)
                         {
                             fpreal tmpTime = OPgetDirector()->getChannelManager()->getTime(i);
-                            std::cout << "[LINUX DEBUG] ZibraVDBOutputProcessor::processReferencePath - processing frame " << i << " (time: " << tmpTime << ") for file: " << entry.first.outputFile << std::endl;
                             extractVDBFromSOP(entry.first.sopNode, tmpTime, entry.first.compressorManager, false);
                         }
                     }
                 }
-                std::cout << "[LINUX DEBUG] ZibraVDBOutputProcessor::processReferencePath - compressing frame " << compressionFrameIndex << " (time: " << t << ") for file: " << entry.first.outputFile << std::endl;
                 extractVDBFromSOP(entry.first.sopNode, t, entry.first.compressorManager);
                 return true;
             }
@@ -288,7 +279,6 @@ namespace Zibra::ZibraVDBOutputProcessor
             return;
 
         int frameIndex = OPgetDirector()->getChannelManager()->getFrame(t);
-        std::cout << "[LINUX DEBUG] ZibraVDBOutputProcessor::extractVDBFromSOP - extracting frame " << frameIndex << " (time: " << t << ") from SOP: " << sopNode->getFullPath().c_str() << ", compress: " << (compress ? "true" : "false") << std::endl;
 
         OP_Context context(t);
         sopNode->flags().setTimeDep(true);
@@ -332,7 +322,6 @@ namespace Zibra::ZibraVDBOutputProcessor
         }
         if (!grids.empty())
         {
-            std::cout << "[LINUX DEBUG] ZibraVDBOutputProcessor::extractVDBFromSOP - found " << grids.size() << " VDB grids to compress" << std::endl;
             compressGrids(grids, gridNames, compressorManager, gdp);
         }
         else
@@ -349,12 +338,6 @@ namespace Zibra::ZibraVDBOutputProcessor
             assert(false && "No grids to compress");
             return;
         }
-
-        std::cout << "[LINUX DEBUG] ZibraVDBOutputProcessor::compressGrids - compressing " << grids.size() << " grids: ";
-        for (const auto& name : gridNames) {
-            std::cout << name << " ";
-        }
-        std::cout << std::endl;
 
         std::vector<const char*> channelCStrings;
         for (const auto& name : gridNames)
