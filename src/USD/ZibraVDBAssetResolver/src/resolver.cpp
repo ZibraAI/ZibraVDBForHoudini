@@ -16,6 +16,7 @@
 
 #include "bridge/LibraryUtils.h"
 #include "licensing/LicenseManager.h"
+#include "ui/MessageBox.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -245,9 +246,15 @@ std::string ZibraVDBResolver::_DecompressZibraVDBFile(const std::string& zibraVD
 
 bool ZibraVDBResolver::CheckLicenseAndLoadLib() const
 {
-    // License may or may not be required depending on .zibravdb file
-    // So we need to trigger license check, but if it fails we proceed with decompression
-    Zibra::LicenseManager::GetInstance().CheckLicense(Zibra::LicenseManager::Product::Decompression);
+    if (!Zibra::LicenseManager::GetInstance().CheckLicense(Zibra::LicenseManager::Product::Decompression))
+    {
+        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_Resolve - License check failed.");
+        Zibra::UI::MessageBox::Show(
+            Zibra::UI::MessageBox::Type::OK,
+            "ZibraVDB Asset Resolver Error: Failed to load SDK library or license validation failed"
+        );
+        return false;
+    }
 
     if (Zibra::LibraryUtils::IsLibraryLoaded())
     {

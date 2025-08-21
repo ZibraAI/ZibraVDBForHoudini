@@ -16,6 +16,7 @@ set(RESOLVER_HEADERS
     ../../licensing/LicenseManager.h
     ../../bridge/LibraryUtils.h
     ../../SOP/DecompressorManager/DecompressorManager.h
+    ../../ui/MessageBox.h
 )
 
 set(RESOLVER_SOURCES
@@ -26,6 +27,7 @@ set(RESOLVER_SOURCES
     ../../licensing/LicenseManager.cpp
     ../../bridge/LibraryUtils.cpp
     ../../SOP/DecompressorManager/DecompressorManager.cpp
+    ../../ui/MessageBox.cpp
 )
 
 add_library(zibraVDBResolver SHARED ${RESOLVER_HEADERS} ${RESOLVER_SOURCES})
@@ -34,7 +36,6 @@ target_compile_definitions(zibraVDBResolver PRIVATE
         ZIB_TARGET_OS_${ZIB_TARGET_OS_NAME}=1
         ZIBRAVDBRESOLVER_EXPORTS
         ZIB_NETWORK_REQUEST_BACKEND_CURL=1
-        ZIB_NO_UI_ERROR=1
 )
 
 target_include_directories(zibraVDBResolver
