@@ -1,13 +1,10 @@
 #include "resolver.h"
 
 #include <csignal>
-#include <cstdio>
-#include <ctime>
-#include <iostream>
 #include <pxr/usd/ar/defaultResolver.h>
 #include <string>
 
-#include "pxr/base/arch/fileSystem.h"
+#include <UT/UT_Exit.h>
 #include "pxr/base/tf/fileUtils.h"
 #include "pxr/base/tf/pathUtils.h"
 #include "pxr/base/tf/staticTokens.h"
@@ -31,16 +28,10 @@ std::mutex ZibraVDBResolver::s_decompressorManagersMutex;
 
 ZibraVDBResolver::ZibraVDBResolver()
 {
-    static bool cleanupRegistered = false;
-    if (!cleanupRegistered) {
-        std::atexit([]() {
-            TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver - Process exit cleanup called\n");
-            _CleanupAllDecompressorManagers();
-            _CleanupAllDecompressedFilesStatic();
-        });
-        
-        cleanupRegistered = true;
-    }
+    UT_Exit::addExitCallback([](void*){
+        ZibraVDBResolver::_CleanupAllDecompressorManagers();
+        ZibraVDBResolver::_CleanupAllDecompressedFilesStatic();
+    }, nullptr);
 }
 
 ZibraVDBResolver::~ZibraVDBResolver() = default;
