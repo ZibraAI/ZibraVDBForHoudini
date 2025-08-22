@@ -33,35 +33,75 @@ namespace Zibra::ZibraVDBOutputProcessor
 
     ZibraVDBOutputProcessor::ZibraVDBOutputProcessor()
     {
-        if (!LibraryUtils::IsPlatformSupported())
-        {
-            UT_WorkBuffer buffer;
-            buffer.sprintf("ZibraVDB: Platform not supported. Required: Windows/Linux/macOS");
-            UTaddError("ZibraVDB", UT_ERROR_MESSAGE, buffer.buffer());
-            return;
-        }
-
-        LibraryUtils::LoadZibSDKLibrary();
-        
-        if (!LibraryUtils::IsLibraryLoaded())
-        {
-            UT_WorkBuffer buffer;
-            buffer.sprintf("ZibraVDB: Failed to load ZibraVDB SDK library. Please check installation.");
-            UTaddError("ZibraVDB", UT_ERROR_MESSAGE, buffer.buffer());
-            return;
-        }
-
-        if (!LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Compression))
-        {
-            UT_WorkBuffer buffer;
-            buffer.sprintf("ZibraVDB: No valid license found for compression. Please check your license.");
-            UTaddError("ZibraVDB", UT_ERROR_MESSAGE, buffer.buffer());
-            return;
-        }
     }
 
     ZibraVDBOutputProcessor::~ZibraVDBOutputProcessor()
     {
+    }
+
+    bool ZibraVDBOutputProcessor::CheckLibAndLicense(UT_String& error)
+    {
+        if (!LibraryUtils::IsPlatformSupported())
+        {
+            error = "ZibraVDB Output Processor Error: Platform not supported. Required: Windows/Linux/macOS. Falling back to uncompressed VDB files.";
+            UTaddError(error.buffer(), UT_ERROR_MESSAGE, error.buffer());
+            return false;
+        }
+
+        LibraryUtils::LoadZibSDKLibrary();
+        if (!LibraryUtils::IsLibraryLoaded())
+        {
+            error = "ZibraVDB Output Processor Error: Failed to load ZibraVDB SDK library. Please check installation. Falling back to uncompressed VDB files.";
+            UTaddError(error.buffer(), UT_ERROR_MESSAGE, error.buffer());
+            return false;
+        }
+        
+        if (!LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Compression))
+        {
+            error = "ZibraVDB Output Processor Error: No valid license found for compression. Please check your license. Falling back to uncompressed VDB files.";
+            UTaddError(error.buffer(), UT_ERROR_MESSAGE, error.buffer());
+            return false;
+        }
+
+        return true;
+    }
+
+    std::string ZibraVDBOutputProcessor::convertToUncompressedPath(const std::string& zibravdbPath)
+    {
+        // This is used as fallback when no sdk lib present or license failed
+        // path/name.zibravdb?node=nodename&frame=X&quality=Y to path/name.frame.vdb
+        size_t query_pos = zibravdbPath.find('?');
+        if (query_pos == std::string::npos) return "";
+
+        std::string file_path = zibravdbPath.substr(0, query_pos);
+        std::string query_string = zibravdbPath.substr(query_pos + 1);
+
+        // Extract frame parameter
+        std::string frame_str;
+        std::regex param_regex(R"(([^&=]+)=([^&=]+))");
+        std::sregex_iterator iter(query_string.begin(), query_string.end(), param_regex);
+        std::sregex_iterator end;
+
+        for (; iter != end; ++iter) {
+            std::string key = (*iter)[1];
+            std::string value = (*iter)[2];
+            if (key == "frame") {
+                frame_str = value;
+                break;
+            }
+        }
+
+        if (frame_str.empty()) return "";
+
+        std::filesystem::path zibravdb_path(file_path);
+        std::string dir = zibravdb_path.parent_path().string();
+        std::string stem = zibravdb_path.stem().string();
+        
+        if (dir.empty()) {
+            return stem + "." + frame_str + ".vdb";
+        } else {
+            return dir + "/" + stem + "." + frame_str + ".vdb";
+        }
     }
 
     UT_StringHolder ZibraVDBOutputProcessor::displayName() const
@@ -94,6 +134,14 @@ namespace Zibra::ZibraVDBOutputProcessor
         std::string pathStr = asset_path.toStdString();
         if (!asset_is_layer && pathStr.find(".zibravdb?") != std::string::npos)
         {
+            UT_String libError;
+            if (!CheckLibAndLicense(libError))
+            {
+                std::string uncompressedPath = convertToUncompressedPath(pathStr);
+                newpath = UT_String(uncompressedPath);
+                error = libError;
+                return true;
+            }
             // Parse the .zibravdb path: path/name.zibravdb?node=nodename&frame=X&quality=Y
             size_t query_pos = pathStr.find('?');
             if (query_pos == std::string::npos) return false;
