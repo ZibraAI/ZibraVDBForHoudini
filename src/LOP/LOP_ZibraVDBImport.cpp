@@ -134,8 +134,9 @@ namespace Zibra::ZibraVDBImport
                 auto status = m_DecompressorManager.RegisterDecompressor(UT_String(filePath));
                 if (status != CE::ZCE_SUCCESS)
                 {
-                    addError(LOP_MESSAGE, "Failed to register ZibraVDB decompressor");
-                    return error();
+                    std::string errorMessage = "Failed to initialize decompressor: " + LibraryUtils::ErrorCodeToString(status);
+                    addError(LOP_MESSAGE, errorMessage.c_str());
+                    return error(context);
                 }
                 
                 parseAvailableGrids();

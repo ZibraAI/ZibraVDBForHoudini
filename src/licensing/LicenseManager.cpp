@@ -5,7 +5,16 @@
 
 #include "bridge/LibraryUtils.h"
 #include "ui/MessageBox.h"
+#if !ZIB_NO_UI_ERROR
+#include "ui/MessageBox.h"
+#endif
 #include "utils/Helpers.h"
+
+#if !ZIB_NO_UI_ERROR
+#define SHOW_UI_ERROR(btn, msg) UI::MessageBox::Show(btn, msg);
+#else
+#define SHOW_UI_ERROR(btn, msg)
+#endif
 
 namespace Zibra
 {
@@ -151,7 +160,7 @@ namespace Zibra
     {
         if (key == nullptr)
         {
-            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Please enter license key.");
+            SHOW_UI_ERROR(UI::MessageBox::Type::OK, "Please enter license key.");
             return;
         }
 
@@ -163,7 +172,7 @@ namespace Zibra
 
         if (!std::regex_match(keyTrimmed, keyFormat))
         {
-            UI::MessageBox::Show(
+            SHOW_UI_ERROR(
                 UI::MessageBox::Type::OK,
                 "Invalid license key format. Please enter License key in format: \"01234567-89ab-cdef-0123-456789abcdef\".");
             return;
@@ -203,7 +212,7 @@ namespace Zibra
     {
         if (offlineLicense == nullptr)
         {
-            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Please enter offline license.");
+            SHOW_UI_ERROR(UI::MessageBox::Type::OK, "Please enter offline license.");
             return;
         }
 
@@ -214,7 +223,7 @@ namespace Zibra
         // Check that first and last characters are '{' and '}' respectively
         if (offlineLicenseTrimmed.empty() || offlineLicenseTrimmed.front() != '{' || offlineLicenseTrimmed.back() != '}')
         {
-            UI::MessageBox::Show(UI::MessageBox::Type::OK,
+            SHOW_UI_ERROR(UI::MessageBox::Type::OK,
                                  "Invalid offline license format. Please enter offline license in format: \"{ \"license_info\": ... }\".");
             return;
         }
@@ -253,7 +262,7 @@ namespace Zibra
     {
         if (licenseServerAddress == nullptr)
         {
-            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Please enter license server address.");
+            SHOW_UI_ERROR(UI::MessageBox::Type::OK, "Please enter license server address.");
             return;
         }
 
@@ -263,7 +272,7 @@ namespace Zibra
 
         if (licenseServerAddressTrimmed.empty())
         {
-            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Invalid license server address format. Please enter a valid address.");
+            SHOW_UI_ERROR(UI::MessageBox::Type::OK, "Invalid license server address format. Please enter a valid address.");
             return;
         }
 
@@ -302,7 +311,7 @@ namespace Zibra
         if (!IsAnyLicenseValid())
         {
             assert(0);
-            UI::MessageBox::Show(UI::MessageBox::Type::OK, "No license file found to copy.");
+            SHOW_UI_ERROR(UI::MessageBox::Type::OK, "No license file found to copy.");
             return;
         }
 
@@ -323,14 +332,14 @@ namespace Zibra
             message += destPath.string();
             message += "\". Please make sure that target folder exists and does not already contain license file. If you want to overwrite "
                        "old license file, please manually delete old one.";
-            UI::MessageBox::Show(UI::MessageBox::Type::OK, message);
+            SHOW_UI_ERROR(UI::MessageBox::Type::OK, message);
         }
         else
         {
             std::string message = "Successfully copied license file to \"";
             message += destPath.string();
             message += "\".";
-            UI::MessageBox::Show(UI::MessageBox::Type::OK, message);
+            SHOW_UI_ERROR(UI::MessageBox::Type::OK, message);
         }
     }
 
