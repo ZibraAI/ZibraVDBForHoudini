@@ -28,7 +28,7 @@ namespace Zibra::LibraryUtils {
     std::string ErrorCodeToString(CE::ReturnCode errorCode);
     Version GetLibraryVersion() noexcept;
 
-    bool IsAssetResolverRegistered() noexcept;
-    void RegisterAssetResolver() noexcept;
+    //TODO verify this
+    std::vector<std::string> GetLibraryPaths() noexcept;
 
 } // namespace Zibra::LibraryUtils

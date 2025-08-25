@@ -22,7 +22,13 @@
 #include "LOP/ZibraVDBOutputProcessor.h"
 #include "ROP/ROP_ZibraVDBCompressor.h"
 #include "SOP/SOP_ZibraVDBDecompressor.h"
+
+#include <pxr/base/plug/registry.h>
+#include <pxr/base/tf/type.h>
+
 #include "SOP/SOP_ZibraVDBUSDExport.h"
+
+void RegisterAssetResolver();
 
 extern "C" {
     SYS_VISIBILITY_EXPORT void newSopOperator(OP_OperatorTable* table)
@@ -42,7 +48,7 @@ extern "C" {
 
         HUSD_OutputProcessorRegistry::get().registerOutputProcessor(ZibraVDBOutputProcessor::OUTPUT_PROCESSOR_NAME,
                                                                     ZibraVDBOutputProcessor::createZibraVDBOutputProcessor);
-        Zibra::LibraryUtils::RegisterAssetResolver();
+        RegisterAssetResolver();
     }
 
     SYS_VISIBILITY_EXPORT void newDriverOperator(OP_OperatorTable* table)
@@ -50,5 +56,44 @@ extern "C" {
         using namespace Zibra;
 
         table->addOperator(new ZibraVDBCompressor::ROP_ZibraVDBCompressor_Operator(ContextType::OUT));
+    }
+}
+
+bool IsAssetResolverRegistered()
+{
+    PXR_NS::TfType resolverType = PXR_NS::TfType::FindByName("ZibraVDBResolver");
+    return !resolverType.IsUnknown();
+}
+
+void RegisterAssetResolver()
+{
+    if (IsAssetResolverRegistered())
+    {
+        return;
+    }
+
+    const std::vector<std::string> libraryPaths = Zibra::LibraryUtils::GetLibraryPaths();
+    for (const std::string& libraryPath : libraryPaths)
+    {
+        if (libraryPath.empty())
+        {
+            continue;
+        }
+        std::filesystem::path resourcePath = std::filesystem::path(libraryPath).parent_path()/"resources";
+        if (std::filesystem::exists(resourcePath) && std::filesystem::is_directory(resourcePath))
+        {
+            std::string pathStr = resourcePath.string();
+            std::replace(pathStr.begin(), pathStr.end(), '\\', '/');
+            PXR_NS::PlugRegistry::GetInstance().RegisterPlugins(pathStr);
+
+            if (IsAssetResolverRegistered())
+            {
+                break;
+            }
+        }
+    }
+    if (!IsAssetResolverRegistered())
+    {
+        assert(false && "Failed to register ZibraVDBResolver. Make sure the library file is present.");
     }
 }

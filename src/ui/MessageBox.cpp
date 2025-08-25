@@ -1,9 +1,9 @@
-#include "PrecompiledHeader.h"
-
 #include "MessageBox.h"
 
 #include <SI/AP_Interface.h>
 #include <UI/UI_Value.h>
+
+#include "../USD/ZibraVDBAssetResolver/src/PrecompiledHeader.h"
 
 namespace Zibra::UI
 {
