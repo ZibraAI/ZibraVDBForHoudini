@@ -109,6 +109,7 @@ jobs:
         ./actions/install_houdini/venv/bin/Activate.ps1
         pip3 install -r actions/install_houdini/requirements.txt
         python3 actions/install_houdini/install_houdini.py --version "20.5" --platform "macosx_arm64_clang15"
+      run: cat /Applications/Houdini/Current/Frameworks/Houdini.framework/Versions/Current/Resources/toolkit/include/pxr/usd/sdf/childrenProxy.h
       env:
         HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
         HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
