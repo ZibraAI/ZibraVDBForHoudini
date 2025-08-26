@@ -9,6 +9,9 @@
 #include <HUSD/XUSD_Data.h>
 #include <pxr/usd/usdVol/openVDBAsset.h>
 
+#include <pxr/usd/sdf/childrenProxy.h>
+#error "Hello there"
+
 PXR_NAMESPACE_USING_DIRECTIVE
 
 namespace Zibra::ZibraVDBImport
