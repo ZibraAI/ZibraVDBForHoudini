@@ -104,7 +104,7 @@ namespace Zibra::ZibraVDBDecompressor
 
         // License may or may not be required depending on .zibravdb file
         // So we need to trigger license check, but if it fails we proceed with decompression
-        LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Decompression);
+        HoudiniLicenseManager::GetInstance().CheckLicense(HoudiniLicenseManager::Product::Decompression);
 
         UT_String filename = "";
         evalString(filename, "filename", nullptr, 0, context.getTime());
@@ -122,10 +122,10 @@ namespace Zibra::ZibraVDBDecompressor
 
         m_DecompressorManager.Initialize();
 
-        auto status = m_DecompressorManager.RegisterDecompressor(filename);
-        if (status != CE::ZCE_SUCCESS)
+        Result res = m_DecompressorManager.RegisterDecompressor(filename);
+        if (ZIB_FAILED(res))
         {
-            std::string errorMessage = "Failed to initialize decompressor: " + LibraryUtils::ErrorCodeToString(status);
+            std::string errorMessage = "Failed to initialize decompressor: " + LibraryUtils::ErrorCodeToString(res);
             addError(SOP_MESSAGE, errorMessage.c_str());
             return error(context);
         }
@@ -147,9 +147,9 @@ namespace Zibra::ZibraVDBDecompressor
         auto gridShuffle = DeserializeGridShuffleInfo(frameContainer);
 
         openvdb::GridPtrVec vdbGrids = {};
-        status = m_DecompressorManager.DecompressFrame(frameContainer, gridShuffle, &vdbGrids);
+        res = m_DecompressorManager.DecompressFrame(frameContainer, gridShuffle, &vdbGrids);
         ReleaseGridShuffleInfo(gridShuffle);
-        if (status != CE::ZCE_SUCCESS)
+        if (ZIB_FAILED(res))
         {
             frameContainer->Release();
             addError(SOP_MESSAGE, "Error when trying to decompress frame.");

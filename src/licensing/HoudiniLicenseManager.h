@@ -83,6 +83,7 @@ namespace Zibra
         static const char* const ms_DefaultOfflineLicenseFileName;
         static const char* const ms_DefaultLicenseServerFileName;
 
+        CE::Licensing::LicenseManager* m_Manager = nullptr;
         Status m_Status[size_t(Product::Count)] = {Status::Uninitialized, Status::Uninitialized};
         std::string m_ActivationError;
         ActivationType m_Type = ActivationType::None;
@@ -91,6 +92,9 @@ namespace Zibra
         std::string m_LicenseKey;
         std::string m_OfflineLicense;
         std::string m_LicenseServerAddress;
+
+        bool LoadLicenseManager();
+        bool IsLicenseManagerLoaded() const;
 
         static std::string SanitizePath(const std::string& path);
         static std::string SanitizeKey(const std::string& key);

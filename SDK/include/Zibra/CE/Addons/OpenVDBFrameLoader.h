@@ -1,8 +1,8 @@
 #pragma once
 
+#include <Zibra/CE/Compression.h>
 #include <execution>
 #include <map>
-#include <Zibra/CE/Compression.h>
 #include <openvdb/openvdb.h>
 #include <openvdb/tools/GridTransformer.h>
 
@@ -34,6 +34,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             uint32_t destFirstChannelBlockIndex = 0;
             std::map<ChannelMask, ChannelBlockIntermediate> blocks{};
         };
+
     public:
         /**
          *
@@ -69,44 +70,44 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             std::vector<openvdb::GridBase::Ptr> processedGrids{};
             processedGrids.resize(gridsCount);
             std::transform(
-                #if !ZIB_TARGET_OS_MAC
+#if !ZIB_TARGET_OS_MAC
                 std::execution::par_unseq,
-                #endif
+#endif
                 grids, grids + gridsCount, processedGrids.begin(), [&](const auto& grid) {
-                const openvdb::math::Transform relativeTransform = GetIndexSpaceRelativeTransform(grid, originGrid);
-                openvdb::tools::GridTransformer transformer{relativeTransform.baseMap()->getAffineMap()->getMat4()};
+                    const openvdb::math::Transform relativeTransform = GetIndexSpaceRelativeTransform(grid, originGrid);
+                    openvdb::tools::GridTransformer transformer{relativeTransform.baseMap()->getAffineMap()->getMat4()};
 
-                openvdb::GridBase::Ptr mutableCopy = grid->deepCopyGrid();
-                if (mutableCopy->baseTree().isType<openvdb::Vec3STree>())
-                {
-                    const auto src = openvdb::gridConstPtrCast<openvdb::Vec3SGrid>(grid);
-                    const auto dst = openvdb::gridPtrCast<openvdb::Vec3SGrid>(mutableCopy);
-                    dst->tree().voxelizeActiveTiles();
-                    if (matchVoxelSize && !relativeTransform.isIdentity())
+                    openvdb::GridBase::Ptr mutableCopy = grid->deepCopyGrid();
+                    if (mutableCopy->baseTree().isType<openvdb::Vec3STree>())
                     {
-                        dst->clear();
-                        transformer.transformGrid<openvdb::tools::BoxSampler>(*src, *dst);
-                        dst->setTransform(originGrid->transform().copy());
+                        const auto src = openvdb::gridConstPtrCast<openvdb::Vec3SGrid>(grid);
+                        const auto dst = openvdb::gridPtrCast<openvdb::Vec3SGrid>(mutableCopy);
+                        dst->tree().voxelizeActiveTiles();
+                        if (matchVoxelSize && !relativeTransform.isIdentity())
+                        {
+                            dst->clear();
+                            transformer.transformGrid<openvdb::tools::BoxSampler>(*src, *dst);
+                            dst->setTransform(originGrid->transform().copy());
+                        }
                     }
-                }
-                else if (mutableCopy->baseTree().isType<openvdb::FloatTree>())
-                {
-                    const auto src = openvdb::gridConstPtrCast<openvdb::FloatGrid>(grid);
-                    const auto dst = openvdb::gridPtrCast<openvdb::FloatGrid>(mutableCopy);
-                    dst->tree().voxelizeActiveTiles();
-                    if (matchVoxelSize && !relativeTransform.isIdentity())
+                    else if (mutableCopy->baseTree().isType<openvdb::FloatTree>())
                     {
-                        dst->clear();
-                        transformer.transformGrid<openvdb::tools::BoxSampler>(*src, *dst);
-                        dst->setTransform(originGrid->transform().copy());
+                        const auto src = openvdb::gridConstPtrCast<openvdb::FloatGrid>(grid);
+                        const auto dst = openvdb::gridPtrCast<openvdb::FloatGrid>(mutableCopy);
+                        dst->tree().voxelizeActiveTiles();
+                        if (matchVoxelSize && !relativeTransform.isIdentity())
+                        {
+                            dst->clear();
+                            transformer.transformGrid<openvdb::tools::BoxSampler>(*src, *dst);
+                            dst->setTransform(originGrid->transform().copy());
+                        }
                     }
-                }
-                else
-                {
-                    assert(0 && "Unsupported grid type. Loader supports only floating point grids.");
-                }
-                return mutableCopy;
-            });
+                    else
+                    {
+                        assert(0 && "Unsupported grid type. Loader supports only floating point grids.");
+                    }
+                    return mutableCopy;
+                });
 
             // Splitting vector grids to separate scalar channels + constructing channels unshuffle structure
             ChannelMask mask = 0x1;
@@ -151,10 +152,10 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         {
             for (auto& shuffleItem : m_GridsShuffle)
             {
-                delete [] shuffleItem.gridName;
+                delete[] shuffleItem.gridName;
                 for (size_t i = 0; i < std::size(shuffleItem.chSource); ++i)
                 {
-                    delete [] shuffleItem.chSource[i];
+                    delete[] shuffleItem.chSource[i];
                 }
             }
         }
@@ -234,48 +235,49 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             std::vector<ChannelVoxelStatistics> perBlockStatistics{};
             perBlockStatistics.resize(result->info.channelBlockCount);
             std::for_each(
-                #if !ZIB_TARGET_OS_MAC
+#if !ZIB_TARGET_OS_MAC
                 std::execution::par_unseq,
-                #endif
-                spatialBlocks.begin(), spatialBlocks.end(), [&](const std::pair<openvdb::Coord, SpatialBlockIntermediate>& item){
-                auto& [coord, spatialIntrm] = item;
-                ChannelMask mask = 0x0;
+#endif
+                spatialBlocks.begin(), spatialBlocks.end(), [&](const std::pair<openvdb::Coord, SpatialBlockIntermediate>& item) {
+                    auto& [coord, spatialIntrm] = item;
+                    ChannelMask mask = 0x0;
 
-                // Channels are ordered right way due to map soring and mask bit order.
-                size_t chIdx = 0;
-                for (auto& [chMask, chBlockIntrm] : spatialIntrm.blocks) {
-                    uint32_t channelBlockIndex = spatialIntrm.destFirstChannelBlockIndex + chIdx;
-                    ChannelBlock& outBlock = resultBlocks[channelBlockIndex];
-                    mask |= chMask;
-                    resultChannelIndexPerBlock[channelBlockIndex] = FirstChannelIndexFromMask(chMask);
-                    PackFromStride(&outBlock, chBlockIntrm.data, chBlockIntrm.valueStride, chBlockIntrm.valueOffset, chBlockIntrm.valueSize,
-                                   SPARSE_BLOCK_VOXEL_COUNT);
-
-                    ChannelVoxelStatistics& dstStatistics = perBlockStatistics[channelBlockIndex];
-                    dstStatistics.minValue = std::numeric_limits<float>::max();
-                    dstStatistics.maxValue = std::numeric_limits<float>::min();
-                    for (float voxel : outBlock.voxels)
+                    // Channels are ordered right way due to map soring and mask bit order.
+                    size_t chIdx = 0;
+                    for (auto& [chMask, chBlockIntrm] : spatialIntrm.blocks)
                     {
-                        dstStatistics.minValue = std::min(dstStatistics.minValue, voxel);
-                        dstStatistics.maxValue = std::max(dstStatistics.maxValue, voxel);
-                        dstStatistics.meanPositiveValue += voxel > 0.0f ? voxel : 0.0f;
-                        dstStatistics.meanNegativeValue += voxel < 0.0f ? voxel : 0.0f;
+                        uint32_t channelBlockIndex = spatialIntrm.destFirstChannelBlockIndex + chIdx;
+                        ChannelBlock& outBlock = resultBlocks[channelBlockIndex];
+                        mask |= chMask;
+                        resultChannelIndexPerBlock[channelBlockIndex] = FirstChannelIndexFromMask(chMask);
+                        PackFromStride(&outBlock, chBlockIntrm.data, chBlockIntrm.valueStride, chBlockIntrm.valueOffset,
+                                       chBlockIntrm.valueSize, SPARSE_BLOCK_VOXEL_COUNT);
+
+                        ChannelVoxelStatistics& dstStatistics = perBlockStatistics[channelBlockIndex];
+                        dstStatistics.minValue = std::numeric_limits<float>::max();
+                        dstStatistics.maxValue = std::numeric_limits<float>::min();
+                        for (float voxel : outBlock.voxels)
+                        {
+                            dstStatistics.minValue = std::min(dstStatistics.minValue, voxel);
+                            dstStatistics.maxValue = std::max(dstStatistics.maxValue, voxel);
+                            dstStatistics.meanPositiveValue += voxel > 0.0f ? voxel : 0.0f;
+                            dstStatistics.meanNegativeValue += voxel < 0.0f ? voxel : 0.0f;
+                        }
+                        dstStatistics.meanPositiveValue /= static_cast<float>(SPARSE_BLOCK_VOXEL_COUNT);
+                        dstStatistics.meanNegativeValue /= static_cast<float>(SPARSE_BLOCK_VOXEL_COUNT);
+
+                        ++chIdx;
                     }
-                    dstStatistics.meanPositiveValue /= static_cast<float>(SPARSE_BLOCK_VOXEL_COUNT);
-                    dstStatistics.meanNegativeValue /= static_cast<float>(SPARSE_BLOCK_VOXEL_COUNT);
 
-                    ++chIdx;
-                }
-
-                SpatialBlockInfo spatialInfo{};
-                spatialInfo.coords[0] = coord.x() - totalAABB.minX;
-                spatialInfo.coords[1] = coord.y() - totalAABB.minY;
-                spatialInfo.coords[2] = coord.z() - totalAABB.minZ;
-                spatialInfo.channelMask = mask;
-                spatialInfo.channelCount = spatialIntrm.blocks.size();
-                spatialInfo.channelBlocksOffset = spatialIntrm.destFirstChannelBlockIndex;
-                resultSpatialInfo[spatialIntrm.destSpatialBlockIndex] = spatialInfo;
-            });
+                    SpatialBlockInfo spatialInfo{};
+                    spatialInfo.coords[0] = coord.x() - totalAABB.minX;
+                    spatialInfo.coords[1] = coord.y() - totalAABB.minY;
+                    spatialInfo.coords[2] = coord.z() - totalAABB.minZ;
+                    spatialInfo.channelMask = mask;
+                    spatialInfo.channelCount = spatialIntrm.blocks.size();
+                    spatialInfo.channelBlocksOffset = spatialIntrm.destFirstChannelBlockIndex;
+                    resultSpatialInfo[spatialIntrm.destSpatialBlockIndex] = spatialInfo;
+                });
 
             // Resolving concurrently calculated per block voxel statistics to general frame per channel voxel statistics.
             for (size_t i = 0; i < perBlockStatistics.size(); ++i)
@@ -327,6 +329,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 delete frame;
             }
         }
+
     private:
         /**
          * Iterates over input channel grid leafs, resolved offsets and adds transition data (SpatialBlockIntermediate) to spatialMap.
@@ -426,13 +429,18 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             return result;
         }
 
-        static void PackFromStride(void* dst, const void* src, size_t stride, size_t offset, size_t size, size_t count) noexcept {
-            if (stride == size && offset == 0) {
+        static void PackFromStride(void* dst, const void* src, size_t stride, size_t offset, size_t size, size_t count) noexcept
+        {
+            if (stride == size && offset == 0)
+            {
                 memcpy(dst, src, count * size);
-            } else {
+            }
+            else
+            {
                 auto* dstBytes = static_cast<uint8_t*>(dst);
                 auto* srcBytes = static_cast<const uint8_t*>(src);
-                for (size_t i = 0; i < count; ++i) {
+                for (size_t i = 0; i < count; ++i)
+                {
                     memcpy(dstBytes + size * i, srcBytes + stride * i + offset, size);
                 }
             }

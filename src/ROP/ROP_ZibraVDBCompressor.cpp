@@ -318,7 +318,7 @@ namespace Zibra::ZibraVDBCompressor
 
         if (!HoudiniLicenseManager::GetInstance().CheckLicense(HoudiniLicenseManager::Product::Compression))
         {
-            if (LicenseManager::GetInstance().IsAnyLicenseValid())
+            if (HoudiniLicenseManager::GetInstance().IsAnyLicenseValid())
             {
                 addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_NO_COMPRESSION);
             }
@@ -382,7 +382,7 @@ namespace Zibra::ZibraVDBCompressor
         }
 
         m_OrderedChannelNames.clear();
-        m_OrderedChannelNames.reserve(Zibra::CE::MAX_CHANNEL_COUNT);
+        m_OrderedChannelNames.reserve(CE::MAX_CHANNEL_COUNT);
         const GEO_Primitive* prim;
         GA_FOR_ALL_PRIMITIVES(gdp, prim)
         {
@@ -390,9 +390,9 @@ namespace Zibra::ZibraVDBCompressor
             {
                 auto vdbPrim = dynamic_cast<const GEO_PrimVDB*>(prim);
                 auto gridName = vdbPrim->getGridName();
-                if (m_OrderedChannelNames.size() >= Zibra::CE::MAX_CHANNEL_COUNT)
+                if (m_OrderedChannelNames.size() >= CE::MAX_CHANNEL_COUNT)
                 {
-                    std::string m = "Input has quantity of VDB primitives greater than "s + std::to_string(Zibra::CE::MAX_CHANNEL_COUNT) +
+                    std::string m = "Input has quantity of VDB primitives greater than "s + std::to_string(CE::MAX_CHANNEL_COUNT) +
                                     " supported. Skipping '"s + gridName + "'.";
                     addError(ROP_MESSAGE, m.c_str());
                     break;
@@ -507,8 +507,8 @@ namespace Zibra::ZibraVDBCompressor
         compressFrameDesc.frame = vdbFrameLoader.LoadFrame();
         const auto& gridsShuffleInfo = vdbFrameLoader.GetGridsShuffleInfo();
 
-        auto status = CompressFrame(compressFrameDesc, &frameManager);
-        if (status != CE::ZCE_SUCCESS)
+        Result res = CompressFrame(compressFrameDesc, &frameManager);
+        if (ZIB_FAILED(res))
         {
             RenameGrids(gdp, originalGridNames);
             addError(ROP_MESSAGE, "Failed to compress sequence frame.");
@@ -533,16 +533,16 @@ namespace Zibra::ZibraVDBCompressor
                 return ROP_ABORT_RENDER;
             }
             STDOStreamWrapper streamWrapper{outFrameFile};
-            status = frameManager->FinishAndEncode(&streamWrapper);
+            res = frameManager->FinishAndEncode(&streamWrapper);
             outFrameFile.close();
         }
         else
         {
             auto frameOutStream = new OStreamRAMWrapper{};
-            status = frameManager->FinishAndEncode(frameOutStream);
-            m_BakedFrames.emplace(ctx.getFrame(), frameOutStream);
+            res = frameManager->FinishAndEncode(frameOutStream);
+            m_BakedFrames.emplace(int32_t(ctx.getFrame()), frameOutStream);
         }
-        if (status != CE::ReturnCode::ZCE_SUCCESS)
+        if (ZIB_FAILED(res))
         {
             RenameGrids(gdp, originalGridNames);
             addError(ROP_MESSAGE, "Failed to dump frame data.");
@@ -579,11 +579,7 @@ namespace Zibra::ZibraVDBCompressor
             return ROP_ABORT_RENDER;
         }
 
-        std::string warning;
-
-        auto status = m_CompressorManager.FinishSequence(warning);
-
-        if (status != CE::ZCE_SUCCESS)
+        if (m_Compressor)
         {
             m_Compressor->Release();
             m_Compressor = nullptr;
@@ -604,8 +600,8 @@ namespace Zibra::ZibraVDBCompressor
             {
                 UT_String filename = "";
                 evalString(filename, FILENAME_PARAM_NAME, nullptr, 0, m_StartTime);
-                auto status = MergeSequence(filename.c_str());
-                if (status != CE::ZCE_SUCCESS)
+                Result res = MergeSequence(filename.c_str());
+                if (ZIB_FAILED(res))
                 {
                     addError(ROP_MESSAGE, "Failed to finalize sequence merge.");
                     m_BakedFrames.clear();
@@ -632,16 +628,6 @@ namespace Zibra::ZibraVDBCompressor
 
     ROP_RENDER_CODE ROP_ZibraVDBCompressor::CreateCompressor(const OP_Context& ctx) noexcept
     {
-        UT_String filename = "";
-        OP_Context ctx(tStart);
-        evalString(filename, FILENAME_PARAM_NAME, nullptr, 0, tStart);
-
-        std::error_code ec;
-        // Intentionally ignoring errors
-        // This is needed for relative paths to work properly
-        // If path is invalid, we'll error out later on
-        std::filesystem::create_directories(std::filesystem::path{filename.c_str()}.parent_path(), ec);
-
         const int renderMode = static_cast<int>(evalInt("trange", 0, ctx.getTime()));
         const float frameInc = renderMode == 0 ? 1 : evalFloat("f", 2, ctx.getTime());
         CE::PlaybackInfo playbackInfo{};
@@ -690,7 +676,7 @@ namespace Zibra::ZibraVDBCompressor
             }
         }
 
-        if (InitCompressor(defaultQuality, perChannelCompressionSettings) != CE::ReturnCode::ZCE_SUCCESS)
+        if (ZIB_FAILED(InitCompressor(defaultQuality, perChannelCompressionSettings)))
         {
             addError(ROP_MESSAGE, "Failed to initialize compressor.");
             return ROP_ABORT_RENDER;
@@ -699,153 +685,153 @@ namespace Zibra::ZibraVDBCompressor
         return ROP_CONTINUE_RENDER;
     }
 
-    CE::ReturnCode ROP_ZibraVDBCompressor::InitCompressor(float defaultQuality,
-                                                          const std::vector<std::pair<UT_String, float>>& perChannelSettings) noexcept
+    Result ROP_ZibraVDBCompressor::InitCompressor(float defaultQuality,
+                                                  const std::vector<std::pair<UT_String, float>>& perChannelSettings) noexcept
     {
         if (!LibraryUtils::IsLibraryLoaded())
-            return CE::ZCE_ERROR;
+            return RESULT_ERROR;
 
         RHI::RHIFactory* RHIFactory = nullptr;
         auto RHIstatus = RHI::CreateRHIFactory(&RHIFactory);
-        if (RHIstatus != RHI::ZRHI_SUCCESS)
+        if (RHIstatus != RESULT_SUCCESS)
         {
-            return CE::ZCE_ERROR;
+            return RESULT_ERROR;
         }
 
         RHIstatus = RHIFactory->SetGFXAPI(Helpers::SelectGFXAPI());
-        if (RHIstatus != RHI::ZRHI_SUCCESS)
+        if (RHIstatus != RESULT_SUCCESS)
         {
-            return CE::ZCE_ERROR;
+            return RESULT_ERROR;
         }
 
         if (Helpers::NeedForceSoftwareDevice())
         {
             RHIstatus = RHIFactory->ForceSoftwareDevice();
-            if (RHIstatus != RHI::ZRHI_SUCCESS)
+            if (RHIstatus != RESULT_SUCCESS)
             {
-                return CE::ZCE_ERROR;
+                return RESULT_ERROR;
             }
         }
 
         RHIstatus = RHIFactory->Create(&m_RHIRuntime);
-        if (RHIstatus != RHI::ZRHI_SUCCESS)
+        if (RHIstatus != RESULT_SUCCESS)
         {
-            return CE::ZCE_ERROR;
+            return RESULT_ERROR;
         }
 
         RHIstatus = m_RHIRuntime->Initialize();
-        if (RHIstatus != RHI::ZRHI_SUCCESS)
+        if (RHIstatus != RESULT_SUCCESS)
         {
             m_RHIRuntime->Release();
             m_RHIRuntime = nullptr;
-            return CE::ZCE_ERROR;
+            return RESULT_ERROR;
         }
 
         CE::Compression::CompressorFactory* compressorFactory = nullptr;
-        auto status = CE::Compression::CreateCompressorFactory(&compressorFactory);
-        if (status != CE::ZCE_SUCCESS)
+        Result res = CE::Compression::CreateCompressorFactory(&compressorFactory);
+        if (ZIB_FAILED(res))
         {
-            return CE::ZCE_ERROR;
+            return RESULT_ERROR;
         }
 
-        status = compressorFactory->UseRHI(m_RHIRuntime);
-        if (status != CE::ZCE_SUCCESS)
+        res = compressorFactory->UseRHI(m_RHIRuntime);
+        if (ZIB_FAILED(res))
         {
             compressorFactory->Release();
-            return status;
+            return res;
         }
-        status = compressorFactory->SetQuality(defaultQuality);
-        if (status != CE::ZCE_SUCCESS)
+        res = compressorFactory->SetQuality(defaultQuality);
+        if (ZIB_FAILED(res))
         {
             compressorFactory->Release();
-            return status;
+            return res;
         }
 
         for (const auto& [channelName, quality] : perChannelSettings)
         {
-            status = compressorFactory->OverrideChannelQuality(channelName.c_str(), quality);
-            if (status != CE::ZCE_SUCCESS)
+            res = compressorFactory->OverrideChannelQuality(channelName.c_str(), quality);
+            if (ZIB_FAILED(res))
             {
                 compressorFactory->Release();
-                return status;
+                return res;
             }
         }
 
-        status = compressorFactory->Create(&m_Compressor);
-        if (status != CE::ZCE_SUCCESS)
+        res = compressorFactory->Create(&m_Compressor);
+        if (ZIB_FAILED(res))
         {
             compressorFactory->Release();
-            return status;
+            return res;
         }
         compressorFactory->Release();
 
         return m_Compressor->Initialize();
     }
 
-    CE::ReturnCode ROP_ZibraVDBCompressor::CompressFrame(const CE::Compression::CompressFrameDesc& desc,
-                                                         CE::Compression::FrameManager** outManager) noexcept
+    Result ROP_ZibraVDBCompressor::CompressFrame(const CE::Compression::CompressFrameDesc& desc,
+                                                 CE::Compression::FrameManager** outManager) noexcept
     {
         if (!m_RHIRuntime || !m_Compressor)
         {
-            return CE::ZCE_ERROR;
+            return RESULT_ERROR;
         }
 
         auto RHIStatus = m_RHIRuntime->StartRecording();
-        if (RHIStatus != RHI::ZRHI_SUCCESS)
+        if (RHIStatus != RESULT_SUCCESS)
         {
-            return CE::ZCE_ERROR;
+            return RESULT_ERROR;
         }
 
-        auto status = m_Compressor->CompressFrame(desc, outManager);
-        if (status != CE::ZCE_SUCCESS)
+        Result res = m_Compressor->CompressFrame(desc, outManager);
+        if (ZIB_FAILED(res))
         {
-            return status;
+            return res;
         }
 
         RHIStatus = m_RHIRuntime->StopRecording();
-        if (RHIStatus != RHI::ZRHI_SUCCESS)
+        if (RHIStatus != RESULT_SUCCESS)
         {
-            return CE::ZCE_ERROR;
+            return RESULT_ERROR;
         }
-        return CE::ZCE_SUCCESS;
+        return RESULT_SUCCESS;
     }
 
-    CE::ReturnCode ROP_ZibraVDBCompressor::MergeSequence(std::filesystem::path outPath) noexcept
+    Result ROP_ZibraVDBCompressor::MergeSequence(std::filesystem::path outPath) noexcept
     {
         CE::Compression::SequenceMerger* merger = nullptr;
-        auto status = CE::Compression::CreateSequenceMerger(&merger);
-        if (status != CE::ZCE_SUCCESS)
-            return status;
+        Result res = CE::Compression::CreateSequenceMerger(&merger);
+        if (ZIB_FAILED(res))
+            return res;
 
         std::vector<MemoryIStream*> views{};
         for (auto [frameNumber, frameStream] : m_BakedFrames)
         {
             auto& container = frameStream->GetContainer();
-            status = merger->AddSequence(views.emplace_back(new MemoryIStream{container.data(), container.size()}), frameNumber);
-            if (status != CE::ZCE_SUCCESS)
-                return status;
+            res = merger->AddSequence(views.emplace_back(new MemoryIStream{container.data(), container.size()}), frameNumber);
+            if (ZIB_FAILED(res))
+                return res;
         }
 
         merger->AddMetadata("__ORIGIN", "ZibraVDBForHoudini");
 #ifdef WIN32
         merger->AddMetadata("__PLATFORM", "Windows");
 #elif __APPLE__
-        merger->AddMetadata("_PLATFORM", "Apple");
+        merger->AddMetadata("__PLATFORM", "Apple");
 #elif __linux__
-        merger->AddMetadata("_PLATFORM", "Linux");
+        merger->AddMetadata("__PLATFORM", "Linux");
 #endif
 
         std::ofstream outFile{outPath, std::ios::binary};
         if (!outFile.is_open())
-            return CE::ZCE_ERROR;
+            return RESULT_ERROR;
         STDOStreamWrapper wrapper{outFile};
-        status = merger->Finish(&wrapper);
+        res = merger->Finish(&wrapper);
         outFile.close();
         for (auto item : views)
         {
             delete item;
         }
-        return status;
+        return res;
     }
 
     void ROP_ZibraVDBCompressor::getOutputFile(UT_String& filename)
@@ -853,8 +839,7 @@ namespace Zibra::ZibraVDBCompressor
         evalString(filename, "filename", nullptr, 0, m_StartTime);
     }
 
-    std::vector<std::pair<std::string, std::string>> ROP_ZibraVDBCompressor::DumpAttributes(
-        const GU_Detail* gdp, const CE::Addons::OpenVDBUtils::EncodingMetadata& encodingMetadata) noexcept
+    std::vector<std::pair<std::string, std::string>> ROP_ZibraVDBCompressor::DumpAttributes(const GU_Detail* gdp) noexcept
     {
         std::vector<std::pair<std::string, std::string>> result{};
 

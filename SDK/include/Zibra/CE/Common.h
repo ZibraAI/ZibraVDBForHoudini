@@ -1,7 +1,45 @@
 #pragma once
 
-#include <Zibra/Version.h>
 #include <Zibra/Math.h>
+#include <Zibra/Result.h>
+#include <Zibra/Version.h>
+
+#ifdef ZIB_DEBUG_BUILD
+#define ZIB_DEBUG_ONLY(x) x
+#else
+#define ZIB_DEBUG_ONLY(x)
+#endif
+
+#ifdef ZIB_PROFILE_BUILD
+#define ZIB_PROFILE_ONLY(x) x
+#else
+#define ZIB_PROFILE_ONLY(x)
+#endif
+
+#if defined(ZIB_DEBUG_BUILD) || defined(ZIB_PROFILE_BUILD)
+#define ZIB_DEBUG_OR_PROFILE_ONLY(x) x
+#else
+#define ZIB_DEBUG_OR_PROFILE_ONLY(x)
+#endif
+
+namespace Zibra
+{
+    ZIB_RESULT_DEFINE_CATEGORY(COMPRESSION_ENGINE, 0x100);
+
+    ZIB_RESULT_DEFINE(INVALID_SOURCE, COMPRESSION_ENGINE, 0x0, "Provided source data is not valid .zibravdb sequence.", true);
+    ZIB_RESULT_DEFINE(INCOMPATIBLE_SOURCE, COMPRESSION_ENGINE, 0x1,
+                      "Specified .zibravdb sequence file version is not compatible with current SDK.", true);
+    ZIB_RESULT_DEFINE(CORRUPTED_SOURCE, COMPRESSION_ENGINE, 0x2, ".zibravdb sequence is corrupted.", true);
+    ZIB_RESULT_DEFINE(MERGE_VERSION_MISMATCH, COMPRESSION_ENGINE, 0x3,
+                      "Specified .zibravdb sequence does not use current file version and can't be merged.", true);
+    ZIB_RESULT_DEFINE(BINARY_FILE_SAVED_AS_TEXT, COMPRESSION_ENGINE, 0x4,
+                      "Specified .zibravdb sequence was corrupted by saving it as text.", true);
+
+    ZIB_RESULT_DEFINE(COMPRESSION_LICENSE_ERROR, COMPRESSION_ENGINE, 0x100, "ZibraVDB compression requires active license.", true);
+    ZIB_RESULT_DEFINE(DECOMPRESSION_LICENSE_ERROR, COMPRESSION_ENGINE, 0x101, "Decompression of this file requires active license.", true);
+    ZIB_RESULT_DEFINE(DECOMPRESSION_LICENSE_TIER_TOO_LOW, COMPRESSION_ENGINE, 0x102,
+                      "Your license does not allow decompression of this effect.", true);
+} // namespace Zibra
 
 namespace Zibra::CE
 {
@@ -10,42 +48,6 @@ namespace Zibra::CE
     static constexpr size_t MAX_CHANNEL_COUNT = 32;
 
     using ChannelMask = uint32_t;
-
-    enum ReturnCode
-    {
-        // Successfully finished operation
-        ZCE_SUCCESS = 0,
-        // Unexpected error
-        ZCE_ERROR = 100,
-        // Fatal error
-        ZCE_FATAL_ERROR = 110,
-
-        ZCE_ERROR_NOT_INITIALIZED = 200,
-        ZCE_ERROR_ALREADY_INITIALIZED = 201,
-
-        ZCE_ERROR_INVALID_USAGE = 300,
-        ZCE_ERROR_INVALID_ARGUMENTS = 301,
-        ZCE_ERROR_NOT_IMPLEMENTED = 310,
-        ZCE_ERROR_NOT_SUPPORTED = 311,
-
-        ZCE_ERROR_NOT_FOUND = 400,
-        ZCE_ERROR_ALREADY_PRESENT = 401,
-        // Out of CPU memory
-        ZCE_ERROR_OUT_OF_CPU_MEMORY = 410,
-        // Out of GPU memory
-        ZCE_ERROR_OUT_OF_GPU_MEMORY = 411,
-        ZCE_ERROR_OUT_OF_BOUNDS = 415,
-        // Time out
-        ZCE_ERROR_TIME_OUT = 430,
-
-        ZCE_ERROR_INVALID_SOURCE = 500,
-        ZCE_ERROR_INCOMPTIBLE_SOURCE = 501,
-        ZCE_ERROR_CORRUPTED_SOURCE = 502,
-        ZCE_ERROR_IO_ERROR = 503,
-
-        ZCE_ERROR_LICENSE_ERROR = 1000,
-        ZCE_ERROR_LICENSE_TIER_TOO_LOW = 1001,
-    };
 
     struct MetadataEntry
     {
@@ -206,7 +208,7 @@ namespace Zibra::CE
 
     template <class T>
     constexpr void NormalizeRange(T* data, const size_t size, const T minValue, const T maxValue, const T newMinValue,
-                                         const T newMaxValue) noexcept
+                                  const T newMaxValue) noexcept
     {
         for (size_t i = 0; i < size; i++)
         {

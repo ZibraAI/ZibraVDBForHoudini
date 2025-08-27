@@ -17,9 +17,9 @@ namespace Zibra::Helpers
         };
 
     public:
-        CE::ReturnCode Initialize() noexcept;
-        CE::ReturnCode RegisterDecompressor(const UT_String& filename) noexcept;
-        CE::ReturnCode DecompressFrame(CE::Decompression::CompressedFrameContainer* frameContainer,
+        Result Initialize() noexcept;
+        Result RegisterDecompressor(const UT_String& filename) noexcept;
+        Result DecompressFrame(CE::Decompression::CompressedFrameContainer* frameContainer,
                                        std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridShuffle,
                                        openvdb::GridPtrVec* vdbGrids) noexcept;
         CE::Decompression::CompressedFrameContainer* FetchFrame(const exint& frameIndex) const noexcept;
@@ -27,11 +27,11 @@ namespace Zibra::Helpers
         void Release() noexcept;
 
     private:
-        CE::ReturnCode GetDecompressedFrameData(uint16_t* perChannelBlockData, size_t channelBlocksCount,
+        Result GetDecompressedFrameData(uint16_t* perChannelBlockData, size_t channelBlocksCount,
                                                 CE::Decompression::Shaders::PackedSpatialBlockInfo* perSpatialBlockInfo,
                                                 size_t spatialBlocksCount) const noexcept;
-        CE::ReturnCode AllocateExternalBuffer(BufferDesc& bufferDesc, size_t newSizeInBytes, size_t newStride) noexcept;
-        CE::ReturnCode FreeExternalBuffers() noexcept;
+        Result AllocateExternalBuffer(BufferDesc& bufferDesc, size_t newSizeInBytes, size_t newStride) noexcept;
+        Result FreeExternalBuffers() noexcept;
 
     private:
         std::optional<std::pair<std::ifstream*, IStream*>> m_FileStream = std::nullopt;

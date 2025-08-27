@@ -21,6 +21,7 @@ namespace Zibra
     {
     public:
         using ElementType = std::remove_const_t<T>;
+        using ConstElementType = std::add_const_t<ElementType>;
         using VectorType = std::conditional_t<std::is_const_v<T>, const std::vector<ElementType>, std::vector<ElementType>>;
         template <std::size_t N>
         using ArrayType = std::conditional_t<std::is_const_v<T>, const std::array<ElementType, N>, std::array<ElementType, N>>;
@@ -66,10 +67,10 @@ namespace Zibra
         {
         }
 
-        template <typename U = T>
-        BasicSpan(const BasicSpan<ElementType>& nonConstSpan, std::enable_if_t<std::is_const_v<U>, int> = 0)
-            : m_Data(nonConstSpan.m_Data)
-            , m_Size(nonConstSpan.m_Size)
+        template <typename U = T, typename = std::enable_if_t<std::is_const_v<U>>>
+        BasicSpan(const BasicSpan<ElementType>& nonConstSpan)
+            : m_Data(nonConstSpan.data())
+            , m_Size(nonConstSpan.size())
         {
         }
 
@@ -89,6 +90,11 @@ namespace Zibra
             return m_Data;
         }
 
+        const T* data() const
+        {
+            return m_Data;
+        }
+
         size_t size() const
         {
             return m_Size;
@@ -100,14 +106,21 @@ namespace Zibra
             return m_Data[index];
         }
 
-        // Helper methods
-        bool ContentEquals(const BasicSpan<T>& other) const
+        template <typename U = T, typename = std::enable_if_t<!std::is_const_v<U>>>
+        T& operator[](size_t index)
         {
-            if (m_Size != other.m_Size)
+            assert(index < m_Size);
+            return m_Data[index];
+        }
+
+        // Helper methods
+        bool ContentEquals(BasicSpan<ConstElementType> other) const
+        {
+            if (size() != other.size())
             {
                 return false;
             }
-            return memcmp(m_Data, other.m_Data, m_Size * sizeof(T)) == 0;
+            return memcmp(data(), other.data(), size() * sizeof(T)) == 0;
         }
 
     private:
@@ -118,15 +131,11 @@ namespace Zibra
     template <typename T>
     class ReinterpretReadSpan : public BasicSpan<T>
     {
-    private:
-        struct DummyStruct
-        {
-        };
     public:
         using BasicSpan<T>::BasicSpan;
 
-        template <typename T2>
-        ReinterpretReadSpan(const T2& element, std::enable_if_t<!std::is_base_of_v<SpanFlag, T2>, DummyStruct> = {})
+        template <typename T2, typename = std::enable_if_t<!std::is_base_of_v<SpanFlag, T2>>>
+        ReinterpretReadSpan(const T2& element)
             : BasicSpan<T>(reinterpret_cast<const T*>(&element), sizeof(T2) / sizeof(T))
         {
             static_assert(std::is_trivially_destructible_v<T2>);
@@ -134,9 +143,8 @@ namespace Zibra
             static_assert(sizeof(T2) % sizeof(T) == 0);
         }
 
-        template <typename T2>
-        ReinterpretReadSpan(const T2* elements, size_t elementCount,
-                            std::enable_if_t < !std::is_same_v<std::remove_const_t<T>, std::remove_const_t<T2>>, DummyStruct> = {})
+        template <typename T2, typename = std::enable_if_t<!std::is_same_v<std::remove_const_t<T>, std::remove_const_t<T2>>>>
+        ReinterpretReadSpan(const T2* elements, size_t elementCount)
             : BasicSpan<T>(reinterpret_cast<const T*>(elements), sizeof(T2) * elementCount / sizeof(T))
         {
             static_assert(sizeof(T2) % sizeof(T) == 0);
@@ -173,15 +181,11 @@ namespace Zibra
     template <typename T>
     class ReinterpretWriteSpan : public BasicSpan<T>
     {
-    private:
-        struct DummyStruct
-        {
-        };
     public:
         using BasicSpan<T>::BasicSpan;
 
-        template <typename T2>
-        ReinterpretWriteSpan(T2& element, std::enable_if_t<!std::is_base_of_v<SpanFlag, T2>, DummyStruct> = {})
+        template <typename T2, typename = std::enable_if_t<!std::is_base_of_v<SpanFlag, T2>>>
+        ReinterpretWriteSpan(T2& element)
             : BasicSpan<T>(reinterpret_cast<T*>(&element), sizeof(T2) / sizeof(T))
         {
             static_assert(std::is_trivially_destructible_v<T2>);
@@ -189,9 +193,8 @@ namespace Zibra
             static_assert(sizeof(T2) % sizeof(T) == 0);
         }
 
-        template <typename T2>
-        ReinterpretWriteSpan(T2* elements, size_t elementCount,
-                             std::enable_if_t<!std::is_same_v<std::remove_const_t<T>, std::remove_const_t<T2>>, DummyStruct> = {})
+        template <typename T2, typename = std::enable_if_t<!std::is_same_v<std::remove_const_t<T>, std::remove_const_t<T2>>>>
+        ReinterpretWriteSpan(T2* elements, size_t elementCount)
             : BasicSpan<T>(reinterpret_cast<T*>(elements), sizeof(T2) * elementCount / sizeof(T))
         {
             static_assert(sizeof(T2) % sizeof(T) == 0);
