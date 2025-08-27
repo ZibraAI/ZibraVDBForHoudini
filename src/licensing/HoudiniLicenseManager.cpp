@@ -46,6 +46,7 @@ namespace Zibra
         {
             return m_Manager->GetProductLicenseTier(CE::Licensing::ProductType(product));
         }
+
         return -1;
     }
 

@@ -18,20 +18,21 @@ namespace Zibra::Helpers
 
         if (!Zibra::LibraryUtils::IsLibraryLoaded())
         {
-            return RESULT_ERROR;
+            assert(0);
+            return RESULT_UNEXPECTED_ERROR;
         }
 
         RHI::RHIFactory* RHIFactory = nullptr;
         Result res = RHI::CreateRHIFactory(&RHIFactory);
         if (ZIB_FAILED(res))
         {
-            return RESULT_ERROR;
+            return res;
         }
 
         res = RHIFactory->SetGFXAPI(Helpers::SelectGFXAPI());
         if (ZIB_FAILED(res))
         {
-            return RESULT_ERROR;
+            return res;
         }
 
         if (Helpers::NeedForceSoftwareDevice())
@@ -39,14 +40,14 @@ namespace Zibra::Helpers
             res = RHIFactory->ForceSoftwareDevice();
             if (ZIB_FAILED(res))
             {
-                return RESULT_ERROR;
+                return res;
             }
         }
 
         res = RHIFactory->Create(&m_RHIRuntime);
         if (ZIB_FAILED(res))
         {
-            return RESULT_ERROR;
+            return res;
         }
         RHIFactory->Release();
 
@@ -55,7 +56,7 @@ namespace Zibra::Helpers
         {
             m_RHIRuntime->Release();
             m_RHIRuntime = nullptr;
-            return RESULT_ERROR;
+            return res;
         }
 
         m_IsInitialized = true;
@@ -89,7 +90,7 @@ namespace Zibra::Helpers
                 static_cast<uint32_t>(newStride), "decompressionPerChannelBlockData", &bufferDesc.buffer);
             if (ZIB_FAILED(res))
             {
-                return RESULT_ERROR;
+                return res;
             }
             bufferDesc.sizeInBytes = newSizeInBytes;
             bufferDesc.stride = newStride;
@@ -110,7 +111,7 @@ namespace Zibra::Helpers
         if (!stream->is_open() || !stream->good())
         {
             delete stream;
-            return RESULT_ERROR;
+            return RESULT_FILE_NOT_FOUND;
         }
         m_FileStream = {stream, new STDIStreamWrapper{*stream}};
 
@@ -194,12 +195,13 @@ namespace Zibra::Helpers
     {
         if (!m_RHIRuntime || !m_Decompressor)
         {
-            return RESULT_ERROR;
+            assert(0);
+            return RESULT_UNEXPECTED_ERROR;
         }
         auto res = m_RHIRuntime->StartRecording();
         if (ZIB_FAILED(res))
         {
-            return RESULT_ERROR;
+            return res;
         }
 
         const auto frameInfo = frameContainer->GetInfo();
@@ -263,7 +265,7 @@ namespace Zibra::Helpers
         res = m_RHIRuntime->StopRecording();
         if (ZIB_FAILED(res))
         {
-            return RESULT_ERROR;
+            return res;
         }
 
         *vdbGrids = encoder.GetGrids();
@@ -276,21 +278,22 @@ namespace Zibra::Helpers
     {
         if (!m_RHIRuntime)
         {
-            return RESULT_ERROR;
+            assert(0);
+            return RESULT_UNEXPECTED_ERROR;
         }
 
         auto res = m_RHIRuntime->GetBufferDataImmediately(m_DecompressionPerSpatialBlockInfoBuffer.buffer, perSpatialBlockInfo,
                                                                 spatialBlocksCount * sizeof(perSpatialBlockInfo[0]), 0);
         if (ZIB_FAILED(res))
         {
-            return RESULT_ERROR;
+            return res;
         }
         const size_t channelBlockDataElementCount = channelBlocksCount * CE::SPARSE_BLOCK_VOXEL_COUNT;
         res = m_RHIRuntime->GetBufferDataImmediately(m_DecompressionPerChannelBlockDataBuffer.buffer, perChannelBlockData,
                                                            channelBlockDataElementCount * sizeof(perChannelBlockData[0]), 0);
         if (ZIB_FAILED(res))
         {
-            return RESULT_ERROR;
+            return res;
         }
 
         return RESULT_SUCCESS;

@@ -138,9 +138,10 @@ namespace Zibra::ZibraVDBDecompressor
             addWarning(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_FRAME_NOT_PRESENT);
             return error(context);
         }
+        ZIB_ON_SCOPE_EXIT([&]() { frameContainer->Release(); });
+
         if (frameContainer->GetInfo().spatialInfoCount == 0)
         {
-            frameContainer->Release();
             return error(context);
         }
 
@@ -151,8 +152,8 @@ namespace Zibra::ZibraVDBDecompressor
         ReleaseGridShuffleInfo(gridShuffle);
         if (ZIB_FAILED(res))
         {
-            frameContainer->Release();
-            addError(SOP_MESSAGE, "Error when trying to decompress frame.");
+            std::string errorMessage = "Failed to decompress frame: " + LibraryUtils::ErrorCodeToString(res);
+            addError(SOP_MESSAGE, errorMessage.c_str());
             return error(context);
         }
 
@@ -174,8 +175,6 @@ namespace Zibra::ZibraVDBDecompressor
         }
 
         ApplyDetailMetadata(gdp, frameContainer);
-
-        frameContainer->Release();
 
         return error(context);
     }
@@ -276,12 +275,11 @@ namespace Zibra::ZibraVDBDecompressor
         CompressedFrameContainer* frameContainer) noexcept
     {
         static std::map<std::string, CE::Addons::OpenVDBUtils::GridVoxelType> strToVoxelType = {
-            {"Float1", CE::Addons::OpenVDBUtils::GridVoxelType::Float1},
-            {"Float3", CE::Addons::OpenVDBUtils::GridVoxelType::Float3}
-        };
+            {"Float1", CE::Addons::OpenVDBUtils::GridVoxelType::Float1}, {"Float3", CE::Addons::OpenVDBUtils::GridVoxelType::Float3}};
 
         const char* meta = frameContainer->GetMetadataByKey("chShuffle");
-        if (!meta) return {};
+        if (!meta)
+            return {};
 
         auto serialized = nlohmann::json::parse(meta);
         if (!serialized.is_array())

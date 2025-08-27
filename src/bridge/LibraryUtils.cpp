@@ -360,6 +360,8 @@ namespace Zibra::LibraryUtils
             return RESULT_DECOMPRESSION_LICENSE_ERROR_DESCRIPTION;
         case RESULT_DECOMPRESSION_LICENSE_TIER_TOO_LOW:
             return RESULT_DECOMPRESSION_LICENSE_TIER_TOO_LOW_DESCRIPTION;
+        case RESULT_FILE_NOT_FOUND:
+            return RESULT_FILE_NOT_FOUND_DESCRIPTION;
         default:
             assert(0);
             return "Unknown error: " + std::to_string(errorCode);
