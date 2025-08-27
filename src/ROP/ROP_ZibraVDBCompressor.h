@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Zibra/CE/Addons/OpenVDBCommon.h>
+
 #include "OStreamRAMWrapper.h"
 
 namespace Zibra::ZibraVDBCompressor
@@ -65,8 +66,7 @@ namespace Zibra::ZibraVDBCompressor
     private:
         static std::vector<PRM_Template>& GetTemplateListContainer(ContextType contextType) noexcept;
 
-        std::vector<std::pair<std::string, std::string>> DumpAttributes(
-            const GU_Detail* gdp) noexcept;
+        std::vector<std::pair<std::string, std::string>> DumpAttributes(const GU_Detail* gdp) noexcept;
         void DumpVisualisationAttributes(std::vector<std::pair<std::string, std::string>>& attributes, const GEO_PrimVDB* vdbPrim) noexcept;
         nlohmann::json DumpGridsShuffleInfo(const std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridDescs) noexcept;
         void RenameGrids(const GU_Detail* gdp, const std::vector<std::string>& newGridNames) noexcept;

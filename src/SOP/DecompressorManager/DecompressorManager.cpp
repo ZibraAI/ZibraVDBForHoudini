@@ -190,8 +190,8 @@ namespace Zibra::Helpers
         return RESULT_SUCCESS;
     }
     Result DecompressorManager::DecompressFrame(CE::Decompression::CompressedFrameContainer* frameContainer,
-                                                        std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridShuffle,
-                                                        openvdb::GridPtrVec* vdbGrids) noexcept
+                                                std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridShuffle,
+                                                openvdb::GridPtrVec* vdbGrids) noexcept
     {
         if (!m_RHIRuntime || !m_Decompressor)
         {
@@ -273,8 +273,8 @@ namespace Zibra::Helpers
     }
 
     Result DecompressorManager::GetDecompressedFrameData(uint16_t* perChannelBlockData, size_t channelBlocksCount,
-                                                                 CE::Decompression::Shaders::PackedSpatialBlockInfo* perSpatialBlockInfo,
-                                                                 size_t spatialBlocksCount) const noexcept
+                                                         CE::Decompression::Shaders::PackedSpatialBlockInfo* perSpatialBlockInfo,
+                                                         size_t spatialBlocksCount) const noexcept
     {
         if (!m_RHIRuntime)
         {
@@ -283,14 +283,14 @@ namespace Zibra::Helpers
         }
 
         auto res = m_RHIRuntime->GetBufferDataImmediately(m_DecompressionPerSpatialBlockInfoBuffer.buffer, perSpatialBlockInfo,
-                                                                spatialBlocksCount * sizeof(perSpatialBlockInfo[0]), 0);
+                                                          spatialBlocksCount * sizeof(perSpatialBlockInfo[0]), 0);
         if (ZIB_FAILED(res))
         {
             return res;
         }
         const size_t channelBlockDataElementCount = channelBlocksCount * CE::SPARSE_BLOCK_VOXEL_COUNT;
         res = m_RHIRuntime->GetBufferDataImmediately(m_DecompressionPerChannelBlockDataBuffer.buffer, perChannelBlockData,
-                                                           channelBlockDataElementCount * sizeof(perChannelBlockData[0]), 0);
+                                                     channelBlockDataElementCount * sizeof(perChannelBlockData[0]), 0);
         if (ZIB_FAILED(res))
         {
             return res;

@@ -14,7 +14,7 @@ namespace Zibra
     {
         PFN_CreateRHIFactory CreateRHIFactory = nullptr;
         PFN_GetVersion GetVersion = nullptr;
-    }
+    } // namespace RHI
 
     namespace CE
     {
@@ -22,19 +22,19 @@ namespace Zibra
         {
             PFN_CreateFormatMapper CreateFormatMapper = nullptr;
             PFN_GetVersion GetVersion = nullptr;
-        }
+        } // namespace Decompression
         namespace Compression
         {
             PFN_CreateCompressorFactory CreateCompressorFactory = nullptr;
             PFN_CreateSequenceMerger CreateSequenceMerger = nullptr;
             PFN_GetVersion GetVersion = nullptr;
-        }
+        } // namespace Compression
         namespace Licensing
         {
             PFN_GetLicenseManager GetLicenseManager = nullptr;
         }
-    }
-}
+    } // namespace CE
+} // namespace Zibra
 
 namespace Zibra::LibraryUtils
 {
@@ -368,4 +368,3 @@ namespace Zibra::LibraryUtils
         }
     }
 } // namespace Zibra::LibraryUtils
-

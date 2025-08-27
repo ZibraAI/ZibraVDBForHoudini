@@ -256,7 +256,8 @@ namespace Zibra
 
         for (size_t i = 0; i < size_t(HoudiniLicenseManager::Product::Count); ++i)
         {
-            if (HoudiniLicenseManager::GetInstance().GetLicenseStatus(HoudiniLicenseManager::Product(i)) == HoudiniLicenseManager::Status::OK)
+            if (HoudiniLicenseManager::GetInstance().GetLicenseStatus(HoudiniLicenseManager::Product(i)) ==
+                HoudiniLicenseManager::Status::OK)
             {
                 UI::MessageBox::Show(UI::MessageBox::Type::OK, "Can not automatically remove license. If you wish to remove license from "
                                                                "HSITE or HQROOT please remove the file manually.");
@@ -281,11 +282,12 @@ namespace Zibra
             return;
         }
 
-        UI::MessageBox::Show(UI::MessageBox::Type::YesNo,
-                             "This will copy your license key, offline license or license server address to HSITE. This is intended for site-wide "
-                             "installation of the license. Note that \"Remove License\" button can not remove license from HSITE. In case "
-                             "you'll want to remove it, please manually remove the file. Do you wish to proceed?",
-                             &PluginManagementWindowImpl::HandleCopyLicenseToHSITECalback);
+        UI::MessageBox::Show(
+            UI::MessageBox::Type::YesNo,
+            "This will copy your license key, offline license or license server address to HSITE. This is intended for site-wide "
+            "installation of the license. Note that \"Remove License\" button can not remove license from HSITE. In case "
+            "you'll want to remove it, please manually remove the file. Do you wish to proceed?",
+            &PluginManagementWindowImpl::HandleCopyLicenseToHSITECalback);
     }
 
     void PluginManagementWindowImpl::HandleCopyLicenseToHSITECalback(UI::MessageBox::Result result)

@@ -1,7 +1,8 @@
+#include "HoudiniLicenseManager.h"
+
 #include <filesystem>
 #include <regex>
 
-#include "HoudiniLicenseManager.h"
 #include "bridge/LibraryUtils.h"
 #include "ui/MessageBox.h"
 #include "utils/Helpers.h"
@@ -39,7 +40,7 @@ namespace Zibra
     {
         if (!IsLicenseManagerLoaded())
         {
-            return - 1;
+            return -1;
         }
 
         if (m_Status[size_t(product)] == Status::OK)
