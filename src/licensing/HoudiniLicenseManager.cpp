@@ -18,12 +18,42 @@ namespace Zibra
         return instance;
     }
 
+    bool HoudiniLicenseManager::IsAnyLicenseValid() const
+    {
+        for (size_t i = 0; i < size_t(Product::Count); ++i)
+        {
+            if (m_Status[i] == Status::OK)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     HoudiniLicenseManager::Status HoudiniLicenseManager::GetLicenseStatus(Product product) const
     {
         return m_Status[size_t(product)];
     }
 
-    HoudiniLicenseManager::ActivationType HoudiniLicenseManager::GetLicenceType() const
+    int HoudiniLicenseManager::GetLicenseTier(Product product) const
+    {
+        if (m_Status[size_t(product)] == Status::OK)
+        {
+            return CE::Licensing::CAPI::GetProductLicenseTier(CE::Licensing::ProductType(size_t(product)));
+        }
+        return -1; // Return -1 if the license is not valid
+    }
+
+    const char* HoudiniLicenseManager::GetLicenseType(Product product) const
+    {
+        if (m_Status[size_t(product)] == Status::OK)
+        {
+            return CE::Licensing::CAPI::GetProductLicenseType(CE::Licensing::ProductType(size_t(product)));
+        }
+        return "None";
+    }
+
+    HoudiniLicenseManager::ActivationType HoudiniLicenseManager::GetActivationType() const
     {
         return m_Type;
     }
@@ -95,7 +125,13 @@ namespace Zibra
         m_LicensePath = "";
         m_LicenseKey = "";
         m_OfflineLicense = "";
-        m_Manager->ReleaseLicense();
+
+        Zibra::LibraryUtils::LoadLibrary();
+        if (!Zibra::LibraryUtils::IsLibraryLoaded())
+        {
+            return;
+        }
+        CE::Licensing::CAPI::ReleaseLicense();
     }
 
     std::string HoudiniLicenseManager::GetLicenseKey() const
@@ -535,18 +571,6 @@ namespace Zibra
         return m_Status[size_t(product)] == Status::OK;
     }
 
-    bool HoudiniLicenseManager::IsAnyLicenseValid() const
-    {
-        for (size_t i = 0; i < size_t(Product::Count); ++i)
-        {
-            if (m_Status[i] == Status::OK)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
     HoudiniLicenseManager::Status HoudiniLicenseManager::TryCheckoutLicense(ActivationType type, LicensePathType pathType)
     {
         Zibra::LibraryUtils::LoadLibrary();
@@ -578,7 +602,8 @@ namespace Zibra
 
             m_Manager->CheckoutLicenseOffline(offlineLicense.c_str(), static_cast<int>(offlineLicense.size()));
 
-            if (m_Manager->IsLicenseValidated(CE::Licensing::ProductType::Compression))
+            if (CE::Licensing::CAPI::IsLicenseValidated(CE::Licensing::ProductType::Compression) ||
+                CE::Licensing::CAPI::IsLicenseValidated(CE::Licensing::ProductType::Decompression))
             {
                 SetStatusFromZibraVDBRuntime();
                 m_Type = ActivationType::Offline;
@@ -609,7 +634,8 @@ namespace Zibra
 
             m_Manager->CheckoutLicenseLicenseServer(licenseServerAddress.c_str());
 
-            if (m_Manager->IsLicenseValidated(CE::Licensing::ProductType::Compression))
+            if (CE::Licensing::CAPI::IsLicenseValidated(CE::Licensing::ProductType::Compression) ||
+                CE::Licensing::CAPI::IsLicenseValidated(CE::Licensing::ProductType::Decompression))
             {
                 SetStatusFromZibraVDBRuntime();
                 m_Type = ActivationType::LicenseServer;
@@ -638,8 +664,9 @@ namespace Zibra
             m_OfflineLicense = "";
             m_LicenseServerAddress = "";
 
-            m_Manager->CheckoutLicenseWithKey(licenseKey.c_str());
-            if (m_Manager->IsLicenseValidated(CE::Licensing::ProductType::Compression))
+            CE::Licensing::CAPI::CheckoutLicenseWithKey(licenseKey.c_str());
+            if (CE::Licensing::CAPI::IsLicenseValidated(CE::Licensing::ProductType::Compression) ||
+                CE::Licensing::CAPI::IsLicenseValidated(CE::Licensing::ProductType::Decompression))
             {
                 SetStatusFromZibraVDBRuntime();
                 m_Type = ActivationType::Online;
@@ -660,8 +687,12 @@ namespace Zibra
 
     void HoudiniLicenseManager::SetStatusFromZibraVDBRuntime()
     {
-        if (!m_Manager)
-            m_Manager = CE::Licensing::GetLicenseManager();
+        assert(Zibra::LibraryUtils::IsLibraryLoaded());
+        if (!Zibra::LibraryUtils::IsLibraryLoaded())
+        {
+            return;
+        }
+
         for (size_t i = 0; i < size_t(Product::Count); ++i)
         {
             m_Status[i] = m_Manager->IsLicenseValidated(CE::Licensing::ProductType(i)) ? Status::OK : Status::ValidationError;

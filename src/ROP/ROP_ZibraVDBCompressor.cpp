@@ -6,7 +6,6 @@
 #include "Zibra/CE/Common.h"
 #include "bridge/LibraryUtils.h"
 #include "licensing/HoudiniLicenseManager.h"
-#include "licensing/TrialManager.h"
 #include "ui/PluginManagementWindow.h"
 #include "utils/GAAttributesDump.h"
 #include "utils/Helpers.h"
@@ -319,11 +318,15 @@ namespace Zibra::ZibraVDBCompressor
 
         if (!HoudiniLicenseManager::GetInstance().CheckLicense(HoudiniLicenseManager::Product::Compression))
         {
-            if (!TrialManager::RequestTrialCompression())
+            if (LicenseManager::GetInstance().IsAnyLicenseValid())
+            {
+                addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_NO_COMPRESSION);
+            }
+            else
             {
                 addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR);
-                return ROP_ABORT_RENDER;
             }
+            return ROP_ABORT_RENDER;
         }
 
         m_EndTime = tEnd;
@@ -575,8 +578,12 @@ namespace Zibra::ZibraVDBCompressor
         {
             return ROP_ABORT_RENDER;
         }
-        TrialManager::CheckoutTrialCompression();
-        if (m_Compressor)
+
+        std::string warning;
+
+        auto status = m_CompressorManager.FinishSequence(warning);
+
+        if (status != CE::ZCE_SUCCESS)
         {
             m_Compressor->Release();
             m_Compressor = nullptr;
@@ -625,6 +632,16 @@ namespace Zibra::ZibraVDBCompressor
 
     ROP_RENDER_CODE ROP_ZibraVDBCompressor::CreateCompressor(const OP_Context& ctx) noexcept
     {
+        UT_String filename = "";
+        OP_Context ctx(tStart);
+        evalString(filename, FILENAME_PARAM_NAME, nullptr, 0, tStart);
+
+        std::error_code ec;
+        // Intentionally ignoring errors
+        // This is needed for relative paths to work properly
+        // If path is invalid, we'll error out later on
+        std::filesystem::create_directories(std::filesystem::path{filename.c_str()}.parent_path(), ec);
+
         const int renderMode = static_cast<int>(evalInt("trange", 0, ctx.getTime()));
         const float frameInc = renderMode == 0 ? 1 : evalFloat("f", 2, ctx.getTime());
         CE::PlaybackInfo playbackInfo{};
@@ -836,7 +853,8 @@ namespace Zibra::ZibraVDBCompressor
         evalString(filename, "filename", nullptr, 0, m_StartTime);
     }
 
-    std::vector<std::pair<std::string, std::string>> ROP_ZibraVDBCompressor::DumpAttributes(const GU_Detail* gdp) noexcept
+    std::vector<std::pair<std::string, std::string>> ROP_ZibraVDBCompressor::DumpAttributes(
+        const GU_Detail* gdp, const CE::Addons::OpenVDBUtils::EncodingMetadata& encodingMetadata) noexcept
     {
         std::vector<std::pair<std::string, std::string>> result{};
 

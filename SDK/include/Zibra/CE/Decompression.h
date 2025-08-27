@@ -20,26 +20,7 @@
 
 namespace Zibra::CE::Decompression
 {
-    constexpr Version ZCE_DECOMPRESSION_VERSION = {1, 0, 0, 0};
-
-    class CompressedFrameContainer
-    {
-    protected:
-        virtual ~CompressedFrameContainer() noexcept = default;
-
-    public:
-        virtual FrameInfo GetInfo() const noexcept = 0;
-        /**
-         * Finds metadata entry by key and returns payload.
-         * @param key - Metadata key
-         * @return String payload or nullptr if key is not present.
-         * Memory managed by CompressedFrameContainer instance and present while container exists.
-         */
-        virtual const char* GetMetadataByKey(const char* key) const noexcept = 0;
-        virtual size_t GetMetadataCount() const noexcept = 0;
-        virtual ReturnCode GetMetadataByIndex(size_t index, MetadataEntry* outEntry) const noexcept = 0;
-        virtual void Release() noexcept = 0;
-    };
+    constexpr Version ZCE_DECOMPRESSION_VERSION = {0, 9, 24, 0};
 
     struct DecompressorResourcesRequirements
     {

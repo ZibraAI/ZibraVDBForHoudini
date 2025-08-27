@@ -12,6 +12,7 @@ namespace Zibra
         enum class Product
         {
             Compression,
+            Decompression,
             Count
         };
 
@@ -52,8 +53,11 @@ namespace Zibra
         // Singleton
         static HoudiniLicenseManager& GetInstance();
 
+        bool IsAnyLicenseValid() const;
         Status GetLicenseStatus(Product product) const;
-        ActivationType GetLicenceType() const;
+        int GetLicenseTier(Product product) const;
+        const char* GetLicenseType(Product product) const;
+        ActivationType GetActivationType() const;
         LicensePathType GetLicensePathType() const;
         const std::string& GetLicensePath() const;
 
@@ -79,8 +83,7 @@ namespace Zibra
         static const char* const ms_DefaultOfflineLicenseFileName;
         static const char* const ms_DefaultLicenseServerFileName;
 
-        CE::Licensing::LicenseManager* m_Manager = nullptr;
-        Status m_Status[size_t(Product::Count)] = {Status::Uninitialized};
+        Status m_Status[size_t(Product::Count)] = {Status::Uninitialized, Status::Uninitialized};
         std::string m_ActivationError;
         ActivationType m_Type = ActivationType::None;
         LicensePathType m_LicensePathType = LicensePathType::None;
@@ -102,7 +105,6 @@ namespace Zibra
         static std::string ReadLicenseServerAddressFromFile(const std::string& path);
 
         bool IsLicenseValid(Product product) const;
-        bool IsAnyLicenseValid() const;
         Status TryCheckoutLicense(ActivationType type, LicensePathType pathType);
 
         void SetStatusFromZibraVDBRuntime();

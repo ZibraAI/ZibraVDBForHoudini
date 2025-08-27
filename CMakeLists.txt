@@ -96,7 +96,6 @@ set(HeaderFiles
     src/bridge/UpdateCheck.h
     src/SOP/DecompressorManager/DecompressorManager.h
     src/licensing/HoudiniLicenseManager.h
-    src/licensing/TrialManager.h
     src/ROP/ROP_ZibraVDBCompressor.h
     src/SOP/SOP_ZibraVDBDecompressor.h
     src/ui/MessageBox.h
@@ -112,7 +111,6 @@ set(SourceFiles
     src/bridge/UpdateCheck.cpp
     src/SOP/DecompressorManager/DecompressorManager.cpp
     src/licensing/HoudiniLicenseManager.cpp
-    src/licensing/TrialManager.cpp
     src/ROP/ROP_ZibraVDBCompressor.cpp
     src/SOP/SOP_ZibraVDBDecompressor.cpp
     src/ui/MessageBox.cpp
@@ -129,6 +127,10 @@ target_precompile_headers(ZibraVDBForHoudini PRIVATE src/PrecompiledHeader.h)
 target_compile_definitions(ZibraVDBForHoudini PRIVATE 
     ZIB_NETWORK_REQUEST_BACKEND_${ZIB_NETWORK_REQUEST_BACKEND}=1
     ZIB_TARGET_OS_${ZIB_TARGET_OS_NAME}=1)
+
+if(${LABS_BUILD})
+    target_compile_definitions(ZibraVDBForHoudini PRIVATE LABS_BUILD)
+endif()
 
 target_include_directories(ZibraVDBForHoudini PRIVATE SDK/include)
 target_include_directories(ZibraVDBForHoudini PRIVATE "${HOUDINI_INCLUDE_DIR}")

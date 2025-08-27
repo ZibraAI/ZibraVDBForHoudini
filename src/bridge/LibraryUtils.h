@@ -54,6 +54,7 @@ namespace Zibra::LibraryUtils {
     }
 
     std::string GetLibraryVersionString() noexcept;
+    std::string ErrorCodeToString(CE::ReturnCode errorCode);
     Version GetLibraryVersion() noexcept;
 
 } // namespace Zibra::LibraryUtils

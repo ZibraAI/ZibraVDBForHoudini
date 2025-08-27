@@ -18,7 +18,27 @@
 
 namespace Zibra::CE::Compression
 {
-    constexpr Version ZCE_COMPRESSION_VERSION = {1, 0, 0, 0};
+    constexpr Version ZCE_COMPRESSION_VERSION = {0, 9, 24, 0};
+
+    struct VoxelStatistics
+    {
+        /// min voxel value for entire channel gird.
+        float minValue = 0.f;
+        /// max voxel value for entire channel grid.
+        float maxValue = 0.f;
+        float meanPositiveValue = 0.f;
+        float meanNegativeValue = 0.f;
+        /// total voxels count per channel grid.
+        uint32_t voxelCount = 0;
+    };
+
+    struct ChannelInfo
+    {
+        /// Channel unique name
+        const char* name = nullptr;
+        Math3D::Transform gridTransform = {};
+        VoxelStatistics statistics = {};
+    };
 
     struct SparseFrame
     {

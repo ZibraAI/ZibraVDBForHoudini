@@ -102,6 +102,10 @@ namespace Zibra::ZibraVDBDecompressor
             return error(context);
         }
 
+        // License may or may not be required depending on .zibravdb file
+        // So we need to trigger license check, but if it fails we proceed with decompression
+        LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Decompression);
+
         UT_String filename = "";
         evalString(filename, "filename", nullptr, 0, context.getTime());
         if (filename == "")
@@ -121,7 +125,8 @@ namespace Zibra::ZibraVDBDecompressor
         auto status = m_DecompressorManager.RegisterDecompressor(filename);
         if (status != CE::ZCE_SUCCESS)
         {
-            addError(SOP_MESSAGE, "Failed to create a decompressor.");
+            std::string errorMessage = "Failed to initialize decompressor: " + LibraryUtils::ErrorCodeToString(status);
+            addError(SOP_MESSAGE, errorMessage.c_str());
             return error(context);
         }
 
