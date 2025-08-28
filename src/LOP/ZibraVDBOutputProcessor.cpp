@@ -443,12 +443,14 @@ namespace Zibra::ZibraVDBOutputProcessor
                 result.emplace_back(primKeyName, primAttrDump.dump());
 
                 DumpVisualisationAttributes(result, vdbPrim);
+                DumpOpenVDBGridMetadata(result, vdbPrim);
             }
         }
 
         nlohmann::json detailAttrDump = Utils::DumpAttributesForSingleEntity(gdp, GA_ATTRIB_DETAIL, 0);
         result.emplace_back("houdiniDetailAttributes", detailAttrDump.dump());
 
+        DumpVDBFileMetadata(result, gdp);
         DumpDecodeMetadata(result, encodingMetadata);
         return result;
     }
@@ -473,6 +475,108 @@ namespace Zibra::ZibraVDBOutputProcessor
         std::string keyVisLod = keyPrefix + "_lod";
         std::string valueVisLod = std::to_string(static_cast<int>(vdbPrim->getVisLod()));
         attributes.emplace_back(std::move(keyVisLod), std::move(valueVisLod));
+    }
+
+    void ZibraVDBOutputProcessor::DumpOpenVDBGridMetadata(std::vector<std::pair<std::string, std::string>>& attributes,
+                                                          const GEO_PrimVDB* vdbPrim) noexcept
+    {
+        const std::string keyPrefix = "houdiniOpenVDBGridMetadata_"s + vdbPrim->getGridName();
+        
+        auto gridPtr = vdbPrim->getGridPtr();
+        if (!gridPtr) return;
+
+        nlohmann::json metadataJson = nlohmann::json::object();
+        
+        for (auto metaIter = gridPtr->beginMeta(); metaIter != gridPtr->endMeta(); ++metaIter) {
+            const std::string& metaName = metaIter->first;
+            const openvdb::Metadata& metadata = *metaIter->second;
+            
+            // Convert metadata to string representation
+            std::string metaValue = metadata.str();
+            
+            // Remove quotes if it's a string value  
+            if (metaValue.size() >= 2 && metaValue.front() == '"' && metaValue.back() == '"') {
+                metaValue = metaValue.substr(1, metaValue.size() - 2);
+            }
+            
+            metadataJson[metaName] = metaValue;
+        }
+        
+        if (!metadataJson.empty()) {
+            attributes.emplace_back(keyPrefix, metadataJson.dump());
+        }
+    }
+
+    void ZibraVDBOutputProcessor::DumpVDBFileMetadata(std::vector<std::pair<std::string, std::string>>& attributes,
+                                                      const GU_Detail* gdp) noexcept
+    {
+        nlohmann::json fileMetadata = nlohmann::json::object();
+        
+        // Try to capture file metadata from detail attributes first
+        for (auto it = gdp->getAttributeDict(GA_ATTRIB_DETAIL).obegin(GA_SCOPE_PUBLIC); !it.atEnd(); it.advance())
+        {
+            GA_Attribute* attr = *it;
+            const char* attrName = attr->getName().c_str();
+            
+            // Check if this looks like VDB file metadata
+            if (strstr(attrName, "volvis_") || 
+                strcmp(attrName, "creator") == 0 ||
+                strcmp(attrName, "doppath") == 0 ||
+                strstr(attrName, "_ratio") ||
+                strcmp(attrName, "timescale") == 0)
+            {
+                switch (attr->getStorageClass())
+                {
+                case GA_STORECLASS_STRING: {
+                    auto strTuple = attr->getAIFStringTuple();
+                    const char* attrString = (strTuple && attr->getTupleSize()) ? strTuple->getString(attr, 0, 0) : "";
+                    if (attrString && strlen(attrString) > 0) {
+                        fileMetadata[attrName] = attrString;
+                    }
+                    break;
+                }
+                case GA_STORECLASS_INT:
+                case GA_STORECLASS_FLOAT: {
+                    auto tuple = attr->getAIFTuple();
+                    if (tuple) {
+                        const GA_Storage storage = tuple->getStorage(attr);
+                        int tupleSize = attr->getTupleSize();
+                        
+                        if (storage == GA_STORE_REAL32 || storage == GA_STORE_REAL64) {
+                            if (tupleSize == 1) {
+                                fpreal64 data;
+                                tuple->get(attr, 0, data, 0);
+                                fileMetadata[attrName] = data;
+                            } else {
+                                std::vector<fpreal64> data(tupleSize);
+                                tuple->get(attr, 0, data.data(), tupleSize);
+                                fileMetadata[attrName] = data;
+                            }
+                        } else if (storage == GA_STORE_INT32 || storage == GA_STORE_INT64) {
+                            if (tupleSize == 1) {
+                                int64 data;
+                                tuple->get(attr, 0, data, 0);
+                                fileMetadata[attrName] = static_cast<int>(data);
+                            } else {
+                                std::vector<int64> data(tupleSize);
+                                tuple->get(attr, 0, data.data(), tupleSize);
+                                std::vector<int> intData;
+                                for (auto d : data) intData.push_back(static_cast<int>(d));
+                                fileMetadata[attrName] = intData;
+                            }
+                        }
+                    }
+                    break;
+                }
+                default:
+                    break;
+                }
+            }
+        }
+        
+        if (!fileMetadata.empty()) {
+            attributes.emplace_back("houdiniFileMetadata", fileMetadata.dump());
+        }
     }
 
     nlohmann::json ZibraVDBOutputProcessor::DumpGridsShuffleInfo(const std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridDescs) noexcept

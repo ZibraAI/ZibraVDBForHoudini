@@ -230,8 +230,13 @@ std::string ZibraVDBResolver::_DecompressZibraVDBFile(const std::string& zibraVD
         return std::string();
     }
 
+    // Restore file-level and grid-level metadata
+    openvdb::MetaMap fileMetadata;
+    _RestoreFileMetadataToVDB(frameContainer, fileMetadata);
+    _RestoreGridMetadataToVDB(frameContainer, vdbGrids);
+    
     openvdb::io::File file(outputPath);
-    file.write(vdbGrids);
+    file.write(vdbGrids, fileMetadata);
     file.close();
 
     TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
@@ -378,6 +383,122 @@ void ZibraVDBResolver::_CleanupAllDecompressorManagers()
     s_decompressorManagers.clear();
 
     TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_CleanupAllDecompressorManagers - Cleanup completed\n");
+}
+
+void ZibraVDBResolver::_RestoreFileMetadataToVDB(Zibra::CE::Decompression::CompressedFrameContainer* frameContainer, openvdb::MetaMap& fileMetadata) const
+{
+    TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_RestoreFileMetadataToVDB - Starting file metadata restoration\n");
+
+    const char* fileMetadataEntry = frameContainer->GetMetadataByKey("houdiniFileMetadata");
+    
+    if (fileMetadataEntry)
+    {
+        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_RestoreFileMetadataToVDB - Found file metadata\n");
+        
+        try
+        {
+            auto fileMeta = nlohmann::json::parse(fileMetadataEntry);
+            
+            for (auto& [metaName, metaValue] : fileMeta.items())
+            {
+                if (metaValue.is_string())
+                {
+                    fileMetadata.insertMeta(metaName, openvdb::StringMetadata(metaValue.get<std::string>()));
+                    TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("  Restored file metadata: %s = %s\n", metaName.c_str(), metaValue.get<std::string>().c_str());
+                }
+                else if (metaValue.is_number_float())
+                {
+                    fileMetadata.insertMeta(metaName, openvdb::FloatMetadata(metaValue.get<float>()));
+                    TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("  Restored file metadata: %s = %f\n", metaName.c_str(), metaValue.get<float>());
+                }
+                else if (metaValue.is_number_integer())
+                {
+                    fileMetadata.insertMeta(metaName, openvdb::Int32Metadata(metaValue.get<int>()));
+                    TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("  Restored file metadata: %s = %d\n", metaName.c_str(), metaValue.get<int>());
+                }
+                else if (metaValue.is_array())
+                {
+                    // Handle arrays - convert to string for VDB metadata
+                    fileMetadata.insertMeta(metaName, openvdb::StringMetadata(metaValue.dump()));
+                    TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("  Restored file metadata (array): %s = %s\n", metaName.c_str(), metaValue.dump().c_str());
+                }
+                else
+                {
+                    fileMetadata.insertMeta(metaName, openvdb::StringMetadata(metaValue.dump()));
+                    TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("  Restored file metadata: %s = %s\n", metaName.c_str(), metaValue.dump().c_str());
+                }
+            }
+        }
+        catch (const nlohmann::json::exception& e)
+        {
+            TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_RestoreFileMetadataToVDB - Failed to parse file metadata: %s\n", e.what());
+        }
+    }
+    else
+    {
+        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_RestoreFileMetadataToVDB - No file metadata found\n");
+    }
+    
+    TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_RestoreFileMetadataToVDB - File metadata restoration completed\n");
+}
+
+void ZibraVDBResolver::_RestoreGridMetadataToVDB(Zibra::CE::Decompression::CompressedFrameContainer* frameContainer, openvdb::GridPtrVec& vdbGrids) const
+{
+    TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_RestoreGridMetadataToVDB - Starting grid metadata restoration\n");
+
+    for (auto& grid : vdbGrids)
+    {
+        const std::string gridName = grid->getName();
+        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_RestoreGridMetadataToVDB - Processing grid: %s\n", gridName.c_str());
+
+        // Restore OpenVDB grid metadata
+        std::string gridMetadataName = "houdiniOpenVDBGridMetadata_" + gridName;
+        const char* gridMetadataEntry = frameContainer->GetMetadataByKey(gridMetadataName.c_str());
+        
+        if (gridMetadataEntry)
+        {
+            TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_RestoreGridMetadataToVDB - Found OpenVDB metadata for grid %s\n", gridName.c_str());
+            
+            try
+            {
+                auto gridMeta = nlohmann::json::parse(gridMetadataEntry);
+                
+                for (auto& [metaName, metaValue] : gridMeta.items())
+                {
+                    if (metaValue.is_string())
+                    {
+                        grid->insertMeta(metaName, openvdb::StringMetadata(metaValue.get<std::string>()));
+                        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("  Restored grid metadata: %s = %s\n", metaName.c_str(), metaValue.get<std::string>().c_str());
+                    }
+                    else if (metaValue.is_number_float())
+                    {
+                        grid->insertMeta(metaName, openvdb::FloatMetadata(metaValue.get<float>()));
+                        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("  Restored grid metadata: %s = %f\n", metaName.c_str(), metaValue.get<float>());
+                    }
+                    else if (metaValue.is_number_integer())
+                    {
+                        grid->insertMeta(metaName, openvdb::Int32Metadata(metaValue.get<int>()));
+                        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("  Restored grid metadata: %s = %d\n", metaName.c_str(), metaValue.get<int>());
+                    }
+                    else
+                    {
+                        grid->insertMeta(metaName, openvdb::StringMetadata(metaValue.dump()));
+                        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("  Restored grid metadata: %s = %s\n", metaName.c_str(), metaValue.dump().c_str());
+                    }
+                }
+            }
+            catch (const nlohmann::json::exception& e)
+            {
+                TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_RestoreGridMetadataToVDB - Failed to parse OpenVDB metadata for grid %s: %s\n", gridName.c_str(), e.what());
+            }
+        }
+        else
+        {
+            TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_RestoreGridMetadataToVDB - No OpenVDB metadata found for grid %s\n", gridName.c_str());
+        }
+    }
+    
+    TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_RestoreGridMetadataToVDB - Grid metadata restoration completed\n");
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

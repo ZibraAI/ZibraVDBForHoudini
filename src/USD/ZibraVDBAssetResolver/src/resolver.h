@@ -73,6 +73,8 @@ private:
     bool _IsZibraVDBPath(const std::string& path) const;
     std::string _ParseZibraVDBURI(const std::string& uri, int& frame) const;
     std::string _DecompressZibraVDBFile(const std::string& zibraVDBPath, int frame = 0) const;
+    void _RestoreFileMetadataToVDB(Zibra::CE::Decompression::CompressedFrameContainer* frameContainer, openvdb::MetaMap& fileMetadata) const;
+    void _RestoreGridMetadataToVDB(Zibra::CE::Decompression::CompressedFrameContainer* frameContainer, openvdb::GridPtrVec& vdbGrids) const;
 
     bool CheckLicenseAndLoadLib() const;
 

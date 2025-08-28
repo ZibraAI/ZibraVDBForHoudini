@@ -70,6 +70,8 @@ namespace Zibra::ZibraVDBOutputProcessor
                                   CE::Compression::CompressorManager* compressorManager, const GU_Detail* gdp);
         static std::vector<std::pair<std::string, std::string>> DumpAttributes(const GU_Detail* gdp, const CE::Addons::OpenVDBUtils::EncodingMetadata& encodingMetadata) noexcept;
         static void DumpVisualisationAttributes(std::vector<std::pair<std::string, std::string>>& attributes, const GEO_PrimVDB* vdbPrim) noexcept;
+        static void DumpOpenVDBGridMetadata(std::vector<std::pair<std::string, std::string>>& attributes, const GEO_PrimVDB* vdbPrim) noexcept;
+        static void DumpVDBFileMetadata(std::vector<std::pair<std::string, std::string>>& attributes, const GU_Detail* gdp) noexcept;
         static nlohmann::json DumpGridsShuffleInfo(const std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridDescs) noexcept;
         static void DumpDecodeMetadata(std::vector<std::pair<std::string, std::string>>& result, const CE::Addons::OpenVDBUtils::EncodingMetadata& encodingMetadata);
 
