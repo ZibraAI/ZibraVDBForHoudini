@@ -100,17 +100,15 @@ jobs:
       env:
         HFS: /Applications/Houdini/Current/Frameworks/Houdini.framework/Versions/Current/Resources
 
-    - name: Build Release
+    - name: Build Release ZibraVDBForHoudini
       working-directory: ${{ github.workspace }}
       shell: pwsh
-      run: |
-        cmake --build build-20_5-macos --config Release
-        cmake --build build-20_5-macos --config Release --target zibraVDBResolver
+      run: cmake --build build-20_5-macos --config Release --target ZibraVDBForHoudini
 
-#    - name: Build Debug
-#      working-directory: ${{ github.workspace }}
-#      shell: pwsh
-#      run: cmake --build build-20_5-macos --config Debug
+    - name: Build Release zibraVDBResolver
+      working-directory: ${{ github.workspace }}
+      shell: pwsh
+      run: cmake --build build-20_5-macos --config Release --target zibraVDBResolver
 
   build-macos-x86_64:
     name: Build ZibraVDB for Houdini 20.5 (macOS-x86_64)
@@ -141,14 +139,17 @@ jobs:
       env:
         HFS: /Applications/Houdini/Current/Frameworks/Houdini.framework/Versions/Current/Resources
 
-    - name: Build Release
+    - name: Build Release ZibraVDBForHoudini
       working-directory: ${{ github.workspace }}
       shell: pwsh
-      run: |
-        cmake --build build-20_5-macos --config Release
-        cmake --build build-20_5-macos --config Release --target zibraVDBResolver
+      run: cmake --build build-20_5-macos --config Release --target ZibraVDBForHoudini
 
-#    - name: Build Debug
+    - name: Build Release zibraVDBResolver
+      working-directory: ${{ github.workspace }}
+      shell: pwsh
+      run: cmake --build build-20_5-macos --config Release --target zibraVDBResolver
+
+    #    - name: Build Debug
 #      working-directory: ${{ github.workspace }}
 #      shell: pwsh
 #      run: cmake --build build-20_5-macos --config Debug
