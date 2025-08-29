@@ -81,7 +81,7 @@ namespace Zibra::ZibraVDBImport
         setInt("__file_valid", 0, 0, 0);
         
         LibraryUtils::LoadZibSDKLibrary();
-        if (LibraryUtils::IsLibraryLoaded())
+        if (LibraryUtils::IsZibSDKLoaded())
         {
             m_DecompressorManager.Initialize();
         }
@@ -89,7 +89,7 @@ namespace Zibra::ZibraVDBImport
 
     LOP_ZibraVDBImport::~LOP_ZibraVDBImport() noexcept
     {
-        if (LibraryUtils::IsLibraryLoaded())
+        if (LibraryUtils::IsZibSDKLoaded())
         {
             m_DecompressorManager.Release();
         }
@@ -121,7 +121,7 @@ namespace Zibra::ZibraVDBImport
             return error();
         }
 
-        if (!LibraryUtils::IsLibraryLoaded())
+        if (!LibraryUtils::IsZibSDKLoaded())
         {
             addError(LOP_MESSAGE, "ZibraVDB library not loaded");
             return error();
@@ -399,7 +399,7 @@ namespace Zibra::ZibraVDBImport
 
     void LOP_ZibraVDBImport::parseAvailableGrids()
     {
-        if (!LibraryUtils::IsLibraryLoaded())
+        if (!LibraryUtils::IsZibSDKLoaded())
         {
             addError(LOP_MESSAGE, "ZibraVDB library not loaded");
             return;

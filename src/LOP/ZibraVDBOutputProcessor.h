@@ -46,7 +46,8 @@ namespace Zibra::ZibraVDBOutputProcessor
                       const UT_Options &config_overrides,
                       OP_Node *lop_node,
                       fpreal t,
-                      const UT_Options &stage_variables) override;
+                      const UT_Options &stage_variables,
+                      UT_String &error) override;
 
         bool processSavePath(const UT_StringRef& asset_path, const UT_StringRef& referencing_layer_path, bool asset_is_layer,
                              UT_String& newpath, UT_String& error) override;

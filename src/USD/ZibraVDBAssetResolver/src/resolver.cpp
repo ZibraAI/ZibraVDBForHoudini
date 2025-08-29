@@ -28,6 +28,7 @@ std::mutex ZibraVDBResolver::s_decompressorManagersMutex;
 
 ZibraVDBResolver::ZibraVDBResolver()
 {
+    std::cout << "ZibraVDBResolver | Hello there" << std::endl;
     UT_Exit::addExitCallback([](void*){
         ZibraVDBResolver::_CleanupAllDecompressorManagers();
         ZibraVDBResolver::_CleanupAllDecompressedFilesStatic();
@@ -247,13 +248,13 @@ bool ZibraVDBResolver::CheckLicenseAndLoadLib() const
 {
     Zibra::LicenseManager::GetInstance().CheckLicense(Zibra::LicenseManager::Product::Decompression);
 
-    if (Zibra::LibraryUtils::IsLibraryLoaded())
+    if (Zibra::LibraryUtils::IsZibSDKLoaded())
     {
         return true;
     }
 
     Zibra::LibraryUtils::LoadZibSDKLibrary();
-    if (!Zibra::LibraryUtils::IsLibraryLoaded())
+    if (!Zibra::LibraryUtils::IsZibSDKLoaded())
     {
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::ZibraVDBResolver - Library not loaded, cannot initialize resolver\n");
         return false;

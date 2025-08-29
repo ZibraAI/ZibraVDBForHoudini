@@ -230,29 +230,7 @@ if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
         message(WARNING "ZibraVDBForHoudini: Houdini Python version not detected")
     endif()
 elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
-    # macOS requires explicit Python library linking for undefined symbol resolution
-    if(TARGET Houdini::Dep::python3.11)
-        target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::python3.11)
-    elseif(TARGET Houdini::Dep::python)
-        target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::python)
-    else()
-        find_library(PYTHON_LIB NAMES
-            python3.11 libpython3.11
-            python3.10 libpython3.10
-            python3.9 libpython3.9
-            python3 libpython3
-            python Python
-        )
-        if(PYTHON_LIB)
-            target_link_libraries(ZibraVDBForHoudini PRIVATE ${PYTHON_LIB})
-        endif()
-    endif()
-    
-    if(TARGET Houdini::Dep::hboost_python)
-        target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::hboost_python)
-    elseif(TARGET Houdini::Dep::hboost_python311)
-        target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::hboost_python311)
-    endif()
+    target_link_libraries(ZibraVDBForHoudini PRIVATE /Applications/Houdini/Houdini21.0.440/Frameworks/Python.framework/Versions/3.11/lib/libpython3.11.dylib)
 endif()
 
 if(${LABS_BUILD})
@@ -271,3 +249,5 @@ if(MSVC)
     set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         PROPERTY VS_STARTUP_PROJECT ZibraVDBForHoudini)
 endif()
+
+add_dependencies(ZibraVDBForHoudini zibraVDBResolver)
