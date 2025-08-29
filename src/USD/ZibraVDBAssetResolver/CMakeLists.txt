@@ -89,6 +89,8 @@ else()
     set(ASSET_RESOLVER_OUTPUT_PATH ${OUTPUT_PATH})
 endif()
 
+cmake_print_variables(ASSET_RESOLVER_OUTPUT_PATH)
+
 add_custom_command(TARGET zibraVDBResolver POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory
     ${ASSET_RESOLVER_OUTPUT_PATH}/zibra/0/lib
