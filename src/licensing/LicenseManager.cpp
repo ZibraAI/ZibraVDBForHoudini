@@ -4,15 +4,16 @@
 #include <regex>
 
 #include "bridge/LibraryUtils.h"
+#include "ui/MessageBox.h"
 #if !ZIB_NO_UI_ERROR
-    #include "ui/MessageBox.h"
+#include "ui/MessageBox.h"
 #endif
 #include "utils/Helpers.h"
 
 #if !ZIB_NO_UI_ERROR
-    #define SHOW_UI_ERROR(btn, msg) UI::MessageBox::Show(btn, msg);
+#define SHOW_UI_ERROR(btn, msg) UI::MessageBox::Show(btn, msg);
 #else
-    #define SHOW_UI_ERROR(btn, msg)
+#define SHOW_UI_ERROR(btn, msg)
 #endif
 
 namespace Zibra

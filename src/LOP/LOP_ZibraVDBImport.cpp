@@ -134,8 +134,9 @@ namespace Zibra::ZibraVDBImport
                 auto status = m_DecompressorManager.RegisterDecompressor(UT_String(filePath));
                 if (status != CE::ZCE_SUCCESS)
                 {
-                    addError(LOP_MESSAGE, "Failed to register ZibraVDB decompressor");
-                    return error();
+                    std::string errorMessage = "Failed to initialize decompressor: " + LibraryUtils::ErrorCodeToString(status);
+                    addError(LOP_MESSAGE, errorMessage.c_str());
+                    return error(context);
                 }
                 
                 parseAvailableGrids();
@@ -516,22 +517,16 @@ namespace Zibra::ZibraVDBImport
             return;
         }
 
-        // TODO currently Transform node effects this volume only in "All geometry" mode. This might potentially be used for default mode.
-//        UsdGeomXformable xformable(volumePrim.GetPrim());
-//        if (xformable) {
-//            UsdGeomXformOp transformOp = xformable.AddTransformOp(UsdGeomXformOp::PrecisionDouble);
-//            if (transformOp) {
-//                GfMatrix4d identityMatrix(1.0);
-//                transformOp.Set(identityMatrix);
-//            }
-//        }
-
         for (const std::string& fieldName : selectedFields)
         {
             std::string sanitizedFieldName = sanitizeFieldNameForUSD(fieldName);
             createOpenVDBAssetPrim(stage, volumePath, fieldName, sanitizedFieldName, filePath, frameIndex);
             createFieldRelationship(volumePrim, sanitizedFieldName, volumePath + "/" + sanitizedFieldName);
         }
+
+        UT_StringArray primPaths;
+        primPaths.append(volumePrim.GetPath().GetString().c_str());
+        setLastModifiedPrims(primPaths);
     }
 
     void LOP_ZibraVDBImport::createOpenVDBAssetPrim(UsdStageRefPtr stage, const std::string& volumePath, const std::string& fieldName,

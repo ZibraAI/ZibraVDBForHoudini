@@ -149,7 +149,6 @@ jobs:
       env:
         HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
         HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
-
     - name: Configure Cmake
       working-directory: ${{ github.workspace }}
       shell: pwsh

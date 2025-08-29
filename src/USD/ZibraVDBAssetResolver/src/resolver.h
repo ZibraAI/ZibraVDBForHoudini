@@ -30,6 +30,8 @@ public:
     ZibraVDBResolver();
     virtual ~ZibraVDBResolver();
 
+    static void _CleanupAllDecompressedFilesStatic();
+    static void _CleanupAllDecompressorManagers();
 protected:
     std::string _CreateIdentifier(
         const std::string& assetPath,
@@ -71,15 +73,14 @@ private:
     bool _IsZibraVDBPath(const std::string& path) const;
     std::string _ParseZibraVDBURI(const std::string& uri, int& frame) const;
     std::string _DecompressZibraVDBFile(const std::string& zibraVDBPath, int frame = 0) const;
+    void _RestoreFileMetadataToVDB(Zibra::CE::Decompression::CompressedFrameContainer* frameContainer, openvdb::MetaMap& fileMetadata) const;
+    void _RestoreGridMetadataToVDB(Zibra::CE::Decompression::CompressedFrameContainer* frameContainer, openvdb::GridPtrVec& vdbGrids) const;
 
     bool CheckLicenseAndLoadLib() const;
 
     void _AddDecompressedFile(const std::string& compressedFile, const std::string& decompressedFile) const;
     void _CleanupUnneededDecompressedFiles(const std::string& currentCompressedFile, const std::string& currentDecompressedFile) const;
-    static void _CleanupAllDecompressedFilesStatic();
-
     Zibra::Helpers::DecompressorManager* _GetOrCreateDecompressorManager(const std::string& compressedFile) const;
-    static void _CleanupAllDecompressorManagers();
 
     static std::unordered_map<std::string, std::unordered_set<std::string>> s_globalDecompressedFilesDict;
     static std::mutex s_globalDecompressedFilesMutex;

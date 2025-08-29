@@ -33,35 +33,75 @@ namespace Zibra::ZibraVDBOutputProcessor
 
     ZibraVDBOutputProcessor::ZibraVDBOutputProcessor()
     {
-        if (!LibraryUtils::IsPlatformSupported())
-        {
-            UT_WorkBuffer buffer;
-            buffer.sprintf("ZibraVDB: Platform not supported. Required: Windows/Linux/macOS");
-            UTaddError("ZibraVDB", UT_ERROR_MESSAGE, buffer.buffer());
-            return;
-        }
-
-        LibraryUtils::LoadZibSDKLibrary();
-        
-        if (!LibraryUtils::IsLibraryLoaded())
-        {
-            UT_WorkBuffer buffer;
-            buffer.sprintf("ZibraVDB: Failed to load ZibraVDB SDK library. Please check installation.");
-            UTaddError("ZibraVDB", UT_ERROR_MESSAGE, buffer.buffer());
-            return;
-        }
-
-        if (!LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Compression))
-        {
-            UT_WorkBuffer buffer;
-            buffer.sprintf("ZibraVDB: No valid license found for compression. Please check your license.");
-            UTaddError("ZibraVDB", UT_ERROR_MESSAGE, buffer.buffer());
-            return;
-        }
     }
 
     ZibraVDBOutputProcessor::~ZibraVDBOutputProcessor()
     {
+    }
+
+    bool ZibraVDBOutputProcessor::CheckLibAndLicense(UT_String& error)
+    {
+        if (!LibraryUtils::IsPlatformSupported())
+        {
+            error = "ZibraVDB Output Processor Error: Platform not supported. Required: Windows/Linux/macOS. Falling back to uncompressed VDB files.";
+            UTaddError(error.buffer(), UT_ERROR_MESSAGE, error.buffer());
+            return false;
+        }
+
+        LibraryUtils::LoadZibSDKLibrary();
+        if (!LibraryUtils::IsLibraryLoaded())
+        {
+            error = "ZibraVDB Output Processor Error: Failed to load ZibraVDB SDK library. Please check installation. Falling back to uncompressed VDB files.";
+            UTaddError(error.buffer(), UT_ERROR_MESSAGE, error.buffer());
+            return false;
+        }
+        
+        if (!LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Compression))
+        {
+            error = "ZibraVDB Output Processor Error: No valid license found for compression. Please check your license. Falling back to uncompressed VDB files.";
+            UTaddError(error.buffer(), UT_ERROR_MESSAGE, error.buffer());
+            return false;
+        }
+
+        return true;
+    }
+
+    std::string ZibraVDBOutputProcessor::convertToUncompressedPath(const std::string& zibravdbPath)
+    {
+        // This is used as fallback when no sdk lib present or license failed
+        // path/name.zibravdb?node=nodename&frame=X&quality=Y to path/name.frame.vdb
+        size_t query_pos = zibravdbPath.find('?');
+        if (query_pos == std::string::npos) return "";
+
+        std::string file_path = zibravdbPath.substr(0, query_pos);
+        std::string query_string = zibravdbPath.substr(query_pos + 1);
+
+        // Extract frame parameter
+        std::string frame_str;
+        std::regex param_regex(R"(([^&=]+)=([^&=]+))");
+        std::sregex_iterator iter(query_string.begin(), query_string.end(), param_regex);
+        std::sregex_iterator end;
+
+        for (; iter != end; ++iter) {
+            std::string key = (*iter)[1];
+            std::string value = (*iter)[2];
+            if (key == "frame") {
+                frame_str = value;
+                break;
+            }
+        }
+
+        if (frame_str.empty()) return "";
+
+        std::filesystem::path zibravdb_path(file_path);
+        std::string dir = zibravdb_path.parent_path().string();
+        std::string stem = zibravdb_path.stem().string();
+        
+        if (dir.empty()) {
+            return stem + "." + frame_str + ".vdb";
+        } else {
+            return dir + "/" + stem + "." + frame_str + ".vdb";
+        }
     }
 
     UT_StringHolder ZibraVDBOutputProcessor::displayName() const
@@ -91,10 +131,17 @@ namespace Zibra::ZibraVDBOutputProcessor
     bool ZibraVDBOutputProcessor::processSavePath(const UT_StringRef& asset_path, const UT_StringRef& referencing_layer_path,
                                                   bool asset_is_layer, UT_String& newpath, UT_String& error)
     {
-        std::cout << "[LINUX DEBUG] ZibraVDBOutputProcessor::processSavePath - filename: " << asset_path.c_str() << ", layer: " << referencing_layer_path.c_str() << std::endl;
         std::string pathStr = asset_path.toStdString();
         if (!asset_is_layer && pathStr.find(".zibravdb?") != std::string::npos)
         {
+            UT_String libError;
+            if (!CheckLibAndLicense(libError))
+            {
+                std::string uncompressedPath = convertToUncompressedPath(pathStr);
+                newpath = UT_String(uncompressedPath);
+                error = libError;
+                return true;
+            }
             // Parse the .zibravdb path: path/name.zibravdb?node=nodename&frame=X&quality=Y
             size_t query_pos = pathStr.find('?');
             if (query_pos == std::string::npos) return false;
@@ -128,7 +175,6 @@ namespace Zibra::ZibraVDBOutputProcessor
 
             OP_Node* op_node = OPgetDirector()->findNode(decoded_node_name.c_str());
             if (!op_node) {
-                std::cout << "Could not find node with path: " << decoded_node_name << std::endl;
                 return false;
             }
 
@@ -165,14 +211,12 @@ namespace Zibra::ZibraVDBOutputProcessor
 
                 std::filesystem::create_directories(std::filesystem::path(file_path).parent_path());
                 auto status = entryKey.compressorManager->Initialize(frameMappingDesc, quality, perChannelSettings);
-                //std::cout << "ZibraVDBOutputProcessor::processSavePath - CompressorManager initialized with status: " << static_cast<int>(status) << std::endl;
                 assert(status == CE::ZCE_SUCCESS);
 
                 status = entryKey.compressorManager->StartSequence(UT_String(file_path));
                 if (status != CE::ZCE_SUCCESS)
                 {
                     assert(false && ("Failed to start sequence for compression, status: " + std::to_string(static_cast<int>(status))).c_str());
-                    //std::cout << "ZibraVDBOutputProcessor::processSavePath - Failed to start sequence for compression, status: " << static_cast<int>(status) << std::endl;
                     return false;
                 }
                 entries[entryKey] = {{frame_index, output_file_str}};
@@ -184,7 +228,6 @@ namespace Zibra::ZibraVDBOutputProcessor
             // Store the zibravdb path for processReferencePath lookup, but return invalid path to prevent original VDB saving
             // This makes Linux behavior consistent with Windows where original VDBs are not saved
             newpath = "."; // Return illegal path "." to prevent saving original VDB
-            std::cout << "[LINUX DEBUG] ZibraVDBOutputProcessor::processSavePath - preventing original VDB save with illegal path, stored zibravdb path: " << output_file_str << std::endl;
             return true;
         }
 
@@ -197,7 +240,6 @@ namespace Zibra::ZibraVDBOutputProcessor
                                                       UT_String &newpath,
                                                       UT_String &error)
     {
-        std::cout << "[LINUX DEBUG] ZibraVDBOutputProcessor::processReferencePath - filename: " << asset_path.c_str() << ", layer: " << referencing_layer_path.c_str() << std::endl;
         std::string pathStr = asset_path.toStdString();
         if (!asset_is_layer && pathStr.find("op:/") != std::string::npos)
         {
@@ -240,7 +282,6 @@ namespace Zibra::ZibraVDBOutputProcessor
                 int compressionFrameIndex = OPgetDirector()->getChannelManager()->getFrame(t);
                 std::string outputRef = entry.first.outputFile + "?frame=" + std::to_string(compressionFrameIndex);
                 newpath = UT_String(outputRef);
-                std::cout << "[LINUX DEBUG] ZibraVDBOutputProcessor::processReferencePath - redirected path: " << outputRef << std::endl;
                 if (compressionFrameIndex == entry.second[0].first)
                 {
                     if (compressionFrameIndex > 0)
@@ -248,12 +289,10 @@ namespace Zibra::ZibraVDBOutputProcessor
                         for (int i = 0; i < compressionFrameIndex; ++i)
                         {
                             fpreal tmpTime = OPgetDirector()->getChannelManager()->getTime(i);
-                            std::cout << "[LINUX DEBUG] ZibraVDBOutputProcessor::processReferencePath - processing frame " << i << " (time: " << tmpTime << ") for file: " << entry.first.outputFile << std::endl;
                             extractVDBFromSOP(entry.first.sopNode, tmpTime, entry.first.compressorManager, false);
                         }
                     }
                 }
-                std::cout << "[LINUX DEBUG] ZibraVDBOutputProcessor::processReferencePath - compressing frame " << compressionFrameIndex << " (time: " << t << ") for file: " << entry.first.outputFile << std::endl;
                 extractVDBFromSOP(entry.first.sopNode, t, entry.first.compressorManager);
                 return true;
             }
@@ -288,7 +327,6 @@ namespace Zibra::ZibraVDBOutputProcessor
             return;
 
         int frameIndex = OPgetDirector()->getChannelManager()->getFrame(t);
-        std::cout << "[LINUX DEBUG] ZibraVDBOutputProcessor::extractVDBFromSOP - extracting frame " << frameIndex << " (time: " << t << ") from SOP: " << sopNode->getFullPath().c_str() << ", compress: " << (compress ? "true" : "false") << std::endl;
 
         OP_Context context(t);
         sopNode->flags().setTimeDep(true);
@@ -332,7 +370,6 @@ namespace Zibra::ZibraVDBOutputProcessor
         }
         if (!grids.empty())
         {
-            std::cout << "[LINUX DEBUG] ZibraVDBOutputProcessor::extractVDBFromSOP - found " << grids.size() << " VDB grids to compress" << std::endl;
             compressGrids(grids, gridNames, compressorManager, gdp);
         }
         else
@@ -349,12 +386,6 @@ namespace Zibra::ZibraVDBOutputProcessor
             assert(false && "No grids to compress");
             return;
         }
-
-        std::cout << "[LINUX DEBUG] ZibraVDBOutputProcessor::compressGrids - compressing " << grids.size() << " grids: ";
-        for (const auto& name : gridNames) {
-            std::cout << name << " ";
-        }
-        std::cout << std::endl;
 
         std::vector<const char*> channelCStrings;
         for (const auto& name : gridNames)
@@ -412,12 +443,14 @@ namespace Zibra::ZibraVDBOutputProcessor
                 result.emplace_back(primKeyName, primAttrDump.dump());
 
                 DumpVisualisationAttributes(result, vdbPrim);
+                DumpOpenVDBGridMetadata(result, vdbPrim);
             }
         }
 
         nlohmann::json detailAttrDump = Utils::DumpAttributesForSingleEntity(gdp, GA_ATTRIB_DETAIL, 0);
         result.emplace_back("houdiniDetailAttributes", detailAttrDump.dump());
 
+        DumpVDBFileMetadata(result, gdp);
         DumpDecodeMetadata(result, encodingMetadata);
         return result;
     }
@@ -442,6 +475,108 @@ namespace Zibra::ZibraVDBOutputProcessor
         std::string keyVisLod = keyPrefix + "_lod";
         std::string valueVisLod = std::to_string(static_cast<int>(vdbPrim->getVisLod()));
         attributes.emplace_back(std::move(keyVisLod), std::move(valueVisLod));
+    }
+
+    void ZibraVDBOutputProcessor::DumpOpenVDBGridMetadata(std::vector<std::pair<std::string, std::string>>& attributes,
+                                                          const GEO_PrimVDB* vdbPrim) noexcept
+    {
+        const std::string keyPrefix = "houdiniOpenVDBGridMetadata_"s + vdbPrim->getGridName();
+        
+        auto gridPtr = vdbPrim->getGridPtr();
+        if (!gridPtr) return;
+
+        nlohmann::json metadataJson = nlohmann::json::object();
+        
+        for (auto metaIter = gridPtr->beginMeta(); metaIter != gridPtr->endMeta(); ++metaIter) {
+            const std::string& metaName = metaIter->first;
+            const openvdb::Metadata& metadata = *metaIter->second;
+            
+            // Convert metadata to string representation
+            std::string metaValue = metadata.str();
+            
+            // Remove quotes if it's a string value  
+            if (metaValue.size() >= 2 && metaValue.front() == '"' && metaValue.back() == '"') {
+                metaValue = metaValue.substr(1, metaValue.size() - 2);
+            }
+            
+            metadataJson[metaName] = metaValue;
+        }
+        
+        if (!metadataJson.empty()) {
+            attributes.emplace_back(keyPrefix, metadataJson.dump());
+        }
+    }
+
+    void ZibraVDBOutputProcessor::DumpVDBFileMetadata(std::vector<std::pair<std::string, std::string>>& attributes,
+                                                      const GU_Detail* gdp) noexcept
+    {
+        nlohmann::json fileMetadata = nlohmann::json::object();
+        
+        // Try to capture file metadata from detail attributes first
+        for (auto it = gdp->getAttributeDict(GA_ATTRIB_DETAIL).obegin(GA_SCOPE_PUBLIC); !it.atEnd(); it.advance())
+        {
+            GA_Attribute* attr = *it;
+            const char* attrName = attr->getName().c_str();
+            
+            // Check if this looks like VDB file metadata
+            if (strstr(attrName, "volvis_") || 
+                strcmp(attrName, "creator") == 0 ||
+                strcmp(attrName, "doppath") == 0 ||
+                strstr(attrName, "_ratio") ||
+                strcmp(attrName, "timescale") == 0)
+            {
+                switch (attr->getStorageClass())
+                {
+                case GA_STORECLASS_STRING: {
+                    auto strTuple = attr->getAIFStringTuple();
+                    const char* attrString = (strTuple && attr->getTupleSize()) ? strTuple->getString(attr, 0, 0) : "";
+                    if (attrString && strlen(attrString) > 0) {
+                        fileMetadata[attrName] = attrString;
+                    }
+                    break;
+                }
+                case GA_STORECLASS_INT:
+                case GA_STORECLASS_FLOAT: {
+                    auto tuple = attr->getAIFTuple();
+                    if (tuple) {
+                        const GA_Storage storage = tuple->getStorage(attr);
+                        int tupleSize = attr->getTupleSize();
+                        
+                        if (storage == GA_STORE_REAL32 || storage == GA_STORE_REAL64) {
+                            if (tupleSize == 1) {
+                                fpreal64 data;
+                                tuple->get(attr, 0, data, 0);
+                                fileMetadata[attrName] = data;
+                            } else {
+                                std::vector<fpreal64> data(tupleSize);
+                                tuple->get(attr, 0, data.data(), tupleSize);
+                                fileMetadata[attrName] = data;
+                            }
+                        } else if (storage == GA_STORE_INT32 || storage == GA_STORE_INT64) {
+                            if (tupleSize == 1) {
+                                int64 data;
+                                tuple->get(attr, 0, data, 0);
+                                fileMetadata[attrName] = static_cast<int>(data);
+                            } else {
+                                std::vector<int64> data(tupleSize);
+                                tuple->get(attr, 0, data.data(), tupleSize);
+                                std::vector<int> intData;
+                                for (auto d : data) intData.push_back(static_cast<int>(d));
+                                fileMetadata[attrName] = intData;
+                            }
+                        }
+                    }
+                    break;
+                }
+                default:
+                    break;
+                }
+            }
+        }
+        
+        if (!fileMetadata.empty()) {
+            attributes.emplace_back("houdiniFileMetadata", fileMetadata.dump());
+        }
     }
 
     nlohmann::json ZibraVDBOutputProcessor::DumpGridsShuffleInfo(const std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridDescs) noexcept
