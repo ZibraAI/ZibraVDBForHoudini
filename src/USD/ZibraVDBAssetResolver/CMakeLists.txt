@@ -99,8 +99,7 @@ add_custom_command(TARGET zibraVDBResolver POST_BUILD
 add_custom_command(TARGET zibraVDBResolver POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
     $<TARGET_FILE:zibraVDBResolver>
-        #TODO: rollback
-    ${ASSET_RESOLVER_OUTPUT_PATH}/zibra/0/lib/libzibraVDBResolver.dylib
+    ${ASSET_RESOLVER_OUTPUT_PATH}/zibra/0/lib
 )
 
 add_custom_command(TARGET zibraVDBResolver POST_BUILD

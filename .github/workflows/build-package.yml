@@ -140,7 +140,7 @@ jobs:
 
     - name: Apple sign and notarize zibraVDBResolver
       shell: bash
-      run: ${{ github.workspace }}/actions/apple/sign_and_notarize_dylib.sh ${{ github.workspace }}/package/zibra/0/lib/zibraVDBResolver.dylib
+      run: ${{ github.workspace }}/actions/apple/sign_and_notarize_dylib.sh ${{ github.workspace }}/package/zibra/0/lib/libzibraVDBResolver.dylib
       env:
         DEVELOPER_ID_APPLICATION_CERT: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_CERT }}
         DEVELOPER_ID_APPLICATION_PASS: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_PASS }}
@@ -213,7 +213,7 @@ jobs:
 
     - name: Apple sign and notarize zibraVDBResolver
       shell: bash
-      run: ${{ github.workspace }}/actions/apple/sign_and_notarize_dylib.sh ${{ github.workspace }}/package/zibra/0/lib/zibraVDBResolver.dylib
+      run: ${{ github.workspace }}/actions/apple/sign_and_notarize_dylib.sh ${{ github.workspace }}/package/zibra/0/lib/libzibraVDBResolver.dylib
       env:
         DEVELOPER_ID_APPLICATION_CERT: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_CERT }}
         DEVELOPER_ID_APPLICATION_PASS: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_PASS }}
