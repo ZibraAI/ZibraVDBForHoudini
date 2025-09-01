@@ -62,7 +62,8 @@ extern "C" {
 bool IsAssetResolverRegistered()
 {
     PXR_NS::TfType resolverType = PXR_NS::TfType::FindByName("ZibraVDBResolver");
-    return !resolverType.IsUnknown();
+    auto res = !resolverType.IsUnknown();
+    return res;
 }
 
 void RegisterAssetResolver()
@@ -72,14 +73,14 @@ void RegisterAssetResolver()
         return;
     }
 
-    const std::vector<std::string> libraryPaths = Zibra::LibraryUtils::GetLibraryPaths();
-    for (const std::string& libraryPath : libraryPaths)
+    const std::vector<std::filesystem::path> libraryPaths = Zibra::LibraryUtils::GetZibraLibsBasePaths();
+    for (const std::filesystem::path& libraryPath : libraryPaths)
     {
         if (libraryPath.empty())
         {
             continue;
         }
-        std::filesystem::path resourcePath = std::filesystem::path(libraryPath).parent_path()/"resources";
+        std::filesystem::path resourcePath = libraryPath / "resources";
         if (std::filesystem::exists(resourcePath) && std::filesystem::is_directory(resourcePath))
         {
             std::string pathStr = resourcePath.string();
@@ -92,8 +93,10 @@ void RegisterAssetResolver()
             }
         }
     }
-    if (!IsAssetResolverRegistered())
+    auto isReg = IsAssetResolverRegistered();
+    if (!isReg)
     {
         assert(false && "Failed to register ZibraVDBResolver. Make sure the library file is present.");
     }
+    std::cout << "AssetResolverRegistered: " << isReg << std::endl;
 }

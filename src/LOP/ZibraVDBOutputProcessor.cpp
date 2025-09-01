@@ -49,7 +49,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         }
 
         LibraryUtils::LoadZibSDKLibrary();
-        if (!LibraryUtils::IsLibraryLoaded())
+        if (!LibraryUtils::IsZibSDKLoaded())
         {
             error = "ZibraVDB Output Processor Error: Failed to load ZibraVDB SDK library. Please check installation. Falling back to uncompressed VDB files.";
             UTaddError(error.buffer(), UT_ERROR_MESSAGE, error.buffer());
@@ -123,7 +123,8 @@ namespace Zibra::ZibraVDBOutputProcessor
                                            const UT_Options &config_overrides,
                                            OP_Node *lop_node,
                                            fpreal t,
-                                           const UT_Options &stage_variables)
+                                           const UT_Options &stage_variables,
+                                           UT_String &error)
     {
         m_InMemoryCompressionEntries.clear();
     }

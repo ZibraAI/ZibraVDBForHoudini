@@ -41,18 +41,13 @@ namespace Zibra::LibraryUtils
 #error Unsupported platform
 #endif
 
-#define ZIB_LIBRARY_PATH ZIB_LIBRARY_FOLDER "/" ZIB_DYNAMIC_LIB_NAME
-
     bool g_IsLibraryLoaded = false;
     bool g_IsLibraryInitialized = false;
     Zibra::Version g_CompressionEngineVersion = {};
 
-    // Returns vector of paths that can be used to search for the library
-    // First element is the path used for downloading the library
-    // Other elements are alternative load paths for manual library installation
-    std::vector<std::string> GetLibraryPaths() noexcept
+    std::vector<std::filesystem::path> GetZibraLibsBasePaths() noexcept
     {
-        std::vector<std::string> result;
+        std::vector<std::filesystem::path> result{};
 
         const std::pair<UT_StrControl, const char*> basePathEnvVars[] = {
             // HSite and HQRoot have priority over HOUDINI_USER_PREF_DIR
@@ -67,9 +62,22 @@ namespace Zibra::LibraryUtils
             const std::vector<std::string> baseDirs = Helpers::GetHoudiniEnvironmentVariable(envVarEnum, envVarName);
             for (const std::string& baseDir : baseDirs)
             {
-                std::filesystem::path libraryPath = std::filesystem::path(baseDir) / ZIB_LIBRARY_PATH;
-                result.push_back(libraryPath.string());
+                std::filesystem::path libraryPath = std::filesystem::path(baseDir) / ZIB_LIBRARY_FOLDER;
+                result.push_back(libraryPath);
             }
+        }
+        return result;
+    }
+
+    // Returns vector of paths that can be used to search for the library
+    // First element is the path used for downloading the library
+    // Other elements are alternative load paths for manual library installation
+    std::vector<std::string> GetZibSDKPaths() noexcept
+    {
+        std::vector<std::string> result;
+        for (const auto path : GetZibraLibsBasePaths()) {
+            auto newPath = path / ZIB_DYNAMIC_LIB_NAME;
+            result.emplace_back(newPath.string());
         }
 
         assert(!result.empty());
@@ -230,7 +238,7 @@ namespace Zibra::LibraryUtils
             return;
         }
 
-        const std::vector<std::string> libraryPaths = GetLibraryPaths();
+        const std::vector<std::string> libraryPaths = GetZibSDKPaths();
 
         bool isLoaded = false;
         for (const std::string& libraryPath : libraryPaths)
@@ -249,12 +257,12 @@ namespace Zibra::LibraryUtils
         g_IsLibraryLoaded = true;
     }
 
-    bool IsLibraryLoaded() noexcept
+    bool IsZibSDKLoaded() noexcept
     {
         return g_IsLibraryLoaded;
     }
 
-    std::string GetLibraryVersionString() noexcept
+    std::string GetZibSDKVersionString() noexcept
     {
         if (!g_IsLibraryLoaded)
         {
@@ -269,7 +277,7 @@ namespace Zibra::LibraryUtils
         return Version{version.major, version.minor, version.patch, version.build};
     }
 
-    Version GetLibraryVersion() noexcept
+    Version GetZibSDKVersion() noexcept
     {
         assert(g_IsLibraryLoaded);
         return ToLibraryUtilsVersion(g_CompressionEngineVersion);
@@ -328,7 +336,6 @@ namespace Zibra::LibraryUtils
             return "Unknown error: " + std::to_string(errorCode);
         }
     }
-
 } // namespace Zibra::LibraryUtils
 
 #undef ZCE_CONCAT_HELPER

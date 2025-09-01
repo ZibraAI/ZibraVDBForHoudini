@@ -6,6 +6,16 @@ elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "LINUX")
     # Linux/GCC equivalent: prevent stripping of static initialization symbols
     add_compile_options(-fno-inline-functions-called-once)
     add_link_options(-Wl,--no-as-needed)
+elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
+    #TODO sanitize this. we probably dont need all these flags
+    add_compile_options(-O0 -g -fno-inline -fno-inline-functions -fno-inline-functions-called-once)
+    add_link_options(-Wl,-all_load -Wl,-no_dead_strip_inits_and_terms)
+    set_target_properties(zibraVDBResolver
+            PROPERTIES
+            XCODE_ATTRIBUTE_DEAD_CODE_STRIPPING NO
+            XCODE_ATTRIBUTE_PRESERVE_DEAD_CODE_INITS_AND_TERMS YES
+            XCODE_ATTRIBUTE_COPYING_PRESERVES_HFS_DATA YES
+            XCODE_ATTRIBUTE_KEEP_PRIVATE_EXTERNS NO)
 endif()
 
 set(RESOLVER_HEADERS
@@ -67,29 +77,11 @@ if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
         message(WARNING "ZibraVDBResolver: Houdini Python version not detected")
     endif()
 elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
-    # macOS requires explicit Python library linking for undefined symbol resolution
-    if(TARGET Houdini::Dep::python3.11)
-        target_link_libraries(zibraVDBResolver PRIVATE Houdini::Dep::python3.11)
-    elseif(TARGET Houdini::Dep::python)
-        target_link_libraries(zibraVDBResolver PRIVATE Houdini::Dep::python)
-    else()
-        find_library(PYTHON_LIB NAMES
-                python3.11 libpython3.11
-                python3.10 libpython3.10
-                python3.9 libpython3.9
-                python3 libpython3
-                python Python
-        )
-        if(PYTHON_LIB)
-            target_link_libraries(zibraVDBResolver PRIVATE ${PYTHON_LIB})
-        endif()
-    endif()
-
-    if(TARGET Houdini::Dep::hboost_python)
-        target_link_libraries(zibraVDBResolver PRIVATE Houdini::Dep::hboost_python)
-    elseif(TARGET Houdini::Dep::hboost_python311)
-        target_link_libraries(zibraVDBResolver PRIVATE Houdini::Dep::hboost_python311)
-    endif()
+    #TODO clean this and made the python version detect automatically
+    set(PYTHON_TARGET_NAME "python${_houdini_python_version}")
+    # target_link_libraries(zibraVDBResolver PRIVATE Houdini::Dep::pxr_python)
+    # target_link_libraries(ZibraVDBForHoudini PRIVATE ${HOUDINI_PATH}/Frameworks/Python.framework/Versions/3.11/lib/libpython3.11.dylib)
+    target_link_libraries(zibraVDBResolver PRIVATE /Applications/Houdini/Current/Frameworks/Python.framework/Versions/3.11/lib/libpython3.11.dylib)
 endif()
 
 if(DEFINED ZIBRAVDB_OUTPUT_PATH)
@@ -98,7 +90,6 @@ else()
     set(ASSET_RESOLVER_OUTPUT_PATH ${OUTPUT_PATH})
 endif()
 
-#TODO remove hardcoded 0 version
 add_custom_command(TARGET zibraVDBResolver POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory
     ${ASSET_RESOLVER_OUTPUT_PATH}/zibra/0/lib
@@ -107,7 +98,7 @@ add_custom_command(TARGET zibraVDBResolver POST_BUILD
 add_custom_command(TARGET zibraVDBResolver POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
     $<TARGET_FILE:zibraVDBResolver>
-    ${ASSET_RESOLVER_OUTPUT_PATH}/zibra/0/lib/
+    ${ASSET_RESOLVER_OUTPUT_PATH}/zibra/0/lib
 )
 
 add_custom_command(TARGET zibraVDBResolver POST_BUILD

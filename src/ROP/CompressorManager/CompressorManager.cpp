@@ -11,7 +11,7 @@ namespace Zibra::CE::Compression
                                              const std::vector<std::pair<UT_String, float>>& perChannelCompressionSettings) noexcept
     {
         LibraryUtils::LoadZibSDKLibrary();
-        if (!Zibra::LibraryUtils::IsLibraryLoaded())
+        if (!Zibra::LibraryUtils::IsZibSDKLoaded())
         {
             return CE::ZCE_ERROR;
         }
