@@ -28,7 +28,6 @@ std::mutex ZibraVDBResolver::s_decompressorManagersMutex;
 
 ZibraVDBResolver::ZibraVDBResolver()
 {
-    std::cout << "ZibraVDBResolver | Hello there" << std::endl;
     UT_Exit::addExitCallback([](void*){
         ZibraVDBResolver::_CleanupAllDecompressorManagers();
         ZibraVDBResolver::_CleanupAllDecompressedFilesStatic();

@@ -123,8 +123,13 @@ namespace Zibra::ZibraVDBOutputProcessor
                                            const UT_Options &config_overrides,
                                            OP_Node *lop_node,
                                            fpreal t,
-                                           const UT_Options &stage_variables,
-                                           UT_String &error)
+                                           const UT_Options &stage_variables
+#if UT_VERSION_INT >= 0x15000000  // Houdini 21.0+
+                                           ,
+                                           const UT_StringRef &config_layer_path,
+                                           UT_String &error
+#endif
+                                           )
     {
         m_InMemoryCompressionEntries.clear();
     }

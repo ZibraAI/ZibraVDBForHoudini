@@ -98,5 +98,4 @@ void RegisterAssetResolver()
     {
         assert(false && "Failed to register ZibraVDBResolver. Make sure the library file is present.");
     }
-    std::cout << "AssetResolverRegistered: " << isReg << std::endl;
 }

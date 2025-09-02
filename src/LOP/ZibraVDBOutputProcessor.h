@@ -1,6 +1,7 @@
 #pragma once
 
 #include <HUSD/HUSD_OutputProcessor.h>
+#include <UT/UT_Version.h>
 
 #include <map>
 #include <openvdb/openvdb.h>
@@ -46,8 +47,13 @@ namespace Zibra::ZibraVDBOutputProcessor
                       const UT_Options &config_overrides,
                       OP_Node *lop_node,
                       fpreal t,
-                      const UT_Options &stage_variables,
-                      UT_String &error) override;
+                      const UT_Options &stage_variables
+#if UT_VERSION_INT >= 0x15000000  // Houdini 21.0+
+                      ,
+                      const UT_StringRef &config_layer_path,
+                      UT_String &error
+#endif
+                      ) override;
 
         bool processSavePath(const UT_StringRef& asset_path, const UT_StringRef& referencing_layer_path, bool asset_is_layer,
                              UT_String& newpath, UT_String& error) override;
