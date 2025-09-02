@@ -3,7 +3,7 @@ name: Custom Package
 on:
   push:
     branches:
-      - asset-resolver-mac-fixes
+      - asset_resolver
   workflow_dispatch:
     inputs:
         houdini-version:
