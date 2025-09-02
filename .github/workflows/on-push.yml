@@ -28,7 +28,7 @@ jobs:
     - name: Configure Cmake
       working-directory: ${{ github.workspace }}
       shell: pwsh
-      run: cmake -S . -B build-20_5-windows -G "Visual Studio 17 2022" -DZIBRAVDB_OUTPUT_PATH=${{ github.workspace }}\package
+      run: cmake -S . -B build-20_5-windows -G "Visual Studio 17 2022"
       env:
         HFS: C:\Houdini
 
@@ -38,21 +38,6 @@ jobs:
       run: |
         cmake --build build-20_5-windows --config Release
         cmake --build build-20_5-windows --config Release --target zibraVDBResolver
-
-    - name: Repack HDA into Binary format
-      working-directory: ${{ github.workspace }}
-      shell: pwsh
-      run: |
-        C:\Houdini\bin\hotl.exe -l ${{ github.workspace }}\package\otls\zibravdb_filecache.1.0.hda ${{ github.workspace }}\package\otls\zibravdb_filecache.1.0.hda.2
-        Remove-Item -Recurse -Force ${{ github.workspace }}\package\otls\zibravdb_filecache.1.0.hda
-        Move-Item -Path ${{ github.workspace }}\package\otls\zibravdb_filecache.1.0.hda.2 -Destination ${{ github.workspace }}\package\otls\zibravdb_filecache.1.0.hda
-
-    - name: Save artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: ZibraVDBForHoudini-on-push-Windows-x64
-        path: package
-        if-no-files-found: error
 
 #    - name: Build Debug
 #      working-directory: ${{ github.workspace }}
@@ -72,7 +57,7 @@ jobs:
     - name: Configure Cmake
       working-directory: ${{ github.workspace }}
       shell: pwsh
-      run: cmake -S . -B build-20_5-linux -G "Ninja Multi-Config" -DZIBRAVDB_OUTPUT_PATH=${{ github.workspace }}/package
+      run: cmake -S . -B build-20_5-linux -G "Ninja Multi-Config"
 
     - name: Build Release
       working-directory: ${{ github.workspace }}
@@ -80,21 +65,6 @@ jobs:
       run: |
         cmake --build build-20_5-linux --config Release
         cmake --build build-20_5-linux --config Release --target zibraVDBResolver
-
-    - name: Repack HDA into Binary format
-      working-directory: ${{ github.workspace }}
-      shell: pwsh
-      run: |
-        /opt/hfs20.5/bin/hotl -l ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda.2
-        Remove-Item -Recurse -Force ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda
-        Move-Item -Path ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda.2 -Destination ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda
-
-    - name: Save artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: ZibraVDBForHoudini-on-push-Linux-x64
-        path: package
-        if-no-files-found: error
 
 #    - name: Build Debug
 #      working-directory: ${{ github.workspace }}
@@ -126,7 +96,7 @@ jobs:
     - name: Configure Cmake
       working-directory: ${{ github.workspace }}
       shell: pwsh
-      run: cmake -S . -B build-20_5-macos -G "Xcode" -DCMAKE_OSX_ARCHITECTURES=arm64 -DZIBRAVDB_OUTPUT_PATH=${{ github.workspace }}/package
+      run: cmake -S . -B build-20_5-macos -G "Xcode" -DCMAKE_OSX_ARCHITECTURES=arm64
       env:
         HFS: /Applications/Houdini/Current/Frameworks/Houdini.framework/Versions/Current/Resources
 
@@ -139,78 +109,6 @@ jobs:
       working-directory: ${{ github.workspace }}
       shell: pwsh
       run: cmake --build build-20_5-macos --config Release --target zibraVDBResolver
-
-    - name: Log artifact locations and verify files exist (arm64)
-      shell: bash
-      run: |
-        echo "=== Checking ZibraVDBForHoudini.dylib ===" 
-        if [ -f "${{ github.workspace }}/package/dso/ZibraVDBForHoudini.dylib" ]; then
-          echo "✓ ZibraVDBForHoudini.dylib exists at: ${{ github.workspace }}/package/dso/ZibraVDBForHoudini.dylib"
-          ls -la "${{ github.workspace }}/package/dso/ZibraVDBForHoudini.dylib"
-          file "${{ github.workspace }}/package/dso/ZibraVDBForHoudini.dylib"
-        else
-          echo "✗ ZibraVDBForHoudini.dylib NOT FOUND at: ${{ github.workspace }}/package/dso/ZibraVDBForHoudini.dylib"
-          echo "Contents of package/dso directory:"
-          ls -la "${{ github.workspace }}/package/dso/" || echo "dso directory does not exist"
-        fi
-        
-        echo "=== Checking zibraVDBResolver ===" 
-        if [ -f "${{ github.workspace }}/package/zibra/0/lib/libzibraVDBResolver.dylib" ]; then
-          echo "✓ libzibraVDBResolver.dylib exists at: ${{ github.workspace }}/package/zibra/0/lib/libzibraVDBResolver.dylib"
-          ls -la "${{ github.workspace }}/package/zibra/0/lib/libzibraVDBResolver.dylib"
-          file "${{ github.workspace }}/package/zibra/0/lib/libzibraVDBResolver.dylib"
-        else
-          echo "✗ libzibraVDBResolver.dylib NOT FOUND at: ${{ github.workspace }}/package/zibra/0/lib/libzibraVDBResolver.dylib"
-          echo "Contents of package/zibra/0/lib directory:"
-          ls -la "${{ github.workspace }}/package/zibra/0/lib/" || echo "lib directory does not exist"
-          echo "Searching for any zibraVDBResolver files:"
-          find "${{ github.workspace }}/package" -name "*zibraVDBResolver*" || echo "No zibraVDBResolver files found"
-        fi
-
-    - name: Apple sign and notarize ZibraVDBForHoudini
-      shell: bash
-      run: |
-        echo "=== Starting notarization of ZibraVDBForHoudini.dylib ===" 
-        echo "File to notarize: ${{ github.workspace }}/package/dso/ZibraVDBForHoudini.dylib"
-        ${{ github.workspace }}/actions/apple/sign_and_notarize_dylib.sh ${{ github.workspace }}/package/dso/ZibraVDBForHoudini.dylib
-        echo "=== Notarization of ZibraVDBForHoudini.dylib completed ==="
-      env:
-        DEVELOPER_ID_APPLICATION_CERT: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_CERT }}
-        DEVELOPER_ID_APPLICATION_PASS: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_PASS }}
-        DEVELOPER_ID_APPLICATION_NAME: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_NAME }}
-        APPLE_DEVELOPER_TEAM: ${{ secrets.APPLE_DEVELOPER_ZIBRA_AI_TEAM }}
-        NOTARIZATION_USER: ${{ secrets.NOTARIZATION_ZIBRA_AI_USER }}
-        NOTARIZATION_PASS: ${{ secrets.NOTARIZATION_ZIBRA_AI_PASS }}
-
-    - name: Apple sign and notarize zibraVDBResolver
-      shell: bash
-      run: |
-        echo "=== Starting notarization of libzibraVDBResolver.dylib ===" 
-        echo "File to notarize: ${{ github.workspace }}/package/zibra/0/lib/libzibraVDBResolver.dylib"
-        ${{ github.workspace }}/actions/apple/sign_and_notarize_dylib.sh ${{ github.workspace }}/package/zibra/0/lib/libzibraVDBResolver.dylib
-        echo "=== Notarization of libzibraVDBResolver.dylib completed ==="
-      env:
-        DEVELOPER_ID_APPLICATION_CERT: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_CERT }}
-        DEVELOPER_ID_APPLICATION_PASS: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_PASS }}
-        DEVELOPER_ID_APPLICATION_NAME: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_NAME }}
-        APPLE_DEVELOPER_TEAM: ${{ secrets.APPLE_DEVELOPER_ZIBRA_AI_TEAM }}
-        NOTARIZATION_USER: ${{ secrets.NOTARIZATION_ZIBRA_AI_USER }}
-        NOTARIZATION_PASS: ${{ secrets.NOTARIZATION_ZIBRA_AI_PASS }}
-
-    - name: Repack HDA into Binary format
-      working-directory: ${{ github.workspace }}
-      shell: pwsh
-      run: |
-        /Applications/Houdini/Current/Frameworks/Houdini.framework/Versions/Current/Resources/bin/hotl -l ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda.2
-        Remove-Item -Recurse -Force ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda
-        Move-Item -Path ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda.2 -Destination ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda
-
-    - name: Save artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: ZibraVDBForHoudini-on-push-macOS-arm64
-        path: package
-        if-no-files-found: error
 
   build-macos-x86_64:
     name: Build ZibraVDB for Houdini 20.5 (macOS-x86_64)
@@ -237,7 +135,7 @@ jobs:
     - name: Configure Cmake
       working-directory: ${{ github.workspace }}
       shell: pwsh
-      run: cmake -S . -B build-20_5-macos -G "Xcode" -DCMAKE_OSX_ARCHITECTURES=x86_64 -DZIBRAVDB_OUTPUT_PATH=${{ github.workspace }}/package
+      run: cmake -S . -B build-20_5-macos -G "Xcode" -DCMAKE_OSX_ARCHITECTURES=x86_64
       env:
         HFS: /Applications/Houdini/Current/Frameworks/Houdini.framework/Versions/Current/Resources
 
@@ -251,118 +149,8 @@ jobs:
       shell: pwsh
       run: cmake --build build-20_5-macos --config Release --target zibraVDBResolver
 
-    - name: Log artifact locations and verify files exist (x64)
-      shell: bash
-      run: |
-        echo "=== Checking ZibraVDBForHoudini.dylib ===" 
-        if [ -f "${{ github.workspace }}/package/dso/ZibraVDBForHoudini.dylib" ]; then
-          echo "✓ ZibraVDBForHoudini.dylib exists at: ${{ github.workspace }}/package/dso/ZibraVDBForHoudini.dylib"
-          ls -la "${{ github.workspace }}/package/dso/ZibraVDBForHoudini.dylib"
-          file "${{ github.workspace }}/package/dso/ZibraVDBForHoudini.dylib"
-        else
-          echo "✗ ZibraVDBForHoudini.dylib NOT FOUND at: ${{ github.workspace }}/package/dso/ZibraVDBForHoudini.dylib"
-          echo "Contents of package/dso directory:"
-          ls -la "${{ github.workspace }}/package/dso/" || echo "dso directory does not exist"
-        fi
-        
-        echo "=== Checking zibraVDBResolver ===" 
-        if [ -f "${{ github.workspace }}/package/zibra/0/lib/libzibraVDBResolver.dylib" ]; then
-          echo "✓ libzibraVDBResolver.dylib exists at: ${{ github.workspace }}/package/zibra/0/lib/libzibraVDBResolver.dylib"
-          ls -la "${{ github.workspace }}/package/zibra/0/lib/libzibraVDBResolver.dylib"
-          file "${{ github.workspace }}/package/zibra/0/lib/libzibraVDBResolver.dylib"
-        else
-          echo "✗ libzibraVDBResolver.dylib NOT FOUND at: ${{ github.workspace }}/package/zibra/0/lib/libzibraVDBResolver.dylib"
-          echo "Contents of package/zibra/0/lib directory:"
-          ls -la "${{ github.workspace }}/package/zibra/0/lib/" || echo "lib directory does not exist"
-          echo "Searching for any zibraVDBResolver files:"
-          find "${{ github.workspace }}/package" -name "*zibraVDBResolver*" || echo "No zibraVDBResolver files found"
-        fi
-
-    - name: Apple sign and notarize ZibraVDBForHoudini
-      shell: bash
-      run: |
-        echo "=== Starting notarization of ZibraVDBForHoudini.dylib ===" 
-        echo "File to notarize: ${{ github.workspace }}/package/dso/ZibraVDBForHoudini.dylib"
-        ${{ github.workspace }}/actions/apple/sign_and_notarize_dylib.sh ${{ github.workspace }}/package/dso/ZibraVDBForHoudini.dylib
-        echo "=== Notarization of ZibraVDBForHoudini.dylib completed ==="
-      env:
-        DEVELOPER_ID_APPLICATION_CERT: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_CERT }}
-        DEVELOPER_ID_APPLICATION_PASS: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_PASS }}
-        DEVELOPER_ID_APPLICATION_NAME: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_NAME }}
-        APPLE_DEVELOPER_TEAM: ${{ secrets.APPLE_DEVELOPER_ZIBRA_AI_TEAM }}
-        NOTARIZATION_USER: ${{ secrets.NOTARIZATION_ZIBRA_AI_USER }}
-        NOTARIZATION_PASS: ${{ secrets.NOTARIZATION_ZIBRA_AI_PASS }}
-
-    - name: Apple sign and notarize zibraVDBResolver
-      shell: bash
-      run: |
-        echo "=== Starting notarization of libzibraVDBResolver.dylib ===" 
-        echo "File to notarize: ${{ github.workspace }}/package/zibra/0/lib/libzibraVDBResolver.dylib"
-        ${{ github.workspace }}/actions/apple/sign_and_notarize_dylib.sh ${{ github.workspace }}/package/zibra/0/lib/libzibraVDBResolver.dylib
-        echo "=== Notarization of libzibraVDBResolver.dylib completed ==="
-      env:
-        DEVELOPER_ID_APPLICATION_CERT: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_CERT }}
-        DEVELOPER_ID_APPLICATION_PASS: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_PASS }}
-        DEVELOPER_ID_APPLICATION_NAME: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_NAME }}
-        APPLE_DEVELOPER_TEAM: ${{ secrets.APPLE_DEVELOPER_ZIBRA_AI_TEAM }}
-        NOTARIZATION_USER: ${{ secrets.NOTARIZATION_ZIBRA_AI_USER }}
-        NOTARIZATION_PASS: ${{ secrets.NOTARIZATION_ZIBRA_AI_PASS }}
-
-    - name: Repack HDA into Binary format
-      working-directory: ${{ github.workspace }}
-      shell: pwsh
-      run: |
-        /Applications/Houdini/Current/Frameworks/Houdini.framework/Versions/Current/Resources/bin/hotl -l ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda.2
-        Remove-Item -Recurse -Force ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda
-        Move-Item -Path ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda.2 -Destination ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda
-
-    - name: Save artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: ZibraVDBForHoudini-on-push-macOS-x64
-        path: package
-        if-no-files-found: error
-
     #    - name: Build Debug
 #      working-directory: ${{ github.workspace }}
 #      shell: pwsh
 #      run: cmake --build build-20_5-macos --config Debug
-
-  merge-artifacts:
-    name: Merge artifacts
-    runs-on: macos-latest
-    needs: [build-windows-x64, build-linux-x64, build-macos-arm64, build-macos-x86_64]
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-
-      - name: Merge artifacts
-        shell: bash
-        run: |
-          mkdir merged
-          mv ZibraVDBForHoudini-on-push-Windows-x64/* merged/
-          mv ZibraVDBForHoudini-on-push-Linux-x64/dso/ZibraVDBForHoudini.so merged/dso/ZibraVDBForHoudini.so
-          lipo -create -output merged/dso/ZibraVDBForHoudini.dylib ZibraVDBForHoudini-on-push-macOS-arm64/dso/ZibraVDBForHoudini.dylib ZibraVDBForHoudini-on-push-macOS-x64/dso/ZibraVDBForHoudini.dylib
-          
-          # Merge asset resolver libraries
-          mkdir -p merged/zibra/0/lib merged/zibra/0/resources
-          cp ZibraVDBForHoudini-on-push-Linux-x64/zibra/0/lib/zibraVDBResolver.so merged/zibra/0/lib/
-          cp ZibraVDBForHoudini-on-push-Linux-x64/zibra/0/resources/plugInfo.json merged/zibra/0/resources/
-          lipo -create -output merged/zibra/0/lib/libzibraVDBResolver.dylib ZibraVDBForHoudini-on-push-macOS-arm64/zibra/0/lib/libzibraVDBResolver.dylib ZibraVDBForHoudini-on-push-macOS-x64/zibra/0/lib/libzibraVDBResolver.dylib
-
-      - name: Save merged artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ZibraVDBForHoudini-on-push-merged
-          path: merged
-          if-no-files-found: error
-
-      - name: Delete partial artifacts
-        uses: geekyeggo/delete-artifact@f275313e70c08f6120db482d7a6b98377786765b # v5.1.0
-        with:
-          name: |
-            ZibraVDBForHoudini-on-push-Windows-x64
-            ZibraVDBForHoudini-on-push-Linux-x64
-            ZibraVDBForHoudini-on-push-macOS-arm64
-            ZibraVDBForHoudini-on-push-macOS-x64
     
