@@ -40,10 +40,10 @@ jobs:
       working-directory: ${{ github.workspace }}
       shell: pwsh
       run: |
-        python -m venv actions/install_houdini/venv
+        python -m venv actions/houdini/venv
         .\actions\install_houdini\venv\Scripts\Activate.ps1
-        pip install -r actions/install_houdini/requirements.txt
-        python actions/install_houdini/install_houdini.py --version "${{ inputs.houdini-version }}" --build "${{ inputs.houdini-build }}" --platform "${{ inputs.houdini-win-x64-architecture }}"
+        pip install -r actions/houdini/requirements.txt
+        python actions/houdini/install_houdini.py --version "${{ inputs.houdini-version }}" --build "${{ inputs.houdini-build }}" --platform "${{ inputs.houdini-win-x64-architecture }}"
       env:
         HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
         HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
@@ -87,10 +87,10 @@ jobs:
       working-directory: ${{ github.workspace }}
       shell: pwsh
       run: |
-        python3 -m venv actions/install_houdini/venv
-        ./actions/install_houdini/venv/bin/Activate.ps1
-        pip3 install -r actions/install_houdini/requirements.txt
-        python3 actions/install_houdini/install_houdini.py --version "${{ inputs.houdini-version }}" --build "${{ inputs.houdini-build }}" --platform "${{ inputs.houdini-linux-x64-architecture }}"
+        python3 -m venv actions/houdini/venv
+        ./actions/houdini/venv/bin/Activate.ps1
+        pip3 install -r actions/houdini/requirements.txt
+        python3 actions/houdini/install_houdini.py --version "${{ inputs.houdini-version }}" --build "${{ inputs.houdini-build }}" --platform "${{ inputs.houdini-linux-x64-architecture }}"
       env:
         HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
         HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
@@ -126,7 +126,7 @@ jobs:
 
   build-macos-arm64:
     name: Build ZibraVDB for Houdini 20.5 (macOS-arm64)
-    runs-on: macos-latest
+    runs-on: macos-14
     concurrency:
       group: macos-arm64-${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
@@ -138,10 +138,10 @@ jobs:
       working-directory: ${{ github.workspace }}
       shell: pwsh
       run: |
-        python3 -m venv actions/install_houdini/venv
-        ./actions/install_houdini/venv/bin/Activate.ps1
-        pip3 install -r actions/install_houdini/requirements.txt
-        python3 actions/install_houdini/install_houdini.py --version "${{ inputs.houdini-version }}" --build "${{ inputs.houdini-build }}" --platform "${{ inputs.houdini-mac-arm64-architecture }}"
+        python3 -m venv actions/houdini/venv
+        ./actions/houdini/venv/bin/Activate.ps1
+        pip3 install -r actions/houdini/requirements.txt
+        python3 actions/houdini/install_houdini.py --version "${{ inputs.houdini-version }}" --build "${{ inputs.houdini-build }}" --platform "${{ inputs.houdini-mac-arm64-architecture }}"
       env:
         HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
         HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
@@ -186,7 +186,7 @@ jobs:
 
   build-macos-x64:
     name: Build ZibraVDB for Houdini 20.5 (macOS-x64)
-    runs-on: macos-latest
+    runs-on: macos-14
     concurrency:
       group: macos-x64-${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
@@ -198,10 +198,10 @@ jobs:
       working-directory: ${{ github.workspace }}
       shell: pwsh
       run: |
-        python3 -m venv actions/install_houdini/venv
-        ./actions/install_houdini/venv/bin/Activate.ps1
-        pip3 install -r actions/install_houdini/requirements.txt
-        python3 actions/install_houdini/install_houdini.py --version "${{ inputs.houdini-version }}" --build "${{ inputs.houdini-build }}" --platform "${{ inputs.houdini-mac-x64-architecture}}"
+        python3 -m venv actions/houdini/venv
+        ./actions/houdini/venv/bin/Activate.ps1
+        pip3 install -r actions/houdini/requirements.txt
+        python3 actions/houdini/install_houdini.py --version "${{ inputs.houdini-version }}" --build "${{ inputs.houdini-build }}" --platform "${{ inputs.houdini-mac-x64-architecture}}"
       env:
         HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
         HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
@@ -246,7 +246,7 @@ jobs:
 
   merge-artifacts:
     name: Merge artifacts
-    runs-on: macos-latest
+    runs-on: macos-14
     needs: [build-windows-x64, build-linux-x64, build-macos-arm64, build-macos-x64]
     steps:
       - name: Download artifacts

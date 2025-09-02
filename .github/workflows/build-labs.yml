@@ -18,10 +18,10 @@ jobs:
       working-directory: ${{ github.workspace }}
       shell: pwsh
       run: |
-        python -m venv actions/install_houdini/venv
+        python -m venv actions/houdini/venv
         .\actions\install_houdini\venv\Scripts\Activate.ps1
-        pip install -r actions/install_houdini/requirements.txt
-        python actions/install_houdini/install_houdini.py --version "20.5" --platform "win64-vc143"
+        pip install -r actions/houdini/requirements.txt
+        python actions/houdini/install_houdini.py --version "20.5" --platform "win64-vc143"
       env:
         HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
         HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
@@ -68,7 +68,7 @@ jobs:
 
   build-macos-arm64:
     name: Build ZibraVDB for Houdini 20.5 (macOS-arm64)
-    runs-on: macos-latest
+    runs-on: macos-14
     concurrency:
       group: macos-arm64-${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
@@ -80,10 +80,10 @@ jobs:
       working-directory: ${{ github.workspace }}
       shell: pwsh
       run: |
-        python3 -m venv actions/install_houdini/venv
-        ./actions/install_houdini/venv/bin/Activate.ps1
-        pip3 install -r actions/install_houdini/requirements.txt
-        python3 actions/install_houdini/install_houdini.py --version "20.5" --platform "macosx_arm64_clang15"
+        python3 -m venv actions/houdini/venv
+        ./actions/houdini/venv/bin/Activate.ps1
+        pip3 install -r actions/houdini/requirements.txt
+        python3 actions/houdini/install_houdini.py --version "20.5" --platform "macosx_arm64_clang15"
       env:
         HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
         HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
@@ -108,7 +108,7 @@ jobs:
 
   build-macos-x86_64:
     name: Build ZibraVDB for Houdini 20.5 (macOS-x86_64)
-    runs-on: macos-latest
+    runs-on: macos-14
     concurrency:
       group: macos-x86_64-${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
@@ -120,10 +120,10 @@ jobs:
       working-directory: ${{ github.workspace }}
       shell: pwsh
       run: |
-        python3 -m venv actions/install_houdini/venv
-        ./actions/install_houdini/venv/bin/Activate.ps1
-        pip3 install -r actions/install_houdini/requirements.txt
-        python3 actions/install_houdini/install_houdini.py --version "20.5" --platform "macosx_x86_64_clang15"
+        python3 -m venv actions/houdini/venv
+        ./actions/houdini/venv/bin/Activate.ps1
+        pip3 install -r actions/houdini/requirements.txt
+        python3 actions/houdini/install_houdini.py --version "20.5" --platform "macosx_x86_64_clang15"
       env:
         HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
         HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
