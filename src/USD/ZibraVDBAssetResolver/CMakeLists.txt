@@ -1,5 +1,6 @@
 # USD Asset Resolver - included as subdirectory
 
+#TODO set compile/link options to target explicitly
 if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
     add_compile_options(/Zc:inline-)
 elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "LINUX")
@@ -10,12 +11,6 @@ elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
     #TODO sanitize this. we probably dont need all these flags
     add_compile_options(-O0 -g -fno-inline -fno-inline-functions -fno-inline-functions-called-once)
     add_link_options(-Wl,-all_load -Wl,-no_dead_strip_inits_and_terms)
-    set_target_properties(zibraVDBResolver
-            PROPERTIES
-            XCODE_ATTRIBUTE_DEAD_CODE_STRIPPING NO
-            XCODE_ATTRIBUTE_PRESERVE_DEAD_CODE_INITS_AND_TERMS YES
-            XCODE_ATTRIBUTE_COPYING_PRESERVES_HFS_DATA YES
-            XCODE_ATTRIBUTE_KEEP_PRIVATE_EXTERNS NO)
 endif()
 
 set(RESOLVER_HEADERS
@@ -46,6 +41,16 @@ target_compile_definitions(zibraVDBResolver PRIVATE
         ZIB_NETWORK_REQUEST_BACKEND_CURL=1
         ZIB_NO_UI_ERROR=1
 )
+
+if ("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
+    #TODO sanitize this. we probably dont need all these flags
+    set_target_properties(zibraVDBResolver
+            PROPERTIES
+            XCODE_ATTRIBUTE_DEAD_CODE_STRIPPING NO
+            XCODE_ATTRIBUTE_PRESERVE_DEAD_CODE_INITS_AND_TERMS YES
+            XCODE_ATTRIBUTE_COPYING_PRESERVES_HFS_DATA YES
+            XCODE_ATTRIBUTE_KEEP_PRIVATE_EXTERNS NO)
+endif()
 
 target_include_directories(zibraVDBResolver
     PRIVATE
