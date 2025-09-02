@@ -210,7 +210,6 @@ target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini)
 if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
     target_link_libraries(ZibraVDBForHoudini PRIVATE
         Houdini::Dep::openvdb_sesi
-        Houdini::Dep::hboost_python
 
         Houdini::Dep::pxr_tf
         Houdini::Dep::pxr_sdf
@@ -218,6 +217,15 @@ if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
         Houdini::Dep::pxr_usdVol
         Houdini::Dep::pxr_plug
     )
+    
+    if(TARGET Houdini::Dep::hboost_python)  # for Houdini<21.0
+        target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::hboost_python)
+    elseif(TARGET Houdini::Dep::pxr_python)
+        target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::pxr_python)
+    else()
+        message(WARNING "Neither hboost_python nor pxr_python target found")
+    endif()
+
     if(DEFINED _houdini_python_version)
         set(PYTHON_TARGET_NAME "python${_houdini_python_version}")
         if(TARGET Houdini::Dep::${PYTHON_TARGET_NAME})

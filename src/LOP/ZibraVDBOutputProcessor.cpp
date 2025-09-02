@@ -126,7 +126,6 @@ namespace Zibra::ZibraVDBOutputProcessor
                                            const UT_Options &stage_variables
 #if UT_VERSION_INT >= 0x15000000  // Houdini 21.0+
                                            ,
-                                           const UT_StringRef &config_layer_path,
                                            UT_String &error
 #endif
                                            )
