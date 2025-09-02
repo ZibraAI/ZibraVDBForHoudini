@@ -257,7 +257,7 @@ jobs:
           mkdir -p merged/zibra/0/lib merged/zibra/0/resources
           cp ZibraVDBForHoudini-20_5-Linux-x64/zibra/0/lib/zibraVDBResolver.so merged/zibra/0/lib/
           cp ZibraVDBForHoudini-20_5-Linux-x64/zibra/0/resources/plugInfo.json merged/zibra/0/resources/
-          lipo -create -output merged/zibra/0/lib/zibraVDBResolver.dylib ZibraVDBForHoudini-20_5-macOS-arm64/zibra/0/lib/zibraVDBResolver.dylib ZibraVDBForHoudini-20_5-macOS-x64/zibra/0/lib/zibraVDBResolver.dylib
+          lipo -create -output merged/zibra/0/lib/libzibraVDBResolver.dylib ZibraVDBForHoudini-20_5-macOS-arm64/zibra/0/lib/libzibraVDBResolver.dylib ZibraVDBForHoudini-20_5-macOS-x64/zibra/0/lib/libzibraVDBResolver.dylib
 
       - name: Save merged artifacts
         uses: actions/upload-artifact@v4

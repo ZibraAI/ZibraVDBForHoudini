@@ -176,7 +176,7 @@ jobs:
 
     - name: Apple sign and notarize zibraVDBResolver
       shell: bash
-      run: ${{ github.workspace }}/actions/apple/sign_and_notarize_dylib.sh ${{ github.workspace }}/package/zibra/0/lib/zibraVDBResolver.dylib
+      run: ${{ github.workspace }}/actions/apple/sign_and_notarize_dylib.sh ${{ github.workspace }}/package/zibra/0/lib/libzibraVDBResolver.dylib
       env:
         DEVELOPER_ID_APPLICATION_CERT: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_CERT }}
         DEVELOPER_ID_APPLICATION_PASS: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_PASS }}
@@ -249,7 +249,7 @@ jobs:
 
     - name: Apple sign and notarize zibraVDBResolver
       shell: bash
-      run: ${{ github.workspace }}/actions/apple/sign_and_notarize_dylib.sh ${{ github.workspace }}/package/zibra/0/lib/zibraVDBResolver.dylib
+      run: ${{ github.workspace }}/actions/apple/sign_and_notarize_dylib.sh ${{ github.workspace }}/package/zibra/0/lib/libzibraVDBResolver.dylib
       env:
         DEVELOPER_ID_APPLICATION_CERT: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_CERT }}
         DEVELOPER_ID_APPLICATION_PASS: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_PASS }}
@@ -293,7 +293,7 @@ jobs:
           mkdir -p merged/zibra/0/lib merged/zibra/0/resources
           cp ZibraVDBForHoudini-Linux-x64/zibra/0/lib/zibraVDBResolver.so merged/zibra/0/lib/
           cp ZibraVDBForHoudini-Linux-x64/zibra/0/resources/plugInfo.json merged/zibra/0/resources/
-          lipo -create -output merged/zibra/0/lib/zibraVDBResolver.dylib ZibraVDBForHoudini-macOS-arm64/zibra/0/lib/zibraVDBResolver.dylib ZibraVDBForHoudini-macOS-x64/zibra/0/lib/zibraVDBResolver.dylib
+          lipo -create -output merged/zibra/0/lib/libzibraVDBResolver.dylib ZibraVDBForHoudini-macOS-arm64/zibra/0/lib/libzibraVDBResolver.dylib ZibraVDBForHoudini-macOS-x64/zibra/0/lib/libzibraVDBResolver.dylib
       
       - name: Save merged artifacts
         uses: actions/upload-artifact@v4
