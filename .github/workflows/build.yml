@@ -239,7 +239,8 @@ jobs:
         env:
           HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
           HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
-    
+
+
   build-plugin:
     needs: select-houdini-build
     if: ${{ (needs.select-houdini-build.outputs.need-run == 'true') }}
@@ -251,7 +252,7 @@ jobs:
     concurrency:
       group: ${{ matrix.houdini-platform }}-${{ matrix.houdini-version }}-${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
-    name: Build ${{ matrix.name }} Houdini ${{ matrix.houdini-version }}.${{ matrix.houdini-build }}
+    name: Build ${{ matrix.name }} Houdini ${{ matrix.houdini-version }}
 
     steps:
       - name: Sync
@@ -326,7 +327,7 @@ jobs:
             houdini-build: ${{ needs.select-houdini-build.outputs.houdini-build-20-5 }}
           - houdini-version: "21.0"
             houdini-build: ${{ needs.select-houdini-build.outputs.houdini-build-21-0 }}
-    name: Merge artifacts ${{ matrix.houdini-version }}.${{ matrix.houdini-build }}
+    name: Merge artifacts ${{ matrix.houdini-version }}
 
     steps:
       - name: Sync
