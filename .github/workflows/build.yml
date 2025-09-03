@@ -367,4 +367,4 @@ jobs:
       - name: Delete partial artifacts
         uses: geekyeggo/delete-artifact@f275313e70c08f6120db482d7a6b98377786765b # v5.1.0
         with:
-          name: ZibraVDBForHoudini-*-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}
+          name: ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-*
