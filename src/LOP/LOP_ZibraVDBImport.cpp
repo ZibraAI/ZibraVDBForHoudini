@@ -1,13 +1,13 @@
 #include "LOP_ZibraVDBImport.h"
 
-#include <PrecompiledHeader.h>
-#include <bridge/LibraryUtils.h>
-#include <ui/PluginManagementWindow.h>
-
 #include <HUSD/HUSD_DataHandle.h>
 #include <HUSD/HUSD_FindPrims.h>
 #include <HUSD/XUSD_Data.h>
+#include <PrecompiledHeader.h>
+#include <bridge/LibraryUtils.h>
+#include <licensing/LicenseManager.h>
 #include <pxr/usd/usdVol/openVDBAsset.h>
+#include <ui/PluginManagementWindow.h>
 
 PXR_NAMESPACE_USING_DIRECTIVE
 
@@ -120,6 +120,8 @@ namespace Zibra::ZibraVDBImport
             addError(LOP_MESSAGE, "Invalid or missing ZibraVDB file");
             return error();
         }
+
+        Zibra::LicenseManager::GetInstance().CheckLicense(Zibra::LicenseManager::Product::Decompression);
 
         if (!LibraryUtils::IsZibSDKLoaded())
         {
