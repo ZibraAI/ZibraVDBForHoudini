@@ -197,6 +197,9 @@ list(APPEND CMAKE_PREFIX_PATH "${HOUDINI_PATH}/toolkit/cmake")
 find_package(Houdini REQUIRED)
 target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini)
 
+set(DETECTED_HOUDINI_VERSION "${Houdini_VERSION_MAJOR}.${Houdini_VERSION_MINOR}")
+cmake_print_variables(DETECTED_HOUDINI_VERSION)
+
 if (NOT "${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
     target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::openvdb_sesi)
 endif()

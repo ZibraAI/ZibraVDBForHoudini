@@ -3,8 +3,7 @@ name: Build
 on: [push]
 
 jobs:
-  select-houdini-version:
-    name: Select houdini version
+  select-houdini-build:
     runs-on: ubuntu-latest
     outputs:
       houdini-build-20-5: ${{ steps.select_houdini_build.outputs.houdini_build_20_5 }}
@@ -13,6 +12,7 @@ jobs:
       fail-fast: false
       matrix:
         houdini-version: ["20.5", "21.0"]
+    name: Select houdini ${{ matrix.houdini-version }} build
 
     steps:
       - name: Sync
@@ -26,95 +26,251 @@ jobs:
           python3 -m venv actions/houdini/venv
           ./actions/houdini/venv/bin/Activate.ps1
           pip3 install -r actions/houdini/requirements.txt
-          python3 actions/houdini/select_build.py --product houdini --version ${{ matrix.houdini-version }} --platforms win64-vc143 macosx_arm64_clang15.0 macosx_x86_64_clang15.0 linux_x86_64_gcc11.2 --verbose
+          python3 actions/houdini/select_build.py --product houdini --version ${{ matrix.houdini-version }} --platforms win64-vc143 macosx_arm64_clang15.0_14 macosx_x86_64_clang15.0_14 linux_x86_64_gcc11.2 --verbose
         env:
           HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
           HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
     
   build-plugin:
-    needs: select-houdini-version
+    needs: select-houdini-build
     strategy:
       fail-fast: false
       matrix:
         include:
-          - name: Windows x64 Houdini 20.5
+          # Legend
+          # name - Human readable OS/Arch name. Version is appended separately.
+          # run-on-all-branches - Whether to run this target on all branches. If false, will only run on main
+          # runner - Github actions runner that should run the job
+          # generator - Generator used for cmake configuration
+          # houdini-version - Version of houdini to build against (e.g. "20.5"/"21.0")
+          # houdini-build - Specific build of houdini to build against (e.g. "440")
+          # houdini-install-path - Path into which houdini gets installed. This needs to be consistent with houdini install script, as it calculates path for previous version when removing it. On Windows it MUST USE BACKSLASHES.
+          # hfs-path - Path to use HFS env var to. This is same as houdini-install-path on most platforms, but macOS is special and required additional suffix after houdini-install-path.
+          # python-command - Python command to use for running scripts (e.g. "python"/"python3")
+          # python-venv-activate-path - Path to powershell python venv activation script within venv folder
+          # additional-config-args - Additional commad line args to pass to cmake configuration. Required on macOS to specify architectrue (arm64/x64)
+          - name: Windows x64
+            run-on-all-branches: false
             runner: windows-latest
             generator: Visual Studio 17 2022
+            executable-extension: .exe
             houdini-version: "20.5"
-            houdini-build: ${{ needs.select-houdini-version.outputs.houdini-build-20-5 }}
+            houdini-build: ${{ needs.select-houdini-build.outputs.houdini-build-20-5 }}
             houdini-platform: win64-vc143
+            houdini-install-path: C:\Houdini\20.5.${{ needs.select-houdini-build.outputs.houdini-build-20-5 }}
+            hfs-path: C:\Houdini\20.5.${{ needs.select-houdini-build.outputs.houdini-build-20-5 }}
             python-command: python
+            python-venv-activate-path: Scripts/Activate.ps1
             additional-config-args: 
-          - name: Windows x64 Houdini 21.0
+          - name: Windows x64
+            run-on-all-branches: true
             runner: windows-latest
             generator: Visual Studio 17 2022
+            executable-extension: .exe
             houdini-version: "21.0"
-            houdini-build: ${{ needs.select-houdini-version.outputs.houdini-build-21-0 }}
+            houdini-build: ${{ needs.select-houdini-build.outputs.houdini-build-21-0 }}
             houdini-platform: win64-vc143
+            houdini-install-path: C:\Houdini\21.0.${{ needs.select-houdini-build.outputs.houdini-build-21-0 }}
+            hfs-path: C:\Houdini\21.0.${{ needs.select-houdini-build.outputs.houdini-build-21-0 }}
             python-command: python
+            python-venv-activate-path: Scripts/Activate.ps1
             additional-config-args: 
 
-          - name: Linux x64 Houdini 20.5
+          - name: Linux x64
+            run-on-all-branches: true
             runner: [self-hosted, Linux, X64, houdini]
             generator: Ninja Multi-Config
+            executable-extension:
             houdini-version: "20.5"
-            houdini-build: ${{ needs.select-houdini-version.outputs.houdini-build-20-5 }}
+            houdini-build: ${{ needs.select-houdini-build.outputs.houdini-build-20-5 }}
             houdini-platform: linux_x86_64_gcc11.2
+            houdini-install-path: /opt/hfs20.5.${{ needs.select-houdini-build.outputs.houdini-build-20-5 }}
+            hfs-path: /opt/hfs20.5.${{ needs.select-houdini-build.outputs.houdini-build-20-5 }}
             python-command: python3
+            python-venv-activate-path: bin/Activate.ps1
             additional-config-args: 
-          - name: Linux x64 Houdini 21.0
+          - name: Linux x64
+            run-on-all-branches: true
             runner: [self-hosted, Linux, X64, houdini]
             generator: Ninja Multi-Config
+            executable-extension:
             houdini-version: "21.0"
-            houdini-build: ${{ needs.select-houdini-version.outputs.houdini-build-21-0 }}
+            houdini-build: ${{ needs.select-houdini-build.outputs.houdini-build-21-0 }}
             houdini-platform: linux_x86_64_gcc11.2
+            houdini-install-path: /opt/hfs21.0.${{ needs.select-houdini-build.outputs.houdini-build-21-0 }}
+            hfs-path: /opt/hfs21.0.${{ needs.select-houdini-build.outputs.houdini-build-21-0 }}
             python-command: python3
+            python-venv-activate-path: bin/Activate.ps1
             additional-config-args: 
 
-          - name: macOS arm64 Houdini 20.5
+          - name: macOS arm64
+            run-on-all-branches: false
             runner: macos-14
             generator: Xcode
+            executable-extension:
             houdini-version: "20.5"
-            houdini-build: ${{ needs.select-houdini-version.outputs.houdini-build-20-5 }}
-            houdini-platform: macosx_arm64_clang15.0
+            houdini-build: ${{ needs.select-houdini-build.outputs.houdini-build-20-5 }}
+            houdini-platform: macosx_arm64_clang15.0_14
+            houdini-install-path: /Applications/Houdini/Houdini20.5.${{ needs.select-houdini-build.outputs.houdini-build-20-5 }}
+            hfs-path: /Applications/Houdini/Houdini20.5.${{ needs.select-houdini-build.outputs.houdini-build-20-5 }}/Frameworks/Houdini.framework/Versions/Current/Resources
             python-command: python3
+            python-venv-activate-path: bin/Activate.ps1
             additional-config-args: -DCMAKE_OSX_ARCHITECTURES=arm64
-          - name: macOS arm64 Houdini 21.0
+          - name: macOS arm64
+            run-on-all-branches: false
             runner: macos-14
             generator: Xcode
+            executable-extension:
             houdini-version: "21.0"
-            houdini-build: ${{ needs.select-houdini-version.outputs.houdini-build-21-0 }}
-            houdini-platform: macosx_arm64_clang15.0
+            houdini-build: ${{ needs.select-houdini-build.outputs.houdini-build-21-0 }}
+            houdini-platform: macosx_arm64_clang15.0_14
+            houdini-install-path: /Applications/Houdini/Houdini21.0.${{ needs.select-houdini-build.outputs.houdini-build-21-0 }}
+            hfs-path: /Applications/Houdini/Houdini21.0.${{ needs.select-houdini-build.outputs.houdini-build-21-0 }}/Frameworks/Houdini.framework/Versions/Current/Resources
             python-command: python3
+            python-venv-activate-path: bin/Activate.ps1
             additional-config-args: -DCMAKE_OSX_ARCHITECTURES=arm64
-
-          - name: macOS x64 Houdini 20.5
+            
+          - name: macOS x64
+            run-on-all-branches: false
             runner: macos-14
             generator: Xcode
+            executable-extension:
             houdini-version: "20.5"
-            houdini-build: ${{ needs.select-houdini-version.outputs.houdini-build-20-5 }}
-            houdini-platform: macosx_arm64_clang15.0
+            houdini-build: ${{ needs.select-houdini-build.outputs.houdini-build-20-5 }}
+            houdini-platform: macosx_x86_64_clang15.0_14
+            houdini-install-path: /Applications/Houdini/Houdini20.5.${{ needs.select-houdini-build.outputs.houdini-build-20-5 }}
+            hfs-path: /Applications/Houdini/Houdini20.5.${{ needs.select-houdini-build.outputs.houdini-build-20-5 }}/Frameworks/Houdini.framework/Versions/Current/Resources
             python-command: python3
+            python-venv-activate-path: bin/Activate.ps1
             additional-config-args: -DCMAKE_OSX_ARCHITECTURES=x86_46
-          - name: macOS x64 Houdini 21.0
+          - name: macOS x64
+            run-on-all-branches: false
             runner: macos-14
             generator: Xcode
+            executable-extension:
             houdini-version: "21.0"
-            houdini-build: ${{ needs.select-houdini-version.outputs.houdini-build-21-0 }}
-            houdini-platform: macosx_arm64_clang15.0
+            houdini-build: ${{ needs.select-houdini-build.outputs.houdini-build-21-0 }}
+            houdini-platform: macosx_x86_64_clang15.0_14
+            houdini-install-path: /Applications/Houdini/Houdini21.0.${{ needs.select-houdini-build.outputs.houdini-build-21-0 }}
+            hfs-path: /Applications/Houdini/Houdini21.0.${{ needs.select-houdini-build.outputs.houdini-build-21-0 }}/Frameworks/Houdini.framework/Versions/Current/Resources
             python-command: python3
+            python-venv-activate-path: bin/Activate.ps1
             additional-config-args: -DCMAKE_OSX_ARCHITECTURES=x86_46
+            
     runs-on: ${{ matrix.runner }}
-    name: Build ${{ matrix.name }}
+    name: Build ${{ matrix.name }} Houdini ${{ matrix.houdini-version }}.${{ matrix.houdini-build }}
+
+    steps:
+      - name: Sync
+        if: ${{ github.ref == 'refs/heads/main' || matrix.run-on-all-branches }}
+        uses: actions/checkout@v4
+
+      - name: Install Houdini
+        if: ${{ github.ref == 'refs/heads/main' || matrix.run-on-all-branches }}
+        working-directory: ${{ github.workspace }}
+        shell: pwsh
+        run: |
+          ${{ matrix.python-command }} -m venv actions/houdini/venv
+          ./actions/houdini/venv/${{ matrix.python-venv-activate-path }}
+          ${{ matrix.python-command }} -m pip install -r actions/houdini/requirements.txt
+          ${{ matrix.python-command }} actions/houdini/install_houdini.py --version ${{ matrix.houdini-version }} --build ${{ matrix.houdini-build }} --platform ${{ matrix.houdini-platform }} --install_path ${{ matrix.houdini-install-path }}
+        env:
+          HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
+          HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
+
+      - name: Configure Cmake
+        if: ${{ github.ref == 'refs/heads/main' || matrix.run-on-all-branches }}
+        working-directory: ${{ github.workspace }}
+        shell: pwsh
+        run: cmake -S . -B build -G "${{ matrix.generator }}" -DZIBRAVDB_OUTPUT_PATH="${{ github.workspace }}/package" ${{ matrix.additional-config-args }}
+        env:
+          HFS: ${{ matrix.hfs-path }}
+
+      - name: Build Debug
+        if: ${{ github.ref == 'refs/heads/main' || matrix.run-on-all-branches }}
+        working-directory: ${{ github.workspace }}
+        shell: pwsh
+        # Need to delete all generated artifacts, so Ninja Multi-Config does not get tripped up by existing artifacts when building Release
+        run: |
+          cmake --build build --config Debug
+          Remove-Item -Recurse -Force "${{ github.workspace }}/package"
+
+      - name: Build Release
+        if: ${{ github.ref == 'refs/heads/main' || matrix.run-on-all-branches }}
+        working-directory: ${{ github.workspace }}
+        shell: pwsh
+        run: cmake --build build --config Release
+
+      - name: Repack HDA into Binary format
+        if: ${{ github.ref == 'refs/heads/main' || matrix.run-on-all-branches }}
+        working-directory: ${{ github.workspace }}
+        shell: pwsh
+        run: |
+          ${{ matrix.hfs-path }}/bin/hotl${{ matrix.executable-extension }} -l ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda.2
+          Remove-Item -Recurse -Force ${{ github.workspace }}/package/otls\zibravdb_filecache.1.0.hda
+          Move-Item -Path ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda.2 -Destination ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda
+
+      - name: Save artifacts
+        if: ${{ github.ref == 'refs/heads/main' || matrix.run-on-all-branches }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-${{ matrix.houdini-platform }}
+          path: package
+          if-no-files-found: error
+          retention-days: 7
+
+
+  merge-artifacts:
+    runs-on: macos-14
+    if: ${{ github.ref == 'refs/heads/main' }}
+    needs: [select-houdini-build, build-plugin]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - houdini-version: "20.5"
+            houdini-build: ${{ needs.select-houdini-build.outputs.houdini-build-20-5 }}
+          - houdini-version: "21.0"
+            houdini-build: ${{ needs.select-houdini-build.outputs.houdini-build-21-0 }}
+    name: Merge artifacts ${{ matrix.houdini-version }}.${{ matrix.houdini-build }}
 
     steps:
       - name: Sync
         uses: actions/checkout@v4
-
-      - name: TEST WIP
-        working-directory: ${{ github.workspace }}
-        shell: pwsh
-        run: |
-          Write-Output WIP
-          Write-Output Target Houdini ${{ matrix.houdini-version }}.${{ matrix.houdini-build }} ${{ matrix.houdini-platform }}
         
+      - name: Download artifacts
+        uses: actions/download-artifact@v5
+        with:
+          pattern: ZibraVDBForHoudini-*-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}
+
+      - name: Merge artifacts
+        shell: bash
+        run: |
+          mkdir merged
+          mv ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-win64-vc143/* merged/
+          mv ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-linux_x86_64_gcc11.2/dso/ZibraVDBForHoudini.so merged/dso/ZibraVDBForHoudini.so
+          lipo -create -output merged/dso/ZibraVDBForHoudini.dylib ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-macosx_arm64_clang15.0_14/dso/ZibraVDBForHoudini.dylib ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-macosx_x86_64_clang15.0_14/dso/ZibraVDBForHoudini.dylib
+
+      - name: Apple sign and notarize
+        shell: bash
+        run: ${{ github.workspace }}/actions/apple/sign_and_notarize_dylib.sh ${{ github.workspace }}/merged/dso/ZibraVDBForHoudini.dylib
+        env:
+          DEVELOPER_ID_APPLICATION_CERT: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_CERT }}
+          DEVELOPER_ID_APPLICATION_PASS: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_PASS }}
+          DEVELOPER_ID_APPLICATION_NAME: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_NAME }}
+          APPLE_DEVELOPER_TEAM: ${{ secrets.APPLE_DEVELOPER_ZIBRA_AI_TEAM }}
+          NOTARIZATION_USER: ${{ secrets.NOTARIZATION_ZIBRA_AI_USER }}
+          NOTARIZATION_PASS: ${{ secrets.NOTARIZATION_ZIBRA_AI_PASS }}
+
+      - name: Save merged artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}
+          path: merged
+          if-no-files-found: error
+          retention-days: 28
+
+      - name: Delete partial artifacts
+        uses: geekyeggo/delete-artifact@f275313e70c08f6120db482d7a6b98377786765b # v5.1.0
+        with:
+          name: ZibraVDBForHoudini-*-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}

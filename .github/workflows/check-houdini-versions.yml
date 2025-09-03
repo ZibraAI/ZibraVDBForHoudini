@@ -15,7 +15,7 @@ on:
         platforms:
             description: 'Space searated list of platforms to query'
             required: true
-            default: 'win64-vc143 macosx_arm64_clang15.0 macosx_x86_64_clang15.0 linux_x86_64_gcc11.2'
+            default: 'win64-vc143 macosx_arm64_clang15.0_14 macosx_x86_64_clang15.0_14 linux_x86_64_gcc11.2'
 
 jobs:
   check:
