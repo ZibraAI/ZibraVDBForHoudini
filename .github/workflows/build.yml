@@ -248,6 +248,9 @@ jobs:
       matrix: ${{ fromJson( (needs.select-houdini-build.outputs.need-complete-build == 'true') && needs.select-houdini-build.outputs.complete-build-matrix-json || needs.select-houdini-build.outputs.quick-build-matrix-json ) }}
             
     runs-on: ${{ matrix.runner }}
+    concurrency:
+      group: ${{ matrix.houdini-platform }}-${{ matrix.houdini-version }}-${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
     name: Build ${{ matrix.name }} Houdini ${{ matrix.houdini-version }}.${{ matrix.houdini-build }}
 
     steps:
