@@ -59,20 +59,26 @@ endif()
 
 target_link_libraries(zibraVDBResolver PRIVATE Houdini HoudiniThirdParty)
 
-houdini_get_default_install_dir(instdir)
-string( APPEND instdir "/dso/usd" )
-houdini_configure_target( zibraVDBResolver INSTDIR ${instdir} )
+# Use parent project's output directory structure
+if(DEFINED ZIBRAVDB_OUTPUT_PATH)
+    set(ASSET_RESOLVER_OUTPUT_PATH ${ZIBRAVDB_OUTPUT_PATH})
+else()
+    set(ASSET_RESOLVER_OUTPUT_PATH ${OUTPUT_PATH})
+endif()
 
-houdini_get_default_install_dir(pluginsdir)
-string( APPEND pluginsdir "/dso/usd_plugins" )
-add_custom_command(TARGET zibraVDBResolver POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${pluginsdir}
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/usd_plugins/plugInfo.json ${pluginsdir}
+# Set library output directory
+set_target_properties(zibraVDBResolver PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd"
+    RUNTIME_OUTPUT_DIRECTORY "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd"
 )
 
-houdini_get_default_install_dir(resourcesdir)
-string( APPEND resourcesdir "/dso/usd_plugins/zibraVDBResolver/resources" )
+# Copy plugInfo files to the output directory structure
 add_custom_command(TARGET zibraVDBResolver POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${resourcesdir}
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/usd_plugins/zibraVDBResolver/resources/plugInfo.json ${resourcesdir}
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd_plugins"
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/usd_plugins/plugInfo.json "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd_plugins"
+)
+
+add_custom_command(TARGET zibraVDBResolver POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd_plugins/zibraVDBResolver/resources"
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/usd_plugins/zibraVDBResolver/resources/plugInfo.json "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd_plugins/zibraVDBResolver/resources"
 )
