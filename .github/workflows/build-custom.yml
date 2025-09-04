@@ -21,11 +21,11 @@ on:
         houdini-mac-x64-architecture:
             description: 'Houdini architecture to use for macOS x64 build'
             required: true
-            default: 'macosx_x86_64_clang15'
+            default: 'macosx_x86_64_clang15.0_14'
         houdini-mac-arm64-architecture:
-            description: 'Houdini architecture to use for macOS x64 build'
+            description: 'Houdini architecture to use for macOS arm64 build'
             required: true
-            default: 'macosx_arm64_clang15'
+            default: 'macosx_arm64_clang15.0_14'
 
 jobs:
   run-setup:
@@ -55,7 +55,7 @@ jobs:
               "executable-extension": ".exe",
               "houdini-version": "${{ inputs.houdini-version }}",
               "houdini-build": "${{ inputs.houdini-build }}",
-              "houdini-platform": "win64-vc143",
+              "houdini-platform": "${{ inputs.houdini-win-x64-architecture }}",
               "houdini-install-path": "C:\\Houdini\\20.5.${{ inputs.houdini-build }}",
               "hfs-path": "C:\\Houdini\\20.5.${{ inputs.houdini-build }}",
               "python-command": "python",
@@ -74,7 +74,7 @@ jobs:
               "executable-extension": null,
               "houdini-version": "${{ inputs.houdini-version }}",
               "houdini-build": "${{ inputs.houdini-build }}",
-              "houdini-platform": "linux_x86_64_gcc11.2",
+              "houdini-platform": "${{ inputs.houdini-linux-x64-architecture }}",
               "houdini-install-path": "/opt/hfs20.5.${{ inputs.houdini-build }}",
               "hfs-path": "/opt/hfs20.5.${{ inputs.houdini-build }}",
               "python-command": "python3",
@@ -88,7 +88,7 @@ jobs:
               "executable-extension": null,
               "houdini-version": "${{ inputs.houdini-version }}",
               "houdini-build": "${{ inputs.houdini-build }}",
-              "houdini-platform": "macosx_arm64_clang15.0_14",
+              "houdini-platform": "${{ inputs.houdini-mac-arm64-architecture }}",
               "houdini-install-path": "/Applications/Houdini/Houdini20.5.${{ inputs.houdini-build }}",
               "hfs-path": "/Applications/Houdini/Houdini20.5.${{ inputs.houdini-build }}/Frameworks/Houdini.framework/Versions/Current/Resources",
               "python-command": "python3",
@@ -102,7 +102,7 @@ jobs:
               "executable-extension": null,
               "houdini-version": "${{ inputs.houdini-version }}",
               "houdini-build": "${{ inputs.houdini-build }}",
-              "houdini-platform": "macosx_x86_64_clang15.0_14",
+              "houdini-platform": "${{ inputs.houdini-mac-x64-architecture }}",
               "houdini-install-path": "/Applications/Houdini/Houdini20.5.${{ inputs.houdini-build }}",
               "hfs-path": "/Applications/Houdini/Houdini20.5.${{ inputs.houdini-build }}/Frameworks/Houdini.framework/Versions/Current/Resources",
               "python-command": "python3",
@@ -197,9 +197,9 @@ jobs:
         shell: bash
         run: |
           mkdir merged
-          mv ZibraVDBForHoudini-${{ inputs.houdini-version }}.${{ inputs.houdini-build }}-win64-vc143/* merged/
-          mv ZibraVDBForHoudini-${{ inputs.houdini-version }}.${{ inputs.houdini-build }}-linux_x86_64_gcc11.2/dso/ZibraVDBForHoudini.so merged/dso/ZibraVDBForHoudini.so
-          lipo -create -output merged/dso/ZibraVDBForHoudini.dylib ZibraVDBForHoudini-${{ inputs.houdini-version }}.${{ inputs.houdini-build }}-macosx_arm64_clang15.0_14/dso/ZibraVDBForHoudini.dylib ZibraVDBForHoudini-${{ inputs.houdini-version }}.${{ inputs.houdini-build }}-macosx_x86_64_clang15.0_14/dso/ZibraVDBForHoudini.dylib
+          mv ZibraVDBForHoudini-${{ inputs.houdini-version }}.${{ inputs.houdini-build }}-${{ inputs.houdini-win-x64-architecture }}/* merged/
+          mv ZibraVDBForHoudini-${{ inputs.houdini-version }}.${{ inputs.houdini-build }}-${{ inputs.houdini-linux-x64-architecture }}/dso/ZibraVDBForHoudini.so merged/dso/ZibraVDBForHoudini.so
+          lipo -create -output merged/dso/ZibraVDBForHoudini.dylib ZibraVDBForHoudini-${{ inputs.houdini-version }}.${{ inputs.houdini-build }}-${{ inputs.houdini-mac-arm64-architecture }}/dso/ZibraVDBForHoudini.dylib ZibraVDBForHoudini-${{ inputs.houdini-version }}.${{ inputs.houdini-build }}-${{ inputs.houdini-mac-x64-architecture }}/dso/ZibraVDBForHoudini.dylib
 
       - name: Apple sign and notarize
         shell: bash
