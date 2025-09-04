@@ -128,7 +128,7 @@ if __name__ == "__main__":
         # Make installer executable
         subprocess.run(["chmod", "+x", f"{extracted_dir}/houdini.install"], check=True)
         # Run installer
-        subprocess.run([f"{extracted_dir}/houdini.install", "--install-houdini", "--no-install-engine-maya", "--no-install-engine-unity", "--no-install-engine-unreal", "--no-install-menus", "--no-install-hfs-symlink", "--no-install-license", "--no-install-avahi", "--no-install-sidefxlabs", "--no-install-hqueue-server", "--no-install-hqueue-client", "--auto-install", "--make-dir", "--accept-EULA", "2021-10-13", args.install_path], check=True)
+        install_process = subprocess.run([f"{extracted_dir}/houdini.install", "--install-houdini", "--no-install-engine-maya", "--no-install-engine-unity", "--no-install-engine-unreal", "--no-install-menus", "--no-install-hfs-symlink", "--no-install-license", "--no-install-avahi", "--no-install-sidefxlabs", "--no-install-hqueue-server", "--no-install-hqueue-client", "--auto-install", "--make-dir", "--accept-EULA", "2021-10-13", args.install_path], check=True)
         # Clean up unpacked archive
         shutil.rmtree(extracted_dir)
     elif sys.platform == "darwin":
@@ -136,17 +136,21 @@ if __name__ == "__main__":
         subprocess.run(["hdiutil", "attach", build_dl.filename], check=True)
         # Mounted volume is /Volumes/Houdini
         # Run the installer
-        subprocess.run(["sudo", "installer", "-pkg", "/Volumes/Houdini/Houdini.pkg", "-target", "/"], check=True)
+        install_process = subprocess.run(["sudo", "installer", "-pkg", "/Volumes/Houdini/Houdini.pkg", "-target", "/"], check=True)
         # Unmount the DMG
         subprocess.run(["hdiutil", "detach", "/Volumes/Houdini"], check=True)
     elif sys.platform == "win32":
-        # Create full install path
-        os.makedirs(args.install_path, exist_ok=True)
         # Run installer
-        subprocess.run([build_dl.filename, "/S", f"/InstallDir={args.install_path}", "/acceptEULA=2021-10-13"], check=True)
+        install_process = subprocess.run([build_dl.filename, "/S", f"/InstallDir={args.install_path}", "/acceptEULA=2021-10-13"], check=False, capture_output=True, text=True)
     else:
         raise Exception("Unexpected platform")
 
+    if install_process.returncode != 0:
+        print(f"Installer failed with code {install_process.returncode}")
+        print(f"Installer stdout: {install_process.stdout}")
+        print(f"Installer stderr: {install_process.stderr}")
+        raise Exception(f"Installation failed. Exit code: {install_process.returncode}")
+    
     print(f"Install succeeded, cleaning up")
     os.remove(build_dl.filename)
 
