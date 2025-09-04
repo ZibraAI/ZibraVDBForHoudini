@@ -179,24 +179,26 @@ cmake_print_variables(HOUDINI_INSTDIR)
 
 if(${LABS_BUILD})
     # Icons and HDA are handled separaetely in Labs
-    add_custom_command(TARGET ZibraVDBForHoudini POST_BUILD
+    add_custom_target(ZibraVDBForHoudiniUIFilesCopy
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/config/Applications/
         ${OUTPUT_PATH}/config/Applications/
     )
     # Labs uses separate file for copyright notices, skip copying 
+    add_dependencies(ZibraVDBForHoudini ZibraVDBForHoudiniUIFilesCopy)
 else()
-    add_custom_command(TARGET ZibraVDBForHoudini POST_BUILD
+    add_custom_target(ZibraVDBForHoudiniAssetsCopy
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_CURRENT_SOURCE_DIR}/assets
         ${OUTPUT_PATH}
     )
 
-    add_custom_command(TARGET ZibraVDBForHoudini POST_BUILD
+    add_custom_target(ZibraVDBForHoudiniCopyrightCopy
         COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_CURRENT_SOURCE_DIR}/external/ThirdPartyCopyrightNotices.txt
         ${OUTPUT_PATH}/dso/ZibraVDBForHoudiniThirdPartyCopyrightNotices.txt
     )
+    add_dependencies(ZibraVDBForHoudini ZibraVDBForHoudiniAssetsCopy ZibraVDBForHoudiniCopyrightCopy)
 endif()
 
 list(APPEND CMAKE_PREFIX_PATH "${HOUDINI_PATH}/toolkit/cmake")

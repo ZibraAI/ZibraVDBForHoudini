@@ -56,8 +56,8 @@ jobs:
               "houdini-version": "${{ inputs.houdini-version }}",
               "houdini-build": "${{ inputs.houdini-build }}",
               "houdini-platform": "${{ inputs.houdini-win-x64-architecture }}",
-              "houdini-install-path": "C:\\Houdini\\20.5.${{ inputs.houdini-build }}",
-              "hfs-path": "C:\\Houdini\\20.5.${{ inputs.houdini-build }}",
+              "houdini-install-path": "C:\\Houdini\\${{ inputs.houdini-version }}.${{ inputs.houdini-build }}",
+              "hfs-path": "C:\\Houdini\\${{ inputs.houdini-version }}.${{ inputs.houdini-build }}",
               "python-command": "python",
               "python-venv-activate-path": "Scripts/Activate.ps1",
               "additional-config-args": null
@@ -75,8 +75,8 @@ jobs:
               "houdini-version": "${{ inputs.houdini-version }}",
               "houdini-build": "${{ inputs.houdini-build }}",
               "houdini-platform": "${{ inputs.houdini-linux-x64-architecture }}",
-              "houdini-install-path": "/opt/hfs20.5.${{ inputs.houdini-build }}",
-              "hfs-path": "/opt/hfs20.5.${{ inputs.houdini-build }}",
+              "houdini-install-path": "/opt/hfs${{ inputs.houdini-version }}.${{ inputs.houdini-build }}",
+              "hfs-path": "/opt/hfs${{ inputs.houdini-version }}.${{ inputs.houdini-build }}",
               "python-command": "python3",
               "python-venv-activate-path": "bin/Activate.ps1",
               "additional-config-args": null
@@ -89,8 +89,8 @@ jobs:
               "houdini-version": "${{ inputs.houdini-version }}",
               "houdini-build": "${{ inputs.houdini-build }}",
               "houdini-platform": "${{ inputs.houdini-mac-arm64-architecture }}",
-              "houdini-install-path": "/Applications/Houdini/Houdini20.5.${{ inputs.houdini-build }}",
-              "hfs-path": "/Applications/Houdini/Houdini20.5.${{ inputs.houdini-build }}/Frameworks/Houdini.framework/Versions/Current/Resources",
+              "houdini-install-path": "/Applications/Houdini/Houdini${{ inputs.houdini-version }}.${{ inputs.houdini-build }}",
+              "hfs-path": "/Applications/Houdini/Houdini${{ inputs.houdini-version }}.${{ inputs.houdini-build }}/Frameworks/Houdini.framework/Versions/Current/Resources",
               "python-command": "python3",
               "python-venv-activate-path": "bin/Activate.ps1",
               "additional-config-args": "-DCMAKE_OSX_ARCHITECTURES=arm64"
@@ -103,8 +103,8 @@ jobs:
               "houdini-version": "${{ inputs.houdini-version }}",
               "houdini-build": "${{ inputs.houdini-build }}",
               "houdini-platform": "${{ inputs.houdini-mac-x64-architecture }}",
-              "houdini-install-path": "/Applications/Houdini/Houdini20.5.${{ inputs.houdini-build }}",
-              "hfs-path": "/Applications/Houdini/Houdini20.5.${{ inputs.houdini-build }}/Frameworks/Houdini.framework/Versions/Current/Resources",
+              "houdini-install-path": "/Applications/Houdini/Houdini${{ inputs.houdini-version }}.${{ inputs.houdini-build }}",
+              "hfs-path": "/Applications/Houdini/Houdini${{ inputs.houdini-version }}.${{ inputs.houdini-build }}/Frameworks/Houdini.framework/Versions/Current/Resources",
               "python-command": "python3",
               "python-venv-activate-path": "bin/Activate.ps1",
               "additional-config-args": "-DCMAKE_OSX_ARCHITECTURES=x86_64"
@@ -155,7 +155,7 @@ jobs:
       - name: Configure Cmake
         working-directory: ${{ github.workspace }}
         shell: pwsh
-        run: cmake -S . -B build -G "${{ matrix.generator }}" -DLABS_BUILD=ON -DZIBRAVDB_OUTPUT_PATH="${{ github.workspace }}/package" ${{ matrix.additional-config-args }}
+        run: cmake -S . -B build -G "${{ matrix.generator }}" -DZIBRAVDB_OUTPUT_PATH="${{ github.workspace }}/package" ${{ matrix.additional-config-args }}
         env:
           HFS: ${{ matrix.hfs-path }}
 
