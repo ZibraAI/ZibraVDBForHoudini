@@ -1,0 +1,37 @@
+
+name: Check available Houdini versions
+
+on:
+  workflow_dispatch:
+    inputs:
+        version:
+            description: 'Version within which to query'
+            required: true
+            default: '21.0'
+        product:
+            description: 'Product to query'
+            required: true
+            default: 'houdini'
+        platforms:
+            description: 'Space searated list of platforms to query'
+            required: true
+            default: 'win64-vc143 macosx_arm64_clang15.0_14 macosx_x86_64_clang15.0_14 linux_x86_64_gcc11.2'
+
+jobs:
+  check:
+    name: Query available Houdini versions
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Perform query
+        working-directory: ${{ github.workspace }}
+        shell: pwsh
+        run: |
+          python -m venv actions/houdini/venv
+          .\actions\houdini\venv\Scripts\Activate.ps1
+          pip install -r actions/houdini/requirements.txt
+          python actions/houdini/select_build.py --product ${{ inputs.product }} --version ${{ inputs.version }} --platforms ${{ inputs.platforms }} --allow-daily --verbose
+        env:
+          HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
+          HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
+    
