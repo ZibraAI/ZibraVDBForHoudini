@@ -52,13 +52,11 @@ protected:
     ArResolvedPath _ResolveForNewAsset(
         const std::string& assetPath) const final;
 
-    ArResolverContext _CreateDefaultContext() const final;
-
-    ArResolverContext _CreateDefaultContextForAsset(
-        const std::string& assetPath) const final;
+    ArResolverContext _CreateContextFromString(
+        const std::string& contextStr) const final;
 
     bool _IsContextDependentPath(
-        const std::string& assetPath) const final;
+        const std::string &assetPath) const final;
 
     //    AR_API
     //    ArTimestamp _GetModificationTimestamp(
@@ -77,7 +75,7 @@ private:
 
     bool _IsZibraVDBPath(const std::string& path) const;
     std::string _ParseZibraVDBURI(const std::string& uri, int& frame) const;
-    std::string _DecompressZibraVDBFile(const std::string& zibraVDBPath, int frame = 0) const;
+    std::string _DecompressZibraVDBFile(const std::string& zibraVDBPath, const std::string& tmpDir, int frame = 0) const;
     void _RestoreFileMetadataToVDB(Zibra::CE::Decompression::CompressedFrameContainer* frameContainer, openvdb::MetaMap& fileMetadata) const;
     void _RestoreGridMetadataToVDB(Zibra::CE::Decompression::CompressedFrameContainer* frameContainer, openvdb::GridPtrVec& vdbGrids) const;
 
