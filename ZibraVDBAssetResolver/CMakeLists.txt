@@ -38,29 +38,15 @@ elseif( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "
     set_target_properties(zibraVDBResolver PROPERTIES SUFFIX "")
 endif()
 
-##TODO this kept just for reference, to be removed
-#if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
-#    add_compile_options(/Zc:inline-)
-#elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "LINUX")
-#    # Linux/GCC equivalent: prevent stripping of static initialization symbols
-#    add_compile_options(-fno-inline-functions-called-once)
-#    add_link_options(-Wl,--no-as-needed)
-#elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
-#    #TODO sanitize this. we probably dont need all these flags
-#    add_compile_options(-O0 -g -fno-inline -fno-inline-functions -fno-inline-functions-called-once)
-#    add_link_options(-Wl,-all_load -Wl,-no_dead_strip_inits_and_terms)
-#endif()
-#if ("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
-#    #TODO sanitize this. we probably dont need all these flags
-#    set_target_properties(zibraVDBResolver
-#            PROPERTIES
-#            XCODE_ATTRIBUTE_DEAD_CODE_STRIPPING NO
-#            XCODE_ATTRIBUTE_PRESERVE_DEAD_CODE_INITS_AND_TERMS YES
-#            XCODE_ATTRIBUTE_COPYING_PRESERVES_HFS_DATA YES
-#            XCODE_ATTRIBUTE_KEEP_PRIVATE_EXTERNS NO)
-#endif()
-
 target_link_libraries(zibraVDBResolver PRIVATE Houdini HoudiniThirdParty)
+if("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
+    #TODO find the correct way to link python
+#    target_link_libraries(zibraVDBResolver PRIVATE /Applications/Houdini/Houdini21.0.440/Frameworks/Python.framework/Versions/3.11/lib/libpython3.11.dylib)
+#    target_link_libraries(zibraVDBResolver PRIVATE /Applications/Houdini/Houdini21.0.440/Frameworks/Python.framework/Versions/Current/lib/libpython3.11.dylib)
+#    target_link_libraries(zibraVDBResolver PRIVATE /Applications/Houdini/Houdini21.0.440/Frameworks/Houdini.framework/Resources/Frameworks/Python.framework/Versions/Current/lib/libpython3.11.dylib)
+    target_link_libraries(zibraVDBResolver PRIVATE ${HOUDINI_PATH}/Frameworks/Python.framework/Versions/Current/lib/libpython3.11.dylib)
+endif()
+
 
 # Use parent project's output directory structure
 if(DEFINED ZIBRAVDB_OUTPUT_PATH)

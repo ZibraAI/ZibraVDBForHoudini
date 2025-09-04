@@ -218,6 +218,11 @@ endif()
 
 target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini HoudiniThirdParty)
 
+if("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
+    #TODO find the correct way to link python
+    target_link_libraries(ZibraVDBForHoudini PRIVATE ${HOUDINI_PATH}/Frameworks/Python.framework/Versions/Current/lib/libpython3.11.dylib)
+endif()
+
 set(DETECTED_HOUDINI_VERSION "${Houdini_VERSION_MAJOR}.${Houdini_VERSION_MINOR}")
 cmake_print_variables(DETECTED_HOUDINI_VERSION)
 
@@ -240,6 +245,3 @@ if(MSVC)
     set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         PROPERTY VS_STARTUP_PROJECT ZibraVDBForHoudini)
 endif()
-
-#TODO remove this
-#add_dependencies(ZibraVDBForHoudini zibraVDBResolver)
