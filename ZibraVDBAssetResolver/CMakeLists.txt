@@ -5,19 +5,19 @@ project( ZibraVDBAssetResolver )
 set(RESOLVER_HEADERS
     src/ZibraVDBAssetResolver.h
 
-        ../src/utils/Helpers.h
-        ../src/licensing/LicenseManager.h
-        ../src/bridge/LibraryUtils.h
-        ../src/SOP/DecompressorManager/DecompressorManager.h
+    ../src/utils/Helpers.h
+    ../src/licensing/LicenseManager.h
+    ../src/bridge/LibraryUtils.h
+    ../src/SOP/DecompressorManager/DecompressorManager.h
 )
 
 set(RESOLVER_SOURCES
     src/ZibraVDBAssetResolver.cpp
 
-        ../src/utils/Helpers.cpp
-        ../src/licensing/LicenseManager.cpp
-        ../src/bridge/LibraryUtils.cpp
-        ../src/SOP/DecompressorManager/DecompressorManager.cpp
+    ../src/utils/Helpers.cpp
+    ../src/licensing/LicenseManager.cpp
+    ../src/bridge/LibraryUtils.cpp
+    ../src/SOP/DecompressorManager/DecompressorManager.cpp
 )
 
 add_library(zibraVDBResolver SHARED ${RESOLVER_HEADERS} ${RESOLVER_SOURCES})
@@ -33,6 +33,9 @@ target_compile_definitions(zibraVDBResolver PRIVATE
 
 if( CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" )
     target_compile_options( zibraVDBResolver PRIVATE "/Zc:inline-" )
+elseif( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang" )
+    # TODO this is temporary hack. Linux wants resolver lib name to match exactly the one specified in plugInfo (no extension)
+    set_target_properties(zibraVDBResolver PROPERTIES SUFFIX "")
 endif()
 
 ##TODO this kept just for reference, to be removed
@@ -80,13 +83,9 @@ set_target_properties(zibraVDBResolver PROPERTIES
 add_custom_command(TARGET zibraVDBResolver POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd_plugins"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/usd_plugins/plugInfo.json" "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd_plugins/plugInfo.json"
-    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/usd_plugins/plugInfo.json"
-    COMMENT "Copying general plugInfo.json"
 )
 
 add_custom_command(TARGET zibraVDBResolver POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd_plugins/zibraVDBResolver/resources"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/usd_plugins/zibraVDBResolver/resources/plugInfo.json" "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd_plugins/zibraVDBResolver/resources/plugInfo.json"
-    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/usd_plugins/zibraVDBResolver/resources/plugInfo.json"
-    COMMENT "Copying resolver-specific plugInfo.json"
 )
