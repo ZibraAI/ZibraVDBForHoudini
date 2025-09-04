@@ -215,6 +215,12 @@ if(HOUDINI_THIRD_PARTY_LIBS)
 endif()
 
 target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini HoudiniThirdParty)
+if (NOT "${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
+    target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::openvdb_sesi)
+endif()
+
+set(DETECTED_HOUDINI_VERSION "${Houdini_VERSION_MAJOR}.${Houdini_VERSION_MINOR}")
+cmake_print_variables(DETECTED_HOUDINI_VERSION)
 
 # Add USD Asset Resolver subdirectory
 add_subdirectory(ZibraVDBAssetResolver)
@@ -236,4 +242,5 @@ if(MSVC)
         PROPERTY VS_STARTUP_PROJECT ZibraVDBForHoudini)
 endif()
 
+#TODO remove this
 #add_dependencies(ZibraVDBForHoudini zibraVDBResolver)
