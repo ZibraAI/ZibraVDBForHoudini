@@ -73,6 +73,7 @@ set_target_properties(zibraVDBResolver PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY_RELEASE "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd"
     RUNTIME_OUTPUT_DIRECTORY_DEBUG "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd"
     RUNTIME_OUTPUT_DIRECTORY_RELEASE "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd"
+    PREFIX ""
 )
 
 # Copy plugInfo files to the output directory structure
