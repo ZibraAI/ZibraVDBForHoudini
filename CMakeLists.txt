@@ -202,47 +202,22 @@ endif()
 list(APPEND CMAKE_PREFIX_PATH "${HOUDINI_PATH}/toolkit/cmake")
 find_package(Houdini REQUIRED)
 
-# Add USD Asset Resolver subdirectory
-add_subdirectory(src/USD/ZibraVDBAssetResolver)
-
-target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini)
-
-if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
-    target_link_libraries(ZibraVDBForHoudini PRIVATE
-        Houdini::Dep::openvdb_sesi
-
-        Houdini::Dep::pxr_tf
-        Houdini::Dep::pxr_sdf
-        Houdini::Dep::pxr_usd
-        Houdini::Dep::pxr_usdVol
-        Houdini::Dep::pxr_plug
-    )
-    
-    if(TARGET Houdini::Dep::hboost_python)  # for Houdini<21.0
-        target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::hboost_python)
-    elseif(TARGET Houdini::Dep::pxr_python)
-        target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::pxr_python)
-    else()
-        message(WARNING "Neither hboost_python nor pxr_python target found")
-    endif()
-
-    if(DEFINED _houdini_python_version)
-        set(PYTHON_TARGET_NAME "python${_houdini_python_version}")
-        if(TARGET Houdini::Dep::${PYTHON_TARGET_NAME})
-            target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::${PYTHON_TARGET_NAME})
-            message(STATUS "ZibraVDBForHoudini linking with Houdini::Dep::${PYTHON_TARGET_NAME}")
-        else()
-            message(WARNING "ZibraVDBForHoudini: Target Houdini::Dep::${PYTHON_TARGET_NAME} not found")
+get_target_property(HOUDINI_THIRD_PARTY_LIBS HoudiniThirdParty INTERFACE_LINK_LIBRARIES)
+if(HOUDINI_THIRD_PARTY_LIBS)
+    set(FILTERED_LIBS)
+    foreach(lib IN LISTS HOUDINI_THIRD_PARTY_LIBS)
+        if(lib MATCHES "Houdini::Dep::Qt5")
+            continue()
         endif()
-    else()
-        message(WARNING "ZibraVDBForHoudini: Houdini Python version not detected")
-    endif()
-elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
-    # target_link_libraries(ZibraVDBForHoudini PRIVATE ${HOUDINI_PATH}/Frameworks/Python.framework/Versions/3.11/lib/libpython3.11.dylib)
-    # target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::Python_311)
-    # target_link_libraries(ZibraVDBForHoudini PRIVATE )
-    target_link_libraries(ZibraVDBForHoudini PRIVATE /Applications/Houdini/Current/Frameworks/Python.framework/Versions/3.11/lib/libpython3.11.dylib)
+        list(APPEND FILTERED_LIBS ${lib})
+    endforeach()
+    set_target_properties(HoudiniThirdParty PROPERTIES INTERFACE_LINK_LIBRARIES "${FILTERED_LIBS}")
 endif()
+
+target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini HoudiniThirdParty)
+
+# Add USD Asset Resolver subdirectory
+add_subdirectory(ZibraVDBAssetResolver)
 
 if(${LABS_BUILD})
     set_target_properties(ZibraVDBForHoudini PROPERTIES PREFIX "")
@@ -261,4 +236,4 @@ if(MSVC)
         PROPERTY VS_STARTUP_PROJECT ZibraVDBForHoudini)
 endif()
 
-add_dependencies(ZibraVDBForHoudini zibraVDBResolver)
+#add_dependencies(ZibraVDBForHoudini zibraVDBResolver)
