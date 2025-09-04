@@ -3,8 +3,7 @@ cmake_minimum_required(VERSION 3.6)
 project( ZibraVDBAssetResolver )
 
 set(RESOLVER_HEADERS
-    src/resolver.h
-    src/debugCodes.h
+    src/ZibraVDBAssetResolver.h
 
         ../src/utils/Helpers.h
         ../src/licensing/LicenseManager.h
@@ -13,8 +12,7 @@ set(RESOLVER_HEADERS
 )
 
 set(RESOLVER_SOURCES
-    src/resolver.cpp
-    src/debugCodes.cpp
+    src/ZibraVDBAssetResolver.cpp
 
         ../src/utils/Helpers.cpp
         ../src/licensing/LicenseManager.cpp

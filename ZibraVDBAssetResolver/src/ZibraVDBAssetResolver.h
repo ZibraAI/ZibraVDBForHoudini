@@ -7,8 +7,8 @@
 #include <unordered_set>
 
 #include "SOP/DecompressorManager/DecompressorManager.h"
-#include "debugCodes.h"
 #include "pxr/pxr.h"
+#include "pxr/base/tf/debug.h"
 #include "pxr/usd/ar/resolver.h"
 #include "utils/Helpers.h"
 
@@ -23,6 +23,11 @@
 #endif
 
 PXR_NAMESPACE_OPEN_SCOPE
+
+TF_DEBUG_CODES(
+    ZIBRAVDBRESOLVER_RESOLVER,
+    ZIBRAVDBRESOLVER_RESOLVER_CONTEXT
+);
 
 class ZIBRAVDBRESOLVER_API ZibraVDBResolver final : public ArResolver
 {

@@ -1,4 +1,4 @@
-#include "resolver.h"
+#include "ZibraVDBAssetResolver.h"
 
 #include <csignal>
 #include <pxr/usd/ar/defaultResolver.h>
@@ -7,6 +7,7 @@
 #include <UT/UT_Exit.h>
 #include "pxr/base/tf/fileUtils.h"
 #include "pxr/base/tf/pathUtils.h"
+#include "pxr/base/tf/registryManager.h"
 #include "pxr/base/tf/staticTokens.h"
 #include "pxr/base/tf/stringUtils.h"
 #include "pxr/usd/ar/defineResolver.h"
@@ -18,6 +19,12 @@
 #include "licensing/LicenseManager.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
+
+TF_REGISTRY_FUNCTION(TfDebug)
+{
+    TF_DEBUG_ENVIRONMENT_SYMBOL(ZIBRAVDBRESOLVER_RESOLVER, "Print debug output during ZibraVDB path resolution");
+    TF_DEBUG_ENVIRONMENT_SYMBOL(ZIBRAVDBRESOLVER_RESOLVER_CONTEXT, "Print debug output during ZibraVDB context creating and modification");
+}
 
 AR_DEFINE_RESOLVER(ZibraVDBResolver, ArResolver);
 
