@@ -140,6 +140,8 @@ if __name__ == "__main__":
         # Unmount the DMG
         subprocess.run(["hdiutil", "detach", "/Volumes/Houdini"], check=True)
     elif sys.platform == "win32":
+        # Create full install path
+        os.makedirs(args.install_path, exist_ok=True)
         # Run installer
         subprocess.run([build_dl.filename, "/S", f"/InstallDir={args.install_path}", "/acceptEULA=2021-10-13"], check=True)
     else:
