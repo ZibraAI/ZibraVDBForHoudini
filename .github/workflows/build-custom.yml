@@ -155,7 +155,7 @@ jobs:
       - name: Configure Cmake
         working-directory: ${{ github.workspace }}
         shell: pwsh
-        run: cmake -S . -B build -G "${{ matrix.generator }}" -DLABS_BUILD=ON -DZIBRAVDB_OUTPUT_PATH="${{ github.workspace }}/package" ${{ matrix.additional-config-args }}
+        run: cmake -S . -B build -G "${{ matrix.generator }}" -DZIBRAVDB_OUTPUT_PATH="${{ github.workspace }}/package" ${{ matrix.additional-config-args }}
         env:
           HFS: ${{ matrix.hfs-path }}
 
