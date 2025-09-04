@@ -66,19 +66,26 @@ else()
     set(ASSET_RESOLVER_OUTPUT_PATH ${OUTPUT_PATH})
 endif()
 
-# Set library output directory
 set_target_properties(zibraVDBResolver PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd"
     RUNTIME_OUTPUT_DIRECTORY "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd"
+    LIBRARY_OUTPUT_DIRECTORY_DEBUG "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd"
+    LIBRARY_OUTPUT_DIRECTORY_RELEASE "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd"
 )
 
 # Copy plugInfo files to the output directory structure
 add_custom_command(TARGET zibraVDBResolver POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd_plugins"
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/usd_plugins/plugInfo.json "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd_plugins"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/usd_plugins/plugInfo.json" "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd_plugins/plugInfo.json"
+    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/usd_plugins/plugInfo.json"
+    COMMENT "Copying general plugInfo.json"
 )
 
 add_custom_command(TARGET zibraVDBResolver POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd_plugins/zibraVDBResolver/resources"
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/usd_plugins/zibraVDBResolver/resources/plugInfo.json "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd_plugins/zibraVDBResolver/resources"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/usd_plugins/zibraVDBResolver/resources/plugInfo.json" "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd_plugins/zibraVDBResolver/resources/plugInfo.json"
+    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/usd_plugins/zibraVDBResolver/resources/plugInfo.json"
+    COMMENT "Copying resolver-specific plugInfo.json"
 )
