@@ -268,6 +268,7 @@ jobs:
       - name: Install Houdini
         if: ${{ steps.install-check.outputs.need_install_houdini == 'true' }}
         working-directory: ${{ github.workspace }}
+        timeout-minutes: 30
         shell: pwsh
         run: |
           ${{ matrix.python-command }} -m venv actions/houdini/venv
