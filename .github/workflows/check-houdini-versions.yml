@@ -20,17 +20,17 @@ on:
 jobs:
   check:
     name: Query available Houdini versions
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, houdini]
 
     steps:
       - name: Perform query
         working-directory: ${{ github.workspace }}
         shell: pwsh
         run: |
-          python -m venv actions/houdini/venv
-          .\actions\houdini\venv\Scripts\Activate.ps1
-          pip install -r actions/houdini/requirements.txt
-          python actions/houdini/select_build.py --product ${{ inputs.product }} --version ${{ inputs.version }} --platforms ${{ inputs.platforms }} --allow-daily --verbose
+          python3 -m venv actions/houdini/venv
+          ./actions/houdini/venv/bin/Activate.ps1
+          python3 -m pip install -r actions/houdini/requirements.txt
+          python3 actions/houdini/select_build.py --product ${{ inputs.product }} --version ${{ inputs.version }} --platforms ${{ inputs.platforms }} --allow-daily --verbose
         env:
           HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
           HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
