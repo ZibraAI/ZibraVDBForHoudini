@@ -1,13 +1,13 @@
 #include "LOP_ZibraVDBImport.h"
 
-#include <PrecompiledHeader.h>
-#include <bridge/LibraryUtils.h>
-#include <ui/PluginManagementWindow.h>
-
 #include <HUSD/HUSD_DataHandle.h>
 #include <HUSD/HUSD_FindPrims.h>
 #include <HUSD/XUSD_Data.h>
+#include <PrecompiledHeader.h>
+#include <bridge/LibraryUtils.h>
+#include <licensing/LicenseManager.h>
 #include <pxr/usd/usdVol/openVDBAsset.h>
+#include <ui/PluginManagementWindow.h>
 
 PXR_NAMESPACE_USING_DIRECTIVE
 
@@ -81,7 +81,7 @@ namespace Zibra::ZibraVDBImport
         setInt("__file_valid", 0, 0, 0);
         
         LibraryUtils::LoadZibSDKLibrary();
-        if (LibraryUtils::IsLibraryLoaded())
+        if (LibraryUtils::IsZibSDKLoaded())
         {
             m_DecompressorManager.Initialize();
         }
@@ -89,7 +89,7 @@ namespace Zibra::ZibraVDBImport
 
     LOP_ZibraVDBImport::~LOP_ZibraVDBImport() noexcept
     {
-        if (LibraryUtils::IsLibraryLoaded())
+        if (LibraryUtils::IsZibSDKLoaded())
         {
             m_DecompressorManager.Release();
         }
@@ -121,7 +121,9 @@ namespace Zibra::ZibraVDBImport
             return error();
         }
 
-        if (!LibraryUtils::IsLibraryLoaded())
+        Zibra::LicenseManager::GetInstance().CheckLicense(Zibra::LicenseManager::Product::Decompression);
+
+        if (!LibraryUtils::IsZibSDKLoaded())
         {
             addError(LOP_MESSAGE, "ZibraVDB library not loaded");
             return error();
@@ -134,8 +136,9 @@ namespace Zibra::ZibraVDBImport
                 auto status = m_DecompressorManager.RegisterDecompressor(UT_String(filePath));
                 if (status != CE::ZCE_SUCCESS)
                 {
-                    addError(LOP_MESSAGE, "Failed to register ZibraVDB decompressor");
-                    return error();
+                    std::string errorMessage = "Failed to initialize decompressor: " + LibraryUtils::ErrorCodeToString(status);
+                    addError(LOP_MESSAGE, errorMessage.c_str());
+                    return error(context);
                 }
                 
                 parseAvailableGrids();
@@ -398,7 +401,7 @@ namespace Zibra::ZibraVDBImport
 
     void LOP_ZibraVDBImport::parseAvailableGrids()
     {
-        if (!LibraryUtils::IsLibraryLoaded())
+        if (!LibraryUtils::IsZibSDKLoaded())
         {
             addError(LOP_MESSAGE, "ZibraVDB library not loaded");
             return;
@@ -516,22 +519,16 @@ namespace Zibra::ZibraVDBImport
             return;
         }
 
-        // TODO currently Transform node effects this volume only in "All geometry" mode. This might potentially be used for default mode.
-//        UsdGeomXformable xformable(volumePrim.GetPrim());
-//        if (xformable) {
-//            UsdGeomXformOp transformOp = xformable.AddTransformOp(UsdGeomXformOp::PrecisionDouble);
-//            if (transformOp) {
-//                GfMatrix4d identityMatrix(1.0);
-//                transformOp.Set(identityMatrix);
-//            }
-//        }
-
         for (const std::string& fieldName : selectedFields)
         {
             std::string sanitizedFieldName = sanitizeFieldNameForUSD(fieldName);
             createOpenVDBAssetPrim(stage, volumePath, fieldName, sanitizedFieldName, filePath, frameIndex);
             createFieldRelationship(volumePrim, sanitizedFieldName, volumePath + "/" + sanitizedFieldName);
         }
+
+        UT_StringArray primPaths;
+        primPaths.append(volumePrim.GetPath().GetString().c_str());
+        setLastModifiedPrims(primPaths);
     }
 
     void LOP_ZibraVDBImport::createOpenVDBAssetPrim(UsdStageRefPtr stage, const std::string& volumePath, const std::string& fieldName,

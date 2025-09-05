@@ -179,68 +179,55 @@ cmake_print_variables(HOUDINI_INSTDIR)
 
 if(${LABS_BUILD})
     # Icons and HDA are handled separaetely in Labs
-    add_custom_command(TARGET ZibraVDBForHoudini POST_BUILD
+    add_custom_target(ZibraVDBForHoudiniUIFilesCopy
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/config/Applications/
         ${OUTPUT_PATH}/config/Applications/
     )
     # Labs uses separate file for copyright notices, skip copying 
+    add_dependencies(ZibraVDBForHoudini ZibraVDBForHoudiniUIFilesCopy)
 else()
-    add_custom_command(TARGET ZibraVDBForHoudini POST_BUILD
+    add_custom_target(ZibraVDBForHoudiniAssetsCopy
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_CURRENT_SOURCE_DIR}/assets
         ${OUTPUT_PATH}
     )
 
-    add_custom_command(TARGET ZibraVDBForHoudini POST_BUILD
+    add_custom_target(ZibraVDBForHoudiniCopyrightCopy
         COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_CURRENT_SOURCE_DIR}/external/ThirdPartyCopyrightNotices.txt
         ${OUTPUT_PATH}/dso/ZibraVDBForHoudiniThirdPartyCopyrightNotices.txt
     )
+    add_dependencies(ZibraVDBForHoudini ZibraVDBForHoudiniAssetsCopy ZibraVDBForHoudiniCopyrightCopy)
 endif()
 
 list(APPEND CMAKE_PREFIX_PATH "${HOUDINI_PATH}/toolkit/cmake")
 find_package(Houdini REQUIRED)
 
-target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini)
-
-if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
-    target_link_libraries(ZibraVDBForHoudini PRIVATE
-        Houdini::Dep::openvdb_sesi
-        Houdini::Dep::python3.11
-        Houdini::Dep::hboost_python
-
-        Houdini::Dep::pxr_tf
-        Houdini::Dep::pxr_sdf
-        Houdini::Dep::pxr_usd
-        Houdini::Dep::pxr_usdVol
-        Houdini::Dep::pxr_plug
-    )
-elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
-    # macOS requires explicit Python library linking for undefined symbol resolution
-    if(TARGET Houdini::Dep::python3.11)
-        target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::python3.11)
-    elseif(TARGET Houdini::Dep::python)
-        target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::python)
-    else()
-        find_library(PYTHON_LIB NAMES
-            python3.11 libpython3.11
-            python3.10 libpython3.10
-            python3.9 libpython3.9
-            python3 libpython3
-            python Python
-        )
-        if(PYTHON_LIB)
-            target_link_libraries(ZibraVDBForHoudini PRIVATE ${PYTHON_LIB})
+get_target_property(HOUDINI_THIRD_PARTY_LIBS HoudiniThirdParty INTERFACE_LINK_LIBRARIES)
+if(HOUDINI_THIRD_PARTY_LIBS)
+    set(FILTERED_LIBS)
+    foreach(lib IN LISTS HOUDINI_THIRD_PARTY_LIBS)
+        if(lib MATCHES "Houdini::Dep::Qt5")
+            continue()
         endif()
-    endif()
-    
-    if(TARGET Houdini::Dep::hboost_python)
-        target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::hboost_python)
-    elseif(TARGET Houdini::Dep::hboost_python311)
-        target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::hboost_python311)
-    endif()
+        list(APPEND FILTERED_LIBS ${lib})
+    endforeach()
+    set_target_properties(HoudiniThirdParty PROPERTIES INTERFACE_LINK_LIBRARIES "${FILTERED_LIBS}")
 endif()
+
+target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini HoudiniThirdParty)
+
+if("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
+    # we still need to explicitly link the python lib for mac
+    target_link_libraries(ZibraVDBForHoudini PRIVATE ${HOUDINI_PATH}/Frameworks/Python.framework/Versions/Current/lib/libpython3.11.dylib)
+endif()
+
+set(DETECTED_HOUDINI_VERSION "${Houdini_VERSION_MAJOR}.${Houdini_VERSION_MINOR}")
+cmake_print_variables(DETECTED_HOUDINI_VERSION)
+
+# Add USD Asset Resolver subdirectory
+add_subdirectory(ZibraVDBAssetResolver)
 
 if(${LABS_BUILD})
     set_target_properties(ZibraVDBForHoudini PROPERTIES PREFIX "")

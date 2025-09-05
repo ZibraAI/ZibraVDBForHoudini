@@ -3,9 +3,6 @@
 #include "LibraryUtils.h"
 
 #include <UT/UT_EnvControl.h>
-#include <pxr/base/plug/registry.h>
-#include <pxr/base/plug/plugin.h>
-#include <pxr/base/tf/type.h>
 
 #include "licensing/LicenseManager.h"
 #include "utils/Helpers.h"
@@ -44,18 +41,13 @@ namespace Zibra::LibraryUtils
 #error Unsupported platform
 #endif
 
-#define ZIB_LIBRARY_PATH ZIB_LIBRARY_FOLDER "/" ZIB_DYNAMIC_LIB_NAME
-
     bool g_IsLibraryLoaded = false;
     bool g_IsLibraryInitialized = false;
     Zibra::Version g_CompressionEngineVersion = {};
 
-    // Returns vector of paths that can be used to search for the library
-    // First element is the path used for downloading the library
-    // Other elements are alternative load paths for manual library installation
-    std::vector<std::string> GetLibraryPaths()
+    std::vector<std::filesystem::path> GetZibraLibsBasePaths() noexcept
     {
-        std::vector<std::string> result;
+        std::vector<std::filesystem::path> result{};
 
         const std::pair<UT_StrControl, const char*> basePathEnvVars[] = {
             // HSite and HQRoot have priority over HOUDINI_USER_PREF_DIR
@@ -70,9 +62,22 @@ namespace Zibra::LibraryUtils
             const std::vector<std::string> baseDirs = Helpers::GetHoudiniEnvironmentVariable(envVarEnum, envVarName);
             for (const std::string& baseDir : baseDirs)
             {
-                std::filesystem::path libraryPath = std::filesystem::path(baseDir) / ZIB_LIBRARY_PATH;
-                result.push_back(libraryPath.string());
+                std::filesystem::path libraryPath = std::filesystem::path(baseDir) / ZIB_LIBRARY_FOLDER;
+                result.push_back(libraryPath);
             }
+        }
+        return result;
+    }
+
+    // Returns vector of paths that can be used to search for the library
+    // First element is the path used for downloading the library
+    // Other elements are alternative load paths for manual library installation
+    std::vector<std::string> GetZibSDKPaths() noexcept
+    {
+        std::vector<std::string> result;
+        for (const auto path : GetZibraLibsBasePaths()) {
+            auto newPath = path / ZIB_DYNAMIC_LIB_NAME;
+            result.emplace_back(newPath.string());
         }
 
         assert(!result.empty());
@@ -233,7 +238,7 @@ namespace Zibra::LibraryUtils
             return;
         }
 
-        const std::vector<std::string> libraryPaths = GetLibraryPaths();
+        const std::vector<std::string> libraryPaths = GetZibSDKPaths();
 
         bool isLoaded = false;
         for (const std::string& libraryPath : libraryPaths)
@@ -252,12 +257,12 @@ namespace Zibra::LibraryUtils
         g_IsLibraryLoaded = true;
     }
 
-    bool IsLibraryLoaded() noexcept
+    bool IsZibSDKLoaded() noexcept
     {
         return g_IsLibraryLoaded;
     }
 
-    std::string GetLibraryVersionString() noexcept
+    std::string GetZibSDKVersionString() noexcept
     {
         if (!g_IsLibraryLoaded)
         {
@@ -272,7 +277,7 @@ namespace Zibra::LibraryUtils
         return Version{version.major, version.minor, version.patch, version.build};
     }
 
-    Version GetLibraryVersion() noexcept
+    Version GetZibSDKVersion() noexcept
     {
         assert(g_IsLibraryLoaded);
         return ToLibraryUtilsVersion(g_CompressionEngineVersion);
@@ -331,46 +336,6 @@ namespace Zibra::LibraryUtils
             return "Unknown error: " + std::to_string(errorCode);
         }
     }
-
-    bool IsAssetResolverRegistered() noexcept
-    {
-        PXR_NS::TfType resolverType = PXR_NS::TfType::FindByName("ZibraVDBResolver");
-        return !resolverType.IsUnknown();
-    }
-
-    void RegisterAssetResolver() noexcept
-    {
-        if (IsAssetResolverRegistered())
-        {
-            return;
-        }
-
-        const std::vector<std::string> libraryPaths = GetLibraryPaths();
-        for (const std::string& libraryPath : libraryPaths)
-        {
-            if (libraryPath.empty())
-            {
-                continue;
-            }
-            std::filesystem::path resourcePath = std::filesystem::path(libraryPath).parent_path()/"resources";
-            if (std::filesystem::exists(resourcePath) && std::filesystem::is_directory(resourcePath))
-            {
-                std::string pathStr = resourcePath.string();
-                std::replace(pathStr.begin(), pathStr.end(), '\\', '/');
-                PXR_NS::PlugRegistry::GetInstance().RegisterPlugins(pathStr);
-
-                if (IsAssetResolverRegistered())
-                {
-                    break;
-                }
-            }
-        }
-        if (!IsAssetResolverRegistered())
-        {
-            assert(false && "Failed to register ZibraVDBResolver. Make sure the library file is present.");
-        }
-    }
-
 } // namespace Zibra::LibraryUtils
 
 #undef ZCE_CONCAT_HELPER

@@ -308,7 +308,7 @@ namespace Zibra::ZibraVDBCompressor
 
         LibraryUtils::LoadZibSDKLibrary();
 
-        if (!LibraryUtils::IsLibraryLoaded())
+        if (!LibraryUtils::IsZibSDKLoaded())
         {
             addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_COMPRESSION_ENGINE_MISSING);
             return ROP_ABORT_RENDER;
@@ -432,7 +432,7 @@ namespace Zibra::ZibraVDBCompressor
     {
         using namespace std::literals;
 
-        assert(LibraryUtils::IsLibraryLoaded());
+        assert(LibraryUtils::IsZibSDKLoaded());
 
         executePreFrameScript(time);
 
@@ -532,7 +532,7 @@ namespace Zibra::ZibraVDBCompressor
 
     ROP_RENDER_CODE ROP_ZibraVDBCompressor::endRender()
     {
-        if (!LibraryUtils::IsLibraryLoaded())
+        if (!LibraryUtils::IsZibSDKLoaded())
         {
             return ROP_ABORT_RENDER;
         }

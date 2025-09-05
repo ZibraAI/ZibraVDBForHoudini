@@ -1,5 +1,3 @@
-#include "PrecompiledHeader.h"
-
 #include "MessageBox.h"
 
 #include <SI/AP_Interface.h>
