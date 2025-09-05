@@ -219,7 +219,7 @@ endif()
 target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini HoudiniThirdParty)
 
 if("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
-    #TODO find the correct way to link python
+    # we still need to explicitly link the python lib for mac
     target_link_libraries(ZibraVDBForHoudini PRIVATE ${HOUDINI_PATH}/Frameworks/Python.framework/Versions/Current/lib/libpython3.11.dylib)
 endif()
 

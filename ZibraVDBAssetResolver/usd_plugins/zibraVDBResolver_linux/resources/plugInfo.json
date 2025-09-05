@@ -9,7 +9,7 @@
                     }
                 }
             },
-            "LibraryPath": "../../usd/zibraVDBResolver",
+            "LibraryPath": "../../usd/zibraVDBResolver.so",
             "Name": "zibraVDBResolver",
             "ResourcePath": "resources",
             "Root": "..",

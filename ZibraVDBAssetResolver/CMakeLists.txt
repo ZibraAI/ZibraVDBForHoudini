@@ -33,17 +33,11 @@ target_compile_definitions(zibraVDBResolver PRIVATE
 
 if( CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" )
     target_compile_options( zibraVDBResolver PRIVATE "/Zc:inline-" )
-elseif( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang" )
-    # TODO this is temporary hack. Linux wants resolver lib name to match exactly the one specified in plugInfo (no extension)
-    set_target_properties(zibraVDBResolver PROPERTIES SUFFIX "")
 endif()
 
 target_link_libraries(zibraVDBResolver PRIVATE Houdini HoudiniThirdParty)
 if("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
-    #TODO find the correct way to link python
-#    target_link_libraries(zibraVDBResolver PRIVATE /Applications/Houdini/Houdini21.0.440/Frameworks/Python.framework/Versions/3.11/lib/libpython3.11.dylib)
-#    target_link_libraries(zibraVDBResolver PRIVATE /Applications/Houdini/Houdini21.0.440/Frameworks/Python.framework/Versions/Current/lib/libpython3.11.dylib)
-#    target_link_libraries(zibraVDBResolver PRIVATE /Applications/Houdini/Houdini21.0.440/Frameworks/Houdini.framework/Resources/Frameworks/Python.framework/Versions/Current/lib/libpython3.11.dylib)
+    # we still need to explicitly link the python lib for mac
     target_link_libraries(zibraVDBResolver PRIVATE ${HOUDINI_PATH}/Frameworks/Python.framework/Versions/Current/lib/libpython3.11.dylib)
 endif()
 
@@ -65,13 +59,18 @@ set_target_properties(zibraVDBResolver PROPERTIES
     PREFIX ""
 )
 
-# Copy plugInfo files to the output directory structure
+#TODO unify the below 2 commands to copy the entire dso/usd_plugins directory as is
 add_custom_command(TARGET zibraVDBResolver POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd_plugins"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/usd_plugins/plugInfo.json" "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd_plugins/plugInfo.json"
 )
-
 add_custom_command(TARGET zibraVDBResolver POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd_plugins/zibraVDBResolver/resources"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/usd_plugins/zibraVDBResolver/resources/plugInfo.json" "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd_plugins/zibraVDBResolver/resources/plugInfo.json"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd_plugins/zibraVDBResolver_win/resources"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/usd_plugins/zibraVDBResolver_win/resources/plugInfo.json" "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd_plugins/zibraVDBResolver_win/resources/plugInfo.json"
+
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd_plugins/zibraVDBResolver_linux/resources"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/usd_plugins/zibraVDBResolver_linux/resources/plugInfo.json" "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd_plugins/zibraVDBResolver_linux/resources/plugInfo.json"
+
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd_plugins/zibraVDBResolver_mac/resources"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/usd_plugins/zibraVDBResolver_mac/resources/plugInfo.json" "${ASSET_RESOLVER_OUTPUT_PATH}/dso/usd_plugins/zibraVDBResolver_mac/resources/plugInfo.json"
 )
