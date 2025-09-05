@@ -32,25 +32,23 @@ Content-Type: text/plain
 
 sopflags sopflags = 
 comment ""
-position -13.5775 -9.16442
-connectornextid 1
+position -0.592515 0.249495
+connectornextid 0
 flags =  lock off model off template off footprint off xray off bypass off display on render on highlight off unload off savedata off compress on colordefault off exposed on
 outputsNamed3
 {
 }
 inputsNamed3
 {
-0 	TestVDB 1 1 "input1"
 }
 inputs
 {
-0 	TestVDB 0 1
 }
 stat
 {
   create -1
   modify -1
-  author dmytrobulatov1@dmytros-macbook-pro.local
+  author sskaplun@sskaplun-zenbook
   access 0777
 }
 color UT_Color RGB 0.9 0.8 0.55 
@@ -78,7 +76,7 @@ Content-Disposition: attachment; filename="hdaroot.inp"
 Content-Type: text/plain
 
 1
-0 -0.49999998743435842 12.480513523495816 2 0 __NO_OWNER_NETWORK_BOX__ "FROMOUTPUT"
+0 -0.49999999236366255 13.197633523495817 2 0 __NO_OWNER_NETWORK_BOX__ "FROMOUTPUT"
 
 --HOUDINIMIMEBOUNDARY0xD3ADD339-0x00000F49-0x56B122C9-0x00000001HOUDINIMIMEBOUNDARY
 Content-Disposition: attachment; filename="hdaroot/output0.init"
@@ -93,7 +91,7 @@ Content-Type: text/plain
 
 sopflags sopflags = 
 comment ""
-position -0.5 0.85
+position -0.5 0.43832
 connectornextid 1
 flags =  lock off model off template off footprint off xray off bypass off display on render on highlight off unload on savedata off compress on colordefault on exposed on
 outputsNamed3
@@ -152,7 +150,7 @@ Content-Type: text/plain
 
 sopflags sopflags = 
 comment ""
-position -0.5 2.8498
+position -0.5 2.43812
 connectornextid 3
 flags =  lock off model off template off footprint off xray off bypass off display off render off highlight off unload on savedata off compress on colordefault on exposed on
 outputsNamed3
@@ -245,7 +243,7 @@ Content-Type: text/plain
 
 sopflags sopflags = 
 comment ""
-position -0.5 11.5481
+position -0.5 12.2652
 connectornextid 2
 flags =  lock off model off template off footprint off xray off bypass off display off render off highlight off unload on savedata off compress on colordefault on exposed on
 outputsNamed3
@@ -306,7 +304,7 @@ Content-Type: text/plain
 
 sopflags sopflags = 
 comment ""
-position -0.50345 10.8002
+position -0.50345 10.3885
 connectornextid 2
 flags =  lock off model off template off footprint off xray off bypass off display off render off highlight off unload on savedata off compress on colordefault on exposed on
 outputsNamed3
@@ -315,11 +313,11 @@ outputsNamed3
 }
 inputsNamed3
 {
-0 	IN 1 1 "input1"
+0 	validate_input 1 1 "input1"
 }
 inputs
 {
-0 	IN 0 1
+0 	validate_input 0 1
 }
 stat
 {
@@ -376,7 +374,7 @@ Content-Type: text/plain
 
 sopflags sopflags = 
 comment ""
-position -0.5 10.1649
+position -0.5 9.75322
 connectornextid 2
 flags =  lock off model off template off footprint off xray off bypass off display off render off highlight on unload on savedata off compress on colordefault on exposed on
 outputsNamed3
@@ -443,7 +441,7 @@ Content-Type: text/plain
 
 sopflags sopflags = 
 comment ""
-position -0.50345 9.53437
+position -0.50345 9.12269
 connectornextid 2
 flags =  lock off model off template off footprint off xray off bypass off display off render off highlight off unload on savedata off compress on colordefault on exposed on
 outputsNamed3
@@ -529,7 +527,7 @@ Content-Type: text/plain
 
 sopflags sopflags = 
 comment ""
-position -0.5 7.845
+position -0.5 7.43332
 connectornextid 2
 flags =  lock off model off template off footprint off xray off bypass off display off render off highlight off unload on savedata off compress on colordefault on exposed on
 outputsNamed3
@@ -590,7 +588,7 @@ Content-Type: text/plain
 
 sopflags sopflags = 
 comment ""
-position -0.50125 8.85155
+position -0.50125 8.43987
 connectornextid 2
 flags =  lock off model off template off footprint off xray off bypass off display off render off highlight off unload on savedata off compress on colordefault on exposed on
 outputsNamed3
@@ -677,7 +675,7 @@ Content-Type: text/plain
 
 sopflags sopflags = 
 comment ""
-position -6.503 6.849
+position -6.503 6.43732
 connectornextid 2
 flags =  lock off model off template off footprint off xray off bypass off display off render off highlight off unload on savedata off compress on colordefault off exposed on
 outputsNamed3
@@ -760,7 +758,7 @@ Content-Type: text/plain
 
 sopflags sopflags = 
 comment ""
-position -4.503 5.849
+position -4.503 5.43732
 connectornextid 2
 flags =  lock off model off template off footprint off xray off bypass off display off render off highlight off unload on savedata off compress on colordefault off exposed on
 outputsNamed3
@@ -839,7 +837,7 @@ Content-Type: text/plain
 
 sopflags sopflags = 
 comment ""
-position -0.5 5.85
+position -0.5 5.43832
 connectornextid 2
 flags =  lock off model off template off footprint off xray off bypass off display off render off highlight off unload on savedata off compress on colordefault off exposed on
 outputsNamed3
@@ -957,7 +955,7 @@ Content-Type: text/plain
 
 sopflags sopflags = 
 comment ""
-position -6.5 4.8498
+position -6.5 4.43812
 connectornextid 3
 flags =  lock off model off template off footprint off xray off bypass off display off render off highlight off unload on savedata off compress on colordefault on exposed on
 outputsNamed3
@@ -1036,7 +1034,7 @@ Content-Disposition: attachment; filename="hdaroot/rop_zibravdb_compress.def"
 Content-Type: text/plain
 
 comment ""
-position 1.55181 4.85829
+position 1.55181 4.44661
 connectornextid 1
 flags =  lock off model off template off footprint off xray off bypass off display off render off highlight off unload off savedata off compress on colordefault on exposed on
 outputsNamed3
@@ -1337,10 +1335,86 @@ Content-Type: text/plain
 }
 
 --HOUDINIMIMEBOUNDARY0xD3ADD339-0x00000F49-0x56B122C9-0x00000001HOUDINIMIMEBOUNDARY
+Content-Disposition: attachment; filename="hdaroot/validate_input.init"
+Content-Type: text/plain
+
+type = python
+matchesdef = 1
+
+--HOUDINIMIMEBOUNDARY0xD3ADD339-0x00000F49-0x56B122C9-0x00000001HOUDINIMIMEBOUNDARY
+Content-Disposition: attachment; filename="hdaroot/validate_input.def"
+Content-Type: text/plain
+
+sopflags sopflags = 
+comment ""
+position -0.5 11.2416
+connectornextid 2
+flags =  lock off model off template off footprint off xray off bypass off display off render off highlight off unload off savedata off compress on colordefault on exposed on
+outputsNamed3
+{
+1 "output1"
+}
+inputsNamed3
+{
+0 	IN 1 1 "input1"
+}
+inputs
+{
+0 	IN 0 1
+}
+stat
+{
+  create -1
+  modify -1
+  author sskaplun@sskaplun-zenbook
+  access 0777
+}
+color UT_Color RGB 0.8 0.8 0.8 
+delscript ""
+exprlanguage hscript
+end
+
+--HOUDINIMIMEBOUNDARY0xD3ADD339-0x00000F49-0x56B122C9-0x00000001HOUDINIMIMEBOUNDARY
+Content-Disposition: attachment; filename="hdaroot/validate_input.parm"
+Content-Type: text/plain
+
+{
+version 0.8
+python	[ 0	locks=0 ]	(	"import hou
+import os
+
+hda_node = hou.pwd().parent()
+has_input = len(hda_node.inputs()) > 0 and hda_node.input(0) is not None
+
+if has_input:
+    pass
+else:
+    file_path = hda_node.parm(\"file\").eval()
+    file_exists = os.path.exists(file_path) if file_path else False
+
+    if not file_exists:
+        raise hou.NodeError(\"No input geometry provided and no valid cache file specified\")
+    else:
+        hou.pwd().geometry().clear()"	)
+maintainstate	[ 0	locks=0 ]	(	"off"	)
+}
+
+--HOUDINIMIMEBOUNDARY0xD3ADD339-0x00000F49-0x56B122C9-0x00000001HOUDINIMIMEBOUNDARY
+Content-Disposition: attachment; filename="hdaroot/validate_input.userdata"
+Content-Type: text/plain
+
+{
+	"___Version___":{
+		"type":"string",
+		"value":"___EXTERNAL___"
+	}
+}
+
+--HOUDINIMIMEBOUNDARY0xD3ADD339-0x00000F49-0x56B122C9-0x00000001HOUDINIMIMEBOUNDARY
 Content-Disposition: attachment; filename="hdaroot.order"
 Content-Type: text/plain
 
-14
+15
 output0
 switchif1
 IN
@@ -1355,6 +1429,7 @@ input_error
 switch_has_unsupported
 rop_zibravdb_compress
 zibravdb_decompress
+validate_input
 
 --HOUDINIMIMEBOUNDARY0xD3ADD339-0x00000F49-0x56B122C9-0x00000001HOUDINIMIMEBOUNDARY
 Content-Disposition: attachment; filename="hdaroot.net"

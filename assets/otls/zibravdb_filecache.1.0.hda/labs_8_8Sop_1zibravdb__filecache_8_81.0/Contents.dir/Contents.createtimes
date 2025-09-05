@@ -11,7 +11,8 @@
 	"hdaroot/IN.def":1726217455,
 	"hdaroot/zibravdb_decompress.def":1743416591,
 	"hdaroot/attribdelete1.def":1726217481,
-	"hdaroot.def":1745940967,
+	"hdaroot.def":1756714434,
+	"hdaroot/validate_input.def":1756712740,
 	"hdaroot/switch_has_unsupported.def":1737115423,
 	"hdaroot/switchif1.def":1726217305
 }
