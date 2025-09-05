@@ -29,7 +29,7 @@ if __name__ == "__main__":
     arg_parser.add_argument("--platform", type=str, help="Houdini platform to install", required=True)
     arg_parser.add_argument("--version", type=str, help="Houdini version to install", required=True)
     arg_parser.add_argument("--build", type=str, help="Houdini build to install", required=True)
-    arg_parser.add_argument("--install_path", type=str, help="Houdini installation path", required=True)
+    arg_parser.add_argument("--install-path", type=str, help="Houdini installation path", required=True)
     args = arg_parser.parse_args()
 
     if get_install_path(args.version, args.build) != args.install_path:
