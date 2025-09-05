@@ -5,6 +5,7 @@ import requests
 import subprocess
 import argparse
 import hashlib
+from inspect import currentframe, getframeinfo
 from sesiweb import SesiWeb
 from sesiweb.model.service import ProductBuild
 
@@ -52,7 +53,7 @@ if __name__ == "__main__":
     arg_parser.add_argument("--platform", type=str, help="Houdini platform to install", required=True)
     arg_parser.add_argument("--version", type=str, help="Houdini version to install", required=True)
     arg_parser.add_argument("--build", type=str, help="Houdini build to install", required=True)
-    arg_parser.add_argument("--install_path", type=str, help="Houdini installation path", required=True)
+    arg_parser.add_argument("--install-path", type=str, help="Houdini installation path", required=True)
     args = arg_parser.parse_args()
 
     if get_install_path(args.version, args.build) != args.install_path:
@@ -131,6 +132,12 @@ if __name__ == "__main__":
         install_process = subprocess.run([f"{extracted_dir}/houdini.install", "--install-houdini", "--no-install-engine-maya", "--no-install-engine-unity", "--no-install-engine-unreal", "--no-install-menus", "--no-install-hfs-symlink", "--no-install-license", "--no-install-avahi", "--no-install-sidefxlabs", "--no-install-hqueue-server", "--no-install-hqueue-client", "--auto-install", "--make-dir", "--accept-EULA", "2021-10-13", args.install_path], check=True)
         # Clean up unpacked archive
         shutil.rmtree(extracted_dir)
+        # Check if installer succeeded
+        if install_process.returncode != 0:
+            print(f"Installer failed with code {install_process.returncode}")
+            print(f"Installer stdout: {install_process.stdout}")
+            print(f"Installer stderr: {install_process.stderr}")
+            raise Exception(f"Installation failed. Exit code: {install_process.returncode}")
     elif sys.platform == "darwin":
         # Mount the DMG
         subprocess.run(["hdiutil", "attach", build_dl.filename], check=True)
@@ -139,17 +146,29 @@ if __name__ == "__main__":
         install_process = subprocess.run(["sudo", "installer", "-pkg", "/Volumes/Houdini/Houdini.pkg", "-target", "/"], check=True)
         # Unmount the DMG
         subprocess.run(["hdiutil", "detach", "/Volumes/Houdini"], check=True)
+        # Check if installer succeeded
+        if install_process.returncode != 0:
+            print(f"Installer failed with code {install_process.returncode}")
+            print(f"Installer stdout: {install_process.stdout}")
+            print(f"Installer stderr: {install_process.stderr}")
+            raise Exception(f"Installation failed. Exit code: {install_process.returncode}")
     elif sys.platform == "win32":
         # Run installer
+        frameinfo = getframeinfo(currentframe())
         install_process = subprocess.run([build_dl.filename, "/S", f"/InstallDir={args.install_path}", "/acceptEULA=2021-10-13"], check=False, capture_output=True, text=True)
+        # Windows installer sometimes randomly fails
+        if install_process.returncode != 0:
+            print(f"Installer failed with code {install_process.returncode}")
+            print(f"Installer stdout: {install_process.stdout}")
+            print(f"Installer stderr: {install_process.stderr}")
+            print("Checking how broken the installation is")
+            hdk_version_path = os.path.join(args.install_path, "toolkit/hdk_api_version.txt")
+            if not os.path.exists(hdk_version_path):
+                raise Exception(f"Installation failed. Exit code: {install_process.returncode}. HDK is missing, can't proceed.")
+            print("Installation seems fine, proceeding")
+            print(f"::warning file={frameinfo.filename},line={frameinfo.lineno + 1}::Houdini installer failed with exit code {install_process.returncode}, but installation seems fine")
     else:
         raise Exception("Unexpected platform")
-
-    if install_process.returncode != 0:
-        print(f"Installer failed with code {install_process.returncode}")
-        print(f"Installer stdout: {install_process.stdout}")
-        print(f"Installer stderr: {install_process.stderr}")
-        raise Exception(f"Installation failed. Exit code: {install_process.returncode}")
     
     print(f"Install succeeded, cleaning up")
     os.remove(build_dl.filename)
