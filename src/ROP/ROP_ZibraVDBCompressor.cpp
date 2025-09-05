@@ -836,6 +836,7 @@ namespace Zibra::ZibraVDBCompressor
 
         STDOStreamWrapper wrapper{outFile};
         res = merger->Finish(&wrapper);
+        merger->Release();
         outFile.close();
         return res;
     }

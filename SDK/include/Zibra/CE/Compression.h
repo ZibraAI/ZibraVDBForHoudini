@@ -108,6 +108,7 @@ namespace Zibra::CE::Compression
          */
         virtual Result SetPlaybackInfo(const PlaybackInfo& info) noexcept = 0;
         virtual Result Finish(OStream* stream) noexcept = 0;
+        virtual void Release() noexcept = 0;
     };
 
     class CompressorFactory

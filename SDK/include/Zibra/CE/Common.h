@@ -4,24 +4,6 @@
 #include <Zibra/Result.h>
 #include <Zibra/Version.h>
 
-#ifdef ZIB_DEBUG_BUILD
-#define ZIB_DEBUG_ONLY(x) x
-#else
-#define ZIB_DEBUG_ONLY(x)
-#endif
-
-#ifdef ZIB_PROFILE_BUILD
-#define ZIB_PROFILE_ONLY(x) x
-#else
-#define ZIB_PROFILE_ONLY(x)
-#endif
-
-#if defined(ZIB_DEBUG_BUILD) || defined(ZIB_PROFILE_BUILD)
-#define ZIB_DEBUG_OR_PROFILE_ONLY(x) x
-#else
-#define ZIB_DEBUG_OR_PROFILE_ONLY(x)
-#endif
-
 namespace Zibra
 {
     ZIB_RESULT_DEFINE_CATEGORY(COMPRESSION_ENGINE, 0x100);
