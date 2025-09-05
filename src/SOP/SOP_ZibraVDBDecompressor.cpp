@@ -102,6 +102,10 @@ namespace Zibra::ZibraVDBDecompressor
             return error(context);
         }
 
+        // License may or may not be required depending on .zibravdb file
+        // So we need to trigger license check, but if it fails we proceed with decompression
+        HoudiniLicenseManager::GetInstance().CheckLicense(HoudiniLicenseManager::Product::Decompression);
+
         UT_String filename = "";
         evalString(filename, "filename", nullptr, 0, context.getTime());
         if (filename == "")
@@ -118,10 +122,11 @@ namespace Zibra::ZibraVDBDecompressor
 
         m_DecompressorManager.Initialize();
 
-        auto status = m_DecompressorManager.RegisterDecompressor(filename);
-        if (status != CE::ZCE_SUCCESS)
+        Result res = m_DecompressorManager.RegisterDecompressor(filename);
+        if (ZIB_FAILED(res))
         {
-            addError(SOP_MESSAGE, "Failed to create a decompressor.");
+            std::string errorMessage = "Failed to initialize decompressor: " + LibraryUtils::ErrorCodeToString(res);
+            addError(SOP_MESSAGE, errorMessage.c_str());
             return error(context);
         }
 
@@ -133,21 +138,22 @@ namespace Zibra::ZibraVDBDecompressor
             addWarning(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_FRAME_NOT_PRESENT);
             return error(context);
         }
+        ZIB_ON_SCOPE_EXIT([&]() { frameContainer->Release(); });
+
         if (frameContainer->GetInfo().spatialInfoCount == 0)
         {
-            frameContainer->Release();
             return error(context);
         }
 
         auto gridShuffle = DeserializeGridShuffleInfo(frameContainer);
 
         openvdb::GridPtrVec vdbGrids = {};
-        status = m_DecompressorManager.DecompressFrame(frameContainer, gridShuffle, &vdbGrids);
+        res = m_DecompressorManager.DecompressFrame(frameContainer, gridShuffle, &vdbGrids);
         ReleaseGridShuffleInfo(gridShuffle);
-        if (status != CE::ZCE_SUCCESS)
+        if (ZIB_FAILED(res))
         {
-            frameContainer->Release();
-            addError(SOP_MESSAGE, "Error when trying to decompress frame.");
+            std::string errorMessage = "Failed to decompress frame: " + LibraryUtils::ErrorCodeToString(res);
+            addError(SOP_MESSAGE, errorMessage.c_str());
             return error(context);
         }
 
@@ -169,8 +175,6 @@ namespace Zibra::ZibraVDBDecompressor
         }
 
         ApplyDetailMetadata(gdp, frameContainer);
-
-        frameContainer->Release();
 
         return error(context);
     }
@@ -271,12 +275,11 @@ namespace Zibra::ZibraVDBDecompressor
         CompressedFrameContainer* frameContainer) noexcept
     {
         static std::map<std::string, CE::Addons::OpenVDBUtils::GridVoxelType> strToVoxelType = {
-            {"Float1", CE::Addons::OpenVDBUtils::GridVoxelType::Float1},
-            {"Float3", CE::Addons::OpenVDBUtils::GridVoxelType::Float3}
-        };
+            {"Float1", CE::Addons::OpenVDBUtils::GridVoxelType::Float1}, {"Float3", CE::Addons::OpenVDBUtils::GridVoxelType::Float3}};
 
         const char* meta = frameContainer->GetMetadataByKey("chShuffle");
-        if (!meta) return {};
+        if (!meta)
+            return {};
 
         auto serialized = nlohmann::json::parse(meta);
         if (!serialized.is_array())

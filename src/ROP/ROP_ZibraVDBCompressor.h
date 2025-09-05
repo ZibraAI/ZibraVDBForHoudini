@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Zibra/CE/Addons/OpenVDBCommon.h>
+
 #include "OStreamRAMWrapper.h"
 
 namespace Zibra::ZibraVDBCompressor
@@ -65,8 +66,7 @@ namespace Zibra::ZibraVDBCompressor
     private:
         static std::vector<PRM_Template>& GetTemplateListContainer(ContextType contextType) noexcept;
 
-        std::vector<std::pair<std::string, std::string>> DumpAttributes(
-            const GU_Detail* gdp) noexcept;
+        std::vector<std::pair<std::string, std::string>> DumpAttributes(const GU_Detail* gdp) noexcept;
         void DumpVisualisationAttributes(std::vector<std::pair<std::string, std::string>>& attributes, const GEO_PrimVDB* vdbPrim) noexcept;
         nlohmann::json DumpGridsShuffleInfo(const std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridDescs) noexcept;
         void RenameGrids(const GU_Detail* gdp, const std::vector<std::string>& newGridNames) noexcept;
@@ -74,9 +74,9 @@ namespace Zibra::ZibraVDBCompressor
         static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate) noexcept;
 
         ROP_RENDER_CODE CreateCompressor(const OP_Context& ctx) noexcept;
-        CE::ReturnCode InitCompressor(float defaultQuality, const std::vector<std::pair<UT_String, float>>& perChannelSettings) noexcept;
-        CE::ReturnCode CompressFrame(const CE::Compression::CompressFrameDesc& desc, CE::Compression::FrameManager** outManager) noexcept;
-        CE::ReturnCode MergeSequence(std::filesystem::path outPath) noexcept;
+        Result InitCompressor(float defaultQuality, const std::vector<std::pair<UT_String, float>>& perChannelSettings) noexcept;
+        Result CompressFrame(const CE::Compression::CompressFrameDesc& desc, CE::Compression::FrameManager** outManager) noexcept;
+        Result MergeSequence(std::filesystem::path outPath) noexcept;
 
     private:
         fpreal m_EndTime = 0;

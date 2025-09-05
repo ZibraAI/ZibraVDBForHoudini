@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cstddef>
 
+#include <Zibra/Result.h>
 #include <Zibra/Version.h>
 
 #if defined(_MSC_VER)
@@ -53,9 +54,16 @@
         return static_cast<uint32_t>(a) == 0;                                              \
     }
 
+namespace Zibra
+{
+    ZIB_RESULT_DEFINE_CATEGORY(RHI, 0x1);
+
+    ZIB_RESULT_DEFINE(QUEUE_EMPTY, RHI, 0x0, "Queue is empty.", false);
+}
+
 namespace Zibra::RHI
 {
-    constexpr Version ZRHI_VERSION = {4, 0, 0, 0};
+    constexpr Version ZRHI_VERSION = {5, 0, 0, 0};
 
     enum class GFXAPI : int8_t
     {
@@ -75,21 +83,6 @@ namespace Zibra::RHI
         Custom = 100,
         /// Invalid value
         Invalid = -1,
-    };
-
-    enum ReturnCode
-    {
-        ZRHI_SUCCESS = 0,
-        ZRHI_TIMEOUT = 10,
-        ZRHI_QUEUE_EMPTY = 20,
-
-        ZRHI_ERROR = 100,
-        ZRHI_ERROR_OUT_OF_CPU_MEMORY = 120,
-        ZRHI_ERROR_OUT_OF_GPU_MEMORY = 121,
-
-        ZRHI_ERROR_INVALID_CALL = 300,
-        ZRHI_ERROR_NOT_IMPLEMENTED = 310,
-        ZRHI_ERROR_NOT_SUPPORTED = 311,
     };
 
     namespace Integration
@@ -127,9 +120,9 @@ namespace Zibra::RHI
             virtual ID3D11Device* GetDevice() noexcept = 0;
             virtual ID3D11DeviceContext* GetDeviceContext() noexcept = 0;
 
-            virtual ReturnCode AccessBuffer(void* resourceHandle, D3D11BufferDesc& bufferDesc) noexcept = 0;
-            virtual ReturnCode AccessTexture2D(void* resourceHandle, D3D11Texture2DDesc& texture2dDesc) noexcept = 0;
-            virtual ReturnCode AccessTexture3D(void* resourceHandle, D3D11Texture3DDesc& texture3dDesc) noexcept = 0;
+            virtual Result AccessBuffer(void* resourceHandle, D3D11BufferDesc& bufferDesc) noexcept = 0;
+            virtual Result AccessTexture2D(void* resourceHandle, D3D11Texture2DDesc& texture2dDesc) noexcept = 0;
+            virtual Result AccessTexture3D(void* resourceHandle, D3D11Texture3DDesc& texture3dDesc) noexcept = 0;
         };
 #endif // ZRHI_USE_D3D11_INTEGRATION
 #pragma endregion D3D11 GFXCore
@@ -167,18 +160,18 @@ namespace Zibra::RHI
             // May return nullptr if not supported.
             virtual ID3D12CommandQueue* GetCommandQueue() noexcept = 0;
 
-            virtual ReturnCode AccessBuffer(void* resourceHandle, D3D12BufferDesc& bufferDesc) noexcept = 0;
-            virtual ReturnCode AccessTexture2D(void* resourceHandle, D3D12Texture2DDesc& texture2dDesc) noexcept = 0;
-            virtual ReturnCode AccessTexture3D(void* resourceHandle, D3D12Texture3DDesc& texture3dDesc) noexcept = 0;
+            virtual Result AccessBuffer(void* resourceHandle, D3D12BufferDesc& bufferDesc) noexcept = 0;
+            virtual Result AccessTexture2D(void* resourceHandle, D3D12Texture2DDesc& texture2dDesc) noexcept = 0;
+            virtual Result AccessTexture3D(void* resourceHandle, D3D12Texture3DDesc& texture3dDesc) noexcept = 0;
 
-            virtual ReturnCode StartRecording() noexcept = 0;
+            virtual Result StartRecording() noexcept = 0;
             /**
              * Submits job to queue and stops recording state.
              * @param statesCount Resources states count in states param.
              * @param states Resources state array for command list tail.
              * @param finishEvent GPU work completion CPU event handle. (Consumer will close event handle by itself)
              */
-            virtual ReturnCode StopRecording(size_t statesCount, const D3D12TrackedResourceState* states, HANDLE* finishEvent) noexcept = 0;
+            virtual Result StopRecording(size_t statesCount, const D3D12TrackedResourceState* states, HANDLE* finishEvent) noexcept = 0;
         };
 #endif // ZRHI_USE_D3D12_INTEGRATION
 #pragma endregion D3D12 GFXCore
@@ -230,14 +223,14 @@ namespace Zibra::RHI
             virtual PFN_vkVoidFunction GetInstanceProcAddr(const char* procName) noexcept = 0;
             virtual size_t GetCurrentFrame() noexcept = 0;
             virtual size_t GetSafeFrame() noexcept = 0;
-            virtual ReturnCode AccessBuffer(void* resourceHandle, VulkanBufferDesc& bufferDesc) noexcept = 0;
-            virtual ReturnCode AccessImage(void* resourceHandle, VkImageLayout layout, VulkanTextureDesc& textureDesc) noexcept = 0;
-            virtual ReturnCode StartRecording() noexcept = 0;
+            virtual Result AccessBuffer(void* resourceHandle, VulkanBufferDesc& bufferDesc) noexcept = 0;
+            virtual Result AccessImage(void* resourceHandle, VkImageLayout layout, VulkanTextureDesc& textureDesc) noexcept = 0;
+            virtual Result StartRecording() noexcept = 0;
             /**
              * Submits job to queue and stops recording state.
              * @param finishFence GPU work completion fence. (Consumer will release fence by itself)
              */
-            virtual ReturnCode StopRecording(VkFence* finishFence) noexcept = 0;
+            virtual Result StopRecording(VkFence* finishFence) noexcept = 0;
         };
 #endif // ZRHI_USE_VULKAN_INTEGRATION
 #pragma endregion Vulkan GFXCore
@@ -263,12 +256,12 @@ namespace Zibra::RHI
         {
         public:
             virtual MTL::Device* GetDevice() noexcept = 0;
-            virtual ReturnCode AccessBuffer(void* bufferHandle, MetalBufferDesc& bufferDesc) noexcept = 0;
-            virtual ReturnCode AccessTexture2D(void* bufferHandle, MetalTexture2DDesc& bufferDesc) noexcept = 0;
-            virtual ReturnCode AccessTexture3D(void* bufferHandle, MetalTexture3DDesc& bufferDesc) noexcept = 0;
+            virtual Result AccessBuffer(void* bufferHandle, MetalBufferDesc& bufferDesc) noexcept = 0;
+            virtual Result AccessTexture2D(void* bufferHandle, MetalTexture2DDesc& bufferDesc) noexcept = 0;
+            virtual Result AccessTexture3D(void* bufferHandle, MetalTexture3DDesc& bufferDesc) noexcept = 0;
             virtual MTL::CommandBuffer* GetCommandBuffer() noexcept = 0;
-            virtual ReturnCode StartRecording() noexcept = 0;
-            virtual ReturnCode StopRecording() noexcept = 0;
+            virtual Result StartRecording() noexcept = 0;
+            virtual Result StopRecording() noexcept = 0;
         };
 #endif // ZRHI_USE_METAL_INTEGRATION
 #pragma endregion Metal GFXCore
@@ -1247,7 +1240,7 @@ namespace Zibra::RHI
         /**
          * Initializes RHI instance resources & Graphics API dependent resources.
          */
-        virtual ReturnCode Initialize() noexcept = 0;
+        virtual Result Initialize() noexcept = 0;
         /**
          * Releases RHI instance resources & Graphics API dependent resources.
          */
@@ -1255,9 +1248,9 @@ namespace Zibra::RHI
         /**
          * Releases resources from garbage queue that safe frame attribute is less than current safe frame.
          * @note Current safe frame is got from EngineInterface that was passed with RHIInitInfo on Initialize().
-         * @return ZRHI_SUCCESS or ZRHI_QUEUE_EMPTY in case of success or other code in case of error.
+         * @return RESULT_SUCCESS or RESULT_QUEUE_EMPTY in case of success or other code in case of error.
          */
-        virtual ReturnCode GarbageCollect() noexcept = 0;
+        virtual Result GarbageCollect() noexcept = 0;
 
         /**
          * @return Returns API type of RHI instance.
@@ -1274,39 +1267,39 @@ namespace Zibra::RHI
         /**
          * Enables/Disables "Stable Power State". Makes timestamp queries reliable at cost of performance.
          * @note NOOP for Metal, Direct3D 11, Vulkan
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode SetStablePowerState(bool enable) noexcept = 0;
+        virtual Result SetStablePowerState(bool enable) noexcept = 0;
 
         /**
          * Compiles Compute Pipeline State Object (Compute PSO) from binary/text source and returns it's instance.
          * @param [in] desc - Compute PSO DESC structure.
          * @param [out] outPSO - out PSO instance.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode CompileComputePSO(const ComputePSODesc& desc, ComputePSO** outPSO) noexcept = 0;
+        virtual Result CompileComputePSO(const ComputePSODesc& desc, ComputePSO** outPSO) noexcept = 0;
         /**
          * Compiles Graphics Pipeline State Object (Graphics PSO) from binary/text source and returns it's instance.
          * @param [in] desc - Graphics PSO DESC structure.
          * @param [out] outPSO - out PSO instance.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode CompileGraphicPSO(const GraphicsPSODesc& desc, GraphicsPSO** outPSO) noexcept = 0;
+        virtual Result CompileGraphicPSO(const GraphicsPSODesc& desc, GraphicsPSO** outPSO) noexcept = 0;
 
         /**
          * Releases Compute Pipeline State Object (Compute PSO) resources.
          * @param [in] pso - Target Compute PSO.
          * @warning After releasing, handle passed to pso param becomes invalid.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode ReleaseComputePSO(ComputePSO* pso) noexcept = 0;
+        virtual Result ReleaseComputePSO(ComputePSO* pso) noexcept = 0;
         /**
          * Releases Graphics Pipeline State Object (Graphics PSO) resources.
          * @param [in] pso - Target Graphics PSO.
          * @warning After releasing, handle passed to pso param becomes invalid.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode ReleaseGraphicPSO(GraphicsPSO* pso) noexcept = 0;
+        virtual Result ReleaseGraphicPSO(GraphicsPSO* pso) noexcept = 0;
 
         /**
          * Registers native buffer from outside of RHI as RHI object for future usage with RHI.
@@ -1314,25 +1307,25 @@ namespace Zibra::RHI
          * @param [in] name - Resource debug name. In debug configuration native resource will be
          * decorated with this name.
          * @param [out] outBuffer - out Buffer instance.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode RegisterBuffer(void* resourceHandle, const char* name, Buffer** outBuffer) noexcept = 0;
+        virtual Result RegisterBuffer(void* resourceHandle, const char* name, Buffer** outBuffer) noexcept = 0;
         /**
          * Registers native 2D texture from outside of RHI as RHI object for future usage with RHI.
          * @param [in] resourceHandle - resource unique handle. Will be passed to EngineInterface for resource access.
          * @param [in] name - Resource debug name. In debug configuration native resource will be decorated with this name.
          * @param [out] outTexture - out Texture2D instance.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode RegisterTexture2D(void* resourceHandle, const char* name, Texture2D** outTexture) noexcept = 0;
+        virtual Result RegisterTexture2D(void* resourceHandle, const char* name, Texture2D** outTexture) noexcept = 0;
         /**
          * Registers native 3D texture from outside of RHI as RHI object for future usage with RHI.
          * @param [in] resourceHandle - resource unique handle. Will be passed to EngineInterface for resource access.
          * @param [in] name - Resource debug name. In debug configuration native resource will be decorated with this name.
          * @param [out] outTexture - out Texture3D instance.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode RegisterTexture3D(void* resourceHandle, const char* name, Texture3D** outTexture) noexcept = 0;
+        virtual Result RegisterTexture3D(void* resourceHandle, const char* name, Texture3D** outTexture) noexcept = 0;
 
         /**
          * Allocates graphics buffer in GPU or CPU memory (depends on usage flags).
@@ -1342,9 +1335,9 @@ namespace Zibra::RHI
          * @param [in] structuredStride - Buffer structured stride. Must be 0 for unstructured buffers.
          * @param [in] name - Resource debug name. In debug configuration native resource will be decorated with this name.
          * @param [out] outBuffer - out Buffer instance.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode CreateBuffer(size_t size, ResourceHeapType heapType, ResourceUsage usage, uint32_t structuredStride, const char* name,
+        virtual Result CreateBuffer(size_t size, ResourceHeapType heapType, ResourceUsage usage, uint32_t structuredStride, const char* name,
                                         Buffer** outBuffer) noexcept = 0;
         /**
          * Allocates 2D texture in GPU memory.
@@ -1355,9 +1348,9 @@ namespace Zibra::RHI
          * @param [in] usage - Resource usage flags.
          * @param [in] name - Resource debug name. In debug configuration native resource will be decorated with this name.
          * @param [out] outTexture - out Texture2D instance.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode CreateTexture2D(size_t width, size_t height, size_t mips, TextureFormat format, ResourceUsage usage, const char* name,
+        virtual Result CreateTexture2D(size_t width, size_t height, size_t mips, TextureFormat format, ResourceUsage usage, const char* name,
                                            Texture2D** outTexture) noexcept = 0;
         /**
          * Allocates 3D texture in GPU memory.
@@ -1369,9 +1362,9 @@ namespace Zibra::RHI
          * @param [in] usage - Resource usage flags.
          * @param [in] name - Resource debug name. In debug configuration native resource will be decorated with this name.
          * @param [out] outTexture - out Texture3D instance.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode CreateTexture3D(size_t width, size_t height, size_t depth, size_t mips, TextureFormat format, ResourceUsage usage,
+        virtual Result CreateTexture3D(size_t width, size_t height, size_t depth, size_t mips, TextureFormat format, ResourceUsage usage,
                                            const char* name, Texture3D** outTexture) noexcept = 0;
         /**
          * Allocates Sampler object.
@@ -1382,40 +1375,40 @@ namespace Zibra::RHI
          * @param [in] descriptorLocations - Array of target DescriptorHeaps and locations for bindless APIs.
          * @param [in] name - Resource debug name. In debug configuration native resource will be decorated with this name.
          * @param [out] outSampler - out Sampler instance.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode CreateSampler(SamplerAddressMode addressMode, SamplerFilter filter, size_t descriptorLocationsCount,
+        virtual Result CreateSampler(SamplerAddressMode addressMode, SamplerFilter filter, size_t descriptorLocationsCount,
                                          const DescriptorLocation* descriptorLocations, const char* name, Sampler** outSampler) noexcept = 0;
 
         /**
          * Releases resources of RHI Buffer.
          * @param [in] buffer - Target Buffer instance.
          * @warning After releasing, handle passed to buffer param becomes invalid.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode ReleaseBuffer(Buffer* buffer) noexcept = 0;
+        virtual Result ReleaseBuffer(Buffer* buffer) noexcept = 0;
         /**
          * Releases resources of RHI 2D Texture.
          * @param [in] texture - Target Texture2D instance.
          * @warning After releasing, handle passed to texture param becomes invalid.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode ReleaseTexture2D(Texture2D* texture) noexcept = 0;
+        virtual Result ReleaseTexture2D(Texture2D* texture) noexcept = 0;
         /**
          * Releases resources of RHI 3D Texture.
          * @param [in] texture - Target Texture23 instance.
          * @warning After releasing, handle passed to texture param becomes invalid.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode ReleaseTexture3D(Texture3D* texture) noexcept = 0;
+        virtual Result ReleaseTexture3D(Texture3D* texture) noexcept = 0;
         /**
          * Releases resources of RHI Sampler.
          * @note NOOP for OpenGL/OpenGL ES
          * @param [in] sampler - Target Sampler instance.
          * @warning After releasing, handle passed to texture param becomes invalid.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode ReleaseSampler(Sampler* sampler) noexcept = 0;
+        virtual Result ReleaseSampler(Sampler* sampler) noexcept = 0;
 
         /**
          * Creates RHI Descriptor Heap instance. Used for APIs with bindless system.
@@ -1424,9 +1417,9 @@ namespace Zibra::RHI
          * @param [in] pipelineLayoutDesc - DESC structure for pipeline bindings layout.
          * @param [in] name - Resource debug name. In debug configuration native resource will be decorated with this name.
          * @param [out] outHeap - out DescriptorHeap instance.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode CreateDescriptorHeap(DescriptorHeapType heapType, const PipelineLayoutDesc& pipelineLayoutDesc, const char* name,
+        virtual Result CreateDescriptorHeap(DescriptorHeapType heapType, const PipelineLayoutDesc& pipelineLayoutDesc, const char* name,
                                                 DescriptorHeap** outHeap) noexcept = 0;
 
         /**
@@ -1434,17 +1427,17 @@ namespace Zibra::RHI
          * @param [in] src - Source descriptor heap.
          * @param [in] name - Resource debug name. In debug configuration native resource will be decorated with this name.
          * @param [out] outHeap - out DescriptorHeap instance with copied descriptors.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode CloneDescriptorHeap(const DescriptorHeap* src, const char* name, DescriptorHeap** outHeap) noexcept = 0;
+        virtual Result CloneDescriptorHeap(const DescriptorHeap* src, const char* name, DescriptorHeap** outHeap) noexcept = 0;
 
         /**
          * Releases resources of DescriptorHeap
          * @param [in] heap - Target DescriptorHeap instance.
          * @warning After releasing, handle passed to heap param becomes invalid.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode ReleaseDescriptorHeap(DescriptorHeap* heap) noexcept = 0;
+        virtual Result ReleaseDescriptorHeap(DescriptorHeap* heap) noexcept = 0;
 
         /**
          * Creates RHI Query Heap instance. Used for performing GPU queries.
@@ -1453,17 +1446,17 @@ namespace Zibra::RHI
          * @param [in] queryCount - Quantity of queries in heap.
          * @param [in] name - Resource debug name. In debug configuration native resource will be decorated with this name.
          * @param [out] outHeap - out QueryHeap instance.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode CreateQueryHeap(QueryHeapType heapType, uint64_t queryCount, const char* name, QueryHeap** outHeap) noexcept = 0;
+        virtual Result CreateQueryHeap(QueryHeapType heapType, uint64_t queryCount, const char* name, QueryHeap** outHeap) noexcept = 0;
 
         /**
          * Releases resources of QueryHeap
          * @param [in] heap - Target QueryHeap instance.
          * @warning After releasing, handle passed to heap param becomes invalid.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode ReleaseQueryHeap(QueryHeap* heap) noexcept = 0;
+        virtual Result ReleaseQueryHeap(QueryHeap* heap) noexcept = 0;
 
         /**
          * Creates RHI Framebuffer instance.
@@ -1471,17 +1464,17 @@ namespace Zibra::RHI
          * @param [in] depthStencil - Depth stencil views.
          * @param [in] name - Resource debug name. In debug configuration native resource will be decorated with this name.
          * @param [out] outFramebuffer - out Framebuffer instance.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode CreateFramebuffer(size_t renderTargetsCount, Texture2D* const* renderTargets, Texture2D* depthStencil, const char* name,
+        virtual Result CreateFramebuffer(size_t renderTargetsCount, Texture2D* const* renderTargets, Texture2D* depthStencil, const char* name,
                                              Framebuffer** outFramebuffer) noexcept = 0;
         /**
          * Releases resources of Framebuffer
          * @param [in] framebuffer - Target Framebuffer instance
          * @warning After releasing, handle passed to framebuffer param becomes invalid.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode ReleaseFramebuffer(Framebuffer* framebuffer) noexcept = 0;
+        virtual Result ReleaseFramebuffer(Framebuffer* framebuffer) noexcept = 0;
 
         /**
          * Creates & initializes Shader Resource View (SRV) for selected buffer resource. Buffer can be either Structured or Raw.
@@ -1491,9 +1484,9 @@ namespace Zibra::RHI
          * @param [in] descriptorLocations - Array of target DescriptorHeaps and locations for bindless APIs.
          * @attention Target Buffer must have ShaderResource usage flag enabled.
          * @attention Buffer can't have structured and formatted SRV simultaneously.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode InitializeSRV(Buffer* buffer, InitializeViewDesc desc, size_t descriptorLocationsCount,
+        virtual Result InitializeSRV(Buffer* buffer, InitializeViewDesc desc, size_t descriptorLocationsCount,
                                          const DescriptorLocation* descriptorLocations) noexcept = 0;
 
         /**
@@ -1501,18 +1494,18 @@ namespace Zibra::RHI
          * @note For bindless APIs creates SRV descriptor and writes it to Descriptor Heap to selected location.
          * @param [in] texture - RHI Texture2D instance.
          * @param [in] descriptorLocations - Array of target DescriptorHeaps and locations for bindless APIs.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode InitializeSRV(Texture2D* texture, size_t descriptorLocationsCount,
+        virtual Result InitializeSRV(Texture2D* texture, size_t descriptorLocationsCount,
                                          const DescriptorLocation* descriptorLocations) noexcept = 0;
         /**
          * Creates & initializes Shader Resource View (SRV) for selected 3D texture resource.
          * @note For bindless APIs creates SRV descriptor and writes it to Descriptor Heap to selected location.
          * @param [in] texture - RHI Texture3D instance.
          * @param [in] descriptorLocations - Array of target DescriptorHeaps and locations for bindless APIs.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode InitializeSRV(Texture3D* texture, size_t descriptorLocationsCount,
+        virtual Result InitializeSRV(Texture3D* texture, size_t descriptorLocationsCount,
                                          const DescriptorLocation* descriptorLocations) noexcept = 0;
 
         /**
@@ -1523,9 +1516,9 @@ namespace Zibra::RHI
          * @param [in] descriptorLocations - Array of target DescriptorHeaps and locations for bindless APIs.
          * @attention Target Buffer must have UnorderedAccess usage flag enabled.
          * @attention Buffer can't have structured and formatted UAV simultaneously.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode InitializeUAV(Buffer* buffer, InitializeViewDesc desc, size_t descriptorLocationsCount,
+        virtual Result InitializeUAV(Buffer* buffer, InitializeViewDesc desc, size_t descriptorLocationsCount,
                                          const DescriptorLocation* descriptorLocations) noexcept = 0;
 
         /**
@@ -1533,18 +1526,18 @@ namespace Zibra::RHI
          * @note For bindless APIs creates UAV descriptor and writes it to Descriptor Heap to selected location.
          * @param [in] texture - RHI Texture2D instance.
          * @param [in] descriptorLocations - Array of target DescriptorHeaps and locations for bindless APIs.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode InitializeUAV(Texture2D* texture, size_t descriptorLocationsCount,
+        virtual Result InitializeUAV(Texture2D* texture, size_t descriptorLocationsCount,
                                          const DescriptorLocation* descriptorLocations) noexcept = 0;
         /**
          * Creates & initializes Unordered Access View (UAV) for selected 3D texture resource.
          * @note For bindless APIs creates UAV descriptor and writes it to Descriptor Heap to selected location.
          * @param [in] texture - RHI Texture3D instance.
          * @param [in] descriptorLocations - Array of target DescriptorHeaps and locations for bindless APIs.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode InitializeUAV(Texture3D* texture, size_t descriptorLocationsCount,
+        virtual Result InitializeUAV(Texture3D* texture, size_t descriptorLocationsCount,
                                          const DescriptorLocation* descriptorLocations) noexcept = 0;
 
         /**
@@ -1553,20 +1546,20 @@ namespace Zibra::RHI
          * @param [in] buffer - RHI Buffer instance.
          * @param [in] descriptorLocations - Array of target DescriptorHeaps and locations for bindless APIs.
          * @attention Target Buffer must have ConstantBuffer usage flag enabled.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode InitializeCBV(Buffer* buffer, size_t descriptorLocationsCount, const DescriptorLocation* descriptorLocations) noexcept = 0;
+        virtual Result InitializeCBV(Buffer* buffer, size_t descriptorLocationsCount, const DescriptorLocation* descriptorLocations) noexcept = 0;
 
         /**
          * Starts recording state. Used on Metal API for Command Encoder manipulations.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode StartRecording() noexcept = 0;
+        virtual Result StartRecording() noexcept = 0;
         /**
          * Stops recording state. Used on Metal API for Command Encoder manipulations.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode StopRecording() noexcept = 0;
+        virtual Result StopRecording() noexcept = 0;
 
         /**
          * Uploads binary data to buffer using Upload Ring on platforms where it is used.
@@ -1577,9 +1570,9 @@ namespace Zibra::RHI
          * @param [in] data - binary upload data.
          * @param [in] size - upload data size in bytes.
          * @param [in] offset - offset in destination buffer memory in bytes.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode UploadBuffer(Buffer* buffer, const void* data, uint32_t size, uint32_t offset) noexcept = 0;
+        virtual Result UploadBuffer(Buffer* buffer, const void* data, uint32_t size, uint32_t offset) noexcept = 0;
         /**
          * Uploads data bypassing Upload Ring on platforms where it is used.
          * @remark Needed to upload a large data on initialization
@@ -1589,18 +1582,18 @@ namespace Zibra::RHI
          * @param [in] data - binary upload data.
          * @param [in] size - upload data size in bytes.
          * @param [in] offset - offset in destination buffer memory in bytes.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode UploadBufferSlow(Buffer* buffer, const void* data, uint32_t size, uint32_t offset) noexcept = 0;
+        virtual Result UploadBufferSlow(Buffer* buffer, const void* data, uint32_t size, uint32_t offset) noexcept = 0;
         /**
          * Uploads 3D texture data from CPU memory.
          * @remark Needed to upload a 3D texture initial data on initialization.
          * @attention Creates new staging buffer for transferring data. Not very performant.
          * @param [in] texture - Target RHI Texture instance.
          * @param [in] uploadData - upload data DESC.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode UploadTextureSlow(Texture3D* texture, const TextureData& uploadData) noexcept = 0;
+        virtual Result UploadTextureSlow(Texture3D* texture, const TextureData& uploadData) noexcept = 0;
 
         /**
          * Maps buffer and copies data to address in destination param.
@@ -1609,9 +1602,9 @@ namespace Zibra::RHI
          * @param [in] size - Size in bytes or requested data.
          * @param [in] srcOffset - Offset in input Buffer to read from.
          * @attention destination must point on allocated memory sith size in bytes greater or equal than value in size param.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode GetBufferData(Buffer* buffer, void* destination, size_t size, size_t srcOffset) noexcept = 0;
+        virtual Result GetBufferData(Buffer* buffer, void* destination, size_t size, size_t srcOffset) noexcept = 0;
         /**
          * Waits for GPU work finish and gets data from Buffer. Buffer must have ResourceUsage::CopySource.
          * @attention Stalls CPU till GPU work related to target buffer finished.
@@ -1620,46 +1613,46 @@ namespace Zibra::RHI
          * @param size Size in bytes or requested data.
          * @param srcOffset Offset in input Buffer to read from.
          * @attention destination must point on allocated memory sith size in bytes greater or equal than value in size param.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode GetBufferDataImmediately(Buffer* buffer, void* destination, size_t size, size_t srcOffset) noexcept = 0;
+        virtual Result GetBufferDataImmediately(Buffer* buffer, void* destination, size_t size, size_t srcOffset) noexcept = 0;
         /**
          * Enqueues Dispatch command in GPU.
          * @param desc - command Desc structure.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode Dispatch(const DispatchDesc& desc) noexcept = 0;
+        virtual Result Dispatch(const DispatchDesc& desc) noexcept = 0;
         /**
          * Enqueues Draw Indexed Instanced command in GPU.
          * @param desc - command Desc structure.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode DrawIndexedInstanced(const DrawIndexedInstancedDesc& desc) noexcept = 0;
+        virtual Result DrawIndexedInstanced(const DrawIndexedInstancedDesc& desc) noexcept = 0;
         /**
          * Enqueues Draw Instanced command in GPU.
          * @param desc - command Desc structure.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode DrawInstanced(const DrawInstancedDesc& desc) noexcept = 0;
+        virtual Result DrawInstanced(const DrawInstancedDesc& desc) noexcept = 0;
 
         /**
          * Enqueues Dispatch Indirect command in GPU.
          * @param desc - command Desc structure.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode DispatchIndirect(const DispatchIndirectDesc& desc) noexcept = 0;
+        virtual Result DispatchIndirect(const DispatchIndirectDesc& desc) noexcept = 0;
         /**
          * Enqueues Draw Instanced Indirect command in GPU.
          * @param desc - command Desc structure.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode DrawInstancedIndirect(const DrawInstancedIndirectDesc& desc) noexcept = 0;
+        virtual Result DrawInstancedIndirect(const DrawInstancedIndirectDesc& desc) noexcept = 0;
         /**
          * Enqueues Draw Indexed Instanced Indirect command in GPU.
          * @param desc - command Desc structure.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode DrawIndexedInstancedIndirect(const DrawIndexedInstancedIndirectDesc& desc) noexcept = 0;
+        virtual Result DrawIndexedInstancedIndirect(const DrawIndexedInstancedIndirectDesc& desc) noexcept = 0;
 
         /**
          * Enqueues Copy command in GPU.
@@ -1668,18 +1661,18 @@ namespace Zibra::RHI
          * @param [in] srcBuffer - Copy source RHI Buffer instance.
          * @param [in] srcOffset - Copy source buffer offset in bytes.
          * @param [in] size - Copy size in bytes.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode CopyBufferRegion(Buffer* dstBuffer, uint32_t dstOffset, Buffer* srcBuffer, uint32_t srcOffset, uint32_t size) noexcept = 0;
+        virtual Result CopyBufferRegion(Buffer* dstBuffer, uint32_t dstOffset, Buffer* srcBuffer, uint32_t srcOffset, uint32_t size) noexcept = 0;
         /**
          * Clears formatted RHI Buffer data with value in clearValue param.
          * @param [in] buffer - Target RHI Buffer instance.
          * @param [in] bufferSize - Buffer size in bytes that will be cleared.
          * @param [in] clearValue - Value that will be written in each byte of cleared region.
          * @param [in] descriptorLocation - Target DescriptorHeap and location for bindless APIs.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode ClearFormattedBuffer(Buffer* buffer, uint32_t bufferSize, uint8_t clearValue,
+        virtual Result ClearFormattedBuffer(Buffer* buffer, uint32_t bufferSize, uint8_t clearValue,
                                                 const DescriptorLocation& descriptorLocation) noexcept = 0;
 
         /**
@@ -1687,9 +1680,9 @@ namespace Zibra::RHI
          * @param [in] queryHeap - Target QueryHeap instance.
          * @param [in] queryIndex - Index of query in heap.
          * @param [in] queryDesc - Query description.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode SubmitQuery(QueryHeap* queryHeap, uint64_t queryIndex, const QueryDesc& queryDesc) noexcept = 0;
+        virtual Result SubmitQuery(QueryHeap* queryHeap, uint64_t queryIndex, const QueryDesc& queryDesc) noexcept = 0;
 
         /**
          * Retrieves GPU query results.
@@ -1702,7 +1695,7 @@ namespace Zibra::RHI
          * @param [in] size - Size of result buffer in bytes. If size is not large enough the call will fail.
          * @return true if query is successful and false otherwise.
          */
-        virtual ReturnCode ResolveQuery(QueryHeap* queryHeap, QueryType queryType, uint64_t offset, uint64_t count, void* result,
+        virtual Result ResolveQuery(QueryHeap* queryHeap, QueryType queryType, uint64_t offset, uint64_t count, void* result,
                                         size_t size) noexcept = 0;
 
         /**
@@ -1732,15 +1725,15 @@ namespace Zibra::RHI
          * Pushed debug region marker if Graphics API has these functional.
          * @note NOOP in non debug/profile configurations.
          * @param [in] regionName - Debug region name
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode StartDebugRegion(const char* regionName) noexcept = 0;
+        virtual Result StartDebugRegion(const char* regionName) noexcept = 0;
         /**
          * Pops debug region marker if Graphics API has these functional.
          * @note NOOP in non debug/profile configurations.
-         * @return ZRHI_SUCCESS in case of success or other code in case of error.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual ReturnCode EndDebugRegion() noexcept = 0;
+        virtual Result EndDebugRegion() noexcept = 0;
         /**
          * Tries to start frame capture with graphics debugger like RenderDoc or PIX.
          * Support for different debuggers is platform and API dependent.
@@ -1794,21 +1787,21 @@ namespace Zibra::RHI
         virtual ~RHIFactory() noexcept = default;
 
     public:
-        virtual ReturnCode SetGFXAPI(GFXAPI type) noexcept = 0;
-        virtual ReturnCode UseGFXCore(Integration::GFXCore* gfxAdapter) noexcept = 0;
-        virtual ReturnCode UseForcedAdapter(int32_t adapterIndex) noexcept = 0;
-        virtual ReturnCode UseAutoSelectedAdapter() noexcept = 0;
-        virtual ReturnCode ForceSoftwareDevice() noexcept = 0;
-        virtual ReturnCode ForceEnableDebugLayer() noexcept = 0;
-        virtual ReturnCode Create(RHIRuntime** outInstance) noexcept = 0;
+        virtual Result SetGFXAPI(GFXAPI type) noexcept = 0;
+        virtual Result UseGFXCore(Integration::GFXCore* gfxAdapter) noexcept = 0;
+        virtual Result UseForcedAdapter(int32_t adapterIndex) noexcept = 0;
+        virtual Result UseAutoSelectedAdapter() noexcept = 0;
+        virtual Result ForceSoftwareDevice() noexcept = 0;
+        virtual Result ForceEnableDebugLayer() noexcept = 0;
+        virtual Result Create(RHIRuntime** outInstance) noexcept = 0;
         virtual void Release() noexcept = 0;
     };
 
-    typedef ReturnCode (ZRHI_CALL_CONV *PFN_CreateRHIFactory)(RHIFactory** outFactory);
+    typedef Result (ZRHI_CALL_CONV *PFN_CreateRHIFactory)(RHIFactory** outFactory);
 #ifdef ZRHI_STATIC_LINKING
-    ReturnCode CreateRHIFactory(RHIFactory** outFactory) noexcept;
+    Result CreateRHIFactory(RHIFactory** outFactory) noexcept;
 #elif ZRHI_DYNAMIC_IMPLICIT_LINKING
-    ZRHI_API_IMPORT ReturnCode ZRHI_CALL_CONV CreateRHIFactory(RHIFactory** outFactory) noexcept;
+    ZRHI_API_IMPORT Result ZRHI_CALL_CONV CreateRHIFactory(RHIFactory** outFactory) noexcept;
 #else
     constexpr const char* CreateRHIFactoryExportName = "Zibra_RHI_CreateRHIFactory";
 #endif

@@ -1,10 +1,10 @@
 #pragma once
 
+#include <Zibra/CE/Decompression.h>
 #include <algorithm>
 #include <cstdint>
 #include <execution>
 #include <map>
-#include <Zibra/CE/Decompression.h>
 #include <openvdb/tools/Dense.h>
 
 #include "OpenVDBCommon.h"
@@ -100,7 +100,8 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                                 const char* targetGridName = gridRef.desc->gridName;
 
                                 // Find grid intermediate by name or create empty if it is absent
-                                const auto gridIntermediateToCreate = GridIntermediate{gridRef.desc->voxelType, channelInfo.gridTransform, {}};
+                                const auto gridIntermediateToCreate =
+                                    GridIntermediate{gridRef.desc->voxelType, channelInfo.gridTransform, {}};
                                 auto gridIntermediateIt = gridsIntermediate.find(targetGridName);
                                 if (gridIntermediateIt == gridsIntermediate.end())
                                     gridIntermediateIt = gridsIntermediate.insert({targetGridName, gridIntermediateToCreate}).first;
@@ -120,28 +121,28 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             }
 
             std::for_each(
-                #if !ZIB_TARGET_OS_MAC
+#if !ZIB_TARGET_OS_MAC
                 std::execution::par_unseq,
-                #endif
+#endif
                 gridsIntermediate.begin(), gridsIntermediate.end(), [&](auto& gridIt) {
-                auto outGridIt = m_Grids.find(gridIt.first);
-                if (outGridIt == m_Grids.end())
-                    outGridIt = m_Grids.insert({gridIt.first, nullptr}).first;
+                    auto outGridIt = m_Grids.find(gridIt.first);
+                    if (outGridIt == m_Grids.end())
+                        outGridIt = m_Grids.insert({gridIt.first, nullptr}).first;
 
-                switch (gridIt.second.voxelType)
-                {
-                case GridVoxelType::Float1: {
-                    ConstructGrid<openvdb::FloatGrid>(gridIt.second, &outGridIt->second);
-                    break;
-                }
-                case GridVoxelType::Float3: {
-                    ConstructGrid<openvdb::Vec3fGrid>(gridIt.second, &outGridIt->second);
-                    break;
-                }
-                default:
-                    assert(0 && "Unsupported grid voxel type");
-                }
-            });
+                    switch (gridIt.second.voxelType)
+                    {
+                    case GridVoxelType::Float1: {
+                        ConstructGrid<openvdb::FloatGrid>(gridIt.second, &outGridIt->second);
+                        break;
+                    }
+                    case GridVoxelType::Float3: {
+                        ConstructGrid<openvdb::Vec3fGrid>(gridIt.second, &outGridIt->second);
+                        break;
+                    }
+                    default:
+                        assert(0 && "Unsupported grid voxel type");
+                    }
+                });
         }
 
         openvdb::GridPtrVec GetGrids() noexcept
@@ -155,8 +156,9 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             }
             return result;
         }
+
     private:
-        template<typename GridT>
+        template <typename GridT>
         void ConstructGrid(const GridIntermediate& gridIntermediate, openvdb::GridBase::Ptr* inoutGrid) noexcept
         {
             auto inoutGridTyped = *inoutGrid ? openvdb::gridPtrCast<GridT>(*inoutGrid) : GridT::create();
@@ -168,21 +170,21 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             std::mutex gridAccessMutex{};
             const auto& leafIntermediates = gridIntermediate.leafs;
             std::for_each(
-                #if !ZIB_TARGET_OS_MAC
+#if !ZIB_TARGET_OS_MAC
                 std::execution::par_unseq,
-                #endif
+#endif
                 leafIntermediates.begin(), leafIntermediates.end(), [&](auto leafIt) {
-                using TreeT = typename GridT::TreeType;
-                using LeafT = typename TreeT::LeafNodeType;
-                LeafT* leaf = ConstructLeaf<LeafT>(leafIt.first, leafIt.second, gridIntermediate.voxelType);
+                    using TreeT = typename GridT::TreeType;
+                    using LeafT = typename TreeT::LeafNodeType;
+                    LeafT* leaf = ConstructLeaf<LeafT>(leafIt.first, leafIt.second, gridIntermediate.voxelType);
 
-                std::lock_guard guard{gridAccessMutex};
-                inoutGridTyped->tree().addLeaf(leaf);
-            });
+                    std::lock_guard guard{gridAccessMutex};
+                    inoutGridTyped->tree().addLeaf(leaf);
+                });
             *inoutGrid = inoutGridTyped;
         }
 
-        template<typename LeafT>
+        template <typename LeafT>
         LeafT* ConstructLeaf(const openvdb::Coord& leafCoord, const LeafIntermediate& leafIntermediate, GridVoxelType voxelType) noexcept
         {
             const openvdb::Coord blockMin = {leafCoord.x() * SPARSE_BLOCK_SIZE, leafCoord.y() * SPARSE_BLOCK_SIZE,
@@ -246,6 +248,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
 
             return openvdb::math::Transform::createLinearTransform(openvdb::Mat4d{inTransform.raw});
         }
+
     private:
         std::vector<VDBGridDesc> m_GridDescs{};
         FrameInfo m_FrameInfo{};

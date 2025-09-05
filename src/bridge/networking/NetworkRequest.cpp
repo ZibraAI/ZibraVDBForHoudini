@@ -158,7 +158,7 @@ namespace Zibra::NetworkRequest
         ::WinHttpCloseHandle(hSession);
 #elif ZIB_NETWORK_REQUEST_BACKEND_CURL
         // Dynamically load libcurl and load functions
-        
+
 #if ZIB_TARGET_OS_LINUX
         void* curlLib = dlopen("libcurl.so.4", RTLD_LAZY);
 #elif ZIB_TARGET_OS_MAC
@@ -166,7 +166,7 @@ namespace Zibra::NetworkRequest
 #else
 #error Unexpected OS
 #endif
-        
+
         if (!curlLib)
         {
             return std::nullopt;
@@ -177,7 +177,7 @@ namespace Zibra::NetworkRequest
     if (!curl::FUNCTION)                                                                            \
     {                                                                                               \
         dlclose(curlLib);                                                                           \
-        return std::nullopt;                                                                               \
+        return std::nullopt;                                                                        \
     }
         ZIB_CURL_FUNCTIONS(ZIB_CURL_FUNCTIONS_LOAD)
 #undef ZIB_CURL_FUNCTIONS_LOAD

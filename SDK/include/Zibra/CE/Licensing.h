@@ -15,6 +15,7 @@ namespace Zibra::CE::Licensing
     enum class ProductType
     {
         Compression,
+        Decompression,
         Count
     };
 
@@ -25,12 +26,14 @@ namespace Zibra::CE::Licensing
         virtual void CheckoutLicenseOffline(const char* license, int licenseSize) noexcept = 0;
         virtual void CheckoutLicenseLicenseServer(const char* licenseServerAddress) noexcept = 0;
         virtual bool IsLicenseValidated(ProductType product) noexcept = 0;
+        virtual int GetProductLicenseTier(ProductType product) noexcept = 0;
+        virtual const char* GetProductLicenseType(ProductType product) noexcept = 0;
         virtual const char* GetLicenseError() noexcept = 0;
         virtual void ReleaseLicense() noexcept = 0;
         virtual const char* GetHardwareID() noexcept = 0;
     };
 
-    typedef LicenseManager* (ZCE_CALL_CONV *PFN_GetLicenseManager)();
+    typedef LicenseManager*(ZCE_CALL_CONV* PFN_GetLicenseManager)();
 #ifdef ZCE_STATIC_LINKING
     LicenseManager* GetLicenseManager() noexcept;
 #elif ZCE_DYNAMIC_IMPLICIT_LINKING

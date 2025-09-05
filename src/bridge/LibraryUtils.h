@@ -7,7 +7,7 @@ namespace Zibra
     {
         extern PFN_CreateRHIFactory CreateRHIFactory;
         extern PFN_GetVersion GetVersion;
-    }
+    } // namespace RHI
 
     namespace CE
     {
@@ -15,21 +15,26 @@ namespace Zibra
         {
             extern PFN_CreateFormatMapper CreateFormatMapper;
             extern PFN_GetVersion GetVersion;
-        }
+        } // namespace Decompression
         namespace Compression
         {
             extern PFN_CreateCompressorFactory CreateCompressorFactory;
             extern PFN_CreateSequenceMerger CreateSequenceMerger;
             extern PFN_GetVersion GetVersion;
-        }
+        } // namespace Compression
         namespace Licensing
         {
             extern PFN_GetLicenseManager GetLicenseManager;
         }
-    }
-}
+    } // namespace CE
 
-namespace Zibra::LibraryUtils {
+    ZIB_RESULT_DEFINE_CATEGORY(ZIBRAVDB_FOR_HOUDINI, 0x200);
+
+    ZIB_RESULT_DEFINE(FILE_NOT_FOUND, ZIBRAVDB_FOR_HOUDINI, 0x0, "Specified file not found.", true);
+} // namespace Zibra
+
+namespace Zibra::LibraryUtils
+{
 #define ZIB_LIBRARY_FOLDER "zibra/" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING
 
     struct Version
@@ -48,12 +53,13 @@ namespace Zibra::LibraryUtils {
 #if ZIB_TARGET_OS_WIN || ZIB_TARGET_OS_LINUX || ZIB_TARGET_OS_MAC
         return true;
 #else
-        #error Unexpected platform
+#error Unexpected platform
         return false;
 #endif
     }
 
     std::string GetLibraryVersionString() noexcept;
+    std::string ErrorCodeToString(Result errorCode);
     Version GetLibraryVersion() noexcept;
 
 } // namespace Zibra::LibraryUtils

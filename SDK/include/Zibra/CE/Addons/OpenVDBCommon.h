@@ -1,7 +1,7 @@
 #pragma once
 
-#include <Zibra/Math.h>
 #include <Zibra/CE/Common.h>
+#include <Zibra/Math.h>
 
 namespace Zibra::CE::Addons::OpenVDBUtils
 {

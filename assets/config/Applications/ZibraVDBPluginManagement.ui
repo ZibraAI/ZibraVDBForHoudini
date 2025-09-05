@@ -3,7 +3,7 @@ library_version.val := "You should never see this";
 
 update_status.val := "You should never see this";
 activation_status.val := "You should never see this";
-license_type.val := "You should never see this";
+activation_type.val := "You should never see this";
 license_file_loaded_via.val := "You should never see this";
 license_file_path.val := "You should never see this";
 
@@ -54,16 +54,6 @@ window.gad = NORMAL_WINDOW "ZibraVDB"
     {
         JUSTIFY(left, center)
 
-        LABEL "Trial status: " WIDTH(1.15);
-        LABEL VALUE(trial_status.val);
-    }
-
-    SEPARATOR;
-
-    ROW
-    {
-        JUSTIFY(left, center)
-
         LABEL "Activation status: " WIDTH(1.15);
         LABEL VALUE(activation_status.val);
     }
@@ -74,6 +64,14 @@ window.gad = NORMAL_WINDOW "ZibraVDB"
 
         LABEL "License type: " WIDTH(1.15);
         LABEL VALUE(license_type.val);
+    }
+
+    ROW
+    {
+        JUSTIFY(left, center)
+
+        LABEL "Activation type: " WIDTH(1.15);
+        LABEL VALUE(activation_type.val);
     }
 
     ROW
