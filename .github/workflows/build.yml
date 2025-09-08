@@ -263,7 +263,7 @@ jobs:
         working-directory: ${{ github.workspace }}
         shell: pwsh
         run: |
-          ${{ matrix.python-command }} actions/houdini/is_installed.py --version ${{ matrix.houdini-version }} --build ${{ matrix.houdini-build }} --platform ${{ matrix.houdini-platform }} --install_path ${{ matrix.houdini-install-path }}
+          ${{ matrix.python-command }} actions/houdini/is_installed.py --version ${{ matrix.houdini-version }} --build ${{ matrix.houdini-build }} --platform ${{ matrix.houdini-platform }} --install-path ${{ matrix.houdini-install-path }}
 
       - name: Install Houdini
         if: ${{ steps.install-check.outputs.need_install_houdini == 'true' }}
@@ -274,7 +274,7 @@ jobs:
           ${{ matrix.python-command }} -m venv actions/houdini/venv
           ./actions/houdini/venv/${{ matrix.python-venv-activate-path }}
           ${{ matrix.python-command }} -m pip install -r actions/houdini/requirements.txt
-          ${{ matrix.python-command }} actions/houdini/install_houdini.py --version ${{ matrix.houdini-version }} --build ${{ matrix.houdini-build }} --platform ${{ matrix.houdini-platform }} --install_path ${{ matrix.houdini-install-path }}
+          ${{ matrix.python-command }} actions/houdini/install_houdini.py --version ${{ matrix.houdini-version }} --build ${{ matrix.houdini-build }} --platform ${{ matrix.houdini-platform }} --install-path ${{ matrix.houdini-install-path }}
         env:
           HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
           HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
