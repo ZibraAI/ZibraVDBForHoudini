@@ -54,12 +54,16 @@ if __name__ == "__main__":
     arg_parser.add_argument("--version", type=str, help="Houdini version to install", required=True)
     arg_parser.add_argument("--build", type=str, help="Houdini build to install", required=True)
     arg_parser.add_argument("--install-path", type=str, help="Houdini installation path", required=True)
+    arg_parser.add_argument("--retry-count", type=int, help="Number of retries for installation", required=True)
     args = arg_parser.parse_args()
 
     if get_install_path(args.version, args.build) != args.install_path:
         # Workflow uses this path outside of this script as well
         # Need to make sure that we can correctly determine path of old houdini installation
         raise Exception(f"Provided install path {args.install_path} does not match expected path {get_install_path(args.version, args.build)}")
+    
+    if args.retry_count <= 0 or args.retry_count > 5:
+        raise Exception(f"Retry count {args.retry_count} is out of range, must be between 1 and 5")
 
     cached_build = ""
     cache_path = get_cache_path(args.version)
@@ -120,6 +124,10 @@ if __name__ == "__main__":
     with open(build_dl.filename, "wb") as f:
         f.write(r.content)
 
+    # 3 tries need to take no more than 60 minutes
+    # Leave some time for build lookup and download
+    installation_timeout_seconds = 18 * 60
+
     print(f"Starting install")
     if sys.platform == "linux":
         # Extract the tarball
@@ -128,45 +136,79 @@ if __name__ == "__main__":
         extracted_dir = [d for d in os.listdir() if d.startswith("houdini-") and os.path.isdir(d)][0]
         # Make installer executable
         subprocess.run(["chmod", "+x", f"{extracted_dir}/houdini.install"], check=True)
-        # Run installer
-        install_process = subprocess.run([f"{extracted_dir}/houdini.install", "--install-houdini", "--no-install-engine-maya", "--no-install-engine-unity", "--no-install-engine-unreal", "--no-install-menus", "--no-install-hfs-symlink", "--no-install-license", "--no-install-avahi", "--no-install-sidefxlabs", "--no-install-hqueue-server", "--no-install-hqueue-client", "--auto-install", "--make-dir", "--accept-EULA", "2021-10-13", args.install_path], check=True)
+        for attempt in range(args.retry_count):
+            try:
+                # Run installer
+                frameinfo = getframeinfo(currentframe())
+                install_process = subprocess.run([f"{extracted_dir}/houdini.install", "--install-houdini", "--no-install-engine-maya", "--no-install-engine-unity", "--no-install-engine-unreal", "--no-install-menus", "--no-install-hfs-symlink", "--no-install-license", "--no-install-avahi", "--no-install-sidefxlabs", "--no-install-hqueue-server", "--no-install-hqueue-client", "--auto-install", "--make-dir", "--accept-EULA", "2021-10-13", args.install_path], check=True, timeout=installation_timeout_seconds)
+                # Check if installer succeeded
+                if install_process.returncode != 0:
+                    raise Exception(f"Installation failed. Exit code: {install_process.returncode}")
+            except Exception as e:
+                print(f"Installation attempt {attempt + 1} failed: {e}")
+                if attempt == args.retry_count - 1:
+                    # Clean up unpacked archive
+                    shutil.rmtree(extracted_dir)
+                    raise Exception("All installation attempts failed")
+                else:
+                    print(f"::warning file={frameinfo.filename},line={frameinfo.lineno + 1}::Houdini installer failed: {e}, retrying... ({attempt + 1}/{args.retry_count})")
+                    print("Retrying...")
+            else:
+                print("Installation succeeded")
+                break
         # Clean up unpacked archive
         shutil.rmtree(extracted_dir)
-        # Check if installer succeeded
-        if install_process.returncode != 0:
-            print(f"Installer failed with code {install_process.returncode}")
-            print(f"Installer stdout: {install_process.stdout}")
-            print(f"Installer stderr: {install_process.stderr}")
-            raise Exception(f"Installation failed. Exit code: {install_process.returncode}")
     elif sys.platform == "darwin":
         # Mount the DMG
         subprocess.run(["hdiutil", "attach", build_dl.filename], check=True)
         # Mounted volume is /Volumes/Houdini
-        # Run the installer
-        install_process = subprocess.run(["sudo", "installer", "-pkg", "/Volumes/Houdini/Houdini.pkg", "-target", "/"], check=True)
+        for attempt in range(args.retry_count):
+            try:
+                # Run the installer
+                frameinfo = getframeinfo(currentframe())
+                install_process = subprocess.run(["sudo", "installer", "-pkg", "/Volumes/Houdini/Houdini.pkg", "-target", "/"], check=True, timeout=installation_timeout_seconds)
+                # Check if installer succeeded
+                if install_process.returncode != 0:
+                    raise Exception(f"Installation failed. Exit code: {install_process.returncode}")
+            except Exception as e:
+                print(f"Installation attempt {attempt + 1} failed: {e}")
+                if attempt == args.retry_count - 1:
+                    # Unmount the DMG
+                    subprocess.run(["hdiutil", "detach", "/Volumes/Houdini"], check=True)
+                    raise Exception("All installation attempts failed")
+                else:
+                    print(f"::warning file={frameinfo.filename},line={frameinfo.lineno + 1}::Houdini installer failed: {e}, retrying... ({attempt + 1}/{args.retry_count})")
+                    print("Retrying...")
+            else:
+                print("Installation succeeded")
+                break
         # Unmount the DMG
         subprocess.run(["hdiutil", "detach", "/Volumes/Houdini"], check=True)
-        # Check if installer succeeded
-        if install_process.returncode != 0:
-            print(f"Installer failed with code {install_process.returncode}")
-            print(f"Installer stdout: {install_process.stdout}")
-            print(f"Installer stderr: {install_process.stderr}")
-            raise Exception(f"Installation failed. Exit code: {install_process.returncode}")
     elif sys.platform == "win32":
-        # Run installer
-        frameinfo = getframeinfo(currentframe())
-        install_process = subprocess.run([build_dl.filename, "/S", f"/InstallDir={args.install_path}", "/acceptEULA=2021-10-13"], check=False, capture_output=True, text=True)
-        # Windows installer sometimes randomly fails
-        if install_process.returncode != 0:
-            print(f"Installer failed with code {install_process.returncode}")
-            print(f"Installer stdout: {install_process.stdout}")
-            print(f"Installer stderr: {install_process.stderr}")
-            print("Checking how broken the installation is")
-            hdk_version_path = os.path.join(args.install_path, "toolkit/hdk_api_version.txt")
-            if not os.path.exists(hdk_version_path):
-                raise Exception(f"Installation failed. Exit code: {install_process.returncode}. HDK is missing, can't proceed.")
-            print("Installation seems fine, proceeding")
-            print(f"::warning file={frameinfo.filename},line={frameinfo.lineno + 1}::Houdini installer failed with exit code {install_process.returncode}, but installation seems fine")
+        for attempt in range(args.retry_count):
+            try:
+                # Run installer
+                frameinfo = getframeinfo(currentframe())
+                install_process = subprocess.run([build_dl.filename, "/S", f"/InstallDir={args.install_path}", "/acceptEULA=2021-10-13"], check=False, timeout=installation_timeout_seconds)
+                # Windows installer sometimes randomly fails
+                if install_process.returncode != 0:
+                    print(f"Installer failed with code {install_process.returncode}")
+                    print("Checking how broken the installation is")
+                    hdk_version_path = os.path.join(args.install_path, "toolkit/hdk_api_version.txt")
+                    if not os.path.exists(hdk_version_path):
+                        raise Exception(f"Installation failed. Exit code: {install_process.returncode}. HDK is missing, can't proceed.")
+                    print("Installation seems fine, proceeding")
+                    print(f"::warning file={frameinfo.filename},line={frameinfo.lineno + 1}::Houdini installer failed with exit code {install_process.returncode}, but installation seems fine")
+            except Exception as e:
+                print(f"Installation attempt {attempt + 1} failed: {e}")
+                if attempt == args.retry_count - 1:
+                    raise Exception("All installation attempts failed")
+                else:
+                    print(f"::warning file={frameinfo.filename},line={frameinfo.lineno + 1}::Houdini installer failed: {e}, retrying... ({attempt + 1}/{args.retry_count})")
+                    print("Retrying...")
+            else:
+                print("Installation succeeded")
+                break
     else:
         raise Exception("Unexpected platform")
     

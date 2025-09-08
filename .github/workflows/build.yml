@@ -36,6 +36,7 @@ jobs:
               "houdini-platform": "win64-vc143",
               "houdini-install-path": "C:\\Houdini\\20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
               "hfs-path": "C:\\Houdini\\20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
+              "houdini-install-retry-count": "1",
               "python-command": "python",
               "python-venv-activate-path": "Scripts/Activate.ps1",
               "additional-config-args": null
@@ -50,6 +51,7 @@ jobs:
               "houdini-platform": "win64-vc143",
               "houdini-install-path": "C:\\Houdini\\21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
               "hfs-path": "C:\\Houdini\\21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
+              "houdini-install-retry-count": "1",
               "python-command": "python",
               "python-venv-activate-path": "Scripts/Activate.ps1",
               "additional-config-args": null
@@ -69,6 +71,7 @@ jobs:
               "houdini-platform": "linux_x86_64_gcc11.2",
               "houdini-install-path": "/opt/hfs20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
               "hfs-path": "/opt/hfs20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
+              "houdini-install-retry-count": "1",
               "python-command": "python3",
               "python-venv-activate-path": "bin/Activate.ps1",
               "additional-config-args": null
@@ -88,6 +91,7 @@ jobs:
               "houdini-platform": "linux_x86_64_gcc11.2",
               "houdini-install-path": "/opt/hfs21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
               "hfs-path": "/opt/hfs21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
+              "houdini-install-retry-count": "1",
               "python-command": "python3",
               "python-venv-activate-path": "bin/Activate.ps1",
               "additional-config-args": null
@@ -102,6 +106,7 @@ jobs:
               "houdini-platform": "macosx_arm64_clang15.0_14",
               "houdini-install-path": "/Applications/Houdini/Houdini20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
               "hfs-path": "/Applications/Houdini/Houdini20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}/Frameworks/Houdini.framework/Versions/Current/Resources",
+              "houdini-install-retry-count": "3",
               "python-command": "python3",
               "python-venv-activate-path": "bin/Activate.ps1",
               "additional-config-args": "-DCMAKE_OSX_ARCHITECTURES=arm64"
@@ -116,6 +121,7 @@ jobs:
               "houdini-platform": "macosx_arm64_clang15.0_14",
               "houdini-install-path": "/Applications/Houdini/Houdini21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
               "hfs-path": "/Applications/Houdini/Houdini21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}/Frameworks/Houdini.framework/Versions/Current/Resources",
+              "houdini-install-retry-count": "3",
               "python-command": "python3",
               "python-venv-activate-path": "bin/Activate.ps1",
               "additional-config-args": "-DCMAKE_OSX_ARCHITECTURES=arm64"
@@ -130,6 +136,7 @@ jobs:
               "houdini-platform": "macosx_x86_64_clang15.0_14",
               "houdini-install-path": "/Applications/Houdini/Houdini20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
               "hfs-path": "/Applications/Houdini/Houdini20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}/Frameworks/Houdini.framework/Versions/Current/Resources",
+              "houdini-install-retry-count": "3",
               "python-command": "python3",
               "python-venv-activate-path": "bin/Activate.ps1",
               "additional-config-args": "-DCMAKE_OSX_ARCHITECTURES=x86_64"
@@ -144,6 +151,7 @@ jobs:
               "houdini-platform": "macosx_x86_64_clang15.0_14",
               "houdini-install-path": "/Applications/Houdini/Houdini21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
               "hfs-path": "/Applications/Houdini/Houdini21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}/Frameworks/Houdini.framework/Versions/Current/Resources",
+              "houdini-install-retry-count": "3",
               "python-command": "python3",
               "python-venv-activate-path": "bin/Activate.ps1",
               "additional-config-args": "-DCMAKE_OSX_ARCHITECTURES=x86_64"
@@ -154,42 +162,19 @@ jobs:
         {
           "include": [
             {
-              "name": "Linux x64",
-              "runner": [
-                "self-hosted",
-                "Linux",
-                "X64",
-                "houdini"
-              ],
-              "generator": "Ninja Multi-Config",
-              "executable-extension": null,
-              "houdini-version": "20.5",
-              "houdini-build": "${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
-              "houdini-platform": "linux_x86_64_gcc11.2",
-              "houdini-install-path": "/opt/hfs20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
-              "hfs-path": "/opt/hfs20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
-              "python-command": "python3",
-              "python-venv-activate-path": "bin/Activate.ps1",
-              "additional-config-args": null
-            },
-            {
-              "name": "Linux x64",
-              "runner": [
-                "self-hosted",
-                "Linux",
-                "X64",
-                "houdini"
-              ],
-              "generator": "Ninja Multi-Config",
+              "name": "macOS x64",
+              "runner": "macos-14",
+              "generator": "Xcode",
               "executable-extension": null,
               "houdini-version": "21.0",
               "houdini-build": "${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
-              "houdini-platform": "linux_x86_64_gcc11.2",
-              "houdini-install-path": "/opt/hfs21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
-              "hfs-path": "/opt/hfs21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
+              "houdini-platform": "macosx_x86_64_clang15.0_14",
+              "houdini-install-path": "/Applications/Houdini/Houdini21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
+              "hfs-path": "/Applications/Houdini/Houdini21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}/Frameworks/Houdini.framework/Versions/Current/Resources",
+              "houdini-install-retry-count": "3",
               "python-command": "python3",
               "python-venv-activate-path": "bin/Activate.ps1",
-              "additional-config-args": null
+              "additional-config-args": "-DCMAKE_OSX_ARCHITECTURES=x86_64"
             }
           ]
         }
@@ -268,13 +253,13 @@ jobs:
       - name: Install Houdini
         if: ${{ steps.install-check.outputs.need_install_houdini == 'true' }}
         working-directory: ${{ github.workspace }}
-        timeout-minutes: 30
+        timeout-minutes: 60
         shell: pwsh
         run: |
           ${{ matrix.python-command }} -m venv actions/houdini/venv
           ./actions/houdini/venv/${{ matrix.python-venv-activate-path }}
           ${{ matrix.python-command }} -m pip install -r actions/houdini/requirements.txt
-          ${{ matrix.python-command }} actions/houdini/install_houdini.py --version ${{ matrix.houdini-version }} --build ${{ matrix.houdini-build }} --platform ${{ matrix.houdini-platform }} --install-path ${{ matrix.houdini-install-path }}
+          ${{ matrix.python-command }} actions/houdini/install_houdini.py --version ${{ matrix.houdini-version }} --build ${{ matrix.houdini-build }} --platform ${{ matrix.houdini-platform }} --install-path ${{ matrix.houdini-install-path }} --retry-count ${{ matrix.houdini-install-retry-count }}
         env:
           HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
           HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
