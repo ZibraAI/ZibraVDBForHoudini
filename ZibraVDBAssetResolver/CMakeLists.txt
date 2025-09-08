@@ -38,9 +38,15 @@ endif()
 target_link_libraries(zibraVDBResolver PRIVATE Houdini HoudiniThirdParty)
 if("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
     # we still need to explicitly link the python lib for mac
-    target_link_libraries(zibraVDBResolver PRIVATE ${HOUDINI_PATH}/Frameworks/Python.framework/Versions/Current/lib/libpython3.11.dylib)
+    target_link_libraries(zibraVDBResolver PRIVATE ${HOUDINI_PATH}/Frameworks/Python.framework/Versions/Current/lib/libpython${_houdini_python_version}.dylib)
 endif()
 
+string(REPLACE "." "" _houdini_python_dotless_version ${_houdini_python_version})
+if("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
+    target_link_options(zibraVDBResolver PRIVATE
+            "$<$<CONFIG:Debug>:/NODEFAULTLIB:python${_houdini_python_dotless_version}_d.lib>"
+    )
+endif()
 
 # Use parent project's output directory structure
 if(DEFINED ZIBRAVDB_OUTPUT_PATH)
