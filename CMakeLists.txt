@@ -96,7 +96,6 @@ set(HeaderFiles
     src/bridge/UpdateCheck.h
     src/SOP/DecompressorManager/DecompressorManager.h
     src/licensing/HoudiniLicenseManager.h
-    src/licensing/TrialManager.h
     src/ROP/ROP_ZibraVDBCompressor.h
     src/SOP/SOP_ZibraVDBDecompressor.h
     src/ui/MessageBox.h
@@ -112,7 +111,6 @@ set(SourceFiles
     src/bridge/UpdateCheck.cpp
     src/SOP/DecompressorManager/DecompressorManager.cpp
     src/licensing/HoudiniLicenseManager.cpp
-    src/licensing/TrialManager.cpp
     src/ROP/ROP_ZibraVDBCompressor.cpp
     src/SOP/SOP_ZibraVDBDecompressor.cpp
     src/ui/MessageBox.cpp
@@ -129,6 +127,10 @@ target_precompile_headers(ZibraVDBForHoudini PRIVATE src/PrecompiledHeader.h)
 target_compile_definitions(ZibraVDBForHoudini PRIVATE 
     ZIB_NETWORK_REQUEST_BACKEND_${ZIB_NETWORK_REQUEST_BACKEND}=1
     ZIB_TARGET_OS_${ZIB_TARGET_OS_NAME}=1)
+
+if(${LABS_BUILD})
+    target_compile_definitions(ZibraVDBForHoudini PRIVATE LABS_BUILD)
+endif()
 
 target_include_directories(ZibraVDBForHoudini PRIVATE SDK/include)
 target_include_directories(ZibraVDBForHoudini PRIVATE "${HOUDINI_INCLUDE_DIR}")
@@ -169,29 +171,34 @@ cmake_print_variables(HOUDINI_INSTDIR)
 
 if(${LABS_BUILD})
     # Icons and HDA are handled separaetely in Labs
-    add_custom_command(TARGET ZibraVDBForHoudini POST_BUILD
+    add_custom_target(ZibraVDBForHoudiniUIFilesCopy
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/config/Applications/
         ${OUTPUT_PATH}/config/Applications/
     )
     # Labs uses separate file for copyright notices, skip copying 
+    add_dependencies(ZibraVDBForHoudini ZibraVDBForHoudiniUIFilesCopy)
 else()
-    add_custom_command(TARGET ZibraVDBForHoudini POST_BUILD
+    add_custom_target(ZibraVDBForHoudiniAssetsCopy
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_CURRENT_SOURCE_DIR}/assets
         ${OUTPUT_PATH}
     )
 
-    add_custom_command(TARGET ZibraVDBForHoudini POST_BUILD
+    add_custom_target(ZibraVDBForHoudiniCopyrightCopy
         COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_CURRENT_SOURCE_DIR}/external/ThirdPartyCopyrightNotices.txt
         ${OUTPUT_PATH}/dso/ZibraVDBForHoudiniThirdPartyCopyrightNotices.txt
     )
+    add_dependencies(ZibraVDBForHoudini ZibraVDBForHoudiniAssetsCopy ZibraVDBForHoudiniCopyrightCopy)
 endif()
 
 list(APPEND CMAKE_PREFIX_PATH "${HOUDINI_PATH}/toolkit/cmake")
 find_package(Houdini REQUIRED)
 target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini)
+
+set(DETECTED_HOUDINI_VERSION "${Houdini_VERSION_MAJOR}.${Houdini_VERSION_MINOR}")
+cmake_print_variables(DETECTED_HOUDINI_VERSION)
 
 if (NOT "${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
     target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::openvdb_sesi)
@@ -208,7 +215,7 @@ if(MSVC)
     set_target_properties(ZibraVDBForHoudini PROPERTIES
         VS_DEBUGGER_COMMAND "${HOUDINI_PATH}/bin/houdini${CMAKE_EXECUTABLE_SUFFIX}"
         VS_DEBUGGER_COMMAND_ARGUMENTS "${CMAKE_CURRENT_SOURCE_DIR}/HIP/HDAs.hip"
-        VS_DEBUGGER_ENVIRONMENT "HOUDINI_OTLSCAN_PATH=${CMAKE_CURRENT_SOURCE_DIR}/assets/otls\nHOUDINI_TEXT_CONSOLE=1"
+        VS_DEBUGGER_ENVIRONMENT "HOUDINI_TEXT_CONSOLE=1"
     )
     set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         PROPERTY VS_STARTUP_PROJECT ZibraVDBForHoudini)

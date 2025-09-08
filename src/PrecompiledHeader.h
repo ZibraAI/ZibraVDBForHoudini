@@ -97,16 +97,18 @@
 #undef ERROR
 #undef OUT
 #elif ZIB_TARGET_OS_LINUX
-#include <dlfcn.h>
 #include <curl/curl.h>
+#include <dlfcn.h>
 #elif ZIB_TARGET_OS_MAC
-#include <dlfcn.h>
 #include <curl/curl.h>
+#include <dlfcn.h>
 #include <sys/xattr.h>
 #else
 #error Unexpected OS
 #endif
 
+#include <Zibra/OnScopeExit.h>
+#include <Zibra/Result.h>
 #include <Zibra/StreamWrapper.h>
 
 #define ZRHI_NO_STATIC_API_DECL

@@ -4,6 +4,7 @@
 
 #include <UT/UT_EnvControl.h>
 
+#include "licensing/HoudiniLicenseManager.h"
 #include "utils/Helpers.h"
 
 // Defining used SDK API function pointers and putting it back to appropriate namespaces.
@@ -13,7 +14,7 @@ namespace Zibra
     {
         PFN_CreateRHIFactory CreateRHIFactory = nullptr;
         PFN_GetVersion GetVersion = nullptr;
-    }
+    } // namespace RHI
 
     namespace CE
     {
@@ -21,19 +22,19 @@ namespace Zibra
         {
             PFN_CreateFormatMapper CreateFormatMapper = nullptr;
             PFN_GetVersion GetVersion = nullptr;
-        }
+        } // namespace Decompression
         namespace Compression
         {
             PFN_CreateCompressorFactory CreateCompressorFactory = nullptr;
             PFN_CreateSequenceMerger CreateSequenceMerger = nullptr;
             PFN_GetVersion GetVersion = nullptr;
-        }
+        } // namespace Compression
         namespace Licensing
         {
             PFN_GetLicenseManager GetLicenseManager = nullptr;
         }
-    }
-}
+    } // namespace CE
+} // namespace Zibra
 
 namespace Zibra::LibraryUtils
 {
@@ -55,9 +56,7 @@ namespace Zibra::LibraryUtils
 
     bool g_IsLibraryLoaded = false;
     bool g_IsLibraryInitialized = false;
-    Zibra::Version g_CompressionLibraryVersion = {};
-    Zibra::Version g_DecompressionLibraryVersion = {};
-    Zibra::Version g_RHILibraryVersion = {};
+    Zibra::Version g_CompressionEngineVersion = {};
 
     // Returns vector of paths that can be used to search for the library
     // First element is the path used for downloading the library
@@ -96,17 +95,22 @@ namespace Zibra::LibraryUtils
 
     bool ValidateLoadedVersion()
     {
-        if (g_CompressionLibraryVersion.major != ZIB_COMPRESSION_MAJOR_VERSION)
+        static_assert(CE::Compression::COMPRESSOR_VERSION.major == ZIB_COMPRESSION_ENGINE_MAJOR_VERSION);
+        if (g_CompressionEngineVersion.major != CE::Compression::COMPRESSOR_VERSION.major)
         {
             return false;
         }
-        if (g_DecompressionLibraryVersion.major != ZIB_DECOMPRESSION_MAJOR_VERSION)
+        if (g_CompressionEngineVersion.minor != CE::Compression::COMPRESSOR_VERSION.minor)
         {
-            return false;
+            return g_CompressionEngineVersion.minor > CE::Compression::COMPRESSOR_VERSION.minor;
         }
-        if (g_RHILibraryVersion.major != ZIB_RHI_MAJOR_VERSION)
+        if (g_CompressionEngineVersion.patch != CE::Compression::COMPRESSOR_VERSION.patch)
         {
-            return false;
+            return g_CompressionEngineVersion.patch > CE::Compression::COMPRESSOR_VERSION.patch;
+        }
+        if (g_CompressionEngineVersion.build != CE::Compression::COMPRESSOR_VERSION.build)
+        {
+            return g_CompressionEngineVersion.build > CE::Compression::COMPRESSOR_VERSION.build;
         }
         return true;
     }
@@ -190,9 +194,7 @@ namespace Zibra::LibraryUtils
             return false;
         }
 
-        g_CompressionLibraryVersion = CE::Compression::GetVersion();
-        g_DecompressionLibraryVersion = CE::Decompression::GetVersion();
-        g_RHILibraryVersion = RHI::GetVersion();
+        g_CompressionEngineVersion = CE::Compression::GetVersion();
 
         if (!ValidateLoadedVersion())
         {
@@ -232,9 +234,7 @@ namespace Zibra::LibraryUtils
             return false;
         }
 
-        g_CompressionLibraryVersion = CE::Compression::GetVersion();
-        g_DecompressionLibraryVersion = CE::Decompression::GetVersion();
-        g_RHILibraryVersion = RHI::GetVersion();
+        g_CompressionEngineVersion = CE::Compression::GetVersion();
 
         if (!ValidateLoadedVersion())
         {
@@ -291,16 +291,8 @@ namespace Zibra::LibraryUtils
         {
             return "";
         }
-        std::string result = std::to_string(g_CompressionLibraryVersion.major) + "." + std::to_string(g_CompressionLibraryVersion.minor) +
-                             "." + std::to_string(g_CompressionLibraryVersion.patch) + "." +
-                             std::to_string(g_CompressionLibraryVersion.build);
-        result += " / ";
-        result += std::to_string(g_DecompressionLibraryVersion.major) + "." + std::to_string(g_DecompressionLibraryVersion.minor) + "." +
-                  std::to_string(g_DecompressionLibraryVersion.patch) + "." + std::to_string(g_DecompressionLibraryVersion.build);
-        result += " / ";
-        result += std::to_string(g_RHILibraryVersion.major) + "." + std::to_string(g_RHILibraryVersion.minor) + "." +
-                  std::to_string(g_RHILibraryVersion.patch) + "." + std::to_string(g_RHILibraryVersion.build);
-        return result;
+        return std::to_string(g_CompressionEngineVersion.major) + "." + std::to_string(g_CompressionEngineVersion.minor) + "." +
+               std::to_string(g_CompressionEngineVersion.patch) + "." + std::to_string(g_CompressionEngineVersion.build);
     }
 
     Version ToLibraryUtilsVersion(const Zibra::Version& version) noexcept
@@ -311,39 +303,68 @@ namespace Zibra::LibraryUtils
     Version GetLibraryVersion() noexcept
     {
         assert(g_IsLibraryLoaded);
-        const auto& compression = g_CompressionLibraryVersion;
-        const auto& decompression = g_DecompressionLibraryVersion;
-
-        // Return newer out of compression and decompression library versions
-        if (compression.major > decompression.major)
-        {
-            return ToLibraryUtilsVersion(compression);
-        }
-        else if (g_CompressionLibraryVersion.major < g_DecompressionLibraryVersion.major)
-        {
-            return ToLibraryUtilsVersion(decompression);
-        }
-
-        if (compression.minor > decompression.minor)
-        {
-            return ToLibraryUtilsVersion(compression);
-        }
-        else if (compression.minor < decompression.minor)
-        {
-            return ToLibraryUtilsVersion(decompression);
-        }
-
-        if (compression.patch > decompression.patch)
-        {
-            return ToLibraryUtilsVersion(compression);
-        }
-        else if (compression.patch < decompression.patch)
-        {
-            return ToLibraryUtilsVersion(decompression);
-        }
-
-        return compression.build > decompression.build ? ToLibraryUtilsVersion(compression) : ToLibraryUtilsVersion(decompression);
+        return ToLibraryUtilsVersion(g_CompressionEngineVersion);
     }
 
-} // namespace Zibra::LibraryUtils
+    std::string ErrorCodeToString(Result errorCode)
+    {
+        assert(ZIB_FAILED(errorCode));
 
+        switch (errorCode)
+        {
+        case RESULT_SUCCESS:
+            return RESULT_SUCCESS_DESCRIPTION;
+        case RESULT_TIMEOUT:
+            return RESULT_TIMEOUT_DESCRIPTION;
+        case RESULT_ERROR:
+            return RESULT_ERROR_DESCRIPTION;
+        case RESULT_INVALID_ARGUMENTS:
+            return RESULT_INVALID_ARGUMENTS_DESCRIPTION;
+        case RESULT_INVALID_USAGE:
+            return RESULT_INVALID_USAGE_DESCRIPTION;
+        case RESULT_UNSUPPORTED:
+            return RESULT_UNSUPPORTED_DESCRIPTION;
+        case RESULT_UNINITIALIZED:
+            return RESULT_UNINITIALIZED_DESCRIPTION;
+        case RESULT_ALREADY_INITIALIZED:
+            return RESULT_ALREADY_INITIALIZED_DESCRIPTION;
+        case RESULT_NOT_FOUND:
+            return RESULT_NOT_FOUND_DESCRIPTION;
+        case RESULT_ALREADY_PRESENT:
+            return RESULT_ALREADY_PRESENT_DESCRIPTION;
+        case RESULT_OUT_OF_MEMORY:
+            return RESULT_OUT_OF_MEMORY_DESCRIPTION;
+        case RESULT_OUT_OF_BOUNDS:
+            return RESULT_OUT_OF_BOUNDS_DESCRIPTION;
+        case RESULT_IO_ERROR:
+            return RESULT_IO_ERROR_DESCRIPTION;
+        case RESULT_UNIMPLEMENTED:
+            return RESULT_UNIMPLEMENTED_DESCRIPTION;
+        case RESULT_UNEXPECTED_ERROR:
+            return RESULT_UNEXPECTED_ERROR_DESCRIPTION;
+        case RESULT_INVALID_SOURCE:
+            return RESULT_INVALID_SOURCE_DESCRIPTION;
+        case RESULT_INCOMPATIBLE_SOURCE:
+            return RESULT_INCOMPATIBLE_SOURCE_DESCRIPTION;
+        case RESULT_CORRUPTED_SOURCE:
+            return RESULT_CORRUPTED_SOURCE_DESCRIPTION;
+        case RESULT_MERGE_VERSION_MISMATCH:
+            return RESULT_MERGE_VERSION_MISMATCH_DESCRIPTION;
+        case RESULT_BINARY_FILE_SAVED_AS_TEXT:
+            return RESULT_BINARY_FILE_SAVED_AS_TEXT_DESCRIPTION;
+        case RESULT_QUEUE_EMPTY:
+            return RESULT_QUEUE_EMPTY_DESCRIPTION;
+        case RESULT_COMPRESSION_LICENSE_ERROR:
+            return RESULT_COMPRESSION_LICENSE_ERROR_DESCRIPTION;
+        case RESULT_DECOMPRESSION_LICENSE_ERROR:
+            return RESULT_DECOMPRESSION_LICENSE_ERROR_DESCRIPTION;
+        case RESULT_DECOMPRESSION_LICENSE_TIER_TOO_LOW:
+            return RESULT_DECOMPRESSION_LICENSE_TIER_TOO_LOW_DESCRIPTION;
+        case RESULT_FILE_NOT_FOUND:
+            return RESULT_FILE_NOT_FOUND_DESCRIPTION;
+        default:
+            assert(0);
+            return "Unknown error: " + std::to_string(errorCode);
+        }
+    }
+} // namespace Zibra::LibraryUtils

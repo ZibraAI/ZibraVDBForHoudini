@@ -1,7 +1,8 @@
+#include "HoudiniLicenseManager.h"
+
 #include <filesystem>
 #include <regex>
 
-#include "HoudiniLicenseManager.h"
 #include "bridge/LibraryUtils.h"
 #include "ui/MessageBox.h"
 #include "utils/Helpers.h"
@@ -18,12 +19,54 @@ namespace Zibra
         return instance;
     }
 
+    bool HoudiniLicenseManager::IsAnyLicenseValid() const
+    {
+        for (size_t i = 0; i < size_t(Product::Count); ++i)
+        {
+            if (m_Status[i] == Status::OK)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     HoudiniLicenseManager::Status HoudiniLicenseManager::GetLicenseStatus(Product product) const
     {
         return m_Status[size_t(product)];
     }
 
-    HoudiniLicenseManager::ActivationType HoudiniLicenseManager::GetLicenceType() const
+    int HoudiniLicenseManager::GetLicenseTier(Product product) const
+    {
+        if (!IsLicenseManagerLoaded())
+        {
+            return -1;
+        }
+
+        if (m_Status[size_t(product)] == Status::OK)
+        {
+            return m_Manager->GetProductLicenseTier(CE::Licensing::ProductType(product));
+        }
+
+        return -1;
+    }
+
+    const char* HoudiniLicenseManager::GetLicenseType(Product product) const
+    {
+        if (!IsLicenseManagerLoaded())
+        {
+            return "Licensing is not initialized";
+        }
+
+        if (m_Status[size_t(product)] == Status::OK)
+        {
+            return m_Manager->GetProductLicenseType(CE::Licensing::ProductType(product));
+        }
+
+        return "None";
+    }
+
+    HoudiniLicenseManager::ActivationType HoudiniLicenseManager::GetActivationType() const
     {
         return m_Type;
     }
@@ -67,8 +110,10 @@ namespace Zibra
 
     void HoudiniLicenseManager::RemoveLicense()
     {
-        if (!m_Manager)
-            m_Manager = CE::Licensing::GetLicenseManager();
+        if (!LoadLicenseManager())
+        {
+            return;
+        }
 
         for (LicensePathType i = LicensePathType::EnvVar; i <= LicensePathType::UserPrefDir; i = LicensePathType(uint32_t(i) + 1))
         {
@@ -314,6 +359,29 @@ namespace Zibra
         return m_ActivationError;
     }
 
+    bool HoudiniLicenseManager::LoadLicenseManager()
+    {
+        if (m_Manager != nullptr)
+        {
+            return true;
+        }
+
+        Zibra::LibraryUtils::LoadLibrary();
+        if (!Zibra::LibraryUtils::IsLibraryLoaded())
+        {
+            return false;
+        }
+
+        m_Manager = CE::Licensing::GetLicenseManager();
+
+        return m_Manager != nullptr;
+    }
+
+    bool HoudiniLicenseManager::IsLicenseManagerLoaded() const
+    {
+        return m_Manager != nullptr;
+    }
+
     std::string HoudiniLicenseManager::SanitizePath(const std::string& path)
     {
         std::string result = path;
@@ -535,28 +603,12 @@ namespace Zibra
         return m_Status[size_t(product)] == Status::OK;
     }
 
-    bool HoudiniLicenseManager::IsAnyLicenseValid() const
-    {
-        for (size_t i = 0; i < size_t(Product::Count); ++i)
-        {
-            if (m_Status[i] == Status::OK)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
     HoudiniLicenseManager::Status HoudiniLicenseManager::TryCheckoutLicense(ActivationType type, LicensePathType pathType)
     {
-        Zibra::LibraryUtils::LoadLibrary();
-        if (!LibraryUtils::IsLibraryLoaded())
+        if (!LoadLicenseManager())
         {
             return Status::LibraryError;
         }
-        if (!m_Manager)
-            m_Manager = CE::Licensing::GetLicenseManager();
-
 
         switch (type)
         {
@@ -578,7 +630,8 @@ namespace Zibra
 
             m_Manager->CheckoutLicenseOffline(offlineLicense.c_str(), static_cast<int>(offlineLicense.size()));
 
-            if (m_Manager->IsLicenseValidated(CE::Licensing::ProductType::Compression))
+            if (m_Manager->IsLicenseValidated(CE::Licensing::ProductType::Compression) ||
+                m_Manager->IsLicenseValidated(CE::Licensing::ProductType::Decompression))
             {
                 SetStatusFromZibraVDBRuntime();
                 m_Type = ActivationType::Offline;
@@ -609,7 +662,8 @@ namespace Zibra
 
             m_Manager->CheckoutLicenseLicenseServer(licenseServerAddress.c_str());
 
-            if (m_Manager->IsLicenseValidated(CE::Licensing::ProductType::Compression))
+            if (m_Manager->IsLicenseValidated(CE::Licensing::ProductType::Compression) ||
+                m_Manager->IsLicenseValidated(CE::Licensing::ProductType::Decompression))
             {
                 SetStatusFromZibraVDBRuntime();
                 m_Type = ActivationType::LicenseServer;
@@ -639,7 +693,8 @@ namespace Zibra
             m_LicenseServerAddress = "";
 
             m_Manager->CheckoutLicenseWithKey(licenseKey.c_str());
-            if (m_Manager->IsLicenseValidated(CE::Licensing::ProductType::Compression))
+            if (m_Manager->IsLicenseValidated(CE::Licensing::ProductType::Compression) ||
+                m_Manager->IsLicenseValidated(CE::Licensing::ProductType::Decompression))
             {
                 SetStatusFromZibraVDBRuntime();
                 m_Type = ActivationType::Online;
@@ -660,8 +715,11 @@ namespace Zibra
 
     void HoudiniLicenseManager::SetStatusFromZibraVDBRuntime()
     {
-        if (!m_Manager)
-            m_Manager = CE::Licensing::GetLicenseManager();
+        if (!LoadLicenseManager())
+        {
+            return;
+        }
+
         for (size_t i = 0; i < size_t(Product::Count); ++i)
         {
             m_Status[i] = m_Manager->IsLicenseValidated(CE::Licensing::ProductType(i)) ? Status::OK : Status::ValidationError;

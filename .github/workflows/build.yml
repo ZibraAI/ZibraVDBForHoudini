@@ -1,9 +1,6 @@
-name: Build with LABS_BUILD
+name: Build
 
-on:
-  push:
-    branches:
-      - main
+on: [push, pull_request]
 
 jobs:
   select-houdini-build:
@@ -12,6 +9,8 @@ jobs:
     outputs:
       houdini-build-20-5: ${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}
       houdini-build-21-0: ${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}
+      need-run: ${{ steps.open_pr_check.outputs.has_open_pr != 'true' }}
+      need-complete-build: ${{ (steps.open_pr_check.outputs.has_open_pr != 'true') && (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') }}
       # Legend
       # name - Human readable OS/Arch name. Version is appended separately.
       # run-on-all-branches - Whether to run this target on all branches. If false, will only run on main
@@ -24,7 +23,7 @@ jobs:
       # python-command - Python command to use for running scripts (e.g. "python"/"python3")
       # python-venv-activate-path - Path to powershell python venv activation script within venv folder
       # additional-config-args - Additional commad line args to pass to cmake configuration. Required on macOS to specify architectrue (arm64/x64)
-      build-matrix-json: |
+      complete-build-matrix-json: |
         {
           "include": [
             {
@@ -151,12 +150,70 @@ jobs:
             }
           ]
         }
+      quick-build-matrix-json: |
+        {
+          "include": [
+            {
+              "name": "Linux x64",
+              "runner": [
+                "self-hosted",
+                "Linux",
+                "X64",
+                "houdini"
+              ],
+              "generator": "Ninja Multi-Config",
+              "executable-extension": null,
+              "houdini-version": "20.5",
+              "houdini-build": "${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
+              "houdini-platform": "linux_x86_64_gcc11.2",
+              "houdini-install-path": "/opt/hfs20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
+              "hfs-path": "/opt/hfs20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
+              "python-command": "python3",
+              "python-venv-activate-path": "bin/Activate.ps1",
+              "additional-config-args": null
+            },
+            {
+              "name": "Linux x64",
+              "runner": [
+                "self-hosted",
+                "Linux",
+                "X64",
+                "houdini"
+              ],
+              "generator": "Ninja Multi-Config",
+              "executable-extension": null,
+              "houdini-version": "21.0",
+              "houdini-build": "${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
+              "houdini-platform": "linux_x86_64_gcc11.2",
+              "houdini-install-path": "/opt/hfs21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
+              "hfs-path": "/opt/hfs21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
+              "python-command": "python3",
+              "python-venv-activate-path": "bin/Activate.ps1",
+              "additional-config-args": null
+            }
+          ]
+        }
 
     steps:
+      - name: Check for open PRs
+        if: ${{ github.event_name == 'push' }}
+        id: open_pr_check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const branch = context.ref.replace('refs/heads/', '');
+            const prs = await github.rest.pulls.list({
+              owner, repo, state: 'open', head: `${owner}:${branch}`,
+            });
+            core.setOutput('has_open_pr', String(prs.data.length > 0));
+
       - name: Sync
+        if: ${{ steps.open_pr_check.outputs.has_open_pr != 'true' }}
         uses: actions/checkout@v4
 
       - name: Select Houdini 20.5 build
+        if: ${{ steps.open_pr_check.outputs.has_open_pr != 'true' }}
         id: select_houdini_20_5_build
         working-directory: ${{ github.workspace }}
         shell: pwsh
@@ -170,6 +227,7 @@ jobs:
           HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
 
       - name: Select Houdini 21.0 build
+        if: ${{ steps.open_pr_check.outputs.has_open_pr != 'true' }}
         id: select_houdini_21_0_build
         working-directory: ${{ github.workspace }}
         shell: pwsh
@@ -181,15 +239,20 @@ jobs:
         env:
           HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
           HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
-    
+
+
   build-plugin:
     needs: select-houdini-build
+    if: ${{ (needs.select-houdini-build.outputs.need-run == 'true') }}
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson( needs.select-houdini-build.outputs.build-matrix-json ) }}
+      matrix: ${{ fromJson( (needs.select-houdini-build.outputs.need-complete-build == 'true') && needs.select-houdini-build.outputs.complete-build-matrix-json || needs.select-houdini-build.outputs.quick-build-matrix-json ) }}
             
     runs-on: ${{ matrix.runner }}
-    name: Build ${{ matrix.name }} Houdini ${{ matrix.houdini-version }}.${{ matrix.houdini-build }}
+    concurrency:
+      group: ${{ matrix.houdini-platform }}-${{ matrix.houdini-version }}-${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+    name: Build ${{ matrix.name }} Houdini ${{ matrix.houdini-version }}
 
     steps:
       - name: Sync
@@ -219,7 +282,7 @@ jobs:
       - name: Configure Cmake
         working-directory: ${{ github.workspace }}
         shell: pwsh
-        run: cmake -S . -B build -G "${{ matrix.generator }}" -DLABS_BUILD=ON -DZIBRAVDB_OUTPUT_PATH="${{ github.workspace }}/package" ${{ matrix.additional-config-args }}
+        run: cmake -S . -B build -G "${{ matrix.generator }}" -DZIBRAVDB_OUTPUT_PATH="${{ github.workspace }}/package" ${{ matrix.additional-config-args }}
         env:
           HFS: ${{ matrix.hfs-path }}
 
@@ -235,4 +298,75 @@ jobs:
         working-directory: ${{ github.workspace }}
         shell: pwsh
         run: cmake --build build --config Release
-  
+
+      - name: Repack HDA into Binary format
+        working-directory: ${{ github.workspace }}
+        shell: pwsh
+        run: |
+          ${{ matrix.hfs-path }}/bin/hotl${{ matrix.executable-extension }} -l ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda.2
+          Remove-Item -Recurse -Force ${{ github.workspace }}/package/otls\zibravdb_filecache.1.0.hda
+          Move-Item -Path ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda.2 -Destination ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda
+
+      - name: Save artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-${{ matrix.houdini-platform }}
+          path: package
+          if-no-files-found: error
+          retention-days: 7
+
+
+  merge-artifacts:
+    runs-on: macos-14
+    needs: [select-houdini-build, build-plugin]
+    if: ${{ (needs.select-houdini-build.outputs.need-complete-build == 'true') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - houdini-version: "20.5"
+            houdini-build: ${{ needs.select-houdini-build.outputs.houdini-build-20-5 }}
+          - houdini-version: "21.0"
+            houdini-build: ${{ needs.select-houdini-build.outputs.houdini-build-21-0 }}
+    name: Merge artifacts ${{ matrix.houdini-version }}
+
+    steps:
+      - name: Sync
+        uses: actions/checkout@v4
+        
+      - name: Download artifacts
+        uses: actions/download-artifact@v5
+        with:
+          pattern: ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-*
+
+      - name: Merge artifacts
+        shell: bash
+        run: |
+          mkdir merged
+          mv ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-win64-vc143/* merged/
+          mv ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-linux_x86_64_gcc11.2/dso/ZibraVDBForHoudini.so merged/dso/ZibraVDBForHoudini.so
+          lipo -create -output merged/dso/ZibraVDBForHoudini.dylib ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-macosx_arm64_clang15.0_14/dso/ZibraVDBForHoudini.dylib ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-macosx_x86_64_clang15.0_14/dso/ZibraVDBForHoudini.dylib
+
+      - name: Apple sign and notarize
+        shell: bash
+        run: ${{ github.workspace }}/actions/apple/sign_and_notarize_dylib.sh ${{ github.workspace }}/merged/dso/ZibraVDBForHoudini.dylib
+        env:
+          DEVELOPER_ID_APPLICATION_CERT: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_CERT }}
+          DEVELOPER_ID_APPLICATION_PASS: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_PASS }}
+          DEVELOPER_ID_APPLICATION_NAME: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_NAME }}
+          APPLE_DEVELOPER_TEAM: ${{ secrets.APPLE_DEVELOPER_ZIBRA_AI_TEAM }}
+          NOTARIZATION_USER: ${{ secrets.NOTARIZATION_ZIBRA_AI_USER }}
+          NOTARIZATION_PASS: ${{ secrets.NOTARIZATION_ZIBRA_AI_PASS }}
+
+      - name: Save merged artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}
+          path: merged
+          if-no-files-found: error
+          retention-days: 28
+
+      - name: Delete partial artifacts
+        uses: geekyeggo/delete-artifact@f275313e70c08f6120db482d7a6b98377786765b # v5.1.0
+        with:
+          name: ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-*
