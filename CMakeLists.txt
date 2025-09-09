@@ -88,15 +88,28 @@ else()
 endif()
 cmake_print_variables(ZIB_NETWORK_REQUEST_BACKEND)
 
+# Common files shared between main plugin and USD resolver
+set(CommonHeaders
+    src/utils/Helpers.h
+    src/licensing/LicenseManager.h
+    src/bridge/LibraryUtils.h
+    src/SOP/DecompressorManager/DecompressorManager.h
+)
+
+set(CommonSources
+    src/utils/Helpers.cpp
+    src/licensing/LicenseManager.cpp
+    src/bridge/LibraryUtils.cpp
+    src/SOP/DecompressorManager/DecompressorManager.cpp
+)
+
+# Main plugin specific files
 set(HeaderFiles
     src/PrecompiledHeader.h
     src/Globals.h
     src/bridge/networking/NetworkRequest.h
-    src/bridge/LibraryUtils.h
     src/bridge/UpdateCheck.h
     src/ROP/CompressorManager/CompressorManager.h
-    src/SOP/DecompressorManager/DecompressorManager.h
-    src/licensing/LicenseManager.h
     src/ROP/ROP_ZibraVDBCompressor.h
     src/SOP/SOP_ZibraVDBDecompressor.h
     src/SOP/SOP_ZibraVDBUSDExport.h
@@ -104,18 +117,14 @@ set(HeaderFiles
     src/LOP/ZibraVDBOutputProcessor.h
     src/ui/MessageBox.h
     src/ui/PluginManagementWindow.h
-    src/utils/Helpers.h
     src/utils/GAAttributesDump.h
 )
 
 set(SourceFiles
     src/main.cpp
     src/bridge/networking/NetworkRequest.cpp
-    src/bridge/LibraryUtils.cpp
     src/bridge/UpdateCheck.cpp
     src/ROP/CompressorManager/CompressorManager.cpp
-    src/SOP/DecompressorManager/DecompressorManager.cpp
-    src/licensing/LicenseManager.cpp
     src/ROP/ROP_ZibraVDBCompressor.cpp
     src/SOP/SOP_ZibraVDBDecompressor.cpp
     src/SOP/SOP_ZibraVDBUSDExport.cpp
@@ -123,14 +132,10 @@ set(SourceFiles
     src/LOP/ZibraVDBOutputProcessor.cpp
     src/ui/MessageBox.cpp
     src/ui/PluginManagementWindow.cpp
-    src/utils/Helpers.cpp
     src/utils/GAAttributesDump.cpp
 )
 
 add_library(ZibraVDBForHoudini SHARED ${HeaderFiles} ${SourceFiles})
-target_include_directories(ZibraVDBForHoudini
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/Include)
 target_precompile_headers(ZibraVDBForHoudini PRIVATE src/PrecompiledHeader.h)
 target_compile_definitions(ZibraVDBForHoudini PRIVATE 
     ZIB_NETWORK_REQUEST_BACKEND_${ZIB_NETWORK_REQUEST_BACKEND}=1
@@ -139,9 +144,6 @@ target_compile_definitions(ZibraVDBForHoudini PRIVATE
 if(${LABS_BUILD})
     target_compile_definitions(ZibraVDBForHoudini PRIVATE LABS_BUILD)
 endif()
-
-target_include_directories(ZibraVDBForHoudini PRIVATE SDK/include)
-target_include_directories(ZibraVDBForHoudini PRIVATE "${HOUDINI_INCLUDE_DIR}")
 
 if(DEFINED ENV{ZIBRA_HOUDINI_PATH})
     message(STATUS "ENV{ZIBRA_HOUDINI_PATH}: $ENV{ZIBRA_HOUDINI_PATH}")
@@ -204,6 +206,19 @@ endif()
 list(APPEND CMAKE_PREFIX_PATH "${HOUDINI_PATH}/toolkit/cmake")
 find_package(Houdini REQUIRED)
 
+# Create common static library after Houdini is found
+add_library(ZibraVDBCommon STATIC ${CommonHeaders} ${CommonSources})
+target_include_directories(ZibraVDBCommon 
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/Include
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/SDK/include
+    PRIVATE "${HOUDINI_INCLUDE_DIR}")
+target_compile_definitions(ZibraVDBCommon PUBLIC 
+    ZIB_NETWORK_REQUEST_BACKEND_${ZIB_NETWORK_REQUEST_BACKEND}=1
+    ZIB_TARGET_OS_${ZIB_TARGET_OS_NAME}=1)
+target_precompile_headers(ZibraVDBCommon PRIVATE src/PrecompiledHeader.h)
+target_link_libraries(ZibraVDBCommon PUBLIC Houdini)
+
 get_target_property(HOUDINI_THIRD_PARTY_LIBS HoudiniThirdParty INTERFACE_LINK_LIBRARIES)
 if(HOUDINI_THIRD_PARTY_LIBS)
     set(FILTERED_LIBS)
@@ -216,7 +231,7 @@ if(HOUDINI_THIRD_PARTY_LIBS)
     set_target_properties(HoudiniThirdParty PROPERTIES INTERFACE_LINK_LIBRARIES "${FILTERED_LIBS}")
 endif()
 
-target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini HoudiniThirdParty)
+target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini HoudiniThirdParty ZibraVDBCommon)
 
 if("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
     # we still need to explicitly link the python lib for mac
