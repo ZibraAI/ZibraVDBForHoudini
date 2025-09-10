@@ -11,7 +11,7 @@ set(RESOLVER_SOURCES
 )
 
 add_library(zibraVDBResolver SHARED ${RESOLVER_HEADERS} ${RESOLVER_SOURCES})
-target_precompile_headers(zibraVDBResolver PRIVATE src/PrecompiledHeader.h)
+target_precompile_headers(zibraVDBResolver PRIVATE ../common/PrecompiledHeader.h)
 target_include_directories(zibraVDBResolver PRIVATE src)
 target_compile_definitions(zibraVDBResolver PRIVATE
         ZIBRAVDBRESOLVER_EXPORTS

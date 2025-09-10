@@ -1,6 +1,6 @@
 #pragma once
 
-// Standard library includes needed for resolver
+// Standard library includes
 #include <cassert>
 #include <chrono>
 #include <climits>
@@ -51,12 +51,15 @@
 #define NOKANJI
 #define NOCRYPT
 #define NOMCX
+#include <winhttp.h>
+#include <winuser.h>
 #undef ERROR
 #undef OUT
 #elif ZIB_TARGET_OS_LINUX
 #include <dlfcn.h>
 #include <curl/curl.h>
 #elif ZIB_TARGET_OS_MAC
+#define SSE2NEON_H
 #include <dlfcn.h>
 #include <curl/curl.h>
 #include <sys/xattr.h>
@@ -64,8 +67,39 @@
 #error Unexpected OS
 #endif
 
-// Houdini includes
+// Houdini includes (common to all components)
 #include <UT/UT_String.h>
+#include <UT/UT_Assert.h>
+#include <UT/UT_Exit.h>
+#include <UT/UT_IOTable.h>
+#include <UT/UT_Interrupt.h>
+#include <UT/UT_OFStream.h>
+#include <UT/UT_StringHolder.h>
+
+// Additional Houdini includes for main project
+#include <CH/CH_LocalVariable.h>
+#include <CMD/CMD_Manager.h>
+#include <GA/GA_Attribute.h>
+#include <GA/GA_AttributeType.h>
+#include <GA/GA_GBMacros.h>
+#include <GEO/GEO_PrimPoly.h>
+#include <GU/GU_Detail.h>
+#include <GU/GU_PrimVDB.h>
+#include <OP/OP_AutoLockInputs.h>
+#include <OP/OP_Director.h>
+#include <OP/OP_Operator.h>
+#include <OP/OP_OperatorTable.h>
+#include <PRM/PRM_Conditional.h>
+#include <PRM/PRM_Include.h>
+#include <PRM/PRM_Parm.h>
+#include <PRM/PRM_ParmList.h>
+#include <PRM/PRM_SpareData.h>
+#include <PRM/PRM_TemplateBuilder.h>
+#include <ROP/ROP_Error.h>
+#include <ROP/ROP_Node.h>
+#include <ROP/ROP_Templates.h>
+#include <SOP/SOP_Node.h>
+#include <SYS/SYS_Math.h>
 
 // OpenVDB includes
 #include <openvdb/io/Stream.h>
@@ -85,5 +119,5 @@
 #include <Zibra/CE/Decompression.h>
 #include <Zibra/CE/Licensing.h>
 
-// Project includes (from parent project)
+// Project includes
 #include "Globals.h"
