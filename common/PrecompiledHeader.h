@@ -59,7 +59,6 @@
 #include <dlfcn.h>
 #include <curl/curl.h>
 #elif ZIB_TARGET_OS_MAC
-#define SSE2NEON_H
 #include <dlfcn.h>
 #include <curl/curl.h>
 #include <sys/xattr.h>
