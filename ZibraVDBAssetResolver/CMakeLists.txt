@@ -14,7 +14,6 @@ add_library(zibraVDBResolver SHARED ${RESOLVER_HEADERS} ${RESOLVER_SOURCES})
 target_precompile_headers(zibraVDBResolver PRIVATE ../common/PrecompiledHeader.h)
 target_include_directories(zibraVDBResolver PRIVATE src)
 target_compile_definitions(zibraVDBResolver PRIVATE
-        ZIBRAVDBRESOLVER_EXPORTS
         ZIB_NO_UI_ERROR=1
 )
 if( CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" )

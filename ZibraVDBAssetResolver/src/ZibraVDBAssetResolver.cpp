@@ -35,32 +35,32 @@ namespace {
     public:
         ZibraVDBResolverContext()
         {
-            myTmpDir = TfGetenv("HOUDINI_TEMP_DIR");
+            m_TmpDir = TfGetenv("HOUDINI_TEMP_DIR");
             TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER_CONTEXT).Msg(
-                "ZibraVDBResolverContext: Using temp directory: %s\n", myTmpDir.c_str());
+                "ZibraVDBResolverContext: Using temp directory: %s\n", m_TmpDir.c_str());
         }
         
         ZibraVDBResolverContext(const std::string &tmpdir)
-            : myTmpDir(tmpdir.empty() ? TfGetenv("HOUDINI_TEMP_DIR") : tmpdir)
+            : m_TmpDir(tmpdir.empty() ? TfGetenv("HOUDINI_TEMP_DIR") : tmpdir)
         {
             TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER_CONTEXT).Msg(
-                "ZibraVDBResolverContext: Using temp directory: %s\n", myTmpDir.c_str());
+                "ZibraVDBResolverContext: Using temp directory: %s\n", m_TmpDir.c_str());
         }
 
         bool operator<(const ZibraVDBResolverContext& rhs) const
-        { return myTmpDir < rhs.myTmpDir; }
+        { return m_TmpDir < rhs.m_TmpDir; }
         
         bool operator==(const ZibraVDBResolverContext& rhs) const
-        { return myTmpDir == rhs.myTmpDir; }
+        { return m_TmpDir == rhs.m_TmpDir; }
         
         bool operator!=(const ZibraVDBResolverContext& rhs) const
-        { return myTmpDir != rhs.myTmpDir; }
+        { return m_TmpDir != rhs.m_TmpDir; }
 
         const std::string &getTmpDir() const
-        { return myTmpDir; }
+        { return m_TmpDir; }
 
     private:
-        std::string myTmpDir;
+        std::string m_TmpDir;
     };
 
     size_t
@@ -75,16 +75,16 @@ AR_DECLARE_RESOLVER_CONTEXT(ZibraVDBResolverContext);
 
 AR_DEFINE_RESOLVER(ZibraVDBResolver, ArResolver);
 
-std::unordered_map<std::string, std::unordered_set<std::string>> ZibraVDBResolver::s_globalDecompressedFilesDict;
-std::mutex ZibraVDBResolver::s_globalDecompressedFilesMutex;
-std::unordered_map<std::string, std::unique_ptr<Zibra::Helpers::DecompressorManager>> ZibraVDBResolver::s_decompressorManagers;
-std::mutex ZibraVDBResolver::s_decompressorManagersMutex;
+std::unordered_map<std::string, std::unordered_set<std::string>> ZibraVDBResolver::g_DecompressedFilesDict;
+std::mutex ZibraVDBResolver::g_DecompressedFilesMutex;
+std::unordered_map<std::string, std::unique_ptr<Zibra::Helpers::DecompressorManager>> ZibraVDBResolver::g_DecompressorManagers;
+std::mutex ZibraVDBResolver::g_DecompressorManagersMutex;
 
 ZibraVDBResolver::ZibraVDBResolver()
 {
     UT_Exit::addExitCallback([](void*){
-        ZibraVDBResolver::_CleanupAllDecompressorManagers();
-        ZibraVDBResolver::_CleanupAllDecompressedFilesStatic();
+        ZibraVDBResolver::CleanupAllDecompressorManagers();
+        ZibraVDBResolver::CleanupAllDecompressedFilesStatic();
     }, nullptr);
 }
 
@@ -92,7 +92,7 @@ ZibraVDBResolver::~ZibraVDBResolver() = default;
 
 std::string ZibraVDBResolver::_CreateIdentifier(const std::string& assetPath, const ArResolvedPath& anchorAssetPath) const
 {
-    if (!_IsZibraVDBPath(assetPath))
+    if (!IsZibraVDBPath(assetPath))
     {
         return ArDefaultResolver().CreateIdentifier(assetPath, anchorAssetPath);
     }
@@ -100,7 +100,7 @@ std::string ZibraVDBResolver::_CreateIdentifier(const std::string& assetPath, co
     TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::CreateIdentifier - ZibraVDB URI detected: '%s'\n", assetPath.c_str());
 
     int frame = 0;
-    std::string extractedPath = _ParseZibraVDBURI(assetPath, frame);
+    std::string extractedPath = ParseZibraVDBURI(assetPath, frame);
 
     if (TfIsRelativePath(extractedPath) && anchorAssetPath)
     {
@@ -124,7 +124,7 @@ std::string ZibraVDBResolver::_CreateIdentifier(const std::string& assetPath, co
 
 std::string ZibraVDBResolver::_CreateIdentifierForNewAsset(const std::string& assetPath, const ArResolvedPath& anchorAssetPath) const
 {
-    if (!_IsZibraVDBPath(assetPath))
+    if (!IsZibraVDBPath(assetPath))
     {
         return ArDefaultResolver().CreateIdentifierForNewAsset(assetPath, anchorAssetPath);
     }
@@ -136,7 +136,7 @@ std::string ZibraVDBResolver::_CreateIdentifierForNewAsset(const std::string& as
 
 ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
 {
-    if (!_IsZibraVDBPath(assetPath))
+    if (!IsZibraVDBPath(assetPath))
     {
         return ArDefaultResolver().Resolve(assetPath);
     }
@@ -144,7 +144,7 @@ ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
     TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_Resolve - Detected ZibraVDB path: '%s'\n", assetPath.c_str());
 
     int frame = 0;
-    std::string actualFilePath = _ParseZibraVDBURI(assetPath, frame);
+    std::string actualFilePath = ParseZibraVDBURI(assetPath, frame);
 
     if (!TfPathExists(actualFilePath))
     {
@@ -155,7 +155,7 @@ ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
 
     if (!CheckLicenseAndLoadLib())
     {
-        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_Resolve - Failed to load ZibraVDBSDK lib.");
+        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_Resolve - Failed to initialize ZibraVDB SDK (library loading or license check failed)\n");
         return ArResolvedPath();
     }
 
@@ -169,11 +169,11 @@ ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
     TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
         .Msg("ZibraVDBResolver::_Resolve - Using temp directory: '%s'\n", tmpDir.c_str());
 
-    std::string decompressedPath = _DecompressZibraVDBFile(actualFilePath, tmpDir, frame);
+    std::string decompressedPath = DecompressZibraVDBFile(actualFilePath, tmpDir, frame);
     if (!decompressedPath.empty())
     {
-        _CleanupUnneededDecompressedFiles(actualFilePath, decompressedPath);
-        _AddDecompressedFile(actualFilePath, decompressedPath);
+        CleanupUnneededDecompressedFiles(actualFilePath, decompressedPath);
+        AddDecompressedFile(actualFilePath, decompressedPath);
 
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
             .Msg("ZibraVDBResolver::_Resolve - Successfully decompressed to: '%s'\n", decompressedPath.c_str());
@@ -181,7 +181,7 @@ ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
     }
 
     TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
-            .Msg("ZibraVDBResolver::_Resolve - Failed to decompress ZibraVDB file: '%s'\n", actualFilePath.c_str());
+            .Msg("ZibraVDBResolver::_Resolve - Decompression failed for file '%s' (check temp directory permissions, decompressor manager initialization, frame availability, or compression format)\n", actualFilePath.c_str());
     return ArResolvedPath();
 }
 
@@ -208,34 +208,67 @@ ArResolverContext ZibraVDBResolver::_CreateContextFromString(const std::string& 
 
 bool ZibraVDBResolver::_IsContextDependentPath(const std::string& path) const
 {
-    return _IsZibraVDBPath(path);
+    return IsZibraVDBPath(path);
 }
 
-bool ZibraVDBResolver::_IsZibraVDBPath(const std::string& path) const
+bool ZibraVDBResolver::IsZibraVDBPath(const std::string& path) const
 {
-    return path.find(ZIBRAVDB_EXTENSION) != std::string::npos;
+    return path.find(ZIB_VDB_EXT) != std::string::npos;
 }
 
-std::string ZibraVDBResolver::_ParseZibraVDBURI(const std::string& uri, int& frame) const
+std::string ZibraVDBResolver::ParseZibraVDBURI(const std::string& uri, int& frame) const
 {
     frame = 0;
 
-    std::string path = uri;
-
-    size_t paramPos = path.find("?frame=");
-    if (paramPos != std::string::npos)
+    size_t questionMarkPos = uri.find('?');
+    if (questionMarkPos == std::string::npos)
     {
-        std::string frameStr = path.substr(paramPos + 7);
-        frame = std::stoi(frameStr);
-        path = path.substr(0, paramPos);
+        return uri;
+    }
+    
+    if (uri.find('?', questionMarkPos + 1) != std::string::npos)
+    {
+        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::ParseZibraVDBURI - Multiple '?' characters found in URI: '%s'\n", uri.c_str());
+        return uri.substr(0, questionMarkPos);
+    }
+
+    std::string path = uri.substr(0, questionMarkPos);
+    std::string queryString = uri.substr(questionMarkPos + 1);
+
+    std::string frameParam;
+    bool foundFrame = false;
+    
+    size_t start = 0;
+    size_t ampPos;
+    do
+    {
+        ampPos = queryString.find('&', start);
+        std::string param = (ampPos == std::string::npos) ? queryString.substr(start) : queryString.substr(start, ampPos - start);
+        
+        if (param.substr(0, 6) == "frame=")
+        {
+            std::string frameValue = param.substr(6);
+            if (foundFrame)
+            {
+                TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::ParseZibraVDBURI - Multiple 'frame' parameters found, using last one: '%s'\n", frameValue.c_str());
+            }
+            frameParam = frameValue;
+            foundFrame = true;
+        }
+        
+        start = ampPos + 1;
+    } while (ampPos != std::string::npos);
+
+    if (foundFrame && !frameParam.empty())
+    {
+        frame = std::stoi(frameParam);
     }
     return path;
 }
 
-std::string ZibraVDBResolver::_DecompressZibraVDBFile(const std::string& zibraVDBPath, const std::string& tmpDir, int frame) const
+std::string ZibraVDBResolver::DecompressZibraVDBFile(const std::string& zibraVDBPath, const std::string& tmpDir, int frame) const
 {
-    std::string baseName = TfGetBaseName(zibraVDBPath);
-    std::string zibraVDBTmpDir = TfStringCatPaths(tmpDir, "zibravdb");
+    std::string zibraVDBTmpDir = TfStringCatPaths(tmpDir, "zibravdb_houdini_usd_asset_resolver");
     
     TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
         .Msg("ZibraVDBResolver::_DecompressZibraVDBFile - Using temp directory: '%s'\n", zibraVDBTmpDir.c_str());
@@ -250,12 +283,17 @@ std::string ZibraVDBResolver::_DecompressZibraVDBFile(const std::string& zibraVD
         }
     }
 
-    const size_t extLength = strlen(ZIBRAVDB_EXTENSION);
-    if (baseName.size() > extLength && baseName.substr(baseName.size() - extLength) == ZIBRAVDB_EXTENSION)
+    auto* decompressor = GetOrCreateDecompressorManager(zibraVDBPath);
+    if (!decompressor)
     {
-        baseName = baseName.substr(0, baseName.size() - extLength);
+        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
+            .Msg("ZibraVDBResolver::_DecompressZibraVDBFile - Failed to get decompressor manager for: '%s'\n", zibraVDBPath.c_str());
+        return std::string();
     }
-    std::string outputPath = TfStringCatPaths(zibraVDBTmpDir, baseName + "_frame" + std::to_string(frame) + ".vdb");
+
+    auto sequenceInfo = decompressor->GetSequenceInfo();
+    std::string uniqueId = std::to_string(sequenceInfo.fileUUID[0]) + "_" + std::to_string(sequenceInfo.fileUUID[1]);
+    std::string outputPath = TfStringCatPaths(zibraVDBTmpDir, uniqueId + "_" + std::to_string(frame) + ".vdb");
 
     if (TfPathExists(outputPath))
     {
@@ -264,11 +302,12 @@ std::string ZibraVDBResolver::_DecompressZibraVDBFile(const std::string& zibraVD
         return outputPath;
     }
 
-    auto* decompressor = _GetOrCreateDecompressorManager(zibraVDBPath);
-    if (!decompressor)
+    auto frameRange = decompressor->GetFrameRange();
+    if (frame < frameRange.startFrame || frame > frameRange.endFrame)
     {
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
-            .Msg("ZibraVDBResolver::_DecompressZibraVDBFile - Failed to get decompressor manager for: '%s'\n", zibraVDBPath.c_str());
+            .Msg("ZibraVDBResolver::_DecompressZibraVDBFile - Frame index %d is out of bounds [%d, %d]\n", 
+                 frame, frameRange.startFrame, frameRange.endFrame);
         return std::string();
     }
 
@@ -293,8 +332,8 @@ std::string ZibraVDBResolver::_DecompressZibraVDBFile(const std::string& zibraVD
 
     // Restore file-level and grid-level metadata
     openvdb::MetaMap fileMetadata;
-    _RestoreFileMetadataToVDB(frameContainer, fileMetadata);
-    _RestoreGridMetadataToVDB(frameContainer, vdbGrids);
+    RestoreFileMetadataToVDB(frameContainer, fileMetadata);
+    RestoreGridMetadataToVDB(frameContainer, vdbGrids);
     
     openvdb::io::File file(outputPath);
     file.write(vdbGrids, fileMetadata);
@@ -311,37 +350,38 @@ std::string ZibraVDBResolver::_DecompressZibraVDBFile(const std::string& zibraVD
 
 bool ZibraVDBResolver::CheckLicenseAndLoadLib() const
 {
-    Zibra::LicenseManager::GetInstance().CheckLicense(Zibra::LicenseManager::Product::Decompression);
-
     if (Zibra::LibraryUtils::IsZibSDKLoaded())
     {
+        Zibra::LicenseManager::GetInstance().CheckLicense(Zibra::LicenseManager::Product::Decompression);
         return true;
     }
 
     Zibra::LibraryUtils::LoadZibSDKLibrary();
     if (!Zibra::LibraryUtils::IsZibSDKLoaded())
     {
-        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::ZibraVDBResolver - Library not loaded, cannot initialize resolver\n");
+        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::CheckLicenseAndLoadLib - Library not loaded, cannot initialize resolver\n");
         return false;
     }
+
+    Zibra::LicenseManager::GetInstance().CheckLicense(Zibra::LicenseManager::Product::Decompression);
     return true;
 }
 
-void ZibraVDBResolver::_AddDecompressedFile(const std::string& compressedFile, const std::string& decompressedFile) const
+void ZibraVDBResolver::AddDecompressedFile(const std::string& compressedFile, const std::string& decompressedFile) const
 {
-    std::lock_guard<std::mutex> lock(s_globalDecompressedFilesMutex);
-    s_globalDecompressedFilesDict[compressedFile].insert(decompressedFile);
+    std::lock_guard<std::mutex> lock(g_DecompressedFilesMutex);
+    g_DecompressedFilesDict[compressedFile].insert(decompressedFile);
 }
 
-void ZibraVDBResolver::_CleanupUnneededDecompressedFiles(const std::string& currentCompressedFile, const std::string& currentDecompressedFile) const
+void ZibraVDBResolver::CleanupUnneededDecompressedFiles(const std::string& currentCompressedFile, const std::string& currentDecompressedFile) const
 {
     TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_CleanupUnneededDecompressedFiles - Cleaning up for compressed file: '%s', keeping: '%s'\n", currentCompressedFile.c_str(), currentDecompressedFile.c_str());
 
     {
-        std::lock_guard<std::mutex> lock(s_globalDecompressedFilesMutex);
+        std::lock_guard<std::mutex> lock(g_DecompressedFilesMutex);
 
-        auto it = s_globalDecompressedFilesDict.find(currentCompressedFile);
-        if (it != s_globalDecompressedFilesDict.end())
+        auto it = g_DecompressedFilesDict.find(currentCompressedFile);
+        if (it != g_DecompressedFilesDict.end())
         {
             auto& fileSet = it->second;
             for (auto fileIt = fileSet.begin(); fileIt != fileSet.end();)
@@ -364,13 +404,13 @@ void ZibraVDBResolver::_CleanupUnneededDecompressedFiles(const std::string& curr
     }
 }
 
-void ZibraVDBResolver::_CleanupAllDecompressedFilesStatic()
+void ZibraVDBResolver::CleanupAllDecompressedFilesStatic()
 {
-    std::lock_guard<std::mutex> lock(s_globalDecompressedFilesMutex);
+    std::lock_guard<std::mutex> lock(g_DecompressedFilesMutex);
 
-    TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_CleanupAllDecompressedFilesStatic - Starting static cleanup of %zu compressed file entries\n", s_globalDecompressedFilesDict.size());
+    TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_CleanupAllDecompressedFilesStatic - Starting static cleanup of %zu compressed file entries\n", g_DecompressedFilesDict.size());
 
-    for (auto& [compressedFile, decompressedFiles] : s_globalDecompressedFilesDict)
+    for (auto& [compressedFile, decompressedFiles] : g_DecompressedFilesDict)
     {
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_CleanupAllDecompressedFilesStatic - Processing compressed file: '%s' with %zu decompressed files\n", compressedFile.c_str(), decompressedFiles.size());
 
@@ -387,17 +427,18 @@ void ZibraVDBResolver::_CleanupAllDecompressedFilesStatic()
             }
         }
     }
-    s_globalDecompressedFilesDict.clear();
+    g_DecompressedFilesDict.clear();
 
     TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_CleanupAllDecompressedFilesStatic - Static cleanup completed\n");
 }
 
-Zibra::Helpers::DecompressorManager* ZibraVDBResolver::_GetOrCreateDecompressorManager(const std::string& compressedFile) const
+Zibra::Helpers::DecompressorManager* ZibraVDBResolver::GetOrCreateDecompressorManager(const std::string& compressedFile) const
 {
-    std::lock_guard<std::mutex> lock(s_decompressorManagersMutex);
+    std::lock_guard<std::mutex> lock(g_DecompressorManagersMutex);
 
-    auto it = s_decompressorManagers.find(compressedFile);
-    if (it != s_decompressorManagers.end())
+    // First, check if we can get UUID from an existing manager for this file path
+    auto it = g_DecompressorManagers.find(compressedFile);
+    if (it != g_DecompressorManagers.end())
     {
         return it->second.get();
     }
@@ -420,33 +461,46 @@ Zibra::Helpers::DecompressorManager* ZibraVDBResolver::_GetOrCreateDecompressorM
         return nullptr;
     }
 
+    // Get UUID from the registered decompressor to use as key
+    auto sequenceInfo = manager->GetSequenceInfo();
+    std::string uuidKey = std::to_string(sequenceInfo.fileUUID[0]) + "_" + std::to_string(sequenceInfo.fileUUID[1]);
+
+    // Check if a manager with this UUID already exists
+    auto uuidIt = g_DecompressorManagers.find(uuidKey);
+    if (uuidIt != g_DecompressorManagers.end())
+    {
+        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
+            .Msg("ZibraVDBResolver::_GetOrCreateDecompressorManager - Using existing manager for UUID: %s\n", uuidKey.c_str());
+        return uuidIt->second.get();
+    }
+
     auto* managerPtr = manager.get();
-    s_decompressorManagers[compressedFile] = std::move(manager);
+    g_DecompressorManagers.emplace(uuidKey, std::move(manager));
 
     TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
-        .Msg("ZibraVDBResolver::_GetOrCreateDecompressorManager - Created new manager for: '%s'\n", compressedFile.c_str());
+        .Msg("ZibraVDBResolver::_GetOrCreateDecompressorManager - Created new manager for file: '%s', UUID: %s\n", compressedFile.c_str(), uuidKey.c_str());
 
     return managerPtr;
 }
 
-void ZibraVDBResolver::_CleanupAllDecompressorManagers()
+void ZibraVDBResolver::CleanupAllDecompressorManagers()
 {
-    std::lock_guard<std::mutex> lock(s_decompressorManagersMutex);
+    std::lock_guard<std::mutex> lock(g_DecompressorManagersMutex);
 
-    TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_CleanupAllDecompressorManagers - Cleaning up %zu managers\n", s_decompressorManagers.size());
+    TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_CleanupAllDecompressorManagers - Cleaning up %zu managers\n", g_DecompressorManagers.size());
 
-    for (auto& [compressedFile, manager] : s_decompressorManagers)
+    for (auto& [compressedFile, manager] : g_DecompressorManagers)
     {
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_CleanupAllDecompressorManagers - Releasing manager for: '%s'\n", compressedFile.c_str());
         manager->Release();
     }
 
-    s_decompressorManagers.clear();
+    g_DecompressorManagers.clear();
 
     TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_CleanupAllDecompressorManagers - Cleanup completed\n");
 }
 
-void ZibraVDBResolver::_RestoreFileMetadataToVDB(Zibra::CE::Decompression::CompressedFrameContainer* frameContainer, openvdb::MetaMap& fileMetadata) const
+void ZibraVDBResolver::RestoreFileMetadataToVDB(Zibra::CE::Decompression::CompressedFrameContainer* frameContainer, openvdb::MetaMap& fileMetadata) const
 {
     TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_RestoreFileMetadataToVDB - Starting file metadata restoration\n");
 
@@ -503,7 +557,7 @@ void ZibraVDBResolver::_RestoreFileMetadataToVDB(Zibra::CE::Decompression::Compr
     TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_RestoreFileMetadataToVDB - File metadata restoration completed\n");
 }
 
-void ZibraVDBResolver::_RestoreGridMetadataToVDB(Zibra::CE::Decompression::CompressedFrameContainer* frameContainer, openvdb::GridPtrVec& vdbGrids) const
+void ZibraVDBResolver::RestoreGridMetadataToVDB(Zibra::CE::Decompression::CompressedFrameContainer* frameContainer, openvdb::GridPtrVec& vdbGrids) const
 {
     TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_RestoreGridMetadataToVDB - Starting grid metadata restoration\n");
 
