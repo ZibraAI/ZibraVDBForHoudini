@@ -345,7 +345,7 @@ jobs:
           mkdir merged
           mv ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-win64-vc143/* merged/
           mv ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-linux_x86_64_gcc11.2/dso/ZibraVDBForHoudini.so merged/dso/ZibraVDBForHoudini.so
-          mv zibraVDBResolver-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-linux_x86_64_gcc11.2/dso/usd/ZibraVDBForHoudini.so merged/dso/usd/zibraVDBResolver.so
+          mv zibraVDBResolver-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-linux_x86_64_gcc11.2/dso/usd/zibraVDBResolver.so merged/dso/usd/zibraVDBResolver.so
           lipo -create -output merged/dso/ZibraVDBForHoudini.dylib ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-macosx_arm64_clang15.0_14/dso/ZibraVDBForHoudini.dylib ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-macosx_x86_64_clang15.0_14/dso/ZibraVDBForHoudini.dylib
           lipo -create -output merged/dso/usd/zibraVDBResolver.dylib zibraVDBResolver-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-macosx_arm64_clang15.0_14/dso/usd/zibraVDBResolver.dylib zibraVDBResolver-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-macosx_x86_64_clang15.0_14/dso/usd/zibraVDBResolver.dylib
 
