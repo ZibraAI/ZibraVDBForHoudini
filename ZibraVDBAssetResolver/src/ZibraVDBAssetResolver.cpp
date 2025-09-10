@@ -303,11 +303,11 @@ std::string ZibraVDBResolver::DecompressZibraVDBFile(const std::string& zibraVDB
     }
 
     auto frameRange = decompressor->GetFrameRange();
-    if (frame < frameRange.startFrame || frame > frameRange.endFrame)
+    if (frame < frameRange.start || frame > frameRange.end)
     {
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
             .Msg("ZibraVDBResolver::_DecompressZibraVDBFile - Frame index %d is out of bounds [%d, %d]\n", 
-                 frame, frameRange.startFrame, frameRange.endFrame);
+                 frame, frameRange.start, frameRange.end);
         return std::string();
     }
 
