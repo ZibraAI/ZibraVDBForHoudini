@@ -186,16 +186,21 @@ find_package(Houdini REQUIRED)
 
 target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini ZibraVDBCommon)
 if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
+    # Select boost python target based on Houdini version
+    if(${Houdini_VERSION_MAJOR} GREATER_EQUAL 21)
+        set(HOUDINI_BOOST_PYTHON_TARGET "pxr_python")
+    else()
+        set(HOUDINI_BOOST_PYTHON_TARGET "hboost_python")
+    endif()
+    
     target_link_libraries(ZibraVDBForHoudini PRIVATE
-            Houdini::Dep::openvdb_sesi
-            #TODO check if we need it
-            Houdini::Dep::hboost_python
+        Houdini::Dep::openvdb_sesi
+        Houdini::Dep::${HOUDINI_BOOST_PYTHON_TARGET}
 
-            Houdini::Dep::pxr_tf
-            Houdini::Dep::pxr_sdf
-            Houdini::Dep::pxr_usd
-            Houdini::Dep::pxr_usdVol
-            Houdini::Dep::pxr_plug
+        Houdini::Dep::pxr_tf
+        Houdini::Dep::pxr_sdf
+        Houdini::Dep::pxr_usd
+        Houdini::Dep::pxr_usdVol
     )
     if(DEFINED _houdini_python_version)
         set(PYTHON_TARGET_NAME "python${_houdini_python_version}")
