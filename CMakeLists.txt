@@ -179,37 +179,40 @@ else()
     add_dependencies(ZibraVDBForHoudini ZibraVDBForHoudiniAssetsCopy ZibraVDBForHoudiniCopyrightCopy)
 endif()
 
+add_subdirectory(common)
+
 list(APPEND CMAKE_PREFIX_PATH "${HOUDINI_PATH}/toolkit/cmake")
 find_package(Houdini REQUIRED)
 
-# Add common subdirectory first so ZibraVDBCommon target is available
-add_subdirectory(common)
+target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini ZibraVDBCommon)
+if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
+    target_link_libraries(ZibraVDBForHoudini PRIVATE
+            Houdini::Dep::openvdb_sesi
+            #TODO check if we need it
+            Houdini::Dep::hboost_python
 
-get_target_property(HOUDINI_THIRD_PARTY_LIBS HoudiniThirdParty INTERFACE_LINK_LIBRARIES)
-if(HOUDINI_THIRD_PARTY_LIBS)
-    set(FILTERED_LIBS)
-    foreach(lib IN LISTS HOUDINI_THIRD_PARTY_LIBS)
-        if(lib MATCHES "Houdini::Dep::Qt5")
-            continue()
-        endif()
-        list(APPEND FILTERED_LIBS ${lib})
-    endforeach()
-    set_target_properties(HoudiniThirdParty PROPERTIES INTERFACE_LINK_LIBRARIES "${FILTERED_LIBS}")
-endif()
-
-target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini HoudiniThirdParty ZibraVDBCommon)
-
-if("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
-    # we still need to explicitly link the python lib for mac
-    target_link_libraries(ZibraVDBForHoudini PRIVATE ${HOUDINI_PATH}/Frameworks/Python.framework/Versions/Current/lib/libpython${_houdini_python_version}.dylib)
-endif()
-
-string(REPLACE "." "" _houdini_python_dotless_version ${_houdini_python_version})
-if("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
-    target_link_options(ZibraVDBForHoudini PRIVATE
-        "$<$<CONFIG:Debug>:/NODEFAULTLIB:python${_houdini_python_dotless_version}_d.lib>"
+            Houdini::Dep::pxr_tf
+            Houdini::Dep::pxr_sdf
+            Houdini::Dep::pxr_usd
+            Houdini::Dep::pxr_usdVol
+            Houdini::Dep::pxr_plug
     )
-endif()
+    if(DEFINED _houdini_python_version)
+        set(PYTHON_TARGET_NAME "python${_houdini_python_version}")
+        if(TARGET Houdini::Dep::${PYTHON_TARGET_NAME})
+            target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::${PYTHON_TARGET_NAME})
+            message(STATUS "ZibraVDBForHoudini linking with Houdini::Dep::${PYTHON_TARGET_NAME}")
+        else()
+            message(WARNING "ZibraVDBForHoudini: Target Houdini::Dep::${PYTHON_TARGET_NAME} not found")
+        endif()
+    else()
+        message(WARNING "ZibraVDBForHoudini: Houdini Python version not detected")
+    endif()
+elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
+    # TODO check if we can just use Houdini::Dep::python
+    target_link_libraries(ZibraVDBForHoudini PRIVATE ${HOUDINI_PATH}/Frameworks/Python.framework/Versions/Current/lib/libpython${_houdini_python_version}.dylib)
+endif ()
+
 
 set(DETECTED_HOUDINI_VERSION "${Houdini_VERSION_MAJOR}.${Houdini_VERSION_MINOR}")
 cmake_print_variables(DETECTED_HOUDINI_VERSION)
