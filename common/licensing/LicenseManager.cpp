@@ -215,7 +215,7 @@ namespace Zibra
         if (offlineLicenseTrimmed.empty() || offlineLicenseTrimmed.front() != '{' || offlineLicenseTrimmed.back() != '}')
         {
             UI::MessageBox::Show(UI::MessageBox::Type::OK,
-                                "Invalid offline license format. Please enter offline license in format: \"{ \"license_info\": ... }\".");
+                                 "Invalid offline license format. Please enter offline license in format: \"{ \"license_info\": ... }\".");
             return;
         }
 

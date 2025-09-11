@@ -8,7 +8,7 @@ set(COMMON_HEADERS
     bridge/LibraryUtils.h
     bridge/UpdateCheck.h
     bridge/networking/NetworkRequest.h
-    SOP/DecompressorManager/DecompressorManager.h
+        utils/DecompressorManager.h
     ui/MessageBox.h
     ui/PluginManagementWindow.h
 )
@@ -19,7 +19,7 @@ set(COMMON_SOURCES
     bridge/LibraryUtils.cpp
     bridge/UpdateCheck.cpp
     bridge/networking/NetworkRequest.cpp
-    SOP/DecompressorManager/DecompressorManager.cpp
+        utils/DecompressorManager.cpp
     ui/MessageBox.cpp
     ui/PluginManagementWindow.cpp
 )

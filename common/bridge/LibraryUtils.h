@@ -29,6 +29,5 @@ namespace Zibra::LibraryUtils {
     Version GetZibSDKVersion() noexcept;
 
     std::vector<std::filesystem::path> GetZibraLibsBasePaths() noexcept;
-    //TODO verify this
     std::vector<std::string> GetZibSDKPaths() noexcept;
 } // namespace Zibra::LibraryUtils

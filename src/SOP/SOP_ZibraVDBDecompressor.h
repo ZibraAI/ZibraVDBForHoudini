@@ -1,6 +1,6 @@
 #pragma once
+#include "../../common/utils/DecompressorManager.h"
 #include "Globals.h"
-#include "SOP/DecompressorManager/DecompressorManager.h"
 
 namespace Zibra::ZibraVDBDecompressor
 {

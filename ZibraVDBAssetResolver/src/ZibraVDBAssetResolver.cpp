@@ -1,11 +1,11 @@
 #include "ZibraVDBAssetResolver.h"
 
+#include <SYS/SYS_Hash.h>
+#include <UT/UT_Exit.h>
 #include <csignal>
 #include <pxr/usd/ar/defaultResolver.h>
 #include <string>
 
-#include <UT/UT_Exit.h>
-#include <SYS/SYS_Hash.h>
 #include "pxr/base/tf/fileUtils.h"
 #include "pxr/base/tf/getenv.h"
 #include "pxr/base/tf/pathUtils.h"
@@ -26,52 +26,49 @@ TF_REGISTRY_FUNCTION(TfDebug)
     TF_DEBUG_ENVIRONMENT_SYMBOL(ZIBRAVDBRESOLVER_RESOLVER_CONTEXT, "Print debug output during ZibraVDB context creating and modification");
 }
 
-namespace {
-    class ZibraVDBResolverContext
+class ZibraVDBResolverContext
+{
+public:
+    ZibraVDBResolverContext()
     {
-    public:
-        ZibraVDBResolverContext()
-        {
-            m_TmpDir = TfGetenv("HOUDINI_TEMP_DIR");
-            TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER_CONTEXT).Msg(
-                "ZibraVDBResolverContext: Using temp directory: %s\n", m_TmpDir.c_str());
-        }
-        
-        ZibraVDBResolverContext(const std::string &tmpdir)
-            : m_TmpDir(tmpdir.empty() ? TfGetenv("HOUDINI_TEMP_DIR") : tmpdir)
-        {
-            TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER_CONTEXT).Msg(
-                "ZibraVDBResolverContext: Using temp directory: %s\n", m_TmpDir.c_str());
-        }
-
-        bool operator<(const ZibraVDBResolverContext& rhs) const
-        { return m_TmpDir < rhs.m_TmpDir; }
-        
-        bool operator==(const ZibraVDBResolverContext& rhs) const
-        { return m_TmpDir == rhs.m_TmpDir; }
-        
-        bool operator!=(const ZibraVDBResolverContext& rhs) const
-        { return m_TmpDir != rhs.m_TmpDir; }
-
-        const std::string &getTmpDir() const
-        { return m_TmpDir; }
-
-    private:
-        std::string m_TmpDir;
-    };
-
-    size_t
-    hash_value(const ZibraVDBResolverContext& context)
-    {
-        size_t hash = SYShash(context.getTmpDir());
-        return hash;
+        m_TmpDir = TfGetenv("HOUDINI_TEMP_DIR");
+        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER_CONTEXT).Msg(
+            "ZibraVDBResolverContext: Using temp directory: %s\n", m_TmpDir.c_str());
     }
+
+    ZibraVDBResolverContext(const std::string &tmpdir)
+        : m_TmpDir(tmpdir.empty() ? TfGetenv("HOUDINI_TEMP_DIR") : tmpdir)
+    {
+        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER_CONTEXT).Msg(
+            "ZibraVDBResolverContext: Using temp directory: %s\n", m_TmpDir.c_str());
+    }
+
+    bool operator<(const ZibraVDBResolverContext& rhs) const
+    { return m_TmpDir < rhs.m_TmpDir; }
+
+    bool operator==(const ZibraVDBResolverContext& rhs) const
+    { return m_TmpDir == rhs.m_TmpDir; }
+
+    bool operator!=(const ZibraVDBResolverContext& rhs) const
+    { return m_TmpDir != rhs.m_TmpDir; }
+
+    const std::string &getTmpDir() const
+    { return m_TmpDir; }
+
+private:
+    std::string m_TmpDir;
+};
+
+size_t
+hash_value(const ZibraVDBResolverContext& context)
+{
+    size_t hash = SYShash(context.getTmpDir());
+    return hash;
 }
 
 AR_DECLARE_RESOLVER_CONTEXT(ZibraVDBResolverContext);
 
 AR_DEFINE_RESOLVER(ZIBRAVDB_RESOLVER_CLASS_NAME, ArResolver);
-
 
 ZibraVDBResolver::ZibraVDBResolver()
 {
@@ -143,16 +140,17 @@ ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
     {
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
             .Msg("ZibraVDBResolver::_Resolve - ZibraVDB file does not exist: '%s'\n", actualFilePath.c_str());
-        return ArResolvedPath();
+        return {};
     }
 
+    const auto* ctx = _GetCurrentContextObject<ZibraVDBResolverContext>();
+    if (!ctx || ctx->getTmpDir().empty()) {
+        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
+            .Msg("ZibraVDBResolver::_Resolve - No valid context or temp directory found\n");
+        return {};
+    }
 
-    static const std::string theDefaultTempDir(TfGetenv("HOUDINI_TEMP_DIR"));
-    std::string tmpDir = theDefaultTempDir;
-    
-    const ZibraVDBResolverContext* ctx = _GetCurrentContextObject<ZibraVDBResolverContext>();
-    if (ctx && !ctx->getTmpDir().empty())
-        tmpDir = ctx->getTmpDir();
+    std::string tmpDir = ctx->getTmpDir();
 
     TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
         .Msg("ZibraVDBResolver::_Resolve - Using temp directory: '%s'\n", tmpDir.c_str());
@@ -194,6 +192,12 @@ ArResolverContext ZibraVDBResolver::_CreateContextFromString(const std::string& 
     return ArResolverContext(ZibraVDBResolverContext(contextStr));
 }
 
+ArResolverContext ZibraVDBResolver::_CreateDefaultContext() const
+{
+    TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER_CONTEXT).Msg("ZibraVDBResolver::_CreateDefaultContext - Creating default resolver context\n");
+    return ArResolverContext(ZibraVDBResolverContext());
+}
+
 bool ZibraVDBResolver::_IsContextDependentPath(const std::string& path) const
 {
     return IsZibraVDBPath(path);
@@ -213,7 +217,7 @@ std::string ZibraVDBResolver::ParseZibraVDBURI(const std::string& uri, int& fram
     {
         return uri;
     }
-    
+
     if (uri.find('?', questionMarkPos + 1) != std::string::npos)
     {
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::ParseZibraVDBURI - Multiple '?' characters found in URI: '%s'\n", uri.c_str());
@@ -225,14 +229,14 @@ std::string ZibraVDBResolver::ParseZibraVDBURI(const std::string& uri, int& fram
 
     std::string frameParam;
     bool foundFrame = false;
-    
+
     size_t start = 0;
     size_t ampPos;
     do
     {
         ampPos = queryString.find('&', start);
         std::string param = (ampPos == std::string::npos) ? queryString.substr(start) : queryString.substr(start, ampPos - start);
-        
+
         if (param.substr(0, 6) == "frame=")
         {
             std::string frameValue = param.substr(6);
@@ -243,7 +247,7 @@ std::string ZibraVDBResolver::ParseZibraVDBURI(const std::string& uri, int& fram
             frameParam = frameValue;
             foundFrame = true;
         }
-        
+
         start = ampPos + 1;
     } while (ampPos != std::string::npos);
 
@@ -254,21 +258,14 @@ std::string ZibraVDBResolver::ParseZibraVDBURI(const std::string& uri, int& fram
     return path;
 }
 
-
-
-
-
 void ZibraVDBResolver::CleanupAllDecompressedFilesStatic()
 {
-    ZibraVDBDecompressionManager::CleanupAllDecompressedFilesStatic();
+    Zibra::AssetResolver::DecompressionHelper::CleanupAllDecompressedFilesStatic();
 }
-
 
 void ZibraVDBResolver::CleanupAllDecompressorManagers()
 {
-    ZibraVDBDecompressionManager::CleanupAllDecompressorManagers();
+    Zibra::AssetResolver::DecompressionHelper::CleanupAllDecompressorManagers();
 }
-
-
 
 PXR_NAMESPACE_CLOSE_SCOPE

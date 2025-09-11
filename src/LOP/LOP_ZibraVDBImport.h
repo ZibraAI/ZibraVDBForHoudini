@@ -1,6 +1,6 @@
 #pragma once
+#include <utils/DecompressorManager.h>
 #include <LOP/LOP_Node.h>
-#include <SOP/DecompressorManager/DecompressorManager.h>
 #include <pxr/usd/usd/common.h>
 #include <pxr/usd/usdVol/volume.h>
 
@@ -47,7 +47,7 @@ namespace Zibra::ZibraVDBImport
         static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate);
 
     private:
-        Zibra::Helpers::DecompressorManager m_DecompressorManager;
+        Helpers::DecompressorManager m_DecompressorManager;
         std::string m_LastFilePath;
         std::set<std::string> m_AvailableGrids;
     };

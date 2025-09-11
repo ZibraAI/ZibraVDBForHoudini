@@ -3,12 +3,16 @@
 #include <memory>
 #include <string>
 
-#include "ZibraVDBDecompressionManager.h"
-#include "pxr/pxr.h"
+#include "DecompressionHelper.h"
 #include "pxr/base/tf/debug.h"
+#include "pxr/pxr.h"
 #include "pxr/usd/ar/resolver.h"
 
-#define ZIBRAVDBRESOLVER_API
+#ifdef _WIN32
+    #define ZIB_RESOLVER_API __declspec(dllexport)
+#else
+    #define ZIB_RESOLVER_API
+#endif
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -17,7 +21,7 @@ TF_DEBUG_CODES(
     ZIBRAVDBRESOLVER_RESOLVER_CONTEXT
 );
 
-class ZIBRAVDBRESOLVER_API ZibraVDBResolver : public ArResolver
+class ZIB_RESOLVER_API ZibraVDBResolver : public ArResolver
 {
 public:
     ZibraVDBResolver();
@@ -43,6 +47,8 @@ protected:
     ArResolverContext _CreateContextFromString(
         const std::string& contextStr) const final;
 
+    ArResolverContext _CreateDefaultContext() const final;
+
     bool _IsContextDependentPath(
         const std::string &assetPath) const final;
 
@@ -59,24 +65,24 @@ private:
     bool IsZibraVDBPath(const std::string& path) const;
     std::string ParseZibraVDBURI(const std::string& uri, int& frame) const;
 
-    mutable ZibraVDBDecompressionManager m_decompressionManager;
+    mutable Zibra::AssetResolver::DecompressionHelper m_decompressionManager;
 };
 
-class ZIBRAVDBRESOLVER_API ZibraVDBResolver_Linux final : public ZibraVDBResolver
+class ZIB_RESOLVER_API ZibraVDBResolver_Linux final : public ZibraVDBResolver
 {
 public:
     ZibraVDBResolver_Linux() = default;
     virtual ~ZibraVDBResolver_Linux() = default;
 };
 
-class ZIBRAVDBRESOLVER_API ZibraVDBResolver_Mac final : public ZibraVDBResolver
+class ZIB_RESOLVER_API ZibraVDBResolver_Mac final : public ZibraVDBResolver
 {
 public:
     ZibraVDBResolver_Mac() = default;
     virtual ~ZibraVDBResolver_Mac() = default;
 };
 
-class ZIBRAVDBRESOLVER_API ZibraVDBResolver_Win final : public ZibraVDBResolver
+class ZIB_RESOLVER_API ZibraVDBResolver_Win final : public ZibraVDBResolver
 {
 public:
     ZibraVDBResolver_Win() = default;

@@ -23,10 +23,6 @@
 #include <utility>
 #include <vector>
 
-#if __cplusplus >= 202002L
-#include <bit>
-#endif
-
 #if ZIB_TARGET_OS_WIN
 #include <codecvt>
 #include <locale>
@@ -115,5 +111,4 @@
 #include <Zibra/CE/Decompression.h>
 #include <Zibra/CE/Licensing.h>
 
-// Project includes
 #include "Globals.h"
