@@ -45,11 +45,13 @@ namespace Zibra::AssetResolver
             }
         }
 
-        if (!CheckLicenseAndLoadLib())
+        if (!LoadSDKLib())
         {
-            TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBDecompressionManager::DecompressZibraVDBFile - Failed to initialize ZibraVDB SDK (library loading or license check failed)\n");
+            TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBDecompressionManager::DecompressZibraVDBFile - Failed to initialize ZibraVDB SDK\n");
             return std::string();
         }
+
+        ::Zibra::LicenseManager::GetInstance().CheckLicense(::Zibra::LicenseManager::Product::Decompression);
 
         auto* decompressor = GetOrCreateDecompressorManager(zibraVDBPath);
         if (!decompressor)
@@ -118,7 +120,7 @@ namespace Zibra::AssetResolver
 
     void DecompressionHelper::AddDecompressedFile(const std::string& compressedFile, const std::string& decompressedFile)
     {
-        std::lock_guard<std::mutex> lock(g_DecompressedFilesMutex);
+        std::lock_guard lock(g_DecompressedFilesMutex);
         g_DecompressedFilesDict[compressedFile].insert(decompressedFile);
     }
 
@@ -127,27 +129,28 @@ namespace Zibra::AssetResolver
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBDecompressionManager::CleanupUnneededDecompressedFiles - Cleaning up for compressed file: '%s', keeping: '%s'\n", currentCompressedFile.c_str(), currentDecompressedFile.c_str());
 
         {
-            std::lock_guard<std::mutex> lock(g_DecompressedFilesMutex);
+            std::lock_guard lock(g_DecompressedFilesMutex);
 
-            auto it = g_DecompressedFilesDict.find(currentCompressedFile);
-            if (it != g_DecompressedFilesDict.end())
+            const auto it = g_DecompressedFilesDict.find(currentCompressedFile);
+            if (it == g_DecompressedFilesDict.end())
             {
-                auto& fileSet = it->second;
-                for (auto fileIt = fileSet.begin(); fileIt != fileSet.end();)
+                return;
+            }
+            auto& fileSet = it->second;
+            for (auto fileIt = fileSet.begin(); fileIt != fileSet.end();)
+            {
+                if (*fileIt != currentDecompressedFile)
                 {
-                    if (*fileIt != currentDecompressedFile)
+                    if (TfPathExists(*fileIt))
                     {
-                        if (TfPathExists(*fileIt))
-                        {
-                            TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBDecompressionManager::CleanupUnneededDecompressedFiles - Deleting: '%s'\n", fileIt->c_str());
-                            TfDeleteFile(*fileIt);
-                        }
-                        fileIt = fileSet.erase(fileIt);
+                        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBDecompressionManager::CleanupUnneededDecompressedFiles - Deleting: '%s'\n", fileIt->c_str());
+                        TfDeleteFile(*fileIt);
                     }
-                    else
-                    {
-                        ++fileIt;
-                    }
+                    fileIt = fileSet.erase(fileIt);
+                }
+                else
+                {
+                    ++fileIt;
                 }
             }
         }
@@ -249,22 +252,20 @@ namespace Zibra::AssetResolver
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBDecompressionManager::CleanupAllDecompressorManagers - Cleanup completed\n");
     }
 
-    bool DecompressionHelper::CheckLicenseAndLoadLib()
+    bool DecompressionHelper::LoadSDKLib()
     {
         if (::Zibra::LibraryUtils::IsSDKLibraryLoaded())
         {
-            ::Zibra::LicenseManager::GetInstance().CheckLicense(::Zibra::LicenseManager::Product::Decompression);
             return true;
         }
 
         ::Zibra::LibraryUtils::LoadSDKLibrary();
         if (!::Zibra::LibraryUtils::IsSDKLibraryLoaded())
         {
-            TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBDecompressionManager::CheckLicenseAndLoadLib - Library not loaded, cannot initialize resolver\n");
+            TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBDecompressionManager::LoadSDKLib - Library not loaded, cannot initialize resolver\n");
             return false;
         }
 
-        ::Zibra::LicenseManager::GetInstance().CheckLicense(::Zibra::LicenseManager::Product::Decompression);
         return true;
     }
 

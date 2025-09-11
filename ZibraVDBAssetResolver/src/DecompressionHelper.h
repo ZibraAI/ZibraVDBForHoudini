@@ -14,7 +14,6 @@ PXR_NAMESPACE_OPEN_SCOPE
 
 namespace Zibra::AssetResolver
 {
-
     class DecompressionHelper
     {
     public:
@@ -31,7 +30,7 @@ namespace Zibra::AssetResolver
         ::Zibra::Helpers::DecompressorManager* GetOrCreateDecompressorManager(const std::string& compressedFile);
         void RestoreFileMetadataToVDB(::Zibra::CE::Decompression::CompressedFrameContainer* frameContainer, openvdb::MetaMap& fileMetadata);
         void RestoreGridMetadataToVDB(::Zibra::CE::Decompression::CompressedFrameContainer* frameContainer, openvdb::GridPtrVec& vdbGrids);
-        bool CheckLicenseAndLoadLib();
+        bool LoadSDKLib();
 
         static std::unordered_map<std::string, std::unordered_set<std::string>> g_DecompressedFilesDict;
         static std::mutex g_DecompressedFilesMutex;

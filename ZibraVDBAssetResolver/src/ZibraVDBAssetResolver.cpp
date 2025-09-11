@@ -4,6 +4,7 @@
 #include <UT/UT_Exit.h>
 #include <csignal>
 #include <pxr/usd/ar/defaultResolver.h>
+#include <regex>
 #include <string>
 
 #include "pxr/base/tf/fileUtils.h"
@@ -156,19 +157,19 @@ ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
         .Msg("ZibraVDBResolver::_Resolve - Using temp directory: '%s'\n", tmpDir.c_str());
 
     std::string decompressedPath = m_decompressionManager.DecompressZibraVDBFile(actualFilePath, tmpDir, frame);
-    if (!decompressedPath.empty())
+    if (decompressedPath.empty())
     {
-        m_decompressionManager.CleanupUnneededDecompressedFiles(actualFilePath, decompressedPath);
-        m_decompressionManager.AddDecompressedFile(actualFilePath, decompressedPath);
-
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
-            .Msg("ZibraVDBResolver::_Resolve - Successfully decompressed to: '%s'\n", decompressedPath.c_str());
-        return ArResolvedPath(decompressedPath);
+            .Msg("ZibraVDBResolver::_Resolve - Decompression failed for file '%s' (check temp directory permissions, decompressor manager initialization, frame availability, or compression format)\n", actualFilePath.c_str());
+        return ArResolvedPath();
     }
 
+    m_decompressionManager.CleanupUnneededDecompressedFiles(actualFilePath, decompressedPath);
+    m_decompressionManager.AddDecompressedFile(actualFilePath, decompressedPath);
+
     TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
-            .Msg("ZibraVDBResolver::_Resolve - Decompression failed for file '%s' (check temp directory permissions, decompressor manager initialization, frame availability, or compression format)\n", actualFilePath.c_str());
-    return ArResolvedPath();
+        .Msg("ZibraVDBResolver::_Resolve - Successfully decompressed to: '%s'\n", decompressedPath.c_str());
+    return ArResolvedPath(decompressedPath);
 }
 
 ArResolvedPath ZibraVDBResolver::_ResolveForNewAsset(const std::string& assetPath) const
@@ -205,7 +206,8 @@ bool ZibraVDBResolver::_IsContextDependentPath(const std::string& path) const
 
 bool ZibraVDBResolver::IsZibraVDBPath(const std::string& path) const
 {
-    return path.find(ZIB_ZIBRAVDB_EXT) != std::string::npos;
+    static const std::regex zibraVDBPattern(R"(.*\.zibravdb\?(.+=.+)(&.+=.+)*)");
+    return std::regex_match(path, zibraVDBPattern);
 }
 
 std::string ZibraVDBResolver::ParseZibraVDBURI(const std::string& uri, int& frame) const
