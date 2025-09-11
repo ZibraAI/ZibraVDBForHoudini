@@ -70,7 +70,7 @@ namespace {
 
 AR_DECLARE_RESOLVER_CONTEXT(ZibraVDBResolverContext);
 
-AR_DEFINE_RESOLVER(ZibraVDBResolver, ArResolver);
+AR_DEFINE_RESOLVER(ZIBRAVDB_RESOLVER_CLASS_NAME, ArResolver);
 
 
 ZibraVDBResolver::ZibraVDBResolver()
