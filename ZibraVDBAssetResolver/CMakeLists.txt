@@ -51,8 +51,7 @@ if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
         message(WARNING "zibraVDBResolver: Houdini Python version not detected")
     endif()
 elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
-    # TODO check if we can just use Houdini::Dep::python
-    target_link_libraries(zibraVDBResolver PRIVATE ${HOUDINI_PATH}/Frameworks/Python.framework/Versions/Current/lib/libpython${_houdini_python_version}.dylib)
+    target_link_libraries(zibraVDBResolver PRIVATE "-framework Python")
 endif ()
 
 # Use parent project's output directory structure
