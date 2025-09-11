@@ -2,10 +2,7 @@
 
 #include <HUSD/HUSD_OutputProcessor.h>
 #include <UT/UT_Version.h>
-
-#include <map>
 #include <openvdb/openvdb.h>
-#include <set>
 #include <string>
 #include <vector>
 
@@ -14,8 +11,6 @@
 
 namespace Zibra::ZibraVDBOutputProcessor
 {
-    using namespace CE::Compression;
-
     constexpr const char* OUTPUT_PROCESSOR_NAME = "ZibraVDBCompressionProcessor";
 
     class ZibraVDBOutputProcessor : public HUSD_OutputProcessor
@@ -23,20 +18,13 @@ namespace Zibra::ZibraVDBOutputProcessor
     private:
         struct CompressionSequenceEntryKey
         {
-            Zibra::ZibraVDBUSDExport::SOP_ZibraVDBUSDExport* sopNode;
-            Zibra::CE::Compression::CompressorManager* compressorManager;
+            ZibraVDBUSDExport::SOP_ZibraVDBUSDExport* sopNode;
+            CE::Compression::CompressorManager* compressorManager;
             std::string referencingLayerPath;
             std::string outputFile;
             float quality;
             
-            bool operator<(const CompressionSequenceEntryKey& other) const
-            {
-                if (sopNode != other.sopNode) return sopNode < other.sopNode;
-                if (referencingLayerPath != other.referencingLayerPath) return referencingLayerPath < other.referencingLayerPath;
-                if (outputFile != other.outputFile) return outputFile < other.outputFile;
-                if (quality != other.quality) return quality < other.quality;
-                return compressorManager < other.compressorManager;
-            }
+            bool operator<(const CompressionSequenceEntryKey& other) const;
         };
 
     public:
@@ -70,9 +58,9 @@ namespace Zibra::ZibraVDBOutputProcessor
 
     private:
         bool CheckLibAndLicense(UT_String& error);
-        std::string convertToUncompressedPath(const std::string& zibravdbPath);
-        void extractVDBFromSOP(SOP_Node* sopNode, fpreal t, CompressorManager* compressorManager, bool compress = true);
-        static void compressGrids(std::vector<openvdb::GridBase::ConstPtr>& grids, std::vector<std::string>& gridNames,
+        std::string ConvertToUncompressedPath(const std::string& zibravdbPath);
+        void ExtractVDBFromSOP(SOP_Node* sopNode, fpreal t, CE::Compression::CompressorManager* compressorManager, bool compress = true);
+        static void CompressGrids(std::vector<openvdb::GridBase::ConstPtr>& grids, std::vector<std::string>& gridNames,
                                   CE::Compression::CompressorManager* compressorManager, const GU_Detail* gdp);
         static std::vector<std::pair<std::string, std::string>> DumpAttributes(const GU_Detail* gdp, const CE::Addons::OpenVDBUtils::EncodingMetadata& encodingMetadata) noexcept;
         static void DumpVisualisationAttributes(std::vector<std::pair<std::string, std::string>>& attributes, const GEO_PrimVDB* vdbPrim) noexcept;
@@ -82,7 +70,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         static void DumpDecodeMetadata(std::vector<std::pair<std::string, std::string>>& result, const CE::Addons::OpenVDBUtils::EncodingMetadata& encodingMetadata);
 
     private:
-        std::map<CompressionSequenceEntryKey, std::vector<std::pair<int, std::string>>> m_InMemoryCompressionEntries;
+        std::vector<std::pair<CompressionSequenceEntryKey, std::vector<std::pair<int, std::string>>>> m_CompressionEntries;
     };
 
     HUSD_OutputProcessorPtr createZibraVDBOutputProcessor();

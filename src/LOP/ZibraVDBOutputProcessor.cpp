@@ -6,30 +6,38 @@
 #include <GU/GU_Detail.h>
 #include <GU/GU_PrimVDB.h>
 #include <LOP/LOP_Node.h>
+#include <OP/OP_Context.h>
 #include <OP/OP_Director.h>
 #include <OP/OP_Node.h>
-#include <OP/OP_Context.h>
 #include <SOP/SOP_Node.h>
+#include <UT/UT_ErrorManager.h>
 #include <UT/UT_FileUtil.h>
 #include <UT/UT_StringHolder.h>
 #include <UT/UT_WorkBuffer.h>
-#include <UT/UT_ErrorManager.h>
 #include <Zibra/CE/Addons/OpenVDBFrameLoader.h>
 #include <Zibra/CE/Compression.h>
 #include <algorithm>
 #include <filesystem>
-#include <openvdb/io/File.h>
 #include <regex>
 #include <sstream>
 
+#include "SOP/SOP_ZibraVDBUSDExport.h"
 #include "bridge/LibraryUtils.h"
 #include "licensing/LicenseManager.h"
-#include "SOP/SOP_ZibraVDBUSDExport.h"
 #include "utils/GAAttributesDump.h"
 
 namespace Zibra::ZibraVDBOutputProcessor
 {
     using namespace std::literals;
+
+    bool ZibraVDBOutputProcessor::CompressionSequenceEntryKey::operator<(const CompressionSequenceEntryKey& other) const
+    {
+        if (sopNode != other.sopNode) return sopNode < other.sopNode;
+        if (referencingLayerPath != other.referencingLayerPath) return referencingLayerPath < other.referencingLayerPath;
+        if (outputFile != other.outputFile) return outputFile < other.outputFile;
+        if (quality != other.quality) return quality < other.quality;
+        return compressorManager < other.compressorManager;
+    }
 
     ZibraVDBOutputProcessor::ZibraVDBOutputProcessor()
     {
@@ -66,7 +74,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         return true;
     }
 
-    std::string ZibraVDBOutputProcessor::convertToUncompressedPath(const std::string& zibravdbPath)
+    std::string ZibraVDBOutputProcessor::ConvertToUncompressedPath(const std::string& zibravdbPath)
     {
         // This is used as fallback when no sdk lib present or license failed
         // path/name.zibravdb?node=nodename&frame=X&quality=Y to path/name.frame.vdb
@@ -130,7 +138,7 @@ namespace Zibra::ZibraVDBOutputProcessor
 #endif
                                            )
     {
-        m_InMemoryCompressionEntries.clear();
+        m_CompressionEntries.clear();
     }
 
     bool ZibraVDBOutputProcessor::processSavePath(const UT_StringRef& asset_path, const UT_StringRef& referencing_layer_path,
@@ -142,7 +150,7 @@ namespace Zibra::ZibraVDBOutputProcessor
             UT_String libError;
             if (!CheckLibAndLicense(libError))
             {
-                std::string uncompressedPath = convertToUncompressedPath(pathStr);
+                std::string uncompressedPath = ConvertToUncompressedPath(pathStr);
                 newpath = UT_String(uncompressedPath);
                 error = libError;
                 return true;
@@ -194,7 +202,7 @@ namespace Zibra::ZibraVDBOutputProcessor
             std::string name = zibravdb_path.stem().string();
             std::string output_file_str = "zibravdb://" + dir + "/" + name + "." + std::to_string(frame_index) + ".vdb";
 
-            auto& entries = m_InMemoryCompressionEntries;
+            auto& entries = m_CompressionEntries;
             auto it =
                 std::find_if(entries.begin(), entries.end(), [sop_node](const auto& entry) { return entry.first.sopNode == sop_node; });
             if (it == entries.end()) {
@@ -224,7 +232,7 @@ namespace Zibra::ZibraVDBOutputProcessor
                     assert(false && ("Failed to start sequence for compression, status: " + std::to_string(static_cast<int>(status))).c_str());
                     return false;
                 }
-                entries[entryKey] = {{frame_index, output_file_str}};
+                entries.emplace_back(entryKey, std::vector<std::pair<int, std::string>>{{frame_index, output_file_str}});
             }
             else {
                 it->second.push_back({frame_index, output_file_str});
@@ -273,7 +281,7 @@ namespace Zibra::ZibraVDBOutputProcessor
             std::string layerPath = referencing_layer_path.toStdString();
             
             // Find matching entry by comparing SOP node paths
-            auto it = std::find_if(m_InMemoryCompressionEntries.begin(), m_InMemoryCompressionEntries.end(), 
+            auto it = std::find_if(m_CompressionEntries.begin(), m_CompressionEntries.end(), 
                 [&layerPath, &extractedPath](const auto& entry) {
                     bool layerMatches = entry.first.referencingLayerPath == layerPath;
                     std::string sopNodePath = entry.first.sopNode->getFullPath().c_str();
@@ -282,7 +290,7 @@ namespace Zibra::ZibraVDBOutputProcessor
                     return layerMatches && pathMatches;
                 });
                 
-            if (it != m_InMemoryCompressionEntries.end()) {
+            if (it != m_CompressionEntries.end()) {
                 auto& entry = *it;
                 int compressionFrameIndex = OPgetDirector()->getChannelManager()->getFrame(t);
                 std::string outputRef = entry.first.outputFile + "?frame=" + std::to_string(compressionFrameIndex);
@@ -294,11 +302,11 @@ namespace Zibra::ZibraVDBOutputProcessor
                         for (int i = 0; i < compressionFrameIndex; ++i)
                         {
                             fpreal tmpTime = OPgetDirector()->getChannelManager()->getTime(i);
-                            extractVDBFromSOP(entry.first.sopNode, tmpTime, entry.first.compressorManager, false);
+                            ExtractVDBFromSOP(entry.first.sopNode, tmpTime, entry.first.compressorManager, false);
                         }
                     }
                 }
-                extractVDBFromSOP(entry.first.sopNode, t, entry.first.compressorManager);
+                ExtractVDBFromSOP(entry.first.sopNode, t, entry.first.compressorManager);
                 return true;
             }
         }
@@ -307,7 +315,7 @@ namespace Zibra::ZibraVDBOutputProcessor
 
     bool ZibraVDBOutputProcessor::processLayer(const UT_StringRef& identifier, UT_String& error)
     {
-        for (const auto& sequence : m_InMemoryCompressionEntries)
+        for (const auto& sequence : m_CompressionEntries)
         {
             if (sequence.first.compressorManager)
             {
@@ -321,12 +329,12 @@ namespace Zibra::ZibraVDBOutputProcessor
                 delete sequence.first.compressorManager;
             }
         }
-        m_InMemoryCompressionEntries.clear();
+        m_CompressionEntries.clear();
 
         return true;
     }
 
-    void ZibraVDBOutputProcessor::extractVDBFromSOP(SOP_Node* sopNode, fpreal t, CompressorManager* compressorManager, bool compress)
+    void ZibraVDBOutputProcessor::ExtractVDBFromSOP(SOP_Node* sopNode, fpreal t, CE::Compression::CompressorManager* compressorManager, bool compress)
     {
         if (!sopNode)
             return;
@@ -375,7 +383,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         }
         if (!grids.empty())
         {
-            compressGrids(grids, gridNames, compressorManager, gdp);
+            CompressGrids(grids, gridNames, compressorManager, gdp);
         }
         else
         {
@@ -383,7 +391,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         }
     }
 
-    void ZibraVDBOutputProcessor::compressGrids(std::vector<openvdb::GridBase::ConstPtr>& grids, std::vector<std::string>& gridNames,
+    void ZibraVDBOutputProcessor::CompressGrids(std::vector<openvdb::GridBase::ConstPtr>& grids, std::vector<std::string>& gridNames,
                                                 CE::Compression::CompressorManager* compressorManager, const GU_Detail* gdp)
     {
         if (grids.empty())

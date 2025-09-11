@@ -201,7 +201,7 @@ bool ZibraVDBResolver::_IsContextDependentPath(const std::string& path) const
 
 bool ZibraVDBResolver::IsZibraVDBPath(const std::string& path) const
 {
-    return path.find(ZIB_VDB_EXT) != std::string::npos;
+    return path.find(ZIB_ZIBRAVDB_EXT) != std::string::npos;
 }
 
 std::string ZibraVDBResolver::ParseZibraVDBURI(const std::string& uri, int& frame) const

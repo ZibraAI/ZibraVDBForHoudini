@@ -23,25 +23,26 @@ namespace Zibra::ZibraVDBImport
         ~LOP_ZibraVDBImport() noexcept final;
 
         OP_ERROR cookMyLop(OP_Context& context) final;
-        bool updateParmsFlags() override;
+        bool updateParmsFlags() final;
         
-        std::string getFilePath(fpreal t) const;
-        std::string getPrimitivePath(fpreal t) const;
-        std::string getParentPrimType(fpreal t) const;
-        std::string getFields(fpreal t) const;
+    private:
+        std::string GetFilePath(fpreal t) const;
+        std::string GetPrimitivePath(fpreal t) const;
+        std::string GetParentPrimType(fpreal t) const;
+        std::string GetFields(fpreal t) const;
 
     private:
-        std::string sanitizeFieldNameForUSD(const std::string& fieldName);
-        std::vector<std::string> parseSelectedFields(const std::string& fieldsStr, const std::set<std::string>& availableGrids);
-        void parseAvailableGrids();
-        void updateFieldsChoiceList();
-        void createVolumeStructure(UsdStageRefPtr stage, const std::string& primPath, const std::string& primName,
+        std::string SanitizeFieldNameForUSD(const std::string& fieldName);
+        std::vector<std::string> ParseSelectedFields(const std::string& fieldsStr, const std::set<std::string>& availableGrids);
+        void ParseAvailableGrids();
+        void UpdateFieldsChoiceList();
+        void CreateVolumeStructure(UsdStageRefPtr stage, const std::string& primPath, const std::string& primName,
                                    const std::vector<std::string>& selectedFields, const std::string& parentPrimType, fpreal t,
                                    int frameIndex);
-        void createOpenVDBAssetPrim(UsdStageRefPtr stage, const std::string& volumePath, const std::string& fieldName,
+        void CreateOpenVDBAssetPrim(UsdStageRefPtr stage, const std::string& volumePath, const std::string& fieldName,
                                     const std::string& sanitizedFieldName, const std::string& filePath, int frameIndex);
-        void createFieldRelationship(UsdVolVolume& volumePrim, const std::string& fieldName, const std::string& assetPath);
-        std::string generateZibraVDBURL(const std::string& filePath, const std::string& fieldName, int frameNumber) const;
+        void CreateFieldRelationship(UsdVolVolume& volumePrim, const std::string& fieldName, const std::string& assetPath);
+        std::string GenerateZibraVDBURL(const std::string& filePath, const std::string& fieldName, int frameNumber) const;
 
         static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate);
 

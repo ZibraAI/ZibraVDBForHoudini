@@ -100,25 +100,25 @@ namespace Zibra::ZibraVDBImport
         flags().setTimeDep(true);
 
         if (cookModifyInput(context) >= UT_ERROR_FATAL)
-            return error();
+            return error(context);
 
         fpreal t = context.getTime();
         int frameIndex = context.getFrame();
-        std::string filePath = getFilePath(t);
-        std::string fullPrimPath = getPrimitivePath(t);
-        std::string parentPrimType = getParentPrimType(t);
-        std::string fields = getFields(t);
+        std::string filePath = GetFilePath(t);
+        std::string fullPrimPath = GetPrimitivePath(t);
+        std::string parentPrimType = GetParentPrimType(t);
+        std::string fields = GetFields(t);
 
         if (filePath.empty())
         {
             addError(LOP_MESSAGE, "No ZibraVDB file specified");
-            return error();
+            return error(context);
         }
 
         if (evalInt("__file_valid", 0, t) == 0)
         {
             addError(LOP_MESSAGE, "Invalid or missing ZibraVDB file");
-            return error();
+            return error(context);
         }
 
         Zibra::LicenseManager::GetInstance().CheckLicense(Zibra::LicenseManager::Product::Decompression);
@@ -126,7 +126,7 @@ namespace Zibra::ZibraVDBImport
         if (!LibraryUtils::IsZibSDKLoaded())
         {
             addError(LOP_MESSAGE, "ZibraVDB library not loaded");
-            return error();
+            return error(context);
         }
 
         if (m_LastFilePath != filePath)
@@ -141,14 +141,14 @@ namespace Zibra::ZibraVDBImport
                     return error(context);
                 }
                 
-                parseAvailableGrids();
-                updateFieldsChoiceList();
+                ParseAvailableGrids();
+                UpdateFieldsChoiceList();
                 m_LastFilePath = filePath;
             }
             else
             {
                 addError(LOP_MESSAGE, "ZibraVDB file does not exist");
-                return error();
+                return error(context);
             }
         }
 
@@ -158,7 +158,7 @@ namespace Zibra::ZibraVDBImport
         {
             addWarning(LOP_MESSAGE, ("No volume data available for frame " + std::to_string(currentFrame) +
                       " (ZibraVDB range: " + std::to_string(frameRange.start) + "-" + std::to_string(frameRange.end) + ")").c_str());
-            return error();
+            return error(context);
         }
 
         // TODO refine this logic
@@ -195,7 +195,7 @@ namespace Zibra::ZibraVDBImport
             primName = filename;
         }
 
-        std::vector<std::string> selectedFields = parseSelectedFields(fields, m_AvailableGrids);
+        std::vector<std::string> selectedFields = ParseSelectedFields(fields, m_AvailableGrids);
         if (selectedFields.empty())
         {
             addWarning(LOP_MESSAGE, "No valid fields selected");
@@ -208,11 +208,11 @@ namespace Zibra::ZibraVDBImport
         if (!stage)
         {
             addError(LOP_MESSAGE, "Failed to get USD stage");
-            return error();
+            return error(context);
         }
 
-        createVolumeStructure(stage, primPath, primName, selectedFields, parentPrimType, t, frameIndex);
-        return error();
+        CreateVolumeStructure(stage, primPath, primName, selectedFields, parentPrimType, t, frameIndex);
+        return UT_ERROR_NONE;
     }
 
     bool LOP_ZibraVDBImport::updateParmsFlags()
@@ -220,7 +220,7 @@ namespace Zibra::ZibraVDBImport
         bool changed = LOP_Node::updateParmsFlags();
         flags().setTimeDep(true);
 
-        std::string filePath = getFilePath(0);
+        std::string filePath = GetFilePath(0);
         bool isValidFile = false;
         
         if (!filePath.empty())
@@ -270,35 +270,35 @@ namespace Zibra::ZibraVDBImport
         return 0;
     }
     
-    std::string LOP_ZibraVDBImport::getFilePath(fpreal t) const
+    std::string LOP_ZibraVDBImport::GetFilePath(fpreal t) const
     {
         UT_String filePath;
         evalString(filePath, "file", 0, t);
         return filePath.toStdString();
     }
     
-    std::string LOP_ZibraVDBImport::getPrimitivePath(fpreal t) const
+    std::string LOP_ZibraVDBImport::GetPrimitivePath(fpreal t) const
     {
         UT_String primPath;
         evalString(primPath, "primpath", 0, t);
         return primPath.toStdString();
     }
     
-    std::string LOP_ZibraVDBImport::getParentPrimType(fpreal t) const
+    std::string LOP_ZibraVDBImport::GetParentPrimType(fpreal t) const
     {
         UT_String parentPrimType;
         evalString(parentPrimType, "parentprimtype", 0, t);
         return parentPrimType.toStdString();
     }
     
-    std::string LOP_ZibraVDBImport::getFields(fpreal t) const
+    std::string LOP_ZibraVDBImport::GetFields(fpreal t) const
     {
         UT_String fields;
         evalString(fields, "fields", 0, t);
         return fields.toStdString();
     }
     
-    void LOP_ZibraVDBImport::updateFieldsChoiceList()
+    void LOP_ZibraVDBImport::UpdateFieldsChoiceList()
     {
         static std::vector<std::string> staticGridNames;
         staticGridNames.clear();
@@ -327,7 +327,7 @@ namespace Zibra::ZibraVDBImport
         }
     }
 
-    std::string LOP_ZibraVDBImport::sanitizeFieldNameForUSD(const std::string& fieldName)
+    std::string LOP_ZibraVDBImport::SanitizeFieldNameForUSD(const std::string& fieldName)
     {
         std::string sanitized = fieldName;
         
@@ -366,7 +366,7 @@ namespace Zibra::ZibraVDBImport
         return sanitized;
     }
 
-    std::vector<std::string> LOP_ZibraVDBImport::parseSelectedFields(const std::string& fieldsStr, const std::set<std::string>& availableGrids)
+    std::vector<std::string> LOP_ZibraVDBImport::ParseSelectedFields(const std::string& fieldsStr, const std::set<std::string>& availableGrids)
     {
         std::vector<std::string> selectedFields;
         
@@ -391,7 +391,8 @@ namespace Zibra::ZibraVDBImport
             }
         }
         
-        if (!selectedFields.empty())
+        // TODO move the error handling outside
+        if (selectedFields.empty())
         {
             addError(LOP_MESSAGE, "No fields selected.");
         }
@@ -399,7 +400,7 @@ namespace Zibra::ZibraVDBImport
         return selectedFields;
     }
 
-    void LOP_ZibraVDBImport::parseAvailableGrids()
+    void LOP_ZibraVDBImport::ParseAvailableGrids()
     {
         if (!LibraryUtils::IsZibSDKLoaded())
         {
@@ -419,7 +420,7 @@ namespace Zibra::ZibraVDBImport
         }
     }
 
-    void LOP_ZibraVDBImport::createVolumeStructure(UsdStageRefPtr stage, const std::string& primPath, const std::string& primName,
+    void LOP_ZibraVDBImport::CreateVolumeStructure(UsdStageRefPtr stage, const std::string& primPath, const std::string& primName,
                                                    const std::vector<std::string>& selectedFields, const std::string& parentPrimType,
                                                    fpreal time, int frameIndex)
     {
@@ -428,7 +429,7 @@ namespace Zibra::ZibraVDBImport
             return;
         }
 
-        std::string filePath = getFilePath(time);
+        std::string filePath = GetFilePath(time);
         if (filePath.empty())
         {
             return;
@@ -521,9 +522,9 @@ namespace Zibra::ZibraVDBImport
 
         for (const std::string& fieldName : selectedFields)
         {
-            std::string sanitizedFieldName = sanitizeFieldNameForUSD(fieldName);
-            createOpenVDBAssetPrim(stage, volumePath, fieldName, sanitizedFieldName, filePath, frameIndex);
-            createFieldRelationship(volumePrim, sanitizedFieldName, volumePath + "/" + sanitizedFieldName);
+            std::string sanitizedFieldName = SanitizeFieldNameForUSD(fieldName);
+            CreateOpenVDBAssetPrim(stage, volumePath, fieldName, sanitizedFieldName, filePath, frameIndex);
+            CreateFieldRelationship(volumePrim, sanitizedFieldName, volumePath + "/" + sanitizedFieldName);
         }
 
         UT_StringArray primPaths;
@@ -531,7 +532,7 @@ namespace Zibra::ZibraVDBImport
         setLastModifiedPrims(primPaths);
     }
 
-    void LOP_ZibraVDBImport::createOpenVDBAssetPrim(UsdStageRefPtr stage, const std::string& volumePath, const std::string& fieldName,
+    void LOP_ZibraVDBImport::CreateOpenVDBAssetPrim(UsdStageRefPtr stage, const std::string& volumePath, const std::string& fieldName,
                                                     const std::string& sanitizedFieldName, const std::string& filePath, int frameIndex)
     {
         if (!stage)
@@ -574,7 +575,7 @@ namespace Zibra::ZibraVDBImport
             return;
         }
 
-        std::string zibraURL = generateZibraVDBURL(filePath, fieldName, frameIndex);
+        std::string zibraURL = GenerateZibraVDBURL(filePath, fieldName, frameIndex);
         UsdAttribute filePathAttr = openVDBAsset.GetFilePathAttr();
         if (filePathAttr)
         {
@@ -597,7 +598,7 @@ namespace Zibra::ZibraVDBImport
         }
     }
 
-    void LOP_ZibraVDBImport::createFieldRelationship(UsdVolVolume& volumePrim, const std::string& fieldName, const std::string& assetPath)
+    void LOP_ZibraVDBImport::CreateFieldRelationship(UsdVolVolume& volumePrim, const std::string& fieldName, const std::string& assetPath)
     {
         if (!volumePrim)
             return;
@@ -619,7 +620,7 @@ namespace Zibra::ZibraVDBImport
         }
     }
 
-    std::string LOP_ZibraVDBImport::generateZibraVDBURL(const std::string& filePath, const std::string& fieldName, int frameNumber) const
+    std::string LOP_ZibraVDBImport::GenerateZibraVDBURL(const std::string& filePath, const std::string& fieldName, int frameNumber) const
     {
         std::string url = filePath + "?frame=" + std::to_string(frameNumber);
         return url;
