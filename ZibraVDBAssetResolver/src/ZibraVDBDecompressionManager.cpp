@@ -249,14 +249,14 @@ void ZibraVDBDecompressionManager::CleanupAllDecompressorManagers()
 
 bool ZibraVDBDecompressionManager::CheckLicenseAndLoadLib()
 {
-    if (Zibra::LibraryUtils::IsZibSDKLoaded())
+    if (Zibra::LibraryUtils::IsSDKLibraryLoaded())
     {
         Zibra::LicenseManager::GetInstance().CheckLicense(Zibra::LicenseManager::Product::Decompression);
         return true;
     }
 
-    Zibra::LibraryUtils::LoadZibSDKLibrary();
-    if (!Zibra::LibraryUtils::IsZibSDKLoaded())
+    Zibra::LibraryUtils::LoadSDKLibrary();
+    if (!Zibra::LibraryUtils::IsSDKLibraryLoaded())
     {
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBDecompressionManager::CheckLicenseAndLoadLib - Library not loaded, cannot initialize resolver\n");
         return false;

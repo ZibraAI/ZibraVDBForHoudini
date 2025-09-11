@@ -56,8 +56,8 @@ namespace Zibra::ZibraVDBOutputProcessor
             return false;
         }
 
-        LibraryUtils::LoadZibSDKLibrary();
-        if (!LibraryUtils::IsZibSDKLoaded())
+        LibraryUtils::LoadSDKLibrary();
+        if (!LibraryUtils::IsSDKLibraryLoaded())
         {
             error = "ZibraVDB Output Processor Error: Failed to load ZibraVDB SDK library. Please check installation. Falling back to uncompressed VDB files.";
             UTaddError(error.buffer(), UT_ERROR_MESSAGE, error.buffer());

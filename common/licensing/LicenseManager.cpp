@@ -133,8 +133,8 @@ namespace Zibra
         m_LicenseKey = "";
         m_OfflineLicense = "";
 
-        Zibra::LibraryUtils::LoadZibSDKLibrary();
-        if (!Zibra::LibraryUtils::IsZibSDKLoaded())
+        Zibra::LibraryUtils::LoadSDKLibrary();
+        if (!Zibra::LibraryUtils::IsSDKLibraryLoaded())
         {
             return;
         }
@@ -580,8 +580,8 @@ namespace Zibra
 
     LicenseManager::Status LicenseManager::TryCheckoutLicense(ActivationType type, LicensePathType pathType)
     {
-        Zibra::LibraryUtils::LoadZibSDKLibrary();
-        if (!Zibra::LibraryUtils::IsZibSDKLoaded())
+        Zibra::LibraryUtils::LoadSDKLibrary();
+        if (!Zibra::LibraryUtils::IsSDKLibraryLoaded())
         {
             return Status::LibraryError;
         }
@@ -692,7 +692,7 @@ namespace Zibra
     void LicenseManager::SetStatusFromZibraVDBRuntime()
     {
         assert(Zibra::LibraryUtils::IsZibSDKLoaded());
-        if (!Zibra::LibraryUtils::IsZibSDKLoaded())
+        if (!Zibra::LibraryUtils::IsSDKLibraryLoaded())
         {
             return;
         }

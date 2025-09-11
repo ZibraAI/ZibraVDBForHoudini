@@ -16,7 +16,7 @@ namespace Zibra::Helpers
             return CE::ZCE_SUCCESS;
         }
 
-        if (!Zibra::LibraryUtils::IsZibSDKLoaded())
+        if (!Zibra::LibraryUtils::IsSDKLibraryLoaded())
         {
             return CE::ZCE_ERROR;
         }

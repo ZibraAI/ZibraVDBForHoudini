@@ -229,7 +229,7 @@ namespace Zibra::LibraryUtils
 #endif
     }
 
-    void LoadZibSDKLibrary() noexcept
+    void LoadSDKLibrary() noexcept
     {
         assert(g_IsLibraryLoaded == (g_LibraryHandle != NULL));
 
@@ -257,7 +257,7 @@ namespace Zibra::LibraryUtils
         g_IsLibraryLoaded = true;
     }
 
-    bool IsZibSDKLoaded() noexcept
+    bool IsSDKLibraryLoaded() noexcept
     {
         return g_IsLibraryLoaded;
     }
