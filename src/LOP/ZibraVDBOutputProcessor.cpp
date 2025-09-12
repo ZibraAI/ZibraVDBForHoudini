@@ -139,6 +139,7 @@ namespace Zibra::ZibraVDBOutputProcessor
                                            )
     {
         m_CompressionEntries.clear();
+        m_ConfigNode = config_node;
     }
 
     bool ZibraVDBOutputProcessor::processSavePath(const UT_StringRef& asset_path, const UT_StringRef& referencing_layer_path,
@@ -250,67 +251,57 @@ namespace Zibra::ZibraVDBOutputProcessor
                                                       UT_String &newpath,
                                                       UT_String &error)
     {
-        std::string pathStr = asset_path.toStdString();
-        if (!asset_is_layer && pathStr.find("op:/") != std::string::npos)
+        if (asset_is_layer)
         {
-            std::regex t_regex(R"(&t=([0-9.]+))");
-            std::smatch match;
-            if (!std::regex_search(pathStr, match, t_regex))
+            return false;
+        }
+
+        std::string pathStr = asset_path.toStdString();
+        double t;
+        std::string extractedPath;
+        
+        if (!Helpers::ParseRelSOPNodeParams(pathStr, t, extractedPath))
+        {
+            return false;
+        }
+
+        std::string layerPath = referencing_layer_path.toStdString();
+        
+        // We search for the compression entry which we added in processSavePath
+        auto it = std::find_if(m_CompressionEntries.begin(), m_CompressionEntries.end(), 
+            [&layerPath, &extractedPath](const auto& entry) {
+                bool layerMatches = entry.first.referencingLayerPath == layerPath;
+                std::string sopNodePath = entry.first.sopNode->getFullPath().c_str();
+
+                bool pathMatches = extractedPath.empty() || sopNodePath.find(extractedPath) == 0;
+                return layerMatches && pathMatches;
+            });
+            
+        if (it == m_CompressionEntries.end())
+        {
+            return false;
+        }
+
+        auto& entry = *it;
+        int compressionFrameIndex = OPgetDirector()->getChannelManager()->getFrame(t);
+        std::string outputRef = entry.first.outputFile + "?frame=" + std::to_string(compressionFrameIndex);
+        newpath = UT_String(outputRef);
+
+        // If we want to bake not from beginning, we want to cook our SOP for every preceding frame
+        int frameIndex = entry.second[0].first;
+        if (compressionFrameIndex == frameIndex)
+        {
+            if (compressionFrameIndex > 0)
             {
-                error = "ZibraVDB Output Processor Error: op:/ path missing time parameter (&t=...)";
-                return false;
-            }
-            
-            // Extract the SOP path from op:/ URL (e.g., "op:/stage/cloud/sopnet/OUT.sop.volumes" -> "/stage/cloud/sopnet")
-            std::regex op_path_regex(R"(op:(/[^:]+))");
-            std::smatch op_match;
-            std::string extractedPath;
-            if (std::regex_search(pathStr, op_match, op_path_regex)) {
-                std::string fullPath = op_match[1].str();
-                // Remove the last component (e.g., "/OUT.sop.volumes") to get the parent path
-                size_t lastSlash = fullPath.find_last_of('/');
-                if (lastSlash != std::string::npos) {
-                    extractedPath = fullPath.substr(0, lastSlash);
-                } else {
-                    extractedPath = fullPath;
-                }
-            }
-
-            fpreal t = std::stod(match[1].str());
-            std::string layerPath = referencing_layer_path.toStdString();
-            
-            // Find matching entry by comparing SOP node paths
-            auto it = std::find_if(m_CompressionEntries.begin(), m_CompressionEntries.end(), 
-                [&layerPath, &extractedPath](const auto& entry) {
-                    bool layerMatches = entry.first.referencingLayerPath == layerPath;
-                    std::string sopNodePath = entry.first.sopNode->getFullPath().c_str();
-
-                    bool pathMatches = extractedPath.empty() || sopNodePath.find(extractedPath) == 0;
-                    return layerMatches && pathMatches;
-                });
-                
-            if (it != m_CompressionEntries.end()) {
-                auto& entry = *it;
-                int compressionFrameIndex = OPgetDirector()->getChannelManager()->getFrame(t);
-                std::string outputRef = entry.first.outputFile + "?frame=" + std::to_string(compressionFrameIndex);
-                newpath = UT_String(outputRef);
-                if (compressionFrameIndex == entry.second[0].first)
+                for (int i = 0; i < compressionFrameIndex; ++i)
                 {
-                    if (compressionFrameIndex > 0)
-                    {
-                        for (int i = 0; i < compressionFrameIndex; ++i)
-                        {
-                            fpreal tmpTime = OPgetDirector()->getChannelManager()->getTime(i);
-                            ExtractVDBFromSOP(entry.first.sopNode, tmpTime, entry.first.compressorManager, false);
-                        }
-                    }
+                    fpreal tmpTime = OPgetDirector()->getChannelManager()->getTime(i);
+                    ExtractVDBFromSOP(entry.first.sopNode, tmpTime, entry.first.compressorManager, false);
                 }
-                ExtractVDBFromSOP(entry.first.sopNode, t, entry.first.compressorManager);
-                return true;
             }
         }
-        // Not an op:/ path - this processor doesn't handle it
-        return false;
+        ExtractVDBFromSOP(entry.first.sopNode, t, entry.first.compressorManager);
+        return true;
     }
 
     bool ZibraVDBOutputProcessor::processLayer(const UT_StringRef& identifier, UT_String& error)
@@ -358,7 +349,8 @@ namespace Zibra::ZibraVDBOutputProcessor
 
         if (!gdp)
         {
-            assert(false && "SOP node returned null geometry");
+            UT_String error = "SOP node returned null geometry";
+            UTaddError(error.c_str(), UT_ERROR_ABORT, error.c_str());
             return;
         }
 
@@ -387,16 +379,18 @@ namespace Zibra::ZibraVDBOutputProcessor
         }
         else
         {
-            assert(false && "No VDB grids found in SOP node");
+            UT_String error = "No VDB grids found in SOP node";
+            UTaddError(error.c_str(), UT_ERROR_ABORT, error.c_str());
         }
     }
 
-    void ZibraVDBOutputProcessor::CompressGrids(std::vector<openvdb::GridBase::ConstPtr>& grids, std::vector<std::string>& gridNames,
+    void ZibraVDBOutputProcessor::CompressGrids(std::vector<openvdb::GridBase::ConstPtr>& grids, const std::vector<std::string>& gridNames,
                                                 CE::Compression::CompressorManager* compressorManager, const GU_Detail* gdp)
     {
         if (grids.empty())
         {
-            assert(false && "No grids to compress");
+            UT_String error = "No grids to compress";
+            UTaddError(error.c_str(), UT_ERROR_ABORT, error.c_str());
             return;
         }
 
@@ -410,7 +404,8 @@ namespace Zibra::ZibraVDBOutputProcessor
         auto frame = frameLoader.LoadFrame(&encodingMetadata);
         if (!frame)
         {
-            assert(false && "Failed to load frame from memory grids");
+            UT_String error = "Failed to load frame from memory grids";
+            UTaddError(error.c_str(), UT_ERROR_ABORT, error.c_str());
             return;
         }
         CE::Compression::CompressFrameDesc compressFrameDesc{};
@@ -420,23 +415,24 @@ namespace Zibra::ZibraVDBOutputProcessor
 
         CE::Compression::FrameManager* frameManager = nullptr;
         auto status = compressorManager->CompressFrame(compressFrameDesc, &frameManager);
-        if (status == CE::ZCE_SUCCESS && frameManager)
+        if (status != CE::ZCE_SUCCESS || !frameManager)
         {
-            const auto& gridsShuffleInfo = frameLoader.GetGridsShuffleInfo();
-            
-            auto frameMetadata = DumpAttributes(gdp, encodingMetadata);
-            frameMetadata.push_back({"chShuffle", DumpGridsShuffleInfo(gridsShuffleInfo).dump()});
-            for (const auto& [key, val] : frameMetadata)
-            {
-                frameManager->AddMetadata(key.c_str(), val.c_str());
-            }
-            
-            status = frameManager->Finish();
+            UT_String error = ("CompressFrame failed or frameManager is null for in-memory grids: status " + std::to_string(static_cast<int>(status))).c_str();
+            UTaddError(error.c_str(), UT_ERROR_ABORT, error.c_str());
+            frameLoader.ReleaseFrame(frame);
+            return;
         }
-        else
+
+        const auto& gridsShuffleInfo = frameLoader.GetGridsShuffleInfo();
+        
+        auto frameMetadata = DumpAttributes(gdp, encodingMetadata);
+        frameMetadata.push_back({"chShuffle", DumpGridsShuffleInfo(gridsShuffleInfo).dump()});
+        for (const auto& [key, val] : frameMetadata)
         {
-            assert(false && ("CompressFrame failed or frameManager is null for in-memory grids: status " + std::to_string(static_cast<int>(status))).c_str());
+            frameManager->AddMetadata(key.c_str(), val.c_str());
         }
+        
+        status = frameManager->Finish();
         frameLoader.ReleaseFrame(frame);
     }
 
