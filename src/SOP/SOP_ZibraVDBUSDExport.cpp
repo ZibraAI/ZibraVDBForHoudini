@@ -7,10 +7,8 @@
 #include <GA/GA_Types.h>
 #include <GEO/GEO_Primitive.h>
 #include <GU/GU_Detail.h>
-#include <GU/GU_PrimPoly.h>
 #include <UT/UT_Error.h>
 #include <algorithm>
-#include <iostream>
 
 #include "SOP_ZibraVDBDecompressor.h"
 
@@ -128,8 +126,7 @@ namespace Zibra::ZibraVDBUSDExport
             }
         }
 
-        m_OrderedChannelNames.clear();
-        m_OrderedChannelNames.reserve(8);
+        m_AvailableChannels.clear();
         const GEO_Primitive *prim;
         GA_FOR_ALL_PRIMITIVES(gdp, prim)
         {
@@ -137,9 +134,10 @@ namespace Zibra::ZibraVDBUSDExport
             {
                 auto vdbPrim = dynamic_cast<const GEO_PrimVDB*>(prim);
                 auto gridName = vdbPrim->getGridName();
-                if (m_OrderedChannelNames.size() >= 8)
+                if (m_AvailableChannels.size() >= CE::MAX_CHANNEL_COUNT)
                 {
-                    std::string m = "Input has quantity of VDB primitives greater than 8 supported. Skipping '"s + gridName + "'.";
+                    std::string m = "Input has quantity of VDB primitives greater than " + std::to_string(CE::MAX_CHANNEL_COUNT)
+                                    + " supported. Skipping '"s + gridName + "'.";
                     addError(ROP_MESSAGE, m.c_str());
                     break;
                 }
@@ -158,10 +156,9 @@ namespace Zibra::ZibraVDBUSDExport
                     pos += 3;
                 }
 
-                std::string new_path = filename + "?node=" + encoded_node_path +
-                                       "&frame=" + std::to_string(current_frame);
+                std::string new_path = filename + "?node=" + encoded_node_path + "&frame=" + std::to_string(current_frame);
                 savePathAttrib.set(prim->getMapOffset(), new_path.c_str());
-                m_OrderedChannelNames.emplace_back(gridName);
+                m_AvailableChannels.insert(gridName);
             }
         }
 
@@ -175,19 +172,16 @@ namespace Zibra::ZibraVDBUSDExport
         return changed;
     }
 
-    std::vector<std::pair<UT_String, float>> SOP_ZibraVDBUSDExport::getPerChannelCompressionSettings() const noexcept
+    std::vector<std::pair<UT_String, float>> SOP_ZibraVDBUSDExport::GetPerChannelCompressionSettings() const noexcept
     {
         std::vector<std::pair<UT_String, float>> perChannelCompressionSettings;
 
-        // Just in case evalInt return invalid number.
-        constexpr int maxPerChannelSettingsCount = 1024;
-        const int perChannelSettingsCount = std::max(
-            0, std::min(static_cast<int>(evalInt(PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME, 0, 0)), maxPerChannelSettingsCount));
-
+        int perChannelSettingsCount = static_cast<int>(evalInt(PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME, 0, 0));
+        perChannelSettingsCount = std::clamp(perChannelSettingsCount, 1, static_cast<int>(CE::MAX_CHANNEL_COUNT));
         for (int i = 0; i < perChannelSettingsCount; ++i)
         {
             // Houdini starts count of parameters in list from 1 (not 0).
-            const auto perChannelSettingsID = i + 1;
+            const int perChannelSettingsID = i + 1;
             const std::string channelNameParamNameStr =
                 PER_CHANNEL_COMPRESSION_SETTINGS_CHANNEL_NAME_PARAM_NAME + std::to_string(perChannelSettingsID);
             const std::string qualityParamNameStr =
@@ -201,8 +195,7 @@ namespace Zibra::ZibraVDBUSDExport
             UT_String channelNameStr;
             evalString(channelNameStr, channelNameParamNameStr.c_str(), 0, 0);
 
-            if (std::find(m_OrderedChannelNames.begin(), m_OrderedChannelNames.end(), channelNameStr.toStdString()) ==
-                m_OrderedChannelNames.end())
+            if (m_AvailableChannels.find(channelNameStr.toStdString()) == m_AvailableChannels.end())
             {
                 continue;
             }
@@ -215,12 +208,12 @@ namespace Zibra::ZibraVDBUSDExport
         return perChannelCompressionSettings;
     }
 
-    bool SOP_ZibraVDBUSDExport::usePerChannelCompressionSettings() const noexcept
+    bool SOP_ZibraVDBUSDExport::UsePerChannelCompressionSettings() const noexcept
     {
         return evalInt(USE_PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME, 0, 0) != 0;
     }
 
-    float SOP_ZibraVDBUSDExport::getCompressionQuality() const noexcept
+    float SOP_ZibraVDBUSDExport::GetCompressionQuality() const noexcept
     {
         return static_cast<float>(evalFloat(QUALITY_PARAM_NAME, 0, 0));
     }

@@ -1,5 +1,6 @@
 #pragma once
 #include <SOP/SOP_Node.h>
+#include <unordered_set>
 #include "Globals.h"
 
 namespace Zibra::ZibraVDBUSDExport
@@ -26,15 +27,15 @@ namespace Zibra::ZibraVDBUSDExport
         ~SOP_ZibraVDBUSDExport() noexcept final = default;
 
         OP_ERROR cookMySop(OP_Context& context) final;
-        bool updateParmsFlags() override;
+        bool updateParmsFlags() final;
 
-        bool usePerChannelCompressionSettings() const noexcept;
-        std::vector<std::pair<UT_String, float>> getPerChannelCompressionSettings() const noexcept;
-        float getCompressionQuality() const noexcept;
+        bool UsePerChannelCompressionSettings() const noexcept;
+        std::vector<std::pair<UT_String, float>> GetPerChannelCompressionSettings() const noexcept;
+        float GetCompressionQuality() const noexcept;
 
     private:
 
-        std::vector<std::string> m_OrderedChannelNames{};
+        std::unordered_set<std::string> m_AvailableChannels{};
     };
 
     class SOP_ZibraVDBUSDExport_Operator final : public OP_Operator
@@ -44,7 +45,7 @@ namespace Zibra::ZibraVDBUSDExport
     public:
         explicit SOP_ZibraVDBUSDExport_Operator() noexcept
             : OP_Operator(SOP_NODE_NAME, SOP_NODE_LABEL, SOP_ZibraVDBUSDExport::Constructor,
-                          SOP_ZibraVDBUSDExport::GetTemplateList(), 1, 1, 0, /*OP_FLAG_UNORDERED | OP_FLAG_EDITABLE_INPUT_DATA*/OP_FLAG_GENERATOR, 0, 1)
+                          SOP_ZibraVDBUSDExport::GetTemplateList(), 1, 1, 0, OP_FLAG_GENERATOR, 0, 1)
         {
             setIconName(ZIBRAVDB_ICON_PATH);
             setOpTabSubMenuPath(ZIBRAVDB_NODES_TAB_NAME);

@@ -195,7 +195,7 @@ namespace Zibra::ZibraVDBOutputProcessor
             if (!sop_node) return false;
 
             int frame_index = std::stoi(frame_str);
-            float quality = sop_node->getCompressionQuality();
+            float quality = sop_node->GetCompressionQuality();
 
             std::filesystem::path zibravdb_path(file_path);
             std::string dir = zibravdb_path.parent_path().string();
@@ -217,9 +217,9 @@ namespace Zibra::ZibraVDBOutputProcessor
                 frameMappingDesc.sequenceStartIndex = frame_index;
                 frameMappingDesc.sequenceIndexIncrement = 1;
                 std::vector<std::pair<UT_String, float>> perChannelSettings;
-                if (sop_node->usePerChannelCompressionSettings())
+                if (sop_node->UsePerChannelCompressionSettings())
                 {
-                    perChannelSettings = sop_node->getPerChannelCompressionSettings();
+                    perChannelSettings = sop_node->GetPerChannelCompressionSettings();
                 }
 
                 std::filesystem::create_directories(std::filesystem::path(file_path).parent_path());
