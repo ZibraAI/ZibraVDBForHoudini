@@ -15,6 +15,13 @@ namespace Zibra::ZibraVDBImport
 
     class LOP_ZibraVDBImport final : public LOP_Node
     {
+    private:
+        static constexpr const char* FILE_PARAM_NAME = "file";
+        static constexpr const char* PRIMPATH_PARAM_NAME = "primpath";
+        static constexpr const char* PARENTPRIMTYPE_PARAM_NAME = "parentprimtype";
+        static constexpr const char* FIELDS_PARAM_NAME = "fields";
+        static constexpr const char* OPEN_PLUGIN_MANAGEMENT_PARAM_NAME = "openmanagement";
+
     public:
         static OP_Node* Constructor(OP_Network* net, const char* name, OP_Operator* op) noexcept;
         static PRM_Template* GetTemplateList() noexcept;
@@ -35,7 +42,6 @@ namespace Zibra::ZibraVDBImport
         std::string SanitizeFieldNameForUSD(const std::string& fieldName);
         std::vector<std::string> ParseSelectedFields(const std::string& fieldsStr, const std::set<std::string>& availableGrids);
         void ParseAvailableGrids();
-        void UpdateFieldsChoiceList();
         void CreateVolumeStructure(UsdStageRefPtr stage, const std::string& primPath, const std::string& primName,
                                    const std::vector<std::string>& selectedFields, const std::string& parentPrimType, fpreal t,
                                    int frameIndex);
@@ -44,12 +50,15 @@ namespace Zibra::ZibraVDBImport
         void CreateFieldRelationship(UsdVolVolume& volumePrim, const std::string& fieldName, const std::string& assetPath);
         std::string GenerateZibraVDBURL(const std::string& filePath, const std::string& fieldName, int frameNumber) const;
 
+        static std::pair<std::string, std::string> ParsePrimitivePath(const std::string& fullPrimPath, const std::string& filePath);
         static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate);
+        static void BuildFieldsChoiceList(void* data, PRM_Name* choicenames, int listsize, const PRM_SpareData*, const PRM_Parm*);
 
     private:
         Helpers::DecompressorManager m_DecompressorManager;
         std::string m_LastFilePath;
         std::set<std::string> m_AvailableGrids;
+        bool m_IsFileValid = false;
     };
 
     class LOP_ZibraVDBImport_Operator final : public OP_Operator

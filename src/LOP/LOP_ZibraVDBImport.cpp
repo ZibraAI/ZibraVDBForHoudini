@@ -13,46 +13,6 @@ PXR_NAMESPACE_USING_DIRECTIVE
 
 namespace Zibra::ZibraVDBImport
 {
-    static PRM_Name PRMfilePath("file", "ZibraVDB File");
-    static PRM_Default PRMfilePathDefault(0.0f, "$HIP/vol/$HIPNAME.zibravdb");
-    
-    static PRM_Name PRMprimitivePath("primpath", "Primitive Path");
-    static PRM_Default PRMprimitivePathDefault(0.0f, "/$OS");
-    
-    static PRM_Name PRMparentPrimType("parentprimtype", "Parent Primitive Type");
-    static PRM_Default PRMparentPrimTypeDefault(1, "xform");
-    
-    static PRM_Name PRMfields("fields", "Fields");
-    static PRM_Default PRMfieldsDefault(0.0f, "*");
-    
-    static PRM_Name PRMfileValid("__file_valid", "__file_valid");
-    static PRM_Default PRMfileValidDefault(0);
-    
-    static PRM_Name PRMopenPluginManagement("openmanagement", "Open Plugin Management");
-    
-    static PRM_Name fieldsChoiceNames[32];
-    static bool fieldsChoiceNamesInitialized = false;
-    
-    static void initializeFieldsChoiceNames()
-    {
-        if (fieldsChoiceNamesInitialized) return;
-        
-        fieldsChoiceNames[0].setToken("*");
-        fieldsChoiceNames[0].setLabel("* (All Channels)");
-        fieldsChoiceNames[1].setToken(nullptr);
-        fieldsChoiceNames[1].setLabel(nullptr);
-        
-        fieldsChoiceNamesInitialized = true;
-    }
-    
-    static PRM_ChoiceList PRMfieldsChoiceList(PRM_CHOICELIST_REPLACE, fieldsChoiceNames);
-    static PRM_Name parentPrimTypeChoices[] = {
-        PRM_Name("none", "None"),
-        PRM_Name("xform", "Xform"),
-        PRM_Name("scope", "Scope"),
-        PRM_Name(0, 0)
-    };
-    static PRM_ChoiceList PRMparentPrimTypeChoiceList(PRM_CHOICELIST_SINGLE, parentPrimTypeChoices);
     
     OP_Node* LOP_ZibraVDBImport::Constructor(OP_Network* net, const char* name, OP_Operator* op) noexcept
     {
@@ -61,15 +21,35 @@ namespace Zibra::ZibraVDBImport
 
     PRM_Template* LOP_ZibraVDBImport::GetTemplateList() noexcept
     {
-        initializeFieldsChoiceNames();
-        
+        static PRM_Name theFileName(FILE_PARAM_NAME, "ZibraVDB File");
+        static PRM_Default theFileDefault(0.0f, "$HIP/vol/$HIPNAME.zibravdb");
+
+        static PRM_Name thePrimitivePath(PRIMPATH_PARAM_NAME, "Primitive Path");
+        static PRM_Default thePrimitivePathDefault(0.0f, "/$OS");
+
+        static PRM_Name theParentPrimType(PARENTPRIMTYPE_PARAM_NAME, "Parent Primitive Type");
+        static PRM_Default theParentPrimTypeDefault(1, "xform");
+
+        static PRM_Name theFields(FIELDS_PARAM_NAME, "Fields");
+        static PRM_Default theFieldsDefault(0.0f, "*");
+        static PRM_ChoiceList fieldsChoiceList(PRM_CHOICELIST_REPLACE, &LOP_ZibraVDBImport::BuildFieldsChoiceList);
+
+        static PRM_Name parentPrimTypeChoices[] = {
+            PRM_Name("none", "None"),
+            PRM_Name("xform", "Xform"),
+            PRM_Name("scope", "Scope"),
+            PRM_Name(0, 0)
+        };
+        static PRM_ChoiceList PRMparentPrimTypeChoiceList(PRM_CHOICELIST_SINGLE, parentPrimTypeChoices);
+
+        static PRM_Name theOpenPluginManagement(OPEN_PLUGIN_MANAGEMENT_PARAM_NAME, "Open Plugin Management");
+
         static PRM_Template templateList[] = {
-            PRM_Template(PRM_FILE, 1, &PRMfilePath, &PRMfilePathDefault),
-            PRM_Template(PRM_TOGGLE | PRM_TYPE_INVISIBLE, 1, &PRMfileValid, &PRMfileValidDefault),
-            PRM_Template(PRM_STRING, 1, &PRMprimitivePath, &PRMprimitivePathDefault),
-            PRM_Template(PRM_ORD, 1, &PRMparentPrimType, &PRMparentPrimTypeDefault, &PRMparentPrimTypeChoiceList),
-            PRM_Template(PRM_STRING, 1, &PRMfields, &PRMfieldsDefault, &PRMfieldsChoiceList),
-            PRM_Template(PRM_CALLBACK, 1, &PRMopenPluginManagement, nullptr, nullptr, nullptr, &LOP_ZibraVDBImport::OpenManagementWindow),
+            PRM_Template(PRM_FILE, 1, &theFileName, &theFileDefault),
+            PRM_Template(PRM_STRING, 1, &thePrimitivePath, &thePrimitivePathDefault),
+            PRM_Template(PRM_ORD, 1, &theParentPrimType, &theParentPrimTypeDefault, &PRMparentPrimTypeChoiceList),
+            PRM_Template(PRM_STRING, 1, &theFields, &theFieldsDefault, &fieldsChoiceList),
+            PRM_Template(PRM_CALLBACK, 1, &theOpenPluginManagement, nullptr, nullptr, nullptr, &LOP_ZibraVDBImport::OpenManagementWindow),
             PRM_Template()
         };
         return templateList;
@@ -78,8 +58,6 @@ namespace Zibra::ZibraVDBImport
     LOP_ZibraVDBImport::LOP_ZibraVDBImport(OP_Network* net, const char* name, OP_Operator* entry) noexcept
         : LOP_Node(net, name, entry)
     {
-        setInt("__file_valid", 0, 0, 0);
-        
         LibraryUtils::LoadSDKLibrary();
         if (LibraryUtils::IsSDKLibraryLoaded())
         {
@@ -92,6 +70,41 @@ namespace Zibra::ZibraVDBImport
         if (LibraryUtils::IsSDKLibraryLoaded())
         {
             m_DecompressorManager.Release();
+        }
+    }
+
+    void LOP_ZibraVDBImport::BuildFieldsChoiceList(void* data, PRM_Name* choicenames, int listsize, const PRM_SpareData*, const PRM_Parm*)
+    {
+        if (!choicenames || listsize <= 0)
+            return;
+            
+        auto node = static_cast<LOP_ZibraVDBImport*>(data);
+        if (!node)
+            return;
+            
+        int choiceIndex = 0;
+        
+        if (choiceIndex < listsize - 1)
+        {
+            choicenames[choiceIndex].setToken("*");
+            choicenames[choiceIndex].setLabel("All Fields");
+            choiceIndex++;
+        }
+        
+        for (const auto& gridName : node->m_AvailableGrids)
+        {
+            if (choiceIndex >= listsize - 1)
+                break;
+                
+            choicenames[choiceIndex].setToken(gridName.c_str());
+            choicenames[choiceIndex].setLabel(gridName.c_str());
+            choiceIndex++;
+        }
+        
+        if (choiceIndex < listsize)
+        {
+            choicenames[choiceIndex].setToken(nullptr);
+            choicenames[choiceIndex].setLabel(nullptr);
         }
     }
 
@@ -115,13 +128,11 @@ namespace Zibra::ZibraVDBImport
             return error(context);
         }
 
-        if (evalInt("__file_valid", 0, t) == 0)
+        if (!m_IsFileValid)
         {
             addError(LOP_MESSAGE, "Invalid or missing ZibraVDB file");
             return error(context);
         }
-
-        Zibra::LicenseManager::GetInstance().CheckLicense(Zibra::LicenseManager::Product::Decompression);
 
         if (!LibraryUtils::IsSDKLibraryLoaded())
         {
@@ -129,27 +140,27 @@ namespace Zibra::ZibraVDBImport
             return error(context);
         }
 
+        // License may or may not be required depending on .zibravdb file
+        // So we need to trigger license check, but if it fails we proceed with decompression
+        LicenseManager::GetInstance().CheckLicense(Zibra::LicenseManager::Product::Decompression);
+
         if (m_LastFilePath != filePath)
         {
-            if (std::filesystem::exists(filePath))
-            {
-                auto status = m_DecompressorManager.RegisterDecompressor(UT_String(filePath));
-                if (status != CE::ZCE_SUCCESS)
-                {
-                    std::string errorMessage = "Failed to initialize decompressor: " + LibraryUtils::ErrorCodeToString(status);
-                    addError(LOP_MESSAGE, errorMessage.c_str());
-                    return error(context);
-                }
-                
-                ParseAvailableGrids();
-                UpdateFieldsChoiceList();
-                m_LastFilePath = filePath;
-            }
-            else
+            if (!std::filesystem::exists(filePath))
             {
                 addError(LOP_MESSAGE, "ZibraVDB file does not exist");
                 return error(context);
             }
+            auto status = m_DecompressorManager.RegisterDecompressor(UT_String(filePath));
+            if (status != CE::ZCE_SUCCESS)
+            {
+                std::string errorMessage = "Failed to initialize decompressor: " + LibraryUtils::ErrorCodeToString(status);
+                addError(LOP_MESSAGE, errorMessage.c_str());
+                return error(context);
+            }
+
+            ParseAvailableGrids();
+            m_LastFilePath = filePath;
         }
 
         auto frameRange = m_DecompressorManager.GetFrameRange();
@@ -161,39 +172,7 @@ namespace Zibra::ZibraVDBImport
             return error(context);
         }
 
-        // TODO refine this logic
-        std::string primPath;
-        std::string primName;
-        if (fullPrimPath.empty())
-        {
-            primPath = "";
-            primName = "ZibraVolume";
-        }
-        else
-        {
-            size_t lastSlash = fullPrimPath.find_last_of('/');
-            if (lastSlash == std::string::npos)
-            {
-                primPath = "";
-                primName = fullPrimPath;
-            }
-            else if (lastSlash == 0)
-            {
-                primPath = "";
-                primName = fullPrimPath.substr(1);
-            }
-            else
-            {
-                primPath = fullPrimPath.substr(0, lastSlash);
-                primName = fullPrimPath.substr(lastSlash + 1);
-            }
-        }
-        if (primName == "ZibraVolume" && !filePath.empty())
-        {
-            std::filesystem::path path(filePath);
-            std::string filename = path.stem().string();
-            primName = filename;
-        }
+        auto [primPath, primName] = ParsePrimitivePath(fullPrimPath, filePath);
 
         std::vector<std::string> selectedFields = ParseSelectedFields(fields, m_AvailableGrids);
         if (selectedFields.empty())
@@ -234,24 +213,13 @@ namespace Zibra::ZibraVDBImport
             }
         }
         
-        int currentValid = evalInt("__file_valid", 0, 0);
-        int newValid = isValidFile ? 1 : 0;
-        
-        if (currentValid != newValid)
+        if (m_IsFileValid != isValidFile)
         {
-            setInt("__file_valid", 0, 0, newValid);
+            m_IsFileValid = isValidFile;
             changed = true;
-            if (!isValidFile)
-            {
-                for (int i = 1; i < 32; ++i)
-                {
-                    fieldsChoiceNames[i].setToken(nullptr);
-                    fieldsChoiceNames[i].setLabel(nullptr);
-                }
-            }
         }
         
-        bool enableParams = isValidFile;
+        bool enableParams = m_IsFileValid;
         enableParm("primpath", enableParams);
         enableParm("parentprimtype", enableParams);
         enableParm("fields", enableParams);
@@ -273,60 +241,31 @@ namespace Zibra::ZibraVDBImport
     std::string LOP_ZibraVDBImport::GetFilePath(fpreal t) const
     {
         UT_String filePath;
-        evalString(filePath, "file", 0, t);
+        evalString(filePath, FILE_PARAM_NAME, 0, t);
         return filePath.toStdString();
     }
     
     std::string LOP_ZibraVDBImport::GetPrimitivePath(fpreal t) const
     {
         UT_String primPath;
-        evalString(primPath, "primpath", 0, t);
+        evalString(primPath, PRIMPATH_PARAM_NAME, 0, t);
         return primPath.toStdString();
     }
     
     std::string LOP_ZibraVDBImport::GetParentPrimType(fpreal t) const
     {
         UT_String parentPrimType;
-        evalString(parentPrimType, "parentprimtype", 0, t);
+        evalString(parentPrimType, PARENTPRIMTYPE_PARAM_NAME, 0, t);
         return parentPrimType.toStdString();
     }
     
     std::string LOP_ZibraVDBImport::GetFields(fpreal t) const
     {
         UT_String fields;
-        evalString(fields, "fields", 0, t);
+        evalString(fields, FIELDS_PARAM_NAME, 0, t);
         return fields.toStdString();
     }
     
-    void LOP_ZibraVDBImport::UpdateFieldsChoiceList()
-    {
-        static std::vector<std::string> staticGridNames;
-        staticGridNames.clear();
-        
-        for (int i = 1; i < 32; ++i)
-        {
-            fieldsChoiceNames[i].setToken(nullptr);
-            fieldsChoiceNames[i].setLabel(nullptr);
-        }
-        
-        int choiceIndex = 1;
-        for (const auto& gridName : m_AvailableGrids)
-        {
-            if (choiceIndex >= 31) break; // Leave room for null terminator
-            
-            staticGridNames.push_back(gridName);
-            fieldsChoiceNames[choiceIndex].setToken(staticGridNames.back().c_str());
-            fieldsChoiceNames[choiceIndex].setLabel(staticGridNames.back().c_str());
-            choiceIndex++;
-        }
-        
-        if (choiceIndex < 32)
-        {
-            fieldsChoiceNames[choiceIndex].setToken(nullptr);
-            fieldsChoiceNames[choiceIndex].setLabel(nullptr);
-        }
-    }
-
     std::string LOP_ZibraVDBImport::SanitizeFieldNameForUSD(const std::string& fieldName)
     {
         std::string sanitized = fieldName;
@@ -391,12 +330,6 @@ namespace Zibra::ZibraVDBImport
             }
         }
         
-        // TODO move the error handling outside
-        if (selectedFields.empty())
-        {
-            addError(LOP_MESSAGE, "No fields selected.");
-        }
-        
         return selectedFields;
     }
 
@@ -408,6 +341,7 @@ namespace Zibra::ZibraVDBImport
             return;
         }
 
+        size_t oldSize = m_AvailableGrids.size();
         m_AvailableGrids.clear();
 
         auto sequenceInfo = m_DecompressorManager.GetSequenceInfo();
@@ -418,6 +352,51 @@ namespace Zibra::ZibraVDBImport
                 m_AvailableGrids.insert(sequenceInfo.channels[i]);
             }
         }
+        
+        if (m_AvailableGrids.size() != oldSize)
+        {
+            updateParmsFlags();
+        }
+    }
+
+    std::pair<std::string, std::string> LOP_ZibraVDBImport::ParsePrimitivePath(const std::string& fullPrimPath, const std::string& filePath)
+    {
+        std::string primPath;
+        std::string primName;
+        
+        if (fullPrimPath.empty())
+        {
+            primPath = "";
+            primName = "ZibraVolume";
+        }
+        else
+        {
+            size_t lastSlash = fullPrimPath.find_last_of('/');
+            if (lastSlash == std::string::npos)
+            {
+                primPath = "";
+                primName = fullPrimPath;
+            }
+            else if (lastSlash == 0)
+            {
+                primPath = "";
+                primName = fullPrimPath.substr(1);
+            }
+            else
+            {
+                primPath = fullPrimPath.substr(0, lastSlash);
+                primName = fullPrimPath.substr(lastSlash + 1);
+            }
+        }
+        
+        if (primName == "ZibraVolume" && !filePath.empty())
+        {
+            std::filesystem::path path(filePath);
+            std::string filename = path.stem().string();
+            primName = filename;
+        }
+        
+        return std::make_pair(primPath, primName);
     }
 
     void LOP_ZibraVDBImport::CreateVolumeStructure(UsdStageRefPtr stage, const std::string& primPath, const std::string& primName,
@@ -467,56 +446,37 @@ namespace Zibra::ZibraVDBImport
             }
         }
 
+        // Normalize primitive path: ensure leading slash, remove trailing slash
         std::string cleanPrimPath = primPath;
-        if (cleanPrimPath.empty())
+        if (!cleanPrimPath.empty())
         {
-            cleanPrimPath = "";
-        }
-        else
-        {
-            if (cleanPrimPath[0] != '/')
-            {
-                cleanPrimPath = "/" + cleanPrimPath;
-            }
-            if (cleanPrimPath.length() > 1 && cleanPrimPath.back() == '/')
-            {
-                cleanPrimPath.pop_back();
-            }
+            if (cleanPrimPath[0] != '/') cleanPrimPath = "/" + cleanPrimPath;
+            if (cleanPrimPath.length() > 1 && cleanPrimPath.back() == '/') cleanPrimPath.pop_back();
         }
         
-        std::string safePrimName = primName;
-        if (safePrimName.empty())
-        {
-            safePrimName = "volume";
-        }
-        
-        std::string volumePath;
-        if (cleanPrimPath.empty())
-        {
-            volumePath = "/" + safePrimName;
-        }
-        else
-        {
-            volumePath = cleanPrimPath + "/" + safePrimName;
-        }
+        std::string safePrimName = primName.empty() ? "volume" : primName;
+        std::string volumePath = cleanPrimPath + "/" + safePrimName;
         
         if (volumePath.empty() || volumePath[0] != '/')
         {
-            addError(LOP_MESSAGE, ("Invalid volume path: '" + volumePath + "'").c_str());
+            const auto error = "Invalid volume path: '" + volumePath + "'";
+            addError(LOP_MESSAGE, error.c_str());
             return;
         }
         
         SdfPath volumeSdfPath = SdfPath(volumePath);
         if (!volumeSdfPath.IsAbsolutePath() || volumeSdfPath.IsEmpty())
         {
-            addError(LOP_MESSAGE, ("Invalid SdfPath for volume: " + volumePath).c_str());
+            const auto error = "Invalid SdfPath for volume: " + volumePath;
+            addError(LOP_MESSAGE, error.c_str());
             return;
         }
 
         UsdVolVolume volumePrim = UsdVolVolume::Define(stage, volumeSdfPath);
         if (!volumePrim)
         {
-            addError(LOP_MESSAGE, ("Failed to create Volume prim: " + volumePath).c_str());
+            const auto error = "Failed to create Volume prim: " + volumePath;
+            addError(LOP_MESSAGE, error.c_str());
             return;
         }
 
