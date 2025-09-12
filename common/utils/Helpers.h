@@ -1,5 +1,6 @@
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include <UT/UT_EnvControl.h>
 #include <Zibra/RHI.h>
 
@@ -16,4 +17,7 @@ namespace Zibra::Helpers
     // Querying options set via environment variables
     Zibra::RHI::GFXAPI SelectGFXAPI();
     bool NeedForceSoftwareDevice();
+
+    // URI parsing
+    bool ParseZibraVDBURI(const std::string& uri, std::unordered_map<std::string, std::string>& keyValuePairs);
 }
