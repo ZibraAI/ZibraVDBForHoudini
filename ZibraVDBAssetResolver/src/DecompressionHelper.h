@@ -28,8 +28,6 @@ namespace Zibra::AssetResolver
 
     private:
         ::Zibra::Helpers::DecompressorManager* GetOrCreateDecompressorManager(const std::string& compressedFile);
-        void RestoreFileMetadataToVDB(::Zibra::CE::Decompression::CompressedFrameContainer* frameContainer, openvdb::MetaMap& fileMetadata);
-        void RestoreGridMetadataToVDB(::Zibra::CE::Decompression::CompressedFrameContainer* frameContainer, openvdb::GridPtrVec& vdbGrids);
         bool LoadSDKLib();
 
         static std::unordered_map<std::string, std::unordered_set<std::string>> g_DecompressedFilesDict;

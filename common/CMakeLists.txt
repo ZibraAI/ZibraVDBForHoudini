@@ -5,6 +5,7 @@ project(ZibraVDBCommon)
 set(COMMON_HEADERS
     utils/Helpers.h
     utils/MetadataHelper.h
+    utils/GAAttributesDump.h
     utils/DecompressorManager.h
     licensing/LicenseManager.h
     bridge/LibraryUtils.h
@@ -17,6 +18,7 @@ set(COMMON_HEADERS
 set(COMMON_SOURCES
     utils/Helpers.cpp
     utils/MetadataHelper.cpp
+    utils/GAAttributesDump.cpp
     utils/DecompressorManager.cpp
     licensing/LicenseManager.cpp
     bridge/LibraryUtils.cpp

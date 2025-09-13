@@ -237,4 +237,166 @@ namespace Zibra::Utils
 #undef ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE
     }
 
+    MetaAttributesLoadStatus LoadEntityAttributesFromMeta(openvdb::GridBase::Ptr& grid,
+                                                          const nlohmann::json& meta) noexcept
+    {
+#define ZIB_LOCAL_HELPER_WARNING_AND_RETURN(cond)                      \
+    if (cond)                                                          \
+    {                                                                  \
+        return MetaAttributesLoadStatus::FATAL_ERROR_INVALID_METADATA; \
+    }
+#define ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE(cond)                          \
+    if (cond)                                                                \
+    {                                                                        \
+        status = MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA; \
+        continue;                                                            \
+    }
+
+        ZIB_LOCAL_HELPER_WARNING_AND_RETURN(!meta.is_object());
+
+        MetaAttributesLoadStatus status = MetaAttributesLoadStatus::SUCCESS;
+        for (const auto& [attribName, attrContainer] : meta.items())
+        {
+            ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE(!attrContainer.is_object());
+            ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE(!attrContainer.contains("t") || !attrContainer.contains("v"));
+            auto typeContainer = attrContainer["t"];
+            auto valContainer = attrContainer["v"];
+            ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE(!typeContainer.is_string() || valContainer.is_object() || valContainer.is_null());
+
+            std::string metaName = "houdini_attr_" + attribName; // Prefix to distinguish from native OpenVDB metadata
+
+            // Convert Houdini attribute data to OpenVDB metadata
+            std::string typeStr = typeContainer;
+            if (typeStr == "bool")
+            {
+                if (valContainer.is_boolean())
+                {
+                    grid->insertMeta(metaName + "_type", openvdb::StringMetadata(typeStr));
+                    grid->insertMeta(metaName, openvdb::StringMetadata(valContainer.get<bool>() ? "true" : "false"));
+                }
+            }
+            else if (typeStr == "int8" || typeStr == "int16" || typeStr == "int32" || typeStr == "int64")
+            {
+                if (valContainer.is_array())
+                {
+                    std::vector<int32_t> values = valContainer;
+                    grid->insertMeta(metaName + "_type", openvdb::StringMetadata(typeStr));
+
+                    // For arrays, store as JSON string
+                    grid->insertMeta(metaName, openvdb::StringMetadata(valContainer.dump()));
+                }
+            }
+            else if (typeStr == "float16" || typeStr == "float32" || typeStr == "float64")
+            {
+                if (valContainer.is_array())
+                {
+                    std::vector<float> values = valContainer;
+                    grid->insertMeta(metaName + "_type", openvdb::StringMetadata(typeStr));
+
+                    // For arrays, store as JSON string
+                    grid->insertMeta(metaName, openvdb::StringMetadata(valContainer.dump()));
+                }
+            }
+            else if (typeStr == "string")
+            {
+                if (valContainer.is_string())
+                {
+                    grid->insertMeta(metaName + "_type", openvdb::StringMetadata(typeStr));
+                    grid->insertMeta(metaName, openvdb::StringMetadata(valContainer.get<std::string>()));
+                }
+            }
+            else
+            {
+                // Unknown type, skip
+                status = MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA;
+                continue;
+            }
+        }
+        return status;
+
+#undef ZIB_LOCAL_HELPER_WARNING_AND_RETURN
+#undef ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE
+    }
+
+    MetaAttributesLoadStatus LoadEntityAttributesFromMeta(openvdb::MetaMap& fileMetadata,
+                                                          const nlohmann::json& meta) noexcept
+    {
+#define ZIB_LOCAL_HELPER_WARNING_AND_RETURN(cond)                      \
+    if (cond)                                                          \
+    {                                                                  \
+        return MetaAttributesLoadStatus::FATAL_ERROR_INVALID_METADATA; \
+    }
+#define ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE(cond)                          \
+    if (cond)                                                                \
+    {                                                                        \
+        status = MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA; \
+        continue;                                                            \
+    }
+
+        ZIB_LOCAL_HELPER_WARNING_AND_RETURN(!meta.is_object());
+
+        MetaAttributesLoadStatus status = MetaAttributesLoadStatus::SUCCESS;
+        for (const auto& [attribName, attrContainer] : meta.items())
+        {
+            ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE(!attrContainer.is_object());
+            ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE(!attrContainer.contains("t") || !attrContainer.contains("v"));
+            auto typeContainer = attrContainer["t"];
+            auto valContainer = attrContainer["v"];
+            ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE(!typeContainer.is_string() || valContainer.is_object() || valContainer.is_null());
+
+            std::string metaName = "houdini_attr_" + attribName; // Prefix to distinguish from native OpenVDB metadata
+
+            // Convert Houdini attribute data to OpenVDB metadata
+            std::string typeStr = typeContainer;
+            if (typeStr == "bool")
+            {
+                if (valContainer.is_boolean())
+                {
+                    fileMetadata.insertMeta(metaName + "_type", openvdb::StringMetadata(typeStr));
+                    fileMetadata.insertMeta(metaName, openvdb::StringMetadata(valContainer.get<bool>() ? "true" : "false"));
+                }
+            }
+            else if (typeStr == "int8" || typeStr == "int16" || typeStr == "int32" || typeStr == "int64")
+            {
+                if (valContainer.is_array())
+                {
+                    std::vector<int32_t> values = valContainer;
+                    fileMetadata.insertMeta(metaName + "_type", openvdb::StringMetadata(typeStr));
+
+                    // For arrays, store as JSON string
+                    fileMetadata.insertMeta(metaName, openvdb::StringMetadata(valContainer.dump()));
+                }
+            }
+            else if (typeStr == "float16" || typeStr == "float32" || typeStr == "float64")
+            {
+                if (valContainer.is_array())
+                {
+                    std::vector<float> values = valContainer;
+                    fileMetadata.insertMeta(metaName + "_type", openvdb::StringMetadata(typeStr));
+
+                    // For arrays, store as JSON string
+                    fileMetadata.insertMeta(metaName, openvdb::StringMetadata(valContainer.dump()));
+                }
+            }
+            else if (typeStr == "string")
+            {
+                if (valContainer.is_string())
+                {
+                    fileMetadata.insertMeta(metaName + "_type", openvdb::StringMetadata(typeStr));
+                    fileMetadata.insertMeta(metaName, openvdb::StringMetadata(valContainer.get<std::string>()));
+                }
+            }
+            else
+            {
+                // Unknown type, skip
+                status = MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA;
+                continue;
+            }
+        }
+        return status;
+
+#undef ZIB_LOCAL_HELPER_WARNING_AND_RETURN
+#undef ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE
+    }
+
 } // namespace Zibra::Utils

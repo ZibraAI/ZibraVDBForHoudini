@@ -6,7 +6,7 @@
 #include <GU/GU_Detail.h>
 #include <GU/GU_PrimVDB.h>
 #include <sstream>
-#include "../../src/utils/GAAttributesDump.h"
+#include "GAAttributesDump.h"
 
 namespace Zibra::Utils
 {
@@ -96,6 +96,129 @@ namespace Zibra::Utils
         std::ostringstream oss;
         oss << encodingMetadata.offsetX << " " << encodingMetadata.offsetY << " " << encodingMetadata.offsetZ;
         result.emplace_back("houdiniDecodeMetadata", oss.str());
+    }
+
+    void MetadataHelper::ApplyGridMetadata(GU_Detail* gdp, GU_PrimVDB* vdbPrim,
+                                           CE::Decompression::CompressedFrameContainer* frameContainer)
+    {
+        ApplyGridAttributeMetadata(gdp, vdbPrim, frameContainer);
+        ApplyGridVisualizationMetadata(vdbPrim, frameContainer);
+    }
+
+    void MetadataHelper::ApplyGridAttributeMetadata(GU_Detail* gdp, GU_PrimVDB* vdbPrim,
+                                                    CE::Decompression::CompressedFrameContainer* frameContainer)
+    {
+        const std::string attributeMetadataName = "houdiniPrimitiveAttributes_"s + vdbPrim->getGridName();
+
+        const char* metadataEntry = frameContainer->GetMetadataByKey(attributeMetadataName.c_str());
+
+        if (metadataEntry)
+        {
+            auto primAttribMeta = nlohmann::json::parse(metadataEntry);
+            LoadEntityAttributesFromMeta(gdp, GA_ATTRIB_PRIMITIVE, vdbPrim->getMapOffset(), primAttribMeta);
+        }
+    }
+
+    void MetadataHelper::ApplyGridVisualizationMetadata(GU_PrimVDB* vdbPrim,
+                                                        CE::Decompression::CompressedFrameContainer* frameContainer)
+    {
+        const std::string keyPrefix = "houdiniVisualizationAttributes_"s + vdbPrim->getGridName();
+
+        const std::string keyVisMode = keyPrefix + "_mode";
+        const char* visModeMetadata = frameContainer->GetMetadataByKey(keyVisMode.c_str());
+
+        const std::string keyVisIso = keyPrefix + "_iso";
+        const char* visIsoMetadata = frameContainer->GetMetadataByKey(keyVisIso.c_str());
+
+        const std::string keyVisDensity = keyPrefix + "_density";
+        const char* visDensityMetadata = frameContainer->GetMetadataByKey(keyVisDensity.c_str());
+
+        const std::string keyVisLod = keyPrefix + "_lod";
+        const char* visLodMetadata = frameContainer->GetMetadataByKey(keyVisLod.c_str());
+
+        if (visModeMetadata && visIsoMetadata && visDensityMetadata && visLodMetadata)
+        {
+            GEO_VolumeOptions visOptions{};
+            visOptions.myMode = static_cast<GEO_VolumeVis>(std::stoi(visModeMetadata));
+            visOptions.myIso = std::stof(visIsoMetadata);
+            visOptions.myDensity = std::stof(visDensityMetadata);
+            visOptions.myLod = static_cast<GEO_VolumeVisLod>(std::stoi(visLodMetadata));
+            vdbPrim->setVisOptions(visOptions);
+        }
+    }
+
+    void MetadataHelper::ApplyDetailMetadata(GU_Detail* gdp,
+                                             CE::Decompression::CompressedFrameContainer* frameContainer)
+    {
+        const char* detailMetadata = frameContainer->GetMetadataByKey("houdiniDetailAttributes");
+
+        if (!detailMetadata)
+        {
+            return;
+        }
+
+        auto detailAttribMeta = nlohmann::json::parse(detailMetadata);
+        LoadEntityAttributesFromMeta(gdp, GA_ATTRIB_DETAIL, 0, detailAttribMeta);
+    }
+
+    void MetadataHelper::ApplyGridMetadata(openvdb::GridBase::Ptr& vdbGrid, CE::Decompression::CompressedFrameContainer* frameContainer)
+    {
+        ApplyGridAttributeMetadata(vdbGrid, frameContainer);
+        ApplyGridVisualizationMetadata(vdbGrid, frameContainer);
+    }
+
+    void MetadataHelper::ApplyGridAttributeMetadata(openvdb::GridBase::Ptr& vdbGrid,
+                                                    CE::Decompression::CompressedFrameContainer* frameContainer)
+    {
+        const std::string attributeMetadataName = "houdiniPrimitiveAttributes_" + vdbGrid->getName();
+
+        const char* metadataEntry = frameContainer->GetMetadataByKey(attributeMetadataName.c_str());
+
+        if (metadataEntry)
+        {
+            auto primAttribMeta = nlohmann::json::parse(metadataEntry);
+            LoadEntityAttributesFromMeta(vdbGrid, primAttribMeta);
+        }
+    }
+
+    void MetadataHelper::ApplyGridVisualizationMetadata(openvdb::GridBase::Ptr& vdbGrid,
+                                                        CE::Decompression::CompressedFrameContainer* frameContainer)
+    {
+        const std::string keyPrefix = "houdiniVisualizationAttributes_"s + vdbGrid->getName();
+
+        const std::string keyVisMode = keyPrefix + "_mode";
+        const char* visModeMetadata = frameContainer->GetMetadataByKey(keyVisMode.c_str());
+
+        const std::string keyVisIso = keyPrefix + "_iso";
+        const char* visIsoMetadata = frameContainer->GetMetadataByKey(keyVisIso.c_str());
+
+        const std::string keyVisDensity = keyPrefix + "_density";
+        const char* visDensityMetadata = frameContainer->GetMetadataByKey(keyVisDensity.c_str());
+
+        const std::string keyVisLod = keyPrefix + "_lod";
+        const char* visLodMetadata = frameContainer->GetMetadataByKey(keyVisLod.c_str());
+
+        if (visModeMetadata && visIsoMetadata && visDensityMetadata && visLodMetadata)
+        {
+            vdbGrid->insertMeta("houdini_vis_mode", openvdb::StringMetadata(visModeMetadata));
+            vdbGrid->insertMeta("houdini_vis_iso", openvdb::StringMetadata(visIsoMetadata));
+            vdbGrid->insertMeta("houdini_vis_density", openvdb::StringMetadata(visDensityMetadata));
+            vdbGrid->insertMeta("houdini_vis_lod", openvdb::StringMetadata(visLodMetadata));
+        }
+    }
+
+    void MetadataHelper::ApplyDetailMetadata(openvdb::MetaMap& fileMetadata,
+                                             CE::Decompression::CompressedFrameContainer* frameContainer)
+    {
+        const char* detailMetadata = frameContainer->GetMetadataByKey("houdiniDetailAttributes");
+
+        if (!detailMetadata)
+        {
+            return;
+        }
+
+        auto detailAttribMeta = nlohmann::json::parse(detailMetadata);
+        LoadEntityAttributesFromMeta(fileMetadata, detailAttribMeta);
     }
 
 } // namespace Zibra::Utils

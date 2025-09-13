@@ -96,7 +96,6 @@ set(HeaderFiles
     src/SOP/SOP_ZibraVDBUSDExport.h
     src/LOP/LOP_ZibraVDBImport.h
     src/LOP/ZibraVDBOutputProcessor.h
-    src/utils/GAAttributesDump.h
 )
 
 set(SourceFiles
@@ -107,7 +106,6 @@ set(SourceFiles
     src/SOP/SOP_ZibraVDBUSDExport.cpp
     src/LOP/LOP_ZibraVDBImport.cpp
     src/LOP/ZibraVDBOutputProcessor.cpp
-    src/utils/GAAttributesDump.cpp
 )
 
 add_library(ZibraVDBForHoudini SHARED ${HeaderFiles} ${SourceFiles})
