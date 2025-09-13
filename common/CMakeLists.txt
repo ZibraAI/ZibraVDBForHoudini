@@ -4,22 +4,24 @@ project(ZibraVDBCommon)
 
 set(COMMON_HEADERS
     utils/Helpers.h
+    utils/MetadataHelper.h
+    utils/DecompressorManager.h
     licensing/LicenseManager.h
     bridge/LibraryUtils.h
     bridge/UpdateCheck.h
     bridge/networking/NetworkRequest.h
-        utils/DecompressorManager.h
     ui/MessageBox.h
     ui/PluginManagementWindow.h
 )
 
 set(COMMON_SOURCES
     utils/Helpers.cpp
+    utils/MetadataHelper.cpp
+    utils/DecompressorManager.cpp
     licensing/LicenseManager.cpp
     bridge/LibraryUtils.cpp
     bridge/UpdateCheck.cpp
     bridge/networking/NetworkRequest.cpp
-        utils/DecompressorManager.cpp
     ui/MessageBox.cpp
     ui/PluginManagementWindow.cpp
 )

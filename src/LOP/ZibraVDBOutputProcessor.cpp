@@ -18,13 +18,12 @@
 #include <algorithm>
 #include <filesystem>
 #include <regex>
-#include <sstream>
 
 #include "SOP/SOP_ZibraVDBUSDExport.h"
 #include "bridge/LibraryUtils.h"
 #include "licensing/LicenseManager.h"
-#include "utils/GAAttributesDump.h"
 #include "utils/Helpers.h"
+#include "utils/MetadataHelper.h"
 
 namespace Zibra::ZibraVDBOutputProcessor
 {
@@ -425,8 +424,8 @@ namespace Zibra::ZibraVDBOutputProcessor
 
         const auto& gridsShuffleInfo = frameLoader.GetGridsShuffleInfo();
         
-        auto frameMetadata = DumpAttributes(gdp, encodingMetadata);
-        frameMetadata.push_back({"chShuffle", DumpGridsShuffleInfo(gridsShuffleInfo).dump()});
+        auto frameMetadata = Utils::MetadataHelper::DumpAttributes(gdp, encodingMetadata);
+        frameMetadata.push_back({"chShuffle", Utils::MetadataHelper::DumpGridsShuffleInfo(gridsShuffleInfo).dump()});
         for (const auto& [key, val] : frameMetadata)
         {
             frameManager->AddMetadata(key.c_str(), val.c_str());
@@ -435,196 +434,4 @@ namespace Zibra::ZibraVDBOutputProcessor
         status = frameManager->Finish();
         frameLoader.ReleaseFrame(frame);
     }
-
-    std::vector<std::pair<std::string, std::string>> ZibraVDBOutputProcessor::DumpAttributes(const GU_Detail* gdp, const CE::Addons::OpenVDBUtils::EncodingMetadata& encodingMetadata) noexcept
-    {
-        std::vector<std::pair<std::string, std::string>> result{};
-
-        const GEO_Primitive* prim;
-        GA_FOR_ALL_PRIMITIVES(gdp, prim)
-        {
-            if (prim->getTypeId() == GEO_PRIMVDB)
-            {
-                auto vdbPrim = dynamic_cast<const GEO_PrimVDB*>(prim);
-
-                nlohmann::json primAttrDump = Utils::DumpAttributesForSingleEntity(gdp, GA_ATTRIB_PRIMITIVE, prim->getMapOffset());
-                std::string primKeyName = "houdiniPrimitiveAttributes_"s + vdbPrim->getGridName();
-                result.emplace_back(primKeyName, primAttrDump.dump());
-
-                DumpVisualisationAttributes(result, vdbPrim);
-                DumpOpenVDBGridMetadata(result, vdbPrim);
-            }
-        }
-
-        nlohmann::json detailAttrDump = Utils::DumpAttributesForSingleEntity(gdp, GA_ATTRIB_DETAIL, 0);
-        result.emplace_back("houdiniDetailAttributes", detailAttrDump.dump());
-
-        DumpVDBFileMetadata(result, gdp);
-        DumpDecodeMetadata(result, encodingMetadata);
-        return result;
-    }
-
-    void ZibraVDBOutputProcessor::DumpVisualisationAttributes(std::vector<std::pair<std::string, std::string>>& attributes,
-                                                             const GEO_PrimVDB* vdbPrim) noexcept
-    {
-        const std::string keyPrefix = "houdiniVisualizationAttributes_"s + vdbPrim->getGridName();
-
-        std::string keyVisMode = keyPrefix + "_mode";
-        std::string valueVisMode = std::to_string(static_cast<int>(vdbPrim->getVisualization()));
-        attributes.emplace_back(std::move(keyVisMode), std::move(valueVisMode));
-
-        std::string keyVisIso = keyPrefix + "_iso";
-        std::string valueVisIso = std::to_string(vdbPrim->getVisIso());
-        attributes.emplace_back(std::move(keyVisIso), std::move(valueVisIso));
-
-        std::string keyVisDensity = keyPrefix + "_density";
-        std::string valueVisDensity = std::to_string(vdbPrim->getVisDensity());
-        attributes.emplace_back(std::move(keyVisDensity), std::move(valueVisDensity));
-
-        std::string keyVisLod = keyPrefix + "_lod";
-        std::string valueVisLod = std::to_string(static_cast<int>(vdbPrim->getVisLod()));
-        attributes.emplace_back(std::move(keyVisLod), std::move(valueVisLod));
-    }
-
-    void ZibraVDBOutputProcessor::DumpOpenVDBGridMetadata(std::vector<std::pair<std::string, std::string>>& attributes,
-                                                          const GEO_PrimVDB* vdbPrim) noexcept
-    {
-        const std::string keyPrefix = "houdiniOpenVDBGridMetadata_"s + vdbPrim->getGridName();
-        
-        auto gridPtr = vdbPrim->getGridPtr();
-        if (!gridPtr) return;
-
-        nlohmann::json metadataJson = nlohmann::json::object();
-        
-        for (auto metaIter = gridPtr->beginMeta(); metaIter != gridPtr->endMeta(); ++metaIter) {
-            const std::string& metaName = metaIter->first;
-            const openvdb::Metadata& metadata = *metaIter->second;
-            
-            // Convert metadata to string representation
-            std::string metaValue = metadata.str();
-            
-            // Remove quotes if it's a string value  
-            if (metaValue.size() >= 2 && metaValue.front() == '"' && metaValue.back() == '"') {
-                metaValue = metaValue.substr(1, metaValue.size() - 2);
-            }
-            
-            metadataJson[metaName] = metaValue;
-        }
-        
-        if (!metadataJson.empty()) {
-            attributes.emplace_back(keyPrefix, metadataJson.dump());
-        }
-    }
-
-    void ZibraVDBOutputProcessor::DumpVDBFileMetadata(std::vector<std::pair<std::string, std::string>>& attributes,
-                                                      const GU_Detail* gdp) noexcept
-    {
-        nlohmann::json fileMetadata = nlohmann::json::object();
-        
-        // Try to capture file metadata from detail attributes first
-        for (auto it = gdp->getAttributeDict(GA_ATTRIB_DETAIL).obegin(GA_SCOPE_PUBLIC); !it.atEnd(); it.advance())
-        {
-            GA_Attribute* attr = *it;
-            const char* attrName = attr->getName().c_str();
-            
-            // Check if this looks like VDB file metadata
-            if (strstr(attrName, "volvis_") || 
-                strcmp(attrName, "creator") == 0 ||
-                strcmp(attrName, "doppath") == 0 ||
-                strstr(attrName, "_ratio") ||
-                strcmp(attrName, "timescale") == 0)
-            {
-                switch (attr->getStorageClass())
-                {
-                case GA_STORECLASS_STRING: {
-                    auto strTuple = attr->getAIFStringTuple();
-                    const char* attrString = (strTuple && attr->getTupleSize()) ? strTuple->getString(attr, 0, 0) : "";
-                    if (attrString && strlen(attrString) > 0) {
-                        fileMetadata[attrName] = attrString;
-                    }
-                    break;
-                }
-                case GA_STORECLASS_INT:
-                case GA_STORECLASS_FLOAT: {
-                    auto tuple = attr->getAIFTuple();
-                    if (tuple) {
-                        const GA_Storage storage = tuple->getStorage(attr);
-                        int tupleSize = attr->getTupleSize();
-                        
-                        if (storage == GA_STORE_REAL32 || storage == GA_STORE_REAL64) {
-                            if (tupleSize == 1) {
-                                fpreal64 data;
-                                tuple->get(attr, 0, data, 0);
-                                fileMetadata[attrName] = data;
-                            } else {
-                                std::vector<fpreal64> data(tupleSize);
-                                tuple->get(attr, 0, data.data(), tupleSize);
-                                fileMetadata[attrName] = data;
-                            }
-                        } else if (storage == GA_STORE_INT32 || storage == GA_STORE_INT64) {
-                            if (tupleSize == 1) {
-                                int64 data;
-                                tuple->get(attr, 0, data, 0);
-                                fileMetadata[attrName] = static_cast<int>(data);
-                            } else {
-                                std::vector<int64> data(tupleSize);
-                                tuple->get(attr, 0, data.data(), tupleSize);
-                                std::vector<int> intData;
-                                for (auto d : data) intData.push_back(static_cast<int>(d));
-                                fileMetadata[attrName] = intData;
-                            }
-                        }
-                    }
-                    break;
-                }
-                default:
-                    break;
-                }
-            }
-        }
-        
-        if (!fileMetadata.empty()) {
-            attributes.emplace_back("houdiniFileMetadata", fileMetadata.dump());
-        }
-    }
-
-    nlohmann::json ZibraVDBOutputProcessor::DumpGridsShuffleInfo(const std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridDescs) noexcept
-    {
-        static std::map<CE::Addons::OpenVDBUtils::GridVoxelType, std::string> voxelTypeToString = {
-            {CE::Addons::OpenVDBUtils::GridVoxelType::Float1, "Float1"},
-            {CE::Addons::OpenVDBUtils::GridVoxelType::Float3, "Float3"}
-        };
-
-        nlohmann::json result = nlohmann::json::array();
-        for (const CE::Addons::OpenVDBUtils::VDBGridDesc& gridDesc : gridDescs)
-        {
-            nlohmann::json serializedDesc = nlohmann::json{
-                {"gridName", gridDesc.gridName},
-                {"voxelType", voxelTypeToString.at(gridDesc.voxelType)},
-            };
-            for (size_t i = 0; i < std::size(gridDesc.chSource); ++i)
-            {
-                std::string name{"chSource"};
-                if (gridDesc.chSource[i])
-                {
-                    serializedDesc[name + std::to_string(i)] = gridDesc.chSource[i];
-                }
-                else
-                {
-                    serializedDesc[name + std::to_string(i)] = nullptr;
-                }
-            }
-            result.emplace_back(serializedDesc);
-        }
-        return result;
-    }
-
-    void ZibraVDBOutputProcessor::DumpDecodeMetadata(std::vector<std::pair<std::string, std::string>>& result,
-                                                    const CE::Addons::OpenVDBUtils::EncodingMetadata& encodingMetadata)
-    {
-        std::ostringstream oss;
-        oss << encodingMetadata.offsetX << " " << encodingMetadata.offsetY << " " << encodingMetadata.offsetZ;
-        result.emplace_back("houdiniDecodeMetadata", oss.str());
-    }
-
 } // namespace Zibra::ZibraVDBOutputProcessor
