@@ -10,7 +10,8 @@ namespace Zibra::CE::Compression
     ReturnCode CompressorManager::Initialize(FrameMappingDecs frameMappingDesc, float defaultQuality,
                                              const std::vector<std::pair<UT_String, float>>& perChannelCompressionSettings) noexcept
     {
-        if (!Zibra::LibraryUtils::IsLibraryLoaded())
+        LibraryUtils::LoadSDKLibrary();
+        if (!Zibra::LibraryUtils::IsSDKLibraryLoaded())
         {
             return CE::ZCE_ERROR;
         }

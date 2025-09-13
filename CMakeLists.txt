@@ -88,44 +88,29 @@ else()
 endif()
 cmake_print_variables(ZIB_NETWORK_REQUEST_BACKEND)
 
+# Main plugin specific files
 set(HeaderFiles
-    src/PrecompiledHeader.h
-    src/Globals.h
-    src/bridge/networking/NetworkRequest.h
-    src/bridge/LibraryUtils.h
-    src/bridge/UpdateCheck.h
     src/ROP/CompressorManager/CompressorManager.h
-    src/SOP/DecompressorManager/DecompressorManager.h
-    src/licensing/LicenseManager.h
     src/ROP/ROP_ZibraVDBCompressor.h
     src/SOP/SOP_ZibraVDBDecompressor.h
-    src/ui/MessageBox.h
-    src/ui/PluginManagementWindow.h
-    src/utils/Helpers.h
-    src/utils/GAAttributesDump.h
+    src/SOP/SOP_ZibraVDBUSDExport.h
+    src/LOP/LOP_ZibraVDBImport.h
+    src/LOP/ZibraVDBOutputProcessor.h
 )
 
 set(SourceFiles
     src/main.cpp
-    src/bridge/networking/NetworkRequest.cpp
-    src/bridge/LibraryUtils.cpp
-    src/bridge/UpdateCheck.cpp
     src/ROP/CompressorManager/CompressorManager.cpp
-    src/SOP/DecompressorManager/DecompressorManager.cpp
-    src/licensing/LicenseManager.cpp
     src/ROP/ROP_ZibraVDBCompressor.cpp
     src/SOP/SOP_ZibraVDBDecompressor.cpp
-    src/ui/MessageBox.cpp
-    src/ui/PluginManagementWindow.cpp
-    src/utils/Helpers.cpp
-    src/utils/GAAttributesDump.cpp
+    src/SOP/SOP_ZibraVDBUSDExport.cpp
+    src/LOP/LOP_ZibraVDBImport.cpp
+    src/LOP/ZibraVDBOutputProcessor.cpp
 )
 
 add_library(ZibraVDBForHoudini SHARED ${HeaderFiles} ${SourceFiles})
-target_include_directories(ZibraVDBForHoudini
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/Include)
-target_precompile_headers(ZibraVDBForHoudini PRIVATE src/PrecompiledHeader.h)
+target_include_directories(ZibraVDBForHoudini PRIVATE src)
+target_precompile_headers(ZibraVDBForHoudini PRIVATE common/PrecompiledHeader.h)
 target_compile_definitions(ZibraVDBForHoudini PRIVATE 
     ZIB_NETWORK_REQUEST_BACKEND_${ZIB_NETWORK_REQUEST_BACKEND}=1
     ZIB_TARGET_OS_${ZIB_TARGET_OS_NAME}=1)
@@ -133,9 +118,6 @@ target_compile_definitions(ZibraVDBForHoudini PRIVATE
 if(${LABS_BUILD})
     target_compile_definitions(ZibraVDBForHoudini PRIVATE LABS_BUILD)
 endif()
-
-target_include_directories(ZibraVDBForHoudini PRIVATE SDK/include)
-target_include_directories(ZibraVDBForHoudini PRIVATE "${HOUDINI_INCLUDE_DIR}")
 
 if(DEFINED ENV{ZIBRA_HOUDINI_PATH})
     message(STATUS "ENV{ZIBRA_HOUDINI_PATH}: $ENV{ZIBRA_HOUDINI_PATH}")
@@ -195,16 +177,50 @@ else()
     add_dependencies(ZibraVDBForHoudini ZibraVDBForHoudiniAssetsCopy ZibraVDBForHoudiniCopyrightCopy)
 endif()
 
+add_subdirectory(common)
+
 list(APPEND CMAKE_PREFIX_PATH "${HOUDINI_PATH}/toolkit/cmake")
 find_package(Houdini REQUIRED)
-target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini)
+
+target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini ZibraVDBCommon)
+if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
+    # Select boost python target based on Houdini version
+    if(${Houdini_VERSION_MAJOR} GREATER_EQUAL 21)
+        set(HOUDINI_BOOST_PYTHON_TARGET "pxr_python")
+    else()
+        set(HOUDINI_BOOST_PYTHON_TARGET "hboost_python")
+    endif()
+    
+    target_link_libraries(ZibraVDBForHoudini PRIVATE
+        Houdini::Dep::openvdb_sesi
+        Houdini::Dep::${HOUDINI_BOOST_PYTHON_TARGET}
+
+        Houdini::Dep::pxr_tf
+        Houdini::Dep::pxr_sdf
+        Houdini::Dep::pxr_usd
+        Houdini::Dep::pxr_usdVol
+    )
+    if(DEFINED _houdini_python_version)
+        set(PYTHON_TARGET_NAME "python${_houdini_python_version}")
+        if(TARGET Houdini::Dep::${PYTHON_TARGET_NAME})
+            target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::${PYTHON_TARGET_NAME})
+            message(STATUS "ZibraVDBForHoudini linking with Houdini::Dep::${PYTHON_TARGET_NAME}")
+        else()
+            message(WARNING "ZibraVDBForHoudini: Target Houdini::Dep::${PYTHON_TARGET_NAME} not found")
+        endif()
+    else()
+        message(WARNING "ZibraVDBForHoudini: Houdini Python version not detected")
+    endif()
+elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
+    target_link_libraries(ZibraVDBForHoudini PRIVATE "-framework Python")
+endif ()
+
 
 set(DETECTED_HOUDINI_VERSION "${Houdini_VERSION_MAJOR}.${Houdini_VERSION_MINOR}")
 cmake_print_variables(DETECTED_HOUDINI_VERSION)
 
-if (NOT "${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
-    target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::openvdb_sesi)
-endif()
+# Add USD Asset Resolver subdirectory
+add_subdirectory(ZibraVDBAssetResolver)
 
 if(${LABS_BUILD})
     set_target_properties(ZibraVDBForHoudini PROPERTIES PREFIX "")

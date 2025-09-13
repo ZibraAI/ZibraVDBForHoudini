@@ -142,7 +142,7 @@ namespace Zibra
 
     void PluginManagementWindowImpl::HandleDownloadLibrary(UI_Event* event)
     {
-        if (LibraryUtils::IsLibraryLoaded())
+        if (LibraryUtils::IsSDKLibraryLoaded())
         {
             UI::MessageBox::Show(UI::MessageBox::Type::OK, "Library is already downloaded.");
             return;
@@ -168,16 +168,16 @@ namespace Zibra
 
     void PluginManagementWindowImpl::HandleLoadLibrary(UI_Event* event)
     {
-        if (LibraryUtils::IsLibraryLoaded())
+        if (LibraryUtils::IsSDKLibraryLoaded())
         {
             UI::MessageBox::Show(UI::MessageBox::Type::OK, "Library is already loaded.");
             return;
         }
 
-        LibraryUtils::LoadLibrary();
+        LibraryUtils::LoadSDKLibrary();
         UpdateUI();
 
-        if (!LibraryUtils::IsLibraryLoaded())
+        if (!LibraryUtils::IsSDKLibraryLoaded())
         {
             UI::MessageBox::Show(UI::MessageBox::Type::OK,
                                  "Could not load library. Please make sure that you have copied library to the correct folder.");
@@ -424,7 +424,7 @@ namespace Zibra
 
     void PluginManagementWindowImpl::UpdateUI()
     {
-        LibraryUtils::LoadLibrary();
+        LibraryUtils::LoadSDKLibrary();
         const auto& licenseManager = LicenseManager::GetInstance();
         {
             std::string libraryStatus;
@@ -432,7 +432,7 @@ namespace Zibra
             {
                 libraryStatus = "Platform not supported";
             }
-            else if (!LibraryUtils::IsLibraryLoaded())
+            else if (!LibraryUtils::IsSDKLibraryLoaded())
             {
                 libraryStatus = "Library not loaded";
             }
@@ -443,7 +443,7 @@ namespace Zibra
             SetStringField("library_status.val", libraryStatus.c_str());
         }
         {
-            std::string libraryVersion = LibraryUtils::GetLibraryVersionString();
+            std::string libraryVersion = LibraryUtils::GetZibSDKVersionString();
             SetStringField("library_version.val", libraryVersion.c_str());
         }
         {

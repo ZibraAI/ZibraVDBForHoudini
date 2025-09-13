@@ -89,7 +89,7 @@ namespace Zibra::UpdateCheck
     Status RunReal() noexcept
     {
         // Get the current version of the application
-        LibraryUtils::Version currentVersion = LibraryUtils::GetLibraryVersion();
+        LibraryUtils::Version currentVersion = LibraryUtils::GetZibSDKVersion();
         // Get the latest version via web request
         std::string latestVersionJson = NetworkRequest::Get(
             "https://generation.zibra.ai/api/pluginVersion?effect=zibravdb_" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING
@@ -126,8 +126,8 @@ namespace Zibra::UpdateCheck
         static Status cachedStatus = Status::Count;
         static time_point_t lastCheckTime;
 
-        LibraryUtils::LoadLibrary();
-        if (!LibraryUtils::IsLibraryLoaded())
+        LibraryUtils::LoadSDKLibrary();
+        if (!LibraryUtils::IsSDKLibraryLoaded())
         {
             return Status::NotInstalled;
         }

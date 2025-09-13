@@ -11,8 +11,8 @@ namespace Zibra::LibraryUtils {
         uint32_t build;
     };
 
-    void LoadLibrary() noexcept;
-    bool IsLibraryLoaded() noexcept;
+    void LoadSDKLibrary() noexcept;
+    bool IsSDKLibraryLoaded() noexcept;
 
     constexpr bool IsPlatformSupported() noexcept
     {
@@ -24,8 +24,10 @@ namespace Zibra::LibraryUtils {
 #endif
     }
 
-    std::string GetLibraryVersionString() noexcept;
+    std::string GetZibSDKVersionString() noexcept;
     std::string ErrorCodeToString(CE::ReturnCode errorCode);
-    Version GetLibraryVersion() noexcept;
+    Version GetZibSDKVersion() noexcept;
 
+    std::vector<std::filesystem::path> GetZibraLibsBasePaths() noexcept;
+    std::vector<std::string> GetZibSDKPaths() noexcept;
 } // namespace Zibra::LibraryUtils

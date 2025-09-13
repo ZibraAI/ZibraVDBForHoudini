@@ -3,6 +3,8 @@
 #include <PY/PY_Python.h>
 #include <filesystem>
 #include <cstdlib>
+#include <regex>
+#include <algorithm>
 
 namespace Zibra::Helpers
 {
@@ -142,6 +144,89 @@ namespace Zibra::Helpers
             return true;
         }
         return false;
+    }
+
+    bool ParseZibraVDBURI(const std::string& uri, std::unordered_map<std::string, std::string>& keyValuePairs)
+    {
+        keyValuePairs.clear();
+        
+        std::regex zibravdb_regex(R"(^(.+)\.zibravdb\?(.+=.+(?:&.+=.+)*)$)");
+        std::smatch match;
+        if (!std::regex_match(uri, match, zibravdb_regex))
+        {
+            return false;
+        }
+        
+        std::string file_path = match[1].str() + ".zibravdb";
+        std::filesystem::path filepath(file_path);
+        keyValuePairs["path"] = filepath.parent_path().string();
+        keyValuePairs["name"] = filepath.filename().string();
+        
+        std::string query_string = match[2].str();
+        std::regex param_regex(R"(([^&=]+)=([^&=]+))");
+        std::sregex_iterator iter(query_string.begin(), query_string.end(), param_regex);
+        std::sregex_iterator end;
+        
+        for (; iter != end; ++iter)
+        {
+            std::string key = (*iter)[1];
+            std::string value = (*iter)[2];
+            
+            // URL decode the value (handle %2F -> /, %20 -> space)
+            size_t pos = 0;
+            while ((pos = value.find("%2F", pos)) != std::string::npos)
+            {
+                value.replace(pos, 3, "/");
+                pos += 1;
+            }
+            while ((pos = value.find("%20", pos)) != std::string::npos)
+            {
+                value.replace(pos, 3, " ");
+                pos += 1;
+            }
+            
+            keyValuePairs[key] = value;
+        }
+        
+        return true;
+    }
+
+    bool ParseRelSOPNodeParams(const std::string& pathStr, double& t, std::string& extractedPath)
+    {
+        if (pathStr.find("op:/") != 0)
+        {
+            return false;
+        }
+
+        // Extract the SOP path from op:/ URL (e.g., "op:/stage/cloud/sopnet/OUT.sop.volumes" -> "/stage/cloud/sopnet")
+        extractedPath.clear();
+        size_t pathStart = 3; // Skip "op:"
+        size_t firstColon = pathStr.find(':', pathStart);
+        
+        std::string fullPath;
+        if (firstColon != std::string::npos) {
+            fullPath = pathStr.substr(pathStart, firstColon - pathStart);
+        } else {
+            fullPath = pathStr.substr(pathStart);
+        }
+        
+        // Remove the last component to get the parent path
+        size_t lastSlash = fullPath.find_last_of('/');
+        if (lastSlash != std::string::npos) {
+            extractedPath = fullPath.substr(0, lastSlash);
+        } else {
+            extractedPath = fullPath;
+        }
+
+        std::regex t_regex(R"(&t=([0-9.]+))");
+        std::smatch match;
+        if (!std::regex_search(pathStr, match, t_regex))
+        {
+            return false;
+        }
+        t = std::stod(match[1].str());
+
+        return true;
     }
 
 } // namespace Zibra::Helpers

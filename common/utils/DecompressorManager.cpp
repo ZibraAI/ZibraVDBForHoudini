@@ -16,7 +16,7 @@ namespace Zibra::Helpers
             return CE::ZCE_SUCCESS;
         }
 
-        if (!Zibra::LibraryUtils::IsLibraryLoaded())
+        if (!Zibra::LibraryUtils::IsSDKLibraryLoaded())
         {
             return CE::ZCE_ERROR;
         }
@@ -393,6 +393,12 @@ namespace Zibra::Helpers
             return;
         }
 
+        if (m_Decoder)
+        {
+            CE::Decompression::CAPI::ReleaseDecoder(m_Decoder);
+            m_Decoder = nullptr;
+        }
+
         FreeExternalBuffers();
         if (m_Decompressor)
         {
@@ -406,11 +412,81 @@ namespace Zibra::Helpers
         }
         if (m_RHIRuntime)
         {
+            m_RHIRuntime->GarbageCollect();
             m_RHIRuntime->Release();
             m_RHIRuntime = nullptr;
         }
 
         m_IsInitialized = false;
+    }
+
+    inline char* TransferStr(const std::string& src) noexcept
+    {
+        char* dst = new char[src.length() + 1];
+        strcpy(dst, src.c_str());
+        return dst;
+    }
+
+    std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> DecompressorManager::DeserializeGridShuffleInfo(
+        CE::Decompression::CompressedFrameContainer* frameContainer) noexcept
+    {
+        static std::map<std::string, CE::Addons::OpenVDBUtils::GridVoxelType> strToVoxelType = {
+            {"Float1", CE::Addons::OpenVDBUtils::GridVoxelType::Float1},
+            {"Float3", CE::Addons::OpenVDBUtils::GridVoxelType::Float3}
+        };
+
+        const char* meta = frameContainer->GetMetadataByKey("chShuffle");
+        if (!meta) return {};
+
+        auto serialized = nlohmann::json::parse(meta);
+        if (!serialized.is_array())
+        {
+            return {};
+        }
+        std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> result{};
+        for (const auto& serializedDesc : serialized)
+        {
+            CE::Addons::OpenVDBUtils::VDBGridDesc gridDesc{};
+            if (!serializedDesc.is_object())
+            {
+                continue;
+            }
+            gridDesc.gridName = TransferStr(serializedDesc["gridName"]);
+            gridDesc.voxelType = strToVoxelType.at(serializedDesc["voxelType"]);
+
+            for (size_t i = 0; i < std::size(gridDesc.chSource); ++i)
+            {
+                auto key = std::string{"chSource"} + std::to_string(i);
+                if (serializedDesc.contains(key) && serializedDesc[key].is_string())
+                {
+                    gridDesc.chSource[i] = TransferStr(serializedDesc[key]);
+                }
+            }
+            result.emplace_back(gridDesc);
+        }
+        return result;
+    }
+
+    void DecompressorManager::ReleaseGridShuffleInfo(std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc>& gridDescs) noexcept
+    {
+        for (const CE::Addons::OpenVDBUtils::VDBGridDesc& desc : gridDescs)
+        {
+            delete desc.gridName;
+            for (size_t i = 0; i < std::size(desc.chSource); ++i)
+            {
+                delete desc.chSource[i];
+            }
+        }
+        gridDescs.clear();
+    }
+
+    CE::Decompression::SequenceInfo DecompressorManager::GetSequenceInfo() const noexcept
+    {
+        if (!m_FormatMapper)
+        {
+            return {};
+        }
+        return m_FormatMapper->GetSequenceInfo();
     }
 
 } // namespace Zibra::Helpers

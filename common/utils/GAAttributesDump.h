@@ -15,4 +15,12 @@ namespace Zibra::Utils
     MetaAttributesLoadStatus LoadEntityAttributesFromMeta(GU_Detail* gdp, GA_AttributeOwner owner, GA_Offset mapOffset,
                                                           const nlohmann::json& meta) noexcept;
 
+    // OpenVDB overload - loads Houdini attributes as OpenVDB metadata
+    MetaAttributesLoadStatus LoadEntityAttributesFromMeta(openvdb::GridBase::Ptr& grid,
+                                                          const nlohmann::json& meta) noexcept;
+
+    // OpenVDB overload for file-level metadata
+    MetaAttributesLoadStatus LoadEntityAttributesFromMeta(openvdb::MetaMap& fileMetadata,
+                                                          const nlohmann::json& meta) noexcept;
+
 } // namespace Zibra::Utils
