@@ -344,15 +344,30 @@ namespace Zibra::ZibraVDBImport
         size_t oldSize = m_AvailableGrids.size();
         m_AvailableGrids.clear();
 
-        auto sequenceInfo = m_DecompressorManager.GetSequenceInfo();
-        for (uint8_t i = 0; i < sequenceInfo.channelCount; ++i)
+        auto frameRange = m_DecompressorManager.GetFrameRange();
+        if (frameRange.start > frameRange.end)
+            return;
+
+        auto frameContainer = m_DecompressorManager.FetchFrame(frameRange.start);
+        if (!frameContainer)
+            return;
+
+        auto gridShuffle = m_DecompressorManager.DeserializeGridShuffleInfo(frameContainer);
+        if (!gridShuffle.empty())
         {
-            if (sequenceInfo.channels[i] && strlen(sequenceInfo.channels[i]) > 0)
+            m_AvailableGrids.clear();
+            for (const auto& gridDesc : gridShuffle)
             {
-                m_AvailableGrids.insert(sequenceInfo.channels[i]);
+                if (gridDesc.gridName && strlen(gridDesc.gridName) > 0)
+                {
+                    m_AvailableGrids.insert(gridDesc.gridName);
+                }
             }
         }
-        
+
+        m_DecompressorManager.ReleaseGridShuffleInfo(gridShuffle);
+        frameContainer->Release();
+
         if (m_AvailableGrids.size() != oldSize)
         {
             updateParmsFlags();
@@ -536,6 +551,7 @@ namespace Zibra::ZibraVDBImport
         }
 
         std::string zibraURL = GenerateZibraVDBURL(filePath, fieldName, frameIndex);
+
         UsdAttribute filePathAttr = openVDBAsset.GetFilePathAttr();
         if (filePathAttr)
         {
