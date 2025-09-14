@@ -110,7 +110,7 @@ set(SourceFiles
 
 add_library(ZibraVDBForHoudini SHARED ${HeaderFiles} ${SourceFiles})
 target_include_directories(ZibraVDBForHoudini PRIVATE src)
-target_precompile_headers(ZibraVDBForHoudini PRIVATE common/PrecompiledHeader.h)
+target_precompile_headers(ZibraVDBForHoudini PRIVATE src/PrecompiledHeader.h)
 target_compile_definitions(ZibraVDBForHoudini PRIVATE 
     ZIB_NETWORK_REQUEST_BACKEND_${ZIB_NETWORK_REQUEST_BACKEND}=1
     ZIB_TARGET_OS_${ZIB_TARGET_OS_NAME}=1)

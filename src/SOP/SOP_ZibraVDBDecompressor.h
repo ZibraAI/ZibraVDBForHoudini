@@ -1,5 +1,5 @@
 #pragma once
-#include "../../common/utils/DecompressorManager.h"
+#include "utils/DecompressorManager.h"
 #include "Globals.h"
 
 namespace Zibra::ZibraVDBDecompressor
