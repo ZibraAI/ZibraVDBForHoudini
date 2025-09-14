@@ -1,25 +1,14 @@
 #pragma once
 
 // Standard library
-#include <cassert>
-#include <chrono>
-#include <climits>
-#include <cmath>
+#include <algorithm>
 #include <cstdint>
-#include <cstdio>
 #include <cstdlib>
-#include <execution>
 #include <filesystem>
 #include <iostream>
-#include <map>
-#include <mutex>
-#include <optional>
 #include <regex>
-#include <set>
 #include <sstream>
 #include <string>
-#include <thread>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -29,34 +18,19 @@
 #endif
 
 // Houdini includes
-#include <CH/CH_LocalVariable.h>
-#include <CMD/CMD_Manager.h>
 #include <GA/GA_Attribute.h>
 #include <GA/GA_AttributeType.h>
-#include <GA/GA_GBMacros.h>
-#include <GEO/GEO_PrimPoly.h>
+#include <GA/GA_Iterator.h>
 #include <GU/GU_Detail.h>
 #include <GU/GU_PrimVDB.h>
-#include <OP/OP_AutoLockInputs.h>
-#include <OP/OP_Director.h>
-#include <OP/OP_Operator.h>
-#include <OP/OP_OperatorTable.h>
-#include <PRM/PRM_Conditional.h>
-#include <PRM/PRM_Include.h>
-#include <PRM/PRM_Parm.h>
-#include <PRM/PRM_ParmList.h>
-#include <PRM/PRM_SpareData.h>
-#include <PRM/PRM_TemplateBuilder.h>
-#include <ROP/ROP_Error.h>
-#include <ROP/ROP_Node.h>
-#include <ROP/ROP_Templates.h>
-#include <SOP/SOP_Node.h>
-#include <SYS/SYS_Math.h>
-#include <UT/UT_Assert.h>
-#include <UT/UT_Exit.h>
-#include <UT/UT_IOTable.h>
-#include <UT/UT_Interrupt.h>
-#include <UT/UT_OFStream.h>
+#include <PY/PY_Python.h>
+#include <SI/AP_Interface.h>
+#include <SYS/SYS_Types.h>
+#include <UI/UI_Value.h>
+#include <UT/UT_EnvControl.h>
+#include <UT/UT_IStream.h>
+#include <UT/UT_JSONHandle.h>
+#include <UT/UT_JSONParser.h>
 #include <UT/UT_StringHolder.h>
 
 // OpenVDB includes
@@ -110,5 +84,6 @@
 #include <Zibra/CE/Compression.h>
 #include <Zibra/CE/Decompression.h>
 #include <Zibra/CE/Licensing.h>
+#include <Zibra/CE/Literals.h>
 
 #include "Globals.h"

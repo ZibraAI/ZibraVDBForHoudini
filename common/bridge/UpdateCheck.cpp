@@ -1,8 +1,6 @@
-#include "UpdateCheck.h"
+#include "PrecompiledHeader.h"
 
-#include <UT/UT_IStream.h>
-#include <UT/UT_JSONHandle.h>
-#include <UT/UT_JSONParser.h>
+#include "UpdateCheck.h"
 
 #include "LibraryUtils.h"
 #include "networking/NetworkRequest.h"

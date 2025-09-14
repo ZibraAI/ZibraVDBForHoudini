@@ -2,8 +2,6 @@
 
 #include "LibraryUtils.h"
 
-#include <UT/UT_EnvControl.h>
-
 #include "licensing/LicenseManager.h"
 #include "utils/Helpers.h"
 

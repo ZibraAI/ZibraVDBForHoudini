@@ -1,14 +1,6 @@
 #pragma once
 
-#include <memory>
-#include <mutex>
-#include <string>
-#include <unordered_map>
-#include <unordered_set>
-
 #include "utils/DecompressorManager.h"
-#include "pxr/base/tf/debug.h"
-#include "pxr/pxr.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
 

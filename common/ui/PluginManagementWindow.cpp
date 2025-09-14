@@ -1,9 +1,7 @@
 #include "PluginManagementWindow.h"
 
-#include <SI/AP_Interface.h>
-#include <UI/UI_Value.h>
-
 #include "MessageBox.h"
+
 #include "bridge/LibraryUtils.h"
 #include "bridge/UpdateCheck.h"
 #include "licensing/LicenseManager.h"

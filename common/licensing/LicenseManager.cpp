@@ -1,7 +1,6 @@
-#include "LicenseManager.h"
+#include "PrecompiledHeader.h"
 
-#include <filesystem>
-#include <regex>
+#include "LicenseManager.h"
 
 #include "bridge/LibraryUtils.h"
 #include "ui/MessageBox.h"

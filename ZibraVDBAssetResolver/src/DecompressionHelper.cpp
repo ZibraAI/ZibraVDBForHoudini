@@ -1,15 +1,11 @@
-#include <csignal>
-#include <string>
+#include "PrecompiledHeader.h"
 
 #include "DecompressionHelper.h"
+
 #include "ZibraVDBAssetResolver.h"
 #include "bridge/LibraryUtils.h"
 #include "licensing/LicenseManager.h"
 #include "utils/MetadataHelper.h"
-#include "pxr/base/tf/fileUtils.h"
-#include "pxr/base/tf/pathUtils.h"
-#include "pxr/base/tf/staticTokens.h"
-#include "pxr/base/tf/stringUtils.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
 

@@ -1,12 +1,6 @@
 #pragma once
 
-#include <memory>
-#include <string>
-
 #include "DecompressionHelper.h"
-#include "pxr/base/tf/debug.h"
-#include "pxr/pxr.h"
-#include "pxr/usd/ar/resolver.h"
 
 #ifdef _WIN32
     #define ZIB_RESOLVER_API __declspec(dllexport)

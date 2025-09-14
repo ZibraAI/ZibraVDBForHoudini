@@ -1,49 +1,41 @@
 #pragma once
 
 // Standard library
-#include <cassert>
-#include <chrono>
-#include <cstdint>
+#include <csignal>
 #include <filesystem>
-#include <iostream>
-#include <map>
 #include <memory>
 #include <mutex>
-#include <optional>
+#include <regex>
 #include <string>
-#include <thread>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
-// Houdini includes (needed by DecompressorManager.h)
+// Houdini includes
+#include <SYS/SYS_Hash.h>
 #include <SYS/SYS_Types.h>
+#include <UT/UT_Exit.h>
 #include <UT/UT_StringHolder.h>
 
-// OpenVDB includes (needed by asset resolver)
-#include <openvdb/openvdb.h>
-
-// USD includes
+// USD/PXR includes
 #include "pxr/base/tf/debug.h"
+#include "pxr/base/tf/fileUtils.h"
+#include "pxr/base/tf/getenv.h"
+#include "pxr/base/tf/pathUtils.h"
+#include "pxr/base/tf/registryManager.h"
+#include "pxr/base/tf/staticTokens.h"
+#include "pxr/base/tf/stringUtils.h"
 #include "pxr/base/tf/token.h"
 #include "pxr/pxr.h"
+#include "pxr/usd/ar/defaultResolver.h"
+#include "pxr/usd/ar/defineResolver.h"
+#include "pxr/usd/ar/defineResolverContext.h"
+#include "pxr/usd/ar/filesystemAsset.h"
+#include "pxr/usd/ar/filesystemWritableAsset.h"
+#include "pxr/usd/ar/notice.h"
 #include "pxr/usd/ar/resolver.h"
 
-// Platform specific includes
-#if ZIB_TARGET_OS_WIN
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <windows.h>
-#undef ERROR
-#elif ZIB_TARGET_OS_LINUX
-#include <dlfcn.h>
-#elif ZIB_TARGET_OS_MAC
-#include <dlfcn.h>
-#else
-#error Unexpected OS
-#endif
-
-#define ZCE_NO_STATIC_API_DECL
-#include <Zibra/CE/Decompression.h>
-#include <Zibra/CE/Addons/OpenVDBCommon.h>
+// OpenVDB includes
+#include <openvdb/openvdb.h>
 
 #include "Globals.h"

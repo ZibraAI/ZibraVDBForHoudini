@@ -1,23 +1,6 @@
+#include "PrecompiledHeader.h"
+
 #include "ZibraVDBAssetResolver.h"
-
-#include <SYS/SYS_Hash.h>
-#include <UT/UT_Exit.h>
-#include <csignal>
-#include <pxr/usd/ar/defaultResolver.h>
-#include <regex>
-#include <string>
-
-#include "pxr/base/tf/fileUtils.h"
-#include "pxr/base/tf/getenv.h"
-#include "pxr/base/tf/pathUtils.h"
-#include "pxr/base/tf/registryManager.h"
-#include "pxr/base/tf/staticTokens.h"
-#include "pxr/base/tf/stringUtils.h"
-#include "pxr/usd/ar/defineResolver.h"
-#include "pxr/usd/ar/defineResolverContext.h"
-#include "pxr/usd/ar/filesystemAsset.h"
-#include "pxr/usd/ar/filesystemWritableAsset.h"
-#include "pxr/usd/ar/notice.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
 

@@ -2,10 +2,6 @@
 
 #include "MetadataHelper.h"
 
-#include <GA/GA_Iterator.h>
-#include <GU/GU_Detail.h>
-#include <GU/GU_PrimVDB.h>
-#include <sstream>
 #include "GAAttributesDump.h"
 
 namespace Zibra::Utils

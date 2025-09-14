@@ -2,8 +2,6 @@
 
 #include "DecompressorManager.h"
 
-#include <Zibra/CE/Literals.h>
-
 #include "bridge/LibraryUtils.h"
 #include "utils/Helpers.h"
 

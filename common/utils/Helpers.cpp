@@ -1,10 +1,6 @@
-#include "Helpers.h"
+#include "PrecompiledHeader.h"
 
-#include <PY/PY_Python.h>
-#include <filesystem>
-#include <cstdlib>
-#include <regex>
-#include <algorithm>
+#include "Helpers.h"
 
 namespace Zibra::Helpers
 {
