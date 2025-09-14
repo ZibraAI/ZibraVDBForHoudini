@@ -69,7 +69,7 @@ hash_value(const ZibraVDBResolverContext& context)
 
 AR_DECLARE_RESOLVER_CONTEXT(ZibraVDBResolverContext);
 
-AR_DEFINE_RESOLVER(ZIBRAVDB_RESOLVER_CLASS_NAME, ArResolver);
+AR_DEFINE_RESOLVER(ZibraVDBResolver, ArResolver);
 
 ZibraVDBResolver::ZibraVDBResolver()
 {

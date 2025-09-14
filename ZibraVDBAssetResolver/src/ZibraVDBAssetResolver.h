@@ -21,7 +21,7 @@ TF_DEBUG_CODES(
     ZIBRAVDBRESOLVER_RESOLVER_CONTEXT
 );
 
-class ZIB_RESOLVER_API ZibraVDBResolver : public ArResolver
+class ZIB_RESOLVER_API ZibraVDBResolver final : public ArResolver
 {
 public:
     ZibraVDBResolver();
@@ -68,33 +68,5 @@ private:
     mutable Zibra::AssetResolver::DecompressionHelper m_decompressionManager;
 };
 
-class ZIB_RESOLVER_API ZibraVDBResolver_Linux final : public ZibraVDBResolver
-{
-public:
-    ZibraVDBResolver_Linux() = default;
-    virtual ~ZibraVDBResolver_Linux() = default;
-};
-
-class ZIB_RESOLVER_API ZibraVDBResolver_Mac final : public ZibraVDBResolver
-{
-public:
-    ZibraVDBResolver_Mac() = default;
-    virtual ~ZibraVDBResolver_Mac() = default;
-};
-
-class ZIB_RESOLVER_API ZibraVDBResolver_Win final : public ZibraVDBResolver
-{
-public:
-    ZibraVDBResolver_Win() = default;
-    virtual ~ZibraVDBResolver_Win() = default;
-};
-
-#ifdef ZIB_TARGET_OS_WIN
-    #define ZIBRAVDB_RESOLVER_CLASS_NAME ZibraVDBResolver_Win
-#elif defined(ZIB_TARGET_OS_MAC)
-    #define ZIBRAVDB_RESOLVER_CLASS_NAME ZibraVDBResolver_Mac
-#else
-    #define ZIBRAVDB_RESOLVER_CLASS_NAME ZibraVDBResolver_Linux
-#endif
 
 PXR_NAMESPACE_CLOSE_SCOPE

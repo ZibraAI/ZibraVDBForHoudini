@@ -1,0 +1,23 @@
+{
+    "Plugins": [
+        {
+            "Info": {
+                "Types": {
+                    "ZibraVDBResolver": {
+                        "bases": ["ArResolver"],
+                        "implementsContexts": true
+                    }
+                }
+            },
+            "LibraryPath": {
+                "windows": "../../usd/win/zibraVDBResolver.dll",
+                "linux":   "../../usd/linux/zibraVDBResolver.so",
+                "darwin":  "../../usd/mac/zibraVDBResolver.dylib"
+            },
+            "Name": "zibraVDBResolver",
+            "ResourcePath": "resources",
+            "Root": "..",
+            "Type": "library"
+        }
+    ]
+}
