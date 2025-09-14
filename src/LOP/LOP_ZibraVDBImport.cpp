@@ -76,12 +76,16 @@ namespace Zibra::ZibraVDBImport
     void LOP_ZibraVDBImport::BuildFieldsChoiceList(void* data, PRM_Name* choicenames, int listsize, const PRM_SpareData*, const PRM_Parm*)
     {
         if (!choicenames || listsize <= 0)
+        {
             return;
-            
+        }
+
         auto node = static_cast<LOP_ZibraVDBImport*>(data);
         if (!node)
+        {
             return;
-            
+        }
+
         int choiceIndex = 0;
         
         if (choiceIndex < listsize - 1)
@@ -128,6 +132,7 @@ namespace Zibra::ZibraVDBImport
             return error(context);
         }
 
+        updateParmsFlags();
         if (!m_IsFileValid)
         {
             addError(LOP_MESSAGE, "Invalid or missing ZibraVDB file");
@@ -201,7 +206,7 @@ namespace Zibra::ZibraVDBImport
 
         std::string filePath = GetFilePath(0);
         bool isValidFile = false;
-        
+
         if (!filePath.empty())
         {
             if (std::filesystem::exists(filePath))
@@ -212,23 +217,13 @@ namespace Zibra::ZibraVDBImport
                 }
             }
         }
-        
+
         if (m_IsFileValid != isValidFile)
         {
             m_IsFileValid = isValidFile;
             changed = true;
         }
-        
-        bool enableParams = m_IsFileValid;
-        enableParm("primpath", enableParams);
-        enableParm("parentprimtype", enableParams);
-        enableParm("fields", enableParams);
-        
-        if (!enableParams)
-        {
-            changed = true;
-        }
-        
+
         return changed;
     }
     
@@ -341,21 +336,23 @@ namespace Zibra::ZibraVDBImport
             return;
         }
 
-        size_t oldSize = m_AvailableGrids.size();
         m_AvailableGrids.clear();
 
         auto frameRange = m_DecompressorManager.GetFrameRange();
         if (frameRange.start > frameRange.end)
+        {
             return;
+        }
 
         auto frameContainer = m_DecompressorManager.FetchFrame(frameRange.start);
         if (!frameContainer)
+        {
             return;
+        }
 
         auto gridShuffle = m_DecompressorManager.DeserializeGridShuffleInfo(frameContainer);
         if (!gridShuffle.empty())
         {
-            m_AvailableGrids.clear();
             for (const auto& gridDesc : gridShuffle)
             {
                 if (gridDesc.gridName && strlen(gridDesc.gridName) > 0)
@@ -367,11 +364,6 @@ namespace Zibra::ZibraVDBImport
 
         m_DecompressorManager.ReleaseGridShuffleInfo(gridShuffle);
         frameContainer->Release();
-
-        if (m_AvailableGrids.size() != oldSize)
-        {
-            updateParmsFlags();
-        }
     }
 
     std::pair<std::string, std::string> LOP_ZibraVDBImport::ParsePrimitivePath(const std::string& fullPrimPath, const std::string& filePath)
