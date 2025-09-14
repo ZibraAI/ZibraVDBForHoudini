@@ -51,20 +51,11 @@ elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
     target_link_libraries(zibraVDBResolver PRIVATE "-framework Python")
 endif ()
 
-# Use parent project's output directory structure with platform-specific subdirectories
+# Use parent project's output directory structure
 if(DEFINED ZIBRAVDB_OUTPUT_PATH)
-    set(ASSET_RESOLVER_BASE_PATH "${ZIBRAVDB_OUTPUT_PATH}/dso/usd")
+    set(ASSET_RESOLVER_OUTPUT_PATH "${ZIBRAVDB_OUTPUT_PATH}/dso/usd")
 else()
-    set(ASSET_RESOLVER_BASE_PATH "${OUTPUT_PATH}/dso/usd")
-endif()
-
-# Set platform-specific subdirectory
-if("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
-    set(ASSET_RESOLVER_OUTPUT_PATH "${ASSET_RESOLVER_BASE_PATH}/win")
-elseif("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
-    set(ASSET_RESOLVER_OUTPUT_PATH "${ASSET_RESOLVER_BASE_PATH}/mac")
-else()
-    set(ASSET_RESOLVER_OUTPUT_PATH "${ASSET_RESOLVER_BASE_PATH}/linux")
+    set(ASSET_RESOLVER_OUTPUT_PATH "${OUTPUT_PATH}/dso/usd")
 endif()
 
 message(STATUS "ASSET_RESOLVER_OUTPUT_PATH IS ${ASSET_RESOLVER_OUTPUT_PATH}")
@@ -82,6 +73,6 @@ set_target_properties(zibraVDBResolver PROPERTIES
 add_custom_target(ZibraVDBResolverPluginsCopy
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_CURRENT_SOURCE_DIR}/usd_plugins
-    ${ASSET_RESOLVER_BASE_PATH}/../usd_plugins
+    ${ASSET_RESOLVER_OUTPUT_PATH}/../usd_plugins
 )
 add_dependencies(zibraVDBResolver ZibraVDBResolverPluginsCopy)
