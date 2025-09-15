@@ -44,6 +44,30 @@ if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
         else()
             message(WARNING "zibraVDBResolver: Target Houdini::Dep::${PYTHON_TARGET_NAME} not found")
         endif()
+
+        # link with debug Python if available
+        if(EXISTS ${PYTHON_DEBUG_LIB_PATH} AND EXISTS ${PYTHON_DEBUG_INCLUDE_PATH})
+            target_link_libraries(zibraVDBResolver PRIVATE
+                    $<$<CONFIG:Debug>:${PYTHON_DEBUG_LIB_PATH}>
+            )
+            target_include_directories(zibraVDBResolver SYSTEM PRIVATE
+                    $<$<CONFIG:Debug>:${PYTHON_DEBUG_INCLUDE_PATH}>
+            )
+            message(STATUS "ZibraVDBForHoudini will use debug Python library for Debug builds: ${PYTHON_DEBUG_LIB_PATH}")
+        else()
+            message(STATUS "Debug Python not found, using Houdini's Python for all configurations")
+        endif()
+
+        #TODO remove hardcoded path
+        set(TBB_DEBUG_LIB_PATH "C:/Users/sskap/Downloads/oneapi-tbb-2022.2.0-win/oneapi-tbb-2022.2.0/lib/intel64/vc14/tbb_debug.lib")
+        set(TBB_DEBUG_MALLOC_PATH "C:/Users/sskap/Downloads/oneapi-tbb-2022.2.0-win/oneapi-tbb-2022.2.0/lib/intel64/vc14/tbbmalloc_debug.lib")
+        if(EXISTS ${TBB_DEBUG_LIB_PATH})
+            target_link_libraries(zibraVDBResolver PRIVATE
+                $<$<CONFIG:Debug>:${TBB_DEBUG_LIB_PATH}>
+                $<$<CONFIG:Debug>:${TBB_DEBUG_MALLOC_PATH}>
+            )
+            message(STATUS "zibraVDBResolver will use debug TBB for Debug builds: ${TBB_DEBUG_LIB_PATH}")
+        endif()
     else()
         message(WARNING "zibraVDBResolver: Houdini Python version not detected")
     endif()

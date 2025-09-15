@@ -201,12 +201,28 @@ if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
         Houdini::Dep::pxr_usdVol
     )
     if(DEFINED _houdini_python_version)
+        #TODO fix the hardcoded python path
+        set(PYTHON_DEBUG_LIB_PATH "C:/Users/sskap/AppData/Local/Programs/Python/Python311/libs/python311_d.lib")
+        set(PYTHON_DEBUG_INCLUDE_PATH "C:/Users/sskap/AppData/Local/Programs/Python/Python311/include")
         set(PYTHON_TARGET_NAME "python${_houdini_python_version}")
         if(TARGET Houdini::Dep::${PYTHON_TARGET_NAME})
             target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::${PYTHON_TARGET_NAME})
             message(STATUS "ZibraVDBForHoudini linking with Houdini::Dep::${PYTHON_TARGET_NAME}")
         else()
             message(WARNING "ZibraVDBForHoudini: Target Houdini::Dep::${PYTHON_TARGET_NAME} not found")
+        endif()
+
+        # link with debug Python if available
+        if(EXISTS ${PYTHON_DEBUG_LIB_PATH} AND EXISTS ${PYTHON_DEBUG_INCLUDE_PATH})
+            target_link_libraries(ZibraVDBForHoudini PRIVATE
+                $<$<CONFIG:Debug>:${PYTHON_DEBUG_LIB_PATH}>
+            )
+            target_include_directories(ZibraVDBForHoudini SYSTEM PRIVATE
+                $<$<CONFIG:Debug>:${PYTHON_DEBUG_INCLUDE_PATH}>
+            )
+            message(STATUS "ZibraVDBForHoudini will use debug Python library for Debug builds: ${PYTHON_DEBUG_LIB_PATH}")
+        else()
+            message(STATUS "Debug Python not found, using Houdini's Python for all configurations")
         endif()
     else()
         message(WARNING "ZibraVDBForHoudini: Houdini Python version not detected")
