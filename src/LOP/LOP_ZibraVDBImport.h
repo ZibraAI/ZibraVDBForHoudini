@@ -39,10 +39,10 @@ namespace Zibra::ZibraVDBImport
 
     private:
         std::string SanitizeFieldNameForUSD(const std::string& fieldName);
-        std::vector<std::string> ParseSelectedFields(const std::string& fieldsStr, const std::set<std::string>& availableGrids);
+        std::set<std::string> ParseSelectedFields(const std::string& fieldsStr, const std::unordered_set<std::string>& availableGrids);
         void ParseAvailableGrids();
         void CreateVolumeStructure(UsdStageRefPtr stage, const std::string& primPath, const std::string& primName,
-                                   const std::vector<std::string>& selectedFields, const std::string& parentPrimType, fpreal t,
+                                   const std::set<std::string>& selectedFields, const std::string& parentPrimType, fpreal t,
                                    int frameIndex);
         void CreateOpenVDBAssetPrim(UsdStageRefPtr stage, const std::string& volumePath, const std::string& fieldName,
                                     const std::string& sanitizedFieldName, const std::string& filePath, int frameIndex);
@@ -56,7 +56,7 @@ namespace Zibra::ZibraVDBImport
     private:
         Helpers::DecompressorManager m_DecompressorManager;
         std::string m_LastFilePath;
-        std::set<std::string> m_AvailableGrids;
+        std::unordered_set<std::string> m_AvailableGrids;
         bool m_IsFileValid = false;
     };
 

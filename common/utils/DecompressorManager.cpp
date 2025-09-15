@@ -410,7 +410,6 @@ namespace Zibra::Helpers
         }
         if (m_RHIRuntime)
         {
-            m_RHIRuntime->GarbageCollect();
             m_RHIRuntime->Release();
             m_RHIRuntime = nullptr;
         }
@@ -469,10 +468,10 @@ namespace Zibra::Helpers
     {
         for (const CE::Addons::OpenVDBUtils::VDBGridDesc& desc : gridDescs)
         {
-            delete desc.gridName;
+            delete[] desc.gridName;
             for (size_t i = 0; i < std::size(desc.chSource); ++i)
             {
-                delete desc.chSource[i];
+                delete[] desc.chSource[i];
             }
         }
         gridDescs.clear();

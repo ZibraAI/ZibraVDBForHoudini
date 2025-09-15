@@ -181,7 +181,7 @@ namespace Zibra::ZibraVDBImport
 
         auto [primPath, primName] = ParsePrimitivePath(fullPrimPath, filePath);
 
-        std::vector<std::string> selectedFields = ParseSelectedFields(fields, m_AvailableGrids);
+        std::set<std::string> selectedFields = ParseSelectedFields(fields, m_AvailableGrids);
         if (selectedFields.empty())
         {
             addWarning(LOP_MESSAGE, "No valid fields selected");
@@ -302,9 +302,9 @@ namespace Zibra::ZibraVDBImport
         return sanitized;
     }
 
-    std::vector<std::string> LOP_ZibraVDBImport::ParseSelectedFields(const std::string& fieldsStr, const std::set<std::string>& availableGrids)
+    std::set<std::string> LOP_ZibraVDBImport::ParseSelectedFields(const std::string& fieldsStr, const std::unordered_set<std::string>& availableGrids)
     {
-        std::vector<std::string> selectedFields;
+        std::set<std::string> selectedFields;
         
         if (fieldsStr.empty())
         {
@@ -313,7 +313,7 @@ namespace Zibra::ZibraVDBImport
         
         if (fieldsStr == "*")
         {
-            selectedFields.assign(availableGrids.begin(), availableGrids.end());
+            selectedFields.insert(availableGrids.begin(), availableGrids.end());
             return selectedFields;
         }
         
@@ -323,7 +323,7 @@ namespace Zibra::ZibraVDBImport
         {
             if (availableGrids.find(field) != availableGrids.end())
             {
-                selectedFields.push_back(field);
+                selectedFields.insert(field);
             }
         }
         
@@ -409,7 +409,7 @@ namespace Zibra::ZibraVDBImport
     }
 
     void LOP_ZibraVDBImport::CreateVolumeStructure(UsdStageRefPtr stage, const std::string& primPath, const std::string& primName,
-                                                   const std::vector<std::string>& selectedFields, const std::string& parentPrimType,
+                                                   const std::set<std::string>& selectedFields, const std::string& parentPrimType,
                                                    fpreal time, int frameIndex)
     {
         if (!stage)
