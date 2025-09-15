@@ -1,7 +1,4 @@
 #pragma once
-#include <SOP/SOP_Node.h>
-#include <unordered_set>
-#include "Globals.h"
 
 namespace Zibra::ZibraVDBUSDExport
 {

@@ -2,23 +2,6 @@
 
 #include "ZibraVDBOutputProcessor.h"
 
-#include <GA/GA_Iterator.h>
-#include <GU/GU_Detail.h>
-#include <GU/GU_PrimVDB.h>
-#include <LOP/LOP_Node.h>
-#include <OP/OP_Context.h>
-#include <OP/OP_Director.h>
-#include <OP/OP_Node.h>
-#include <SOP/SOP_Node.h>
-#include <UT/UT_ErrorManager.h>
-#include <UT/UT_FileUtil.h>
-#include <UT/UT_StringHolder.h>
-#include <Zibra/CE/Addons/OpenVDBFrameLoader.h>
-#include <Zibra/CE/Compression.h>
-#include <algorithm>
-#include <filesystem>
-#include <regex>
-
 #include "SOP/SOP_ZibraVDBUSDExport.h"
 #include "bridge/LibraryUtils.h"
 #include "licensing/LicenseManager.h"

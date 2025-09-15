@@ -1,10 +1,9 @@
 #pragma once
-#include <utils/DecompressorManager.h>
+
 #include <LOP/LOP_Node.h>
 #include <pxr/usd/usd/common.h>
 #include <pxr/usd/usdVol/volume.h>
-
-#include "Globals.h"
+#include <utils/DecompressorManager.h>
 
 PXR_NAMESPACE_USING_DIRECTIVE
 

@@ -2,9 +2,6 @@
 
 #include <HUSD/HUSD_OutputProcessor.h>
 #include <UT/UT_Version.h>
-#include <openvdb/openvdb.h>
-#include <string>
-#include <vector>
 
 #include "ROP/CompressorManager/CompressorManager.h"
 #include "SOP/SOP_ZibraVDBUSDExport.h"
@@ -58,7 +55,7 @@ namespace Zibra::ZibraVDBOutputProcessor
 
     private:
         bool CheckLibAndLicense(UT_String& error);
-        std::string ConvertToUncompressedPath(const std::string& zibravdbPath);
+        static std::string ConvertToUncompressedPath(const std::string& zibravdbPath);
         void ExtractVDBFromSOP(SOP_Node* sopNode, fpreal t, CE::Compression::CompressorManager* compressorManager, bool compress = true);
         static void CompressGrids(std::vector<openvdb::GridBase::ConstPtr>& grids, const std::vector<std::string>& gridNames,
                                   CE::Compression::CompressorManager* compressorManager, const GU_Detail* gdp);

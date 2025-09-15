@@ -23,11 +23,6 @@
 #include <utility>
 #include <vector>
 
-#if ZIB_TARGET_OS_WIN
-#include <codecvt>
-#include <locale>
-#endif
-
 // Houdini includes
 #include <CH/CH_LocalVariable.h>
 #include <CMD/CMD_Manager.h>

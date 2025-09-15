@@ -1,15 +1,6 @@
 #include "PrecompiledHeader.h"
 
 #include "SOP_ZibraVDBUSDExport.h"
-
-#include <GA/GA_Handle.h>
-#include <GA/GA_Iterator.h>
-#include <GA/GA_Types.h>
-#include <GEO/GEO_Primitive.h>
-#include <GU/GU_Detail.h>
-#include <UT/UT_Error.h>
-#include <algorithm>
-
 #include "SOP_ZibraVDBDecompressor.h"
 
 namespace Zibra::ZibraVDBUSDExport

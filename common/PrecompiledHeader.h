@@ -6,7 +6,9 @@
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
+#include <limits>
 #include <regex>
+#include <set>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -20,14 +22,23 @@
 // Houdini includes
 #include <GA/GA_Attribute.h>
 #include <GA/GA_AttributeType.h>
+#include <GA/GA_Handle.h>
 #include <GA/GA_Iterator.h>
+#include <GA/GA_Types.h>
+#include <GEO/GEO_Primitive.h>
 #include <GU/GU_Detail.h>
 #include <GU/GU_PrimVDB.h>
+#include <LOP/LOP_Node.h>
+#include <OP/OP_Context.h>
+#include <OP/OP_Node.h>
 #include <PY/PY_Python.h>
+#include <ROP/ROP_Node.h>
 #include <SI/AP_Interface.h>
+#include <SOP/SOP_Node.h>
 #include <SYS/SYS_Types.h>
 #include <UI/UI_Value.h>
 #include <UT/UT_EnvControl.h>
+#include <UT/UT_Error.h>
 #include <UT/UT_IStream.h>
 #include <UT/UT_JSONHandle.h>
 #include <UT/UT_JSONParser.h>

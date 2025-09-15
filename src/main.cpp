@@ -14,9 +14,8 @@
 #endif // !LABS_BUILD
 
 // This header must be included exactly once in the plugin!
-#include <HUSD/HUSD_OutputProcessor.h>
 #include <UT/UT_DSOVersion.h>
-#include <bridge/LibraryUtils.h>
+#include <HUSD/HUSD_OutputProcessor.h>
 
 #include "LOP/LOP_ZibraVDBImport.h"
 #include "LOP/ZibraVDBOutputProcessor.h"
