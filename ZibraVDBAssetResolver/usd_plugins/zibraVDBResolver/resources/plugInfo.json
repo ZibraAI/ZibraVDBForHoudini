@@ -3,7 +3,7 @@
         {
             "Info": {
                 "Types": {
-                    "ZibraVDBResolver_Mac": {
+                    "ZibraVDBResolver": {
                         "bases": ["ArResolver"],
                         "implementsContexts": true
                     }
@@ -19,7 +19,7 @@
         {
             "Info": {
                 "Types": {
-                    "ZibraVDBResolver_Linux": {
+                    "ZibraVDBResolver": {
                         "bases": ["ArResolver"],
                         "implementsContexts": true
                     }
@@ -35,7 +35,7 @@
         {
             "Info": {
                 "Types": {
-                    "ZibraVDBResolver_Win": {
+                    "ZibraVDBResolver": {
                         "bases": ["ArResolver"],
                         "implementsContexts": true
                     }
