@@ -345,15 +345,15 @@ jobs:
           mkdir merged
           mv ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-win64-vc143/* merged/
           mv ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-linux_x86_64_gcc11.2/dso/ZibraVDBForHoudini.so merged/dso/ZibraVDBForHoudini.so
-          mv ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-linux_x86_64_gcc11.2/dso/usd/zibraVDBResolver.so merged/dso/usd/zibraVDBResolver.so
+          mv ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-linux_x86_64_gcc11.2/dso/usd/ZibraVDBResolver.so merged/dso/usd/ZibraVDBResolver.so
           lipo -create -output merged/dso/ZibraVDBForHoudini.dylib ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-macosx_arm64_clang15.0_14/dso/ZibraVDBForHoudini.dylib ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-macosx_x86_64_clang15.0_14/dso/ZibraVDBForHoudini.dylib
-          lipo -create -output merged/dso/usd/zibraVDBResolver.dylib ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-macosx_arm64_clang15.0_14/dso/usd/zibraVDBResolver.dylib ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-macosx_x86_64_clang15.0_14/dso/usd/zibraVDBResolver.dylib
+          lipo -create -output merged/dso/usd/ZibraVDBResolver.dylib ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-macosx_arm64_clang15.0_14/dso/usd/ZibraVDBResolver.dylib ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-macosx_x86_64_clang15.0_14/dso/usd/ZibraVDBResolver.dylib
 
       - name: Apple sign and notarize
         shell: bash
         run: |
           ${{ github.workspace }}/actions/apple/sign_and_notarize_dylib.sh ${{ github.workspace }}/merged/dso/ZibraVDBForHoudini.dylib
-          ${{ github.workspace }}/actions/apple/sign_and_notarize_dylib.sh ${{ github.workspace }}/merged/dso/usd/zibraVDBResolver.dylib
+          ${{ github.workspace }}/actions/apple/sign_and_notarize_dylib.sh ${{ github.workspace }}/merged/dso/usd/ZibraVDBResolver.dylib
         env:
           DEVELOPER_ID_APPLICATION_CERT: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_CERT }}
           DEVELOPER_ID_APPLICATION_PASS: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_PASS }}

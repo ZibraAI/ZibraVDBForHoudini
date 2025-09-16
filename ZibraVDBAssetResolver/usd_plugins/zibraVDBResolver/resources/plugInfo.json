@@ -9,8 +9,8 @@
                     }
                 }
             },
-            "LibraryPath": "../../usd/zibraVDBResolver.dylib",
-            "Name": "zibraVDBResolver_Mac",
+            "LibraryPath": "../../usd/ZibraVDBResolver.dylib",
+            "Name": "ZibraVDBResolver_Mac",
             "ResourcePath": "resources",
             "Root": "..",
             "Type": "library",
@@ -25,8 +25,8 @@
                     }
                 }
             },
-            "LibraryPath": "../../usd/zibraVDBResolver.so",
-            "Name": "zibraVDBResolver_Linux",
+            "LibraryPath": "../../usd/ZibraVDBResolver.so",
+            "Name": "ZibraVDBResolver_Linux",
             "ResourcePath": "resources",
             "Root": "..",
             "Type": "library",
@@ -41,8 +41,8 @@
                     }
                 }
             },
-            "LibraryPath": "../../usd/zibraVDBResolver.dll",
-            "Name": "zibraVDBResolver_Win",
+            "LibraryPath": "../../usd/ZibraVDBResolver.dll",
+            "Name": "ZibraVDBResolver_Win",
             "ResourcePath": "resources",
             "Root": "..",
             "Type": "library",
