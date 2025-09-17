@@ -281,9 +281,8 @@ jobs:
 
       - name: Install python
         if: ${{ matrix.os == 'windows' }}
-        uses: actions/setup-python@v6
-        with:
-          python-version: ${{ matrix.python-version }}
+        shell: pwsh
+        run: winget install Python.Python.${{ matrix.python-version }} -e -s winget --custom Include_debug=1
 
       - name: Check if Houdini is installed
         id: install-check
