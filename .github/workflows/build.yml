@@ -286,13 +286,13 @@ jobs:
         env:
           HFS: ${{ matrix.hfs-path }}
 
-#      - name: Build Debug
-#        working-directory: ${{ github.workspace }}
-#        shell: pwsh
-#        # Need to delete all generated artifacts, so Ninja Multi-Config does not get tripped up by existing artifacts when building Release
-#        run: |
-#          cmake --build build --config Debug
-#          Remove-Item -Recurse -Force "${{ github.workspace }}/package"
+      - name: Build Debug
+        working-directory: ${{ github.workspace }}
+        shell: pwsh
+        # Need to delete all generated artifacts, so Ninja Multi-Config does not get tripped up by existing artifacts when building Release
+        run: |
+          cmake --build build --config Debug
+          Remove-Item -Recurse -Force "${{ github.workspace }}/package"
 
       - name: Build Release
         working-directory: ${{ github.workspace }}
