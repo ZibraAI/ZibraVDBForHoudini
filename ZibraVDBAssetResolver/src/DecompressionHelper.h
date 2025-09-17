@@ -22,10 +22,10 @@ namespace Zibra::AssetResolver
         ::Zibra::Helpers::DecompressorManager* GetOrCreateDecompressorManager(const std::string& compressedFile);
         bool LoadSDKLib();
 
-        static std::unordered_map<std::string, std::unordered_set<std::string>> g_DecompressedFilesDict;
-        static std::mutex g_DecompressedFilesMutex;
-        static std::unordered_map<std::string, std::unique_ptr<::Zibra::Helpers::DecompressorManager>> g_DecompressorManagers;
-        static std::mutex g_DecompressorManagersMutex;
+        static std::unordered_map<std::string, std::unordered_set<std::string>> ms_DecompressedFilesDict;
+        static std::mutex ms_DecompressedFilesMutex;
+        static std::unordered_map<std::string, std::unique_ptr<::Zibra::Helpers::DecompressorManager>> ms_DecompressorManagers;
+        static std::mutex ms_DecompressorManagersMutex;
     };
 } // namespace Zibra::AssetResolver
 

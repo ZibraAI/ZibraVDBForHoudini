@@ -21,8 +21,6 @@ public:
     ZibraVDBResolver();
     virtual ~ZibraVDBResolver();
 
-    static void CleanupAllDecompressedFilesStatic();
-    static void CleanupAllDecompressorManagers();
 protected:
     std::string _CreateIdentifier(
         const std::string& assetPath,
@@ -59,7 +57,7 @@ private:
     bool IsZibraVDBPath(const std::string& path) const;
     std::string ParseZibraVDBURI(const std::string& uri, int& frame) const;
 
-    mutable Zibra::AssetResolver::DecompressionHelper m_decompressionManager;
+    mutable Zibra::AssetResolver::DecompressionHelper m_DecompressionManager;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

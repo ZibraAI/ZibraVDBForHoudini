@@ -12,10 +12,10 @@ PXR_NAMESPACE_OPEN_SCOPE
 namespace Zibra::AssetResolver
 {
 
-    std::unordered_map<std::string, std::unordered_set<std::string>> DecompressionHelper::g_DecompressedFilesDict;
-    std::mutex DecompressionHelper::g_DecompressedFilesMutex;
-    std::unordered_map<std::string, std::unique_ptr<::Zibra::Helpers::DecompressorManager>> DecompressionHelper::g_DecompressorManagers;
-    std::mutex DecompressionHelper::g_DecompressorManagersMutex;
+    std::unordered_map<std::string, std::unordered_set<std::string>> DecompressionHelper::ms_DecompressedFilesDict;
+    std::mutex DecompressionHelper::ms_DecompressedFilesMutex;
+    std::unordered_map<std::string, std::unique_ptr<::Zibra::Helpers::DecompressorManager>> DecompressionHelper::ms_DecompressorManagers;
+    std::mutex DecompressionHelper::ms_DecompressorManagersMutex;
 
     DecompressionHelper::DecompressionHelper()
     {
@@ -48,6 +48,8 @@ namespace Zibra::AssetResolver
             return std::string();
         }
 
+        // License may or may not be required depending on .zibravdb file
+        // So we need to trigger license check, but if it fails we proceed with decompression
         ::Zibra::LicenseManager::GetInstance().CheckLicense(::Zibra::LicenseManager::Product::Decompression);
 
         auto* decompressor = GetOrCreateDecompressorManager(zibraVDBPath);
@@ -122,8 +124,8 @@ namespace Zibra::AssetResolver
 
     void DecompressionHelper::AddDecompressedFile(const std::string& compressedFile, const std::string& decompressedFile)
     {
-        std::lock_guard lock(g_DecompressedFilesMutex);
-        g_DecompressedFilesDict[compressedFile].insert(decompressedFile);
+        std::lock_guard lock(ms_DecompressedFilesMutex);
+        ms_DecompressedFilesDict[compressedFile].insert(decompressedFile);
     }
 
     void DecompressionHelper::CleanupUnneededDecompressedFiles(const std::string& currentCompressedFile, const std::string& currentDecompressedFile)
@@ -131,10 +133,10 @@ namespace Zibra::AssetResolver
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBDecompressionManager::CleanupUnneededDecompressedFiles - Cleaning up for compressed file: '%s', keeping: '%s'\n", currentCompressedFile.c_str(), currentDecompressedFile.c_str());
 
         {
-            std::lock_guard lock(g_DecompressedFilesMutex);
+            std::lock_guard lock(ms_DecompressedFilesMutex);
 
-            const auto it = g_DecompressedFilesDict.find(currentCompressedFile);
-            if (it == g_DecompressedFilesDict.end())
+            const auto it = ms_DecompressedFilesDict.find(currentCompressedFile);
+            if (it == ms_DecompressedFilesDict.end())
             {
                 return;
             }
@@ -160,11 +162,11 @@ namespace Zibra::AssetResolver
 
     void DecompressionHelper::CleanupAllDecompressedFilesStatic()
     {
-        std::lock_guard<std::mutex> lock(g_DecompressedFilesMutex);
+        std::lock_guard<std::mutex> lock(ms_DecompressedFilesMutex);
 
-        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBDecompressionManager::CleanupAllDecompressedFilesStatic - Starting static cleanup of %zu compressed file entries\n", g_DecompressedFilesDict.size());
+        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBDecompressionManager::CleanupAllDecompressedFilesStatic - Starting static cleanup of %zu compressed file entries\n", ms_DecompressedFilesDict.size());
 
-        for (auto& [compressedFile, decompressedFiles] : g_DecompressedFilesDict)
+        for (auto& [compressedFile, decompressedFiles] : ms_DecompressedFilesDict)
         {
             TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBDecompressionManager::CleanupAllDecompressedFilesStatic - Processing compressed file: '%s' with %zu decompressed files\n", compressedFile.c_str(), decompressedFiles.size());
 
@@ -181,18 +183,18 @@ namespace Zibra::AssetResolver
                 }
             }
         }
-        g_DecompressedFilesDict.clear();
+        ms_DecompressedFilesDict.clear();
 
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBDecompressionManager::CleanupAllDecompressedFilesStatic - Static cleanup completed\n");
     }
 
     ::Zibra::Helpers::DecompressorManager* DecompressionHelper::GetOrCreateDecompressorManager(const std::string& compressedFile)
     {
-        std::lock_guard<std::mutex> lock(g_DecompressorManagersMutex);
+        std::lock_guard<std::mutex> lock(ms_DecompressorManagersMutex);
 
         // First, check if we can get UUID from an existing manager for this file path
-        auto it = g_DecompressorManagers.find(compressedFile);
-        if (it != g_DecompressorManagers.end())
+        auto it = ms_DecompressorManagers.find(compressedFile);
+        if (it != ms_DecompressorManagers.end())
         {
             return it->second.get();
         }
@@ -220,8 +222,8 @@ namespace Zibra::AssetResolver
         std::string uuidKey = std::to_string(sequenceInfo.fileUUID[0]) + "_" + std::to_string(sequenceInfo.fileUUID[1]);
 
         // Check if a manager with this UUID already exists
-        auto uuidIt = g_DecompressorManagers.find(uuidKey);
-        if (uuidIt != g_DecompressorManagers.end())
+        auto uuidIt = ms_DecompressorManagers.find(uuidKey);
+        if (uuidIt != ms_DecompressorManagers.end())
         {
             TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
                 .Msg("ZibraVDBDecompressionManager::GetOrCreateDecompressorManager - Using existing manager for UUID: %s\n", uuidKey.c_str());
@@ -229,7 +231,7 @@ namespace Zibra::AssetResolver
         }
 
         auto* managerPtr = manager.get();
-        g_DecompressorManagers.emplace(uuidKey, std::move(manager));
+        ms_DecompressorManagers.emplace(uuidKey, std::move(manager));
 
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
             .Msg("ZibraVDBDecompressionManager::GetOrCreateDecompressorManager - Created new manager for file: '%s', UUID: %s\n", compressedFile.c_str(), uuidKey.c_str());
@@ -239,17 +241,17 @@ namespace Zibra::AssetResolver
 
     void DecompressionHelper::CleanupAllDecompressorManagers()
     {
-        std::lock_guard<std::mutex> lock(g_DecompressorManagersMutex);
+        std::lock_guard<std::mutex> lock(ms_DecompressorManagersMutex);
 
-        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBDecompressionManager::CleanupAllDecompressorManagers - Cleaning up %zu managers\n", g_DecompressorManagers.size());
+        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBDecompressionManager::CleanupAllDecompressorManagers - Cleaning up %zu managers\n", ms_DecompressorManagers.size());
 
-        for (auto& [compressedFile, manager] : g_DecompressorManagers)
+        for (auto& [compressedFile, manager] : ms_DecompressorManagers)
         {
             TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBDecompressionManager::CleanupAllDecompressorManagers - Releasing manager for: '%s'\n", compressedFile.c_str());
             manager->Release();
         }
 
-        g_DecompressorManagers.clear();
+        ms_DecompressorManagers.clear();
 
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBDecompressionManager::CleanupAllDecompressorManagers - Cleanup completed\n");
     }

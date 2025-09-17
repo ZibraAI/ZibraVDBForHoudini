@@ -88,8 +88,9 @@ else()
 endif()
 cmake_print_variables(ZIB_NETWORK_REQUEST_BACKEND)
 
-# Main plugin specific files
 set(HeaderFiles
+    #TODO check if we still need it
+    src/PrecompiledHeader.h
     src/ROP/CompressorManager/CompressorManager.h
     src/ROP/ROP_ZibraVDBCompressor.h
     src/SOP/SOP_ZibraVDBDecompressor.h
@@ -225,7 +226,7 @@ if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
             message(STATUS "Debug Python not found, using Houdini's Python for all configurations")
         endif()
     else()
-        message(WARNING "ZibraVDBForHoudini: Houdini Python version not detected")
+        message(FATAL_ERROR "ZibraVDBForHoudini: Houdini Python version not detected")
     endif()
 elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
     target_link_libraries(ZibraVDBForHoudini PRIVATE "-framework Python")
