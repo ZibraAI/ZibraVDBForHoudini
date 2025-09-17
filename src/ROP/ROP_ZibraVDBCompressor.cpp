@@ -431,7 +431,7 @@ namespace Zibra::ZibraVDBCompressor
     {
         using namespace std::literals;
 
-        assert(LibraryUtils::IsZibSDKLoaded());
+        assert(LibraryUtils::IsSDKLibraryLoaded());
 
         executePreFrameScript(time);
 

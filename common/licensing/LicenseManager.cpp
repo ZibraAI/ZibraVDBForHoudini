@@ -681,7 +681,7 @@ namespace Zibra
 
     void LicenseManager::SetStatusFromZibraVDBRuntime()
     {
-        assert(Zibra::LibraryUtils::IsZibSDKLoaded());
+        assert(Zibra::LibraryUtils::IsSDKLibraryLoaded());
         if (!Zibra::LibraryUtils::IsSDKLibraryLoaded())
         {
             return;
