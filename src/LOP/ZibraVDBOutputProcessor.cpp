@@ -29,7 +29,7 @@ namespace Zibra::ZibraVDBOutputProcessor
     {
     }
 
-    bool ZibraVDBOutputProcessor::CheckLibAndLicense(UT_String& error)
+    bool ZibraVDBOutputProcessor::CheckLibrary(UT_String& error)
     {
         if (!LibraryUtils::IsPlatformSupported())
         {
@@ -41,14 +41,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         LibraryUtils::LoadSDKLibrary();
         if (!LibraryUtils::IsSDKLibraryLoaded())
         {
-            error = "ZibraVDB Output Processor Error: Failed to load ZibraVDB SDK library. Please check installation. Falling back to uncompressed VDB files.";
-            UTaddError(error.buffer(), UT_ERROR_MESSAGE, error.buffer());
-            return false;
-        }
-        
-        if (!LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Compression))
-        {
-            error = "ZibraVDB Output Processor Error: No valid license found for compression. Please check your license. Falling back to uncompressed VDB files.";
+            error = "ZibraVDB Output Processor Error: Failed to load ZibraVDB SDK library. Please check installation.";
             UTaddError(error.buffer(), UT_ERROR_MESSAGE, error.buffer());
             return false;
         }
@@ -56,42 +49,22 @@ namespace Zibra::ZibraVDBOutputProcessor
         return true;
     }
 
-    std::string ZibraVDBOutputProcessor::ConvertToUncompressedPath(const std::string& zibravdbPath)
+    bool ZibraVDBOutputProcessor::CheckLicense(UT_String& error)
     {
-        // This is used as fallback when no sdk lib present or license failed
-        // path/name.zibravdb?node=nodename&frame=X&quality=Y to path/name.frame.vdb
-        size_t query_pos = zibravdbPath.find('?');
-        if (query_pos == std::string::npos) return "";
-
-        std::string file_path = zibravdbPath.substr(0, query_pos);
-        std::string query_string = zibravdbPath.substr(query_pos + 1);
-
-        // Extract frame parameter
-        std::string frame_str;
-        std::regex param_regex(R"(([^&=]+)=([^&=]+))");
-        std::sregex_iterator iter(query_string.begin(), query_string.end(), param_regex);
-        std::sregex_iterator end;
-
-        for (; iter != end; ++iter) {
-            std::string key = (*iter)[1];
-            std::string value = (*iter)[2];
-            if (key == "frame") {
-                frame_str = value;
-                break;
-            }
+        if (!LibraryUtils::IsSDKLibraryLoaded())
+        {
+            error = "ZibraVDB Output Processor Error: Failed to load ZibraVDB SDK library. Please check installation.";
+            UTaddError(error.buffer(), UT_ERROR_MESSAGE, error.buffer());
+            return false;
+        }
+        if (!LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Compression))
+        {
+            error = "ZibraVDB Output Processor Error: No valid license found for compression. Please check your license.";
+            UTaddError(error.buffer(), UT_ERROR_MESSAGE, error.buffer());
+            return false;
         }
 
-        if (frame_str.empty()) return "";
-
-        std::filesystem::path zibravdb_path(file_path);
-        std::string dir = zibravdb_path.parent_path().string();
-        std::string stem = zibravdb_path.stem().string();
-        
-        if (dir.empty()) {
-            return stem + "." + frame_str + ".vdb";
-        } else {
-            return dir + "/" + stem + "." + frame_str + ".vdb";
-        }
+        return true;
     }
 
     UT_StringHolder ZibraVDBOutputProcessor::displayName() const
@@ -139,21 +112,28 @@ namespace Zibra::ZibraVDBOutputProcessor
             return false;
         }
 
-        UT_String libError;
-        if (!CheckLibAndLicense(libError))
+        UT_String errorString;
+        if (!CheckLibrary(errorString) || !CheckLicense(errorString))
         {
-            std::string uncompressedPath = ConvertToUncompressedPath(pathStr);
-            newpath = UT_String(uncompressedPath);
-            error = libError;
-            return true;
+            error = errorString;
+            return false;
         }
 
         auto nodeIt = parsedURI.find("node");
-        auto frameIt = parsedURI.find("frame");
-        if (nodeIt == parsedURI.end() || frameIt == parsedURI.end() ||
-            nodeIt->second.empty() || frameIt->second.empty())
+        if (nodeIt == parsedURI.end() || nodeIt->second.empty())
         {
-            error = "ZibraVDB Output Processor Error: Missing or empty required node or frame parameter in .zibravdb path";
+            error = nodeIt == parsedURI.end() ?
+                "ZibraVDB Output Processor Error: Missing required node parameter in .zibravdb path" :
+                "ZibraVDB Output Processor Error: Empty node parameter in .zibravdb path";
+            return false;
+        }
+
+        auto frameIt = parsedURI.find("frame");
+        if (frameIt == parsedURI.end() || frameIt->second.empty())
+        {
+            error = frameIt == parsedURI.end() ?
+                "ZibraVDB Output Processor Error: Missing required frame parameter in .zibravdb path" :
+                "ZibraVDB Output Processor Error: Empty frame parameter in .zibravdb path";
             return false;
         }
 

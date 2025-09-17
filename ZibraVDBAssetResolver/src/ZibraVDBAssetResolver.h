@@ -54,9 +54,6 @@ protected:
 
 private:
 
-    bool IsZibraVDBPath(const std::string& path) const;
-    std::string ParseZibraVDBURI(const std::string& uri, int& frame) const;
-
     mutable Zibra::AssetResolver::DecompressionHelper m_DecompressionManager;
 };
 

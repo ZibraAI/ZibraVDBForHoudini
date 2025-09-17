@@ -30,9 +30,9 @@ set(COMMON_SOURCES
 
 add_library(ZibraVDBCommon STATIC ${COMMON_HEADERS} ${COMMON_SOURCES})
 target_include_directories(ZibraVDBCommon
-    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
-    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../external/Include
-    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../SDK/include
+    PUBLIC ${CMAKE_SOURCE_DIR}/common
+    PUBLIC ${CMAKE_SOURCE_DIR}/external/Include
+    PUBLIC ${CMAKE_SOURCE_DIR}/SDK/include
     PRIVATE "${HOUDINI_INCLUDE_DIR}")
 
 target_compile_definitions(ZibraVDBCommon PUBLIC

@@ -168,7 +168,7 @@ namespace Zibra::ZibraVDBUSDExport
         std::vector<std::pair<UT_String, float>> perChannelCompressionSettings;
 
         int perChannelSettingsCount = static_cast<int>(evalInt(PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME, 0, 0));
-        perChannelSettingsCount = std::clamp(perChannelSettingsCount, 1, static_cast<int>(CE::MAX_CHANNEL_COUNT));
+        perChannelSettingsCount = std::clamp(perChannelSettingsCount, 0, static_cast<int>(CE::MAX_CHANNEL_COUNT));
         for (int i = 0; i < perChannelSettingsCount; ++i)
         {
             // Houdini starts count of parameters in list from 1 (not 0).

@@ -51,7 +51,7 @@ namespace Zibra::ZibraVDBImport
 
         static std::pair<std::string, std::string> ParsePrimitivePath(const std::string& fullPrimPath, const std::string& filePath);
         static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate);
-        static void BuildFieldsChoiceList(void* data, PRM_Name* choicenames, int listsize, const PRM_SpareData*, const PRM_Parm*);
+        static void BuildFieldsChoiceList(void* data, PRM_Name* choiceNames, int maxListSize, const PRM_SpareData*, const PRM_Parm*);
 
     private:
         Helpers::DecompressorManager m_DecompressorManager;

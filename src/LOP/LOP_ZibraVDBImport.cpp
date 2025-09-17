@@ -10,6 +10,7 @@
 #include <bridge/LibraryUtils.h>
 #include <licensing/LicenseManager.h>
 #include <ui/PluginManagementWindow.h>
+#include <utils/Helpers.h>
 
 PXR_NAMESPACE_USING_DIRECTIVE
 
@@ -75,9 +76,9 @@ namespace Zibra::ZibraVDBImport
         }
     }
 
-    void LOP_ZibraVDBImport::BuildFieldsChoiceList(void* data, PRM_Name* choicenames, int listsize, const PRM_SpareData*, const PRM_Parm*)
+    void LOP_ZibraVDBImport::BuildFieldsChoiceList(void* data, PRM_Name* choiceNames, int maxListSize, const PRM_SpareData*, const PRM_Parm*)
     {
-        if (!choicenames || listsize <= 0)
+        if (!choiceNames || maxListSize <= 0)
         {
             return;
         }
@@ -90,27 +91,27 @@ namespace Zibra::ZibraVDBImport
 
         int choiceIndex = 0;
         
-        if (choiceIndex < listsize - 1)
+        if (choiceIndex < maxListSize - 1)
         {
-            choicenames[choiceIndex].setToken("*");
-            choicenames[choiceIndex].setLabel("All Fields");
+            choiceNames[choiceIndex].setToken("*");
+            choiceNames[choiceIndex].setLabel("All Fields");
             choiceIndex++;
         }
         
         for (const auto& gridName : node->m_AvailableGrids)
         {
-            if (choiceIndex >= listsize - 1)
+            if (choiceIndex >= maxListSize - 1)
                 break;
                 
-            choicenames[choiceIndex].setToken(gridName.c_str());
-            choicenames[choiceIndex].setLabel(gridName.c_str());
+            choiceNames[choiceIndex].setToken(gridName.c_str());
+            choiceNames[choiceIndex].setLabel(gridName.c_str());
             choiceIndex++;
         }
         
-        if (choiceIndex < listsize)
+        if (choiceIndex < maxListSize)
         {
-            choicenames[choiceIndex].setToken(nullptr);
-            choicenames[choiceIndex].setLabel(nullptr);
+            choiceNames[choiceIndex].setToken(nullptr);
+            choiceNames[choiceIndex].setLabel(nullptr);
         }
     }
 
@@ -213,7 +214,8 @@ namespace Zibra::ZibraVDBImport
         {
             if (std::filesystem::exists(filePath))
             {
-                if (filePath.length() > 9 && filePath.substr(filePath.length() - 9) == ".zibravdb")
+                std::unordered_map<std::string, std::string> parseResult;
+                if (Helpers::ParseZibraVDBURI(filePath, parseResult))
                 {
                     isValidFile = true;
                 }

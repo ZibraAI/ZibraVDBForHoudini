@@ -21,4 +21,7 @@ namespace Zibra::Helpers
     // URI parsing
     bool ParseZibraVDBURI(const std::string& uri, std::unordered_map<std::string, std::string>& keyValuePairs);
     bool ParseRelSOPNodeParams(const std::string& pathStr, double& t, std::string& extractedPath);
+
+    // Number parsing
+    bool TryParseInt(const std::string& str, int& result);
 }

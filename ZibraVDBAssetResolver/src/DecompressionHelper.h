@@ -2,7 +2,7 @@
 
 #include "utils/DecompressorManager.h"
 
-PXR_NAMESPACE_OPEN_SCOPE
+PXR_NAMESPACE_USING_DIRECTIVE
 
 namespace Zibra::AssetResolver
 {
@@ -19,14 +19,14 @@ namespace Zibra::AssetResolver
         void AddDecompressedFile(const std::string& compressedFile, const std::string& decompressedFile);
 
     private:
-        ::Zibra::Helpers::DecompressorManager* GetOrCreateDecompressorManager(const std::string& compressedFile);
+        Helpers::DecompressorManager* GetOrCreateDecompressorManager(const std::string& compressedFile);
         bool LoadSDKLib();
+
+        static std::string FormatUUID(uint64_t uuid[2]);
 
         static std::unordered_map<std::string, std::unordered_set<std::string>> ms_DecompressedFilesDict;
         static std::mutex ms_DecompressedFilesMutex;
-        static std::unordered_map<std::string, std::unique_ptr<::Zibra::Helpers::DecompressorManager>> ms_DecompressorManagers;
+        static std::unordered_map<std::string, std::unique_ptr<Helpers::DecompressorManager>> ms_DecompressorManagers;
         static std::mutex ms_DecompressorManagersMutex;
     };
 } // namespace Zibra::AssetResolver
-
-PXR_NAMESPACE_CLOSE_SCOPE

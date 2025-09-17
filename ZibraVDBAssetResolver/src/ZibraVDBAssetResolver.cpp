@@ -1,6 +1,7 @@
 #include "PrecompiledHeader.h"
 
 #include "ZibraVDBAssetResolver.h"
+#include "utils/Helpers.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -74,15 +75,32 @@ ZibraVDBResolver::~ZibraVDBResolver() = default;
 
 std::string ZibraVDBResolver::_CreateIdentifier(const std::string& assetPath, const ArResolvedPath& anchorAssetPath) const
 {
-    if (!IsZibraVDBPath(assetPath))
+    std::unordered_map<std::string, std::string> parseResult;
+    if (!Zibra::Helpers::ParseZibraVDBURI(assetPath, parseResult))
     {
+        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
+            .Msg("ZibraVDBResolver::CreateIdentifier - Failed to parse ZibraVDB URI: '%s'\n", assetPath.c_str());
         return ArDefaultResolver().CreateIdentifier(assetPath, anchorAssetPath);
     }
 
     TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::CreateIdentifier - ZibraVDB URI detected: '%s'\n", assetPath.c_str());
 
+    std::string extractedPath = parseResult["path"] + "/" + parseResult["name"];
+    auto frameIt = parseResult.find("frame");
+    if (frameIt == parseResult.end() || frameIt->second.empty())
+    {
+        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
+            .Msg("ZibraVDBResolver::CreateIdentifier - Missing or empty frame parameter\n");
+        return ArDefaultResolver().CreateIdentifier(assetPath, anchorAssetPath);
+    }
+
     int frame = 0;
-    std::string extractedPath = ParseZibraVDBURI(assetPath, frame);
+    if (!Zibra::Helpers::TryParseInt(frameIt->second, frame))
+    {
+        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
+            .Msg("ZibraVDBResolver::CreateIdentifier - Invalid frame parameter '%s'.\n", frameIt->second.c_str());
+        return ArDefaultResolver().CreateIdentifier(assetPath, anchorAssetPath);
+    }
 
     if (TfIsRelativePath(extractedPath) && anchorAssetPath)
     {
@@ -106,8 +124,11 @@ std::string ZibraVDBResolver::_CreateIdentifier(const std::string& assetPath, co
 
 std::string ZibraVDBResolver::_CreateIdentifierForNewAsset(const std::string& assetPath, const ArResolvedPath& anchorAssetPath) const
 {
-    if (!IsZibraVDBPath(assetPath))
+    std::unordered_map<std::string, std::string> parseResult;
+    if (!Zibra::Helpers::ParseZibraVDBURI(assetPath, parseResult))
     {
+        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
+            .Msg("ZibraVDBResolver::CreateIdentifierForNewAsset - Failed to parse ZibraVDB URI: '%s'\n", assetPath.c_str());
         return ArDefaultResolver().CreateIdentifierForNewAsset(assetPath, anchorAssetPath);
     }
 
@@ -118,15 +139,32 @@ std::string ZibraVDBResolver::_CreateIdentifierForNewAsset(const std::string& as
 
 ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
 {
-    if (!IsZibraVDBPath(assetPath))
+    std::unordered_map<std::string, std::string> parseResult;
+    if (!Zibra::Helpers::ParseZibraVDBURI(assetPath, parseResult))
     {
+        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
+            .Msg("ZibraVDBResolver::_Resolve - Failed to parse ZibraVDB URI: '%s'\n", assetPath.c_str());
         return ArDefaultResolver().Resolve(assetPath);
     }
 
     TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_Resolve - Detected ZibraVDB path: '%s'\n", assetPath.c_str());
 
+    std::string actualFilePath = parseResult["path"] + "/" + parseResult["name"];
+    auto frameIt = parseResult.find("frame");
+    if (frameIt == parseResult.end() || frameIt->second.empty())
+    {
+        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
+            .Msg("ZibraVDBResolver::_Resolve - Missing or empty frame parameter\n");
+        return ArDefaultResolver().Resolve(assetPath);
+    }
+
     int frame = 0;
-    std::string actualFilePath = ParseZibraVDBURI(assetPath, frame);
+    if (!Zibra::Helpers::TryParseInt(frameIt->second, frame))
+    {
+        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
+            .Msg("ZibraVDBResolver::_Resolve - Invalid frame parameter '%s'\n", frameIt->second.c_str());
+        return ArDefaultResolver().Resolve(assetPath);
+    }
 
     if (!TfPathExists(actualFilePath))
     {
@@ -192,66 +230,8 @@ ArResolverContext ZibraVDBResolver::_CreateDefaultContext() const
 
 bool ZibraVDBResolver::_IsContextDependentPath(const std::string& path) const
 {
-    return IsZibraVDBPath(path);
-}
-
-bool ZibraVDBResolver::IsZibraVDBPath(const std::string& path) const
-{
-    static const std::regex zibraVDBPattern(R"(.*\.zibravdb\?(.+=.+)(&.+=.+)*)");
-    return std::regex_match(path, zibraVDBPattern);
-}
-
-std::string ZibraVDBResolver::ParseZibraVDBURI(const std::string& uri, int& frame) const
-{
-    frame = 0;
-
-    size_t questionMarkPos = uri.find('?');
-    if (questionMarkPos == std::string::npos)
-    {
-        return uri;
-    }
-
-    if (uri.find('?', questionMarkPos + 1) != std::string::npos)
-    {
-        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
-            .Msg("ZibraVDBResolver::ParseZibraVDBURI - Multiple '?' characters found in URI: '%s'\n", uri.c_str());
-        return uri.substr(0, questionMarkPos);
-    }
-
-    std::string path = uri.substr(0, questionMarkPos);
-    std::string queryString = uri.substr(questionMarkPos + 1);
-
-    std::string frameParam;
-    bool foundFrame = false;
-
-    size_t start = 0;
-    size_t ampPos;
-    do
-    {
-        ampPos = queryString.find('&', start);
-        std::string param = (ampPos == std::string::npos) ? queryString.substr(start) : queryString.substr(start, ampPos - start);
-
-        if (param.substr(0, 6) == "frame=")
-        {
-            std::string frameValue = param.substr(6);
-            if (foundFrame)
-            {
-                TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
-                    .Msg("ZibraVDBResolver::ParseZibraVDBURI - Multiple 'frame' parameters found, using last one: '%s'\n",
-                         frameValue.c_str());
-            }
-            frameParam = frameValue;
-            foundFrame = true;
-        }
-
-        start = ampPos + 1;
-    } while (ampPos != std::string::npos);
-
-    if (foundFrame && !frameParam.empty())
-    {
-        frame = std::stoi(frameParam);
-    }
-    return path;
+    std::unordered_map<std::string, std::string> parseResult;
+    return Zibra::Helpers::ParseZibraVDBURI(path, parseResult);
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

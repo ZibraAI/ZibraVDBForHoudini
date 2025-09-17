@@ -441,7 +441,7 @@ namespace Zibra
             SetStringField("library_status.val", libraryStatus.c_str());
         }
         {
-            std::string libraryVersion = LibraryUtils::GetZibSDKVersionString();
+            std::string libraryVersion = LibraryUtils::GetSDKLibraryVersionString();
             SetStringField("library_version.val", libraryVersion.c_str());
         }
         {

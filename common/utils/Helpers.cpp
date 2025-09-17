@@ -145,51 +145,87 @@ namespace Zibra::Helpers
     bool ParseZibraVDBURI(const std::string& uri, std::unordered_map<std::string, std::string>& keyValuePairs)
     {
         keyValuePairs.clear();
-        
-        std::regex zibravdb_regex(R"(^(.+)\.zibravdb\?(.+=.+(?:&.+=.+)*)$)");
-        std::smatch match;
-        if (!std::regex_match(uri, match, zibravdb_regex))
+
+        size_t questionMarkCount = 0;
+        size_t questionMarkPos = std::string::npos;
+        for (size_t i = 0; i < uri.length(); i++)
+        {
+            if (uri[i] == '?')
+            {
+                questionMarkCount++;
+                questionMarkPos = i;
+                if (questionMarkCount > 1)
+                {
+                    return false;
+                }
+            }
+        }
+
+        std::string filePath = (questionMarkCount == 0) ? uri : uri.substr(0, questionMarkPos);
+        size_t lastDotPos = filePath.find_last_of('.');
+        if (lastDotPos == std::string::npos)
         {
             return false;
         }
-        
-        std::string file_path = match[1].str() + ".zibravdb";
-        std::filesystem::path filepath(file_path);
+
+        std::string extension = filePath.substr(lastDotPos);
+        if (extension != ZIB_ZIBRAVDB_EXT)
+        {
+            return false;
+        }
+
+        std::filesystem::path filepath(filePath);
         keyValuePairs["path"] = filepath.parent_path().string();
         keyValuePairs["name"] = filepath.filename().string();
-        
-        std::string query_string = match[2].str();
-        std::regex param_regex(R"(([^&=]+)=([^&=]+))");
-        std::sregex_iterator iter(query_string.begin(), query_string.end(), param_regex);
-        std::sregex_iterator end;
-        
-        for (; iter != end; ++iter)
+
+        if (questionMarkCount == 1 && questionMarkPos + 1 < uri.length())
         {
-            std::string key = (*iter)[1];
-            std::string value = (*iter)[2];
-            
-            // URL decode the value (handle %2F -> /, %20 -> space)
-            size_t pos = 0;
-            while ((pos = value.find("%2F", pos)) != std::string::npos)
+            std::string queryString = uri.substr(questionMarkPos + 1);
+
+            size_t start = 0;
+            size_t ampPos;
+            do
             {
-                value.replace(pos, 3, "/");
-                pos += 1;
-            }
-            while ((pos = value.find("%20", pos)) != std::string::npos)
-            {
-                value.replace(pos, 3, " ");
-                pos += 1;
-            }
-            
-            keyValuePairs[key] = value;
+                ampPos = queryString.find('&', start);
+                std::string param = (ampPos == std::string::npos) ?
+                    queryString.substr(start) :
+                    queryString.substr(start, ampPos - start);
+
+                size_t equalPos = param.find('=');
+                if (equalPos != std::string::npos && equalPos > 0 && equalPos + 1 < param.length())
+                {
+                    std::string key = param.substr(0, equalPos);
+                    std::string value = param.substr(equalPos + 1);
+
+                    if (key == "node")
+                    {
+                        size_t pos = 0;
+                        while ((pos = value.find("%2F", pos)) != std::string::npos)
+                        {
+                            value.replace(pos, 3, "/");
+                            pos += 1;
+                        }
+                        pos = 0;
+                        while ((pos = value.find("%20", pos)) != std::string::npos)
+                        {
+                            value.replace(pos, 3, " ");
+                            pos += 1;
+                        }
+                    }
+
+                    keyValuePairs[key] = value;
+                }
+
+                start = ampPos + 1;
+            } while (ampPos != std::string::npos);
         }
-        
+
         return true;
     }
 
     bool ParseRelSOPNodeParams(const std::string& pathStr, double& t, std::string& extractedPath)
     {
-        if (pathStr.find("op:/") != 0)
+        if (pathStr.compare(0, 4, "op:/") != 0)
         {
             return false;
         }
@@ -213,16 +249,42 @@ namespace Zibra::Helpers
         } else {
             extractedPath = fullPath;
         }
-
-        std::regex t_regex(R"(&t=([0-9.]+))");
+        std::regex t_regex(R"([?&]t=([0-9]+(?:\.[0-9]+)?)(?:[&]|$))");
         std::smatch match;
         if (!std::regex_search(pathStr, match, t_regex))
         {
             return false;
         }
-        t = std::stod(match[1].str());
+
+        try
+        {
+            t = std::stod(match[1].str());
+        }
+        catch (const std::exception&)
+        {
+            return false;
+        }
 
         return true;
+    }
+
+    bool TryParseInt(const std::string& str, int& result)
+    {
+        if (str.empty())
+        {
+            return false;
+        }
+
+        try
+        {
+            size_t pos;
+            result = std::stoi(str, &pos);
+            return pos == str.length();
+        }
+        catch (const std::exception&)
+        {
+            return false;
+        }
     }
 
 } // namespace Zibra::Helpers

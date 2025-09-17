@@ -7,14 +7,12 @@
 #include "licensing/LicenseManager.h"
 #include "utils/MetadataHelper.h"
 
-PXR_NAMESPACE_OPEN_SCOPE
-
 namespace Zibra::AssetResolver
 {
 
     std::unordered_map<std::string, std::unordered_set<std::string>> DecompressionHelper::ms_DecompressedFilesDict;
     std::mutex DecompressionHelper::ms_DecompressedFilesMutex;
-    std::unordered_map<std::string, std::unique_ptr<::Zibra::Helpers::DecompressorManager>> DecompressionHelper::ms_DecompressorManagers;
+    std::unordered_map<std::string, std::unique_ptr<Helpers::DecompressorManager>> DecompressionHelper::ms_DecompressorManagers;
     std::mutex DecompressionHelper::ms_DecompressorManagersMutex;
 
     DecompressionHelper::DecompressionHelper()
@@ -50,7 +48,7 @@ namespace Zibra::AssetResolver
 
         // License may or may not be required depending on .zibravdb file
         // So we need to trigger license check, but if it fails we proceed with decompression
-        ::Zibra::LicenseManager::GetInstance().CheckLicense(::Zibra::LicenseManager::Product::Decompression);
+        LicenseManager::GetInstance().CheckLicense(::Zibra::LicenseManager::Product::Decompression);
 
         auto* decompressor = GetOrCreateDecompressorManager(zibraVDBPath);
         if (!decompressor)
@@ -61,8 +59,8 @@ namespace Zibra::AssetResolver
         }
 
         auto sequenceInfo = decompressor->GetSequenceInfo();
-        std::string uniqueId = std::to_string(sequenceInfo.fileUUID[0]) + "_" + std::to_string(sequenceInfo.fileUUID[1]);
-        std::string outputPath = TfStringCatPaths(zibraVDBTmpDir, uniqueId + "_" + std::to_string(frame) + ".vdb");
+        std::string uniqueId = FormatUUID(sequenceInfo.fileUUID);
+        std::string outputPath = TfStringCatPaths(zibraVDBTmpDir, uniqueId + "." + std::to_string(frame) + ".vdb");
 
         if (TfPathExists(outputPath))
         {
@@ -91,7 +89,7 @@ namespace Zibra::AssetResolver
         openvdb::GridPtrVec vdbGrids;
 
         auto result = decompressor->DecompressFrame(frameContainer, gridShuffle, &vdbGrids);
-        if (result != ::Zibra::CE::ZCE_SUCCESS || vdbGrids.empty())
+        if (result != CE::ZCE_SUCCESS || vdbGrids.empty())
         {
             TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
                 .Msg("ZibraVDBDecompressionManager::DecompressZibraVDBFile - Failed to decompress frame: %d\n", (int)result);
@@ -101,12 +99,12 @@ namespace Zibra::AssetResolver
 
         // Restore file-level and grid-level metadata using unified MetadataHelper
         openvdb::MetaMap fileMetadata;
-        ::Zibra::Utils::MetadataHelper::ApplyDetailMetadata(fileMetadata, frameContainer);
+        Utils::MetadataHelper::ApplyDetailMetadata(fileMetadata, frameContainer);
 
         // Apply grid metadata to each grid individually
         for (auto& grid : vdbGrids)
         {
-            ::Zibra::Utils::MetadataHelper::ApplyGridMetadata(grid, frameContainer);
+            Utils::MetadataHelper::ApplyGridMetadata(grid, frameContainer);
         }
 
         openvdb::io::File file(outputPath);
@@ -132,30 +130,28 @@ namespace Zibra::AssetResolver
     {
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBDecompressionManager::CleanupUnneededDecompressedFiles - Cleaning up for compressed file: '%s', keeping: '%s'\n", currentCompressedFile.c_str(), currentDecompressedFile.c_str());
 
-        {
-            std::lock_guard lock(ms_DecompressedFilesMutex);
+        std::lock_guard lock(ms_DecompressedFilesMutex);
 
-            const auto it = ms_DecompressedFilesDict.find(currentCompressedFile);
-            if (it == ms_DecompressedFilesDict.end())
+        const auto it = ms_DecompressedFilesDict.find(currentCompressedFile);
+        if (it == ms_DecompressedFilesDict.end())
+        {
+            return;
+        }
+        auto& fileSet = it->second;
+        for (auto fileIt = fileSet.begin(); fileIt != fileSet.end();)
+        {
+            if (*fileIt != currentDecompressedFile)
             {
-                return;
+                if (TfPathExists(*fileIt))
+                {
+                    TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBDecompressionManager::CleanupUnneededDecompressedFiles - Deleting: '%s'\n", fileIt->c_str());
+                    TfDeleteFile(*fileIt);
+                }
+                fileIt = fileSet.erase(fileIt);
             }
-            auto& fileSet = it->second;
-            for (auto fileIt = fileSet.begin(); fileIt != fileSet.end();)
+            else
             {
-                if (*fileIt != currentDecompressedFile)
-                {
-                    if (TfPathExists(*fileIt))
-                    {
-                        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBDecompressionManager::CleanupUnneededDecompressedFiles - Deleting: '%s'\n", fileIt->c_str());
-                        TfDeleteFile(*fileIt);
-                    }
-                    fileIt = fileSet.erase(fileIt);
-                }
-                else
-                {
-                    ++fileIt;
-                }
+                ++fileIt;
             }
         }
     }
@@ -188,7 +184,7 @@ namespace Zibra::AssetResolver
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBDecompressionManager::CleanupAllDecompressedFilesStatic - Static cleanup completed\n");
     }
 
-    ::Zibra::Helpers::DecompressorManager* DecompressionHelper::GetOrCreateDecompressorManager(const std::string& compressedFile)
+    Helpers::DecompressorManager* DecompressionHelper::GetOrCreateDecompressorManager(const std::string& compressedFile)
     {
         std::lock_guard<std::mutex> lock(ms_DecompressorManagersMutex);
 
@@ -199,9 +195,9 @@ namespace Zibra::AssetResolver
             return it->second.get();
         }
 
-        auto manager = std::make_unique<::Zibra::Helpers::DecompressorManager>();
+        auto manager = std::make_unique<Helpers::DecompressorManager>();
         auto result = manager->Initialize();
-        if (result != ::Zibra::CE::ZCE_SUCCESS)
+        if (result != CE::ZCE_SUCCESS)
         {
             TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
                 .Msg("ZibraVDBDecompressionManager::GetOrCreateDecompressorManager - Failed to initialize DecompressorManager: %d\n", (int)result);
@@ -210,7 +206,7 @@ namespace Zibra::AssetResolver
 
         UT_String filename(compressedFile.c_str());
         result = manager->RegisterDecompressor(filename);
-        if (result != ::Zibra::CE::ZCE_SUCCESS)
+        if (result != CE::ZCE_SUCCESS)
         {
             TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
                 .Msg("ZibraVDBDecompressionManager::GetOrCreateDecompressorManager - Failed to register decompressor: %d\n", (int)result);
@@ -219,7 +215,7 @@ namespace Zibra::AssetResolver
 
         // Get UUID from the registered decompressor to use as key
         auto sequenceInfo = manager->GetSequenceInfo();
-        std::string uuidKey = std::to_string(sequenceInfo.fileUUID[0]) + "_" + std::to_string(sequenceInfo.fileUUID[1]);
+        std::string uuidKey = FormatUUID(sequenceInfo.fileUUID);
 
         // Check if a manager with this UUID already exists
         auto uuidIt = ms_DecompressorManagers.find(uuidKey);
@@ -258,13 +254,13 @@ namespace Zibra::AssetResolver
 
     bool DecompressionHelper::LoadSDKLib()
     {
-        if (::Zibra::LibraryUtils::IsSDKLibraryLoaded())
+        if (LibraryUtils::IsSDKLibraryLoaded())
         {
             return true;
         }
 
-        ::Zibra::LibraryUtils::LoadSDKLibrary();
-        if (!::Zibra::LibraryUtils::IsSDKLibraryLoaded())
+        LibraryUtils::LoadSDKLibrary();
+        if (!LibraryUtils::IsSDKLibraryLoaded())
         {
             TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBDecompressionManager::LoadSDKLib - Library not loaded, cannot initialize resolver\n");
             return false;
@@ -273,6 +269,11 @@ namespace Zibra::AssetResolver
         return true;
     }
 
-} // namespace Zibra::AssetResolver
+    std::string DecompressionHelper::FormatUUID(uint64_t uuid[2])
+    {
+        std::stringstream ss;
+        ss << std::hex << std::setfill('0') << std::setw(16) << uuid[0] << std::setw(16) << uuid[1];
+        return ss.str();
+    }
 
-PXR_NAMESPACE_CLOSE_SCOPE
+} // namespace Zibra::AssetResolver
