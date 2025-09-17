@@ -17,6 +17,11 @@
 #include <UT/UT_Exit.h>
 #include <UT/UT_StringHolder.h>
 
+// OpenVDB includes
+#include <openvdb/openvdb.h>
+// OpenVDB MUST BE INCLUED BEFORE USD/PXR!!!
+// pxr/pxr.h define _DEBUG, which trips up selection of correct tbb library on windows
+
 // USD/PXR includes
 #include "pxr/base/tf/debug.h"
 #include "pxr/base/tf/fileUtils.h"
@@ -34,8 +39,5 @@
 #include "pxr/usd/ar/filesystemWritableAsset.h"
 #include "pxr/usd/ar/notice.h"
 #include "pxr/usd/ar/resolver.h"
-
-// OpenVDB includes
-#include <openvdb/openvdb.h>
 
 #include "Globals.h"

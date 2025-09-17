@@ -10,6 +10,10 @@ on:
         houdini-build:
             description: 'Houdini build to build against (e.g. "123")'
             required: true
+        python-version:
+            description: 'Python version to use. Must match selected houdini platforms.'
+            required: true
+            default: '3.11'
         houdini-win-x64-architecture:
             description: 'Houdini architecture to use for Windows x64 build'
             required: true
@@ -35,13 +39,14 @@ jobs:
       houdini-build-20-5: ${{ inputs.houdini-build }}
       # Legend
       # name - Human readable OS/Arch name. Version is appended separately.
-      # run-on-all-branches - Whether to run this target on all branches. If false, will only run on main
+      # os - Runner OS. Used for workflow logic.
       # runner - Github actions runner that should run the job
       # generator - Generator used for cmake configuration
       # houdini-version - Version of houdini to build against (e.g. "20.5"/"21.0")
       # houdini-build - Specific build of houdini to build against (e.g. "440")
       # houdini-install-path - Path into which houdini gets installed. This needs to be consistent with houdini install script, as it calculates path for previous version when removing it. On Windows it MUST USE BACKSLASHES.
       # hfs-path - Path to use HFS env var to. This is same as houdini-install-path on most platforms, but macOS is special and required additional suffix after houdini-install-path.
+      # python-version - Python version to install (e.g. "3.11"). Only used on Windows right now.
       # python-command - Python command to use for running scripts (e.g. "python"/"python3")
       # python-venv-activate-path - Path to powershell python venv activation script within venv folder
       # additional-config-args - Additional commad line args to pass to cmake configuration. Required on macOS to specify architectrue (arm64/x64)
@@ -50,6 +55,7 @@ jobs:
           "include": [
             {
               "name": "Windows x64",
+              "os": "windows",
               "runner": "windows-latest",
               "generator": "Visual Studio 17 2022",
               "executable-extension": ".exe",
@@ -58,12 +64,14 @@ jobs:
               "houdini-platform": "${{ inputs.houdini-win-x64-architecture }}",
               "houdini-install-path": "C:\\Houdini\\${{ inputs.houdini-version }}.${{ inputs.houdini-build }}",
               "hfs-path": "C:\\Houdini\\${{ inputs.houdini-version }}.${{ inputs.houdini-build }}",
+              "python-version": ${{ inputs.python-version }},
               "python-command": "python",
               "python-venv-activate-path": "Scripts/Activate.ps1",
               "additional-config-args": null
             },
             {
               "name": "Linux x64",
+              "os": "linux",
               "runner": [
                 "self-hosted",
                 "Linux",
@@ -77,12 +85,14 @@ jobs:
               "houdini-platform": "${{ inputs.houdini-linux-x64-architecture }}",
               "houdini-install-path": "/opt/hfs${{ inputs.houdini-version }}.${{ inputs.houdini-build }}",
               "hfs-path": "/opt/hfs${{ inputs.houdini-version }}.${{ inputs.houdini-build }}",
+              "python-version": ${{ inputs.python-version }},
               "python-command": "python3",
               "python-venv-activate-path": "bin/Activate.ps1",
               "additional-config-args": null
             },
             {
               "name": "macOS arm64",
+              "os": "macos",
               "runner": "macos-14",
               "generator": "Xcode",
               "executable-extension": null,
@@ -91,12 +101,14 @@ jobs:
               "houdini-platform": "${{ inputs.houdini-mac-arm64-architecture }}",
               "houdini-install-path": "/Applications/Houdini/Houdini${{ inputs.houdini-version }}.${{ inputs.houdini-build }}",
               "hfs-path": "/Applications/Houdini/Houdini${{ inputs.houdini-version }}.${{ inputs.houdini-build }}/Frameworks/Houdini.framework/Versions/Current/Resources",
+              "python-version": ${{ inputs.python-version }},
               "python-command": "python3",
               "python-venv-activate-path": "bin/Activate.ps1",
               "additional-config-args": "-DCMAKE_OSX_ARCHITECTURES=arm64"
             },
             {
               "name": "macOS x64",
+              "os": "macos",
               "runner": "macos-14",
               "generator": "Xcode",
               "executable-extension": null,
@@ -105,6 +117,7 @@ jobs:
               "houdini-platform": "${{ inputs.houdini-mac-x64-architecture }}",
               "houdini-install-path": "/Applications/Houdini/Houdini${{ inputs.houdini-version }}.${{ inputs.houdini-build }}",
               "hfs-path": "/Applications/Houdini/Houdini${{ inputs.houdini-version }}.${{ inputs.houdini-build }}/Frameworks/Houdini.framework/Versions/Current/Resources",
+              "python-version": ${{ inputs.python-version }},
               "python-command": "python3",
               "python-venv-activate-path": "bin/Activate.ps1",
               "additional-config-args": "-DCMAKE_OSX_ARCHITECTURES=x86_64"
@@ -130,6 +143,12 @@ jobs:
     steps:
       - name: Sync
         uses: actions/checkout@v4
+
+      - name: Install python
+        if: ${{ matrix.os == 'windows' }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
 
       - name: Check if Houdini is installed
         id: install-check

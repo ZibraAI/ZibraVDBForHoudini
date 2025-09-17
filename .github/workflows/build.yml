@@ -13,13 +13,14 @@ jobs:
       need-complete-build: ${{ (steps.open_pr_check.outputs.has_open_pr != 'true') && (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') }}
       # Legend
       # name - Human readable OS/Arch name. Version is appended separately.
-      # run-on-all-branches - Whether to run this target on all branches. If false, will only run on main
+      # os - Runner OS. Used for workflow logic.
       # runner - Github actions runner that should run the job
       # generator - Generator used for cmake configuration
       # houdini-version - Version of houdini to build against (e.g. "20.5"/"21.0")
       # houdini-build - Specific build of houdini to build against (e.g. "440")
       # houdini-install-path - Path into which houdini gets installed. This needs to be consistent with houdini install script, as it calculates path for previous version when removing it. On Windows it MUST USE BACKSLASHES.
       # hfs-path - Path to use HFS env var to. This is same as houdini-install-path on most platforms, but macOS is special and required additional suffix after houdini-install-path.
+      # python-version - Python version to install (e.g. "3.11"). Only used on Windows right now.
       # python-command - Python command to use for running scripts (e.g. "python"/"python3")
       # python-venv-activate-path - Path to powershell python venv activation script within venv folder
       # additional-config-args - Additional commad line args to pass to cmake configuration. Required on macOS to specify architectrue (arm64/x64)
@@ -28,6 +29,7 @@ jobs:
           "include": [
             {
               "name": "Windows x64",
+              "os": "windows",
               "runner": "windows-latest",
               "generator": "Visual Studio 17 2022",
               "executable-extension": ".exe",
@@ -36,12 +38,14 @@ jobs:
               "houdini-platform": "win64-vc143",
               "houdini-install-path": "C:\\Houdini\\20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
               "hfs-path": "C:\\Houdini\\20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
+              "python-version": "3.11",
               "python-command": "python",
               "python-venv-activate-path": "Scripts/Activate.ps1",
               "additional-config-args": null
             },
             {
               "name": "Windows x64",
+              "os": "windows",
               "runner": "windows-latest",
               "generator": "Visual Studio 17 2022",
               "executable-extension": ".exe",
@@ -50,12 +54,14 @@ jobs:
               "houdini-platform": "win64-vc143",
               "houdini-install-path": "C:\\Houdini\\21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
               "hfs-path": "C:\\Houdini\\21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
+              "python-version": "3.11",
               "python-command": "python",
               "python-venv-activate-path": "Scripts/Activate.ps1",
               "additional-config-args": null
             },
             {
               "name": "Linux x64",
+              "os": "linux",
               "runner": [
                 "self-hosted",
                 "Linux",
@@ -69,12 +75,14 @@ jobs:
               "houdini-platform": "linux_x86_64_gcc11.2",
               "houdini-install-path": "/opt/hfs20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
               "hfs-path": "/opt/hfs20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
+              "python-version": "3.11",
               "python-command": "python3",
               "python-venv-activate-path": "bin/Activate.ps1",
               "additional-config-args": null
             },
             {
               "name": "Linux x64",
+              "os": "linux",
               "runner": [
                 "self-hosted",
                 "Linux",
@@ -88,12 +96,14 @@ jobs:
               "houdini-platform": "linux_x86_64_gcc11.2",
               "houdini-install-path": "/opt/hfs21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
               "hfs-path": "/opt/hfs21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
+              "python-version": "3.11",
               "python-command": "python3",
               "python-venv-activate-path": "bin/Activate.ps1",
               "additional-config-args": null
             },
             {
               "name": "macOS arm64",
+              "os": "macos",
               "runner": "macos-14",
               "generator": "Xcode",
               "executable-extension": null,
@@ -102,12 +112,14 @@ jobs:
               "houdini-platform": "macosx_arm64_clang15.0_14",
               "houdini-install-path": "/Applications/Houdini/Houdini20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
               "hfs-path": "/Applications/Houdini/Houdini20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}/Frameworks/Houdini.framework/Versions/Current/Resources",
+              "python-version": "3.11",
               "python-command": "python3",
               "python-venv-activate-path": "bin/Activate.ps1",
               "additional-config-args": "-DCMAKE_OSX_ARCHITECTURES=arm64"
             },
             {
               "name": "macOS arm64",
+              "os": "macos",
               "runner": "macos-14",
               "generator": "Xcode",
               "executable-extension": null,
@@ -116,12 +128,14 @@ jobs:
               "houdini-platform": "macosx_arm64_clang15.0_14",
               "houdini-install-path": "/Applications/Houdini/Houdini21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
               "hfs-path": "/Applications/Houdini/Houdini21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}/Frameworks/Houdini.framework/Versions/Current/Resources",
+              "python-version": "3.11",
               "python-command": "python3",
               "python-venv-activate-path": "bin/Activate.ps1",
               "additional-config-args": "-DCMAKE_OSX_ARCHITECTURES=arm64"
             },
             {
               "name": "macOS x64",
+              "os": "macos",
               "runner": "macos-14",
               "generator": "Xcode",
               "executable-extension": null,
@@ -130,12 +144,14 @@ jobs:
               "houdini-platform": "macosx_x86_64_clang15.0_14",
               "houdini-install-path": "/Applications/Houdini/Houdini20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
               "hfs-path": "/Applications/Houdini/Houdini20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}/Frameworks/Houdini.framework/Versions/Current/Resources",
+              "python-version": "3.11",
               "python-command": "python3",
               "python-venv-activate-path": "bin/Activate.ps1",
               "additional-config-args": "-DCMAKE_OSX_ARCHITECTURES=x86_64"
             },
             {
               "name": "macOS x64",
+              "os": "macos",
               "runner": "macos-14",
               "generator": "Xcode",
               "executable-extension": null,
@@ -144,6 +160,7 @@ jobs:
               "houdini-platform": "macosx_x86_64_clang15.0_14",
               "houdini-install-path": "/Applications/Houdini/Houdini21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
               "hfs-path": "/Applications/Houdini/Houdini21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}/Frameworks/Houdini.framework/Versions/Current/Resources",
+              "python-version": "3.11",
               "python-command": "python3",
               "python-venv-activate-path": "bin/Activate.ps1",
               "additional-config-args": "-DCMAKE_OSX_ARCHITECTURES=x86_64"
@@ -155,6 +172,7 @@ jobs:
           "include": [
             {
               "name": "Linux x64",
+              "os": "linux",
               "runner": [
                 "self-hosted",
                 "Linux",
@@ -168,12 +186,14 @@ jobs:
               "houdini-platform": "linux_x86_64_gcc11.2",
               "houdini-install-path": "/opt/hfs20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
               "hfs-path": "/opt/hfs20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
+              "python-version": "3.11",
               "python-command": "python3",
               "python-venv-activate-path": "bin/Activate.ps1",
               "additional-config-args": null
             },
             {
               "name": "Linux x64",
+              "os": "linux",
               "runner": [
                 "self-hosted",
                 "Linux",
@@ -187,6 +207,7 @@ jobs:
               "houdini-platform": "linux_x86_64_gcc11.2",
               "houdini-install-path": "/opt/hfs21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
               "hfs-path": "/opt/hfs21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
+              "python-version": "3.11",
               "python-command": "python3",
               "python-venv-activate-path": "bin/Activate.ps1",
               "additional-config-args": null
@@ -258,6 +279,12 @@ jobs:
       - name: Sync
         uses: actions/checkout@v4
 
+      - name: Install python
+        if: ${{ matrix.os == 'windows' }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
       - name: Check if Houdini is installed
         id: install-check
         working-directory: ${{ github.workspace }}
@@ -286,13 +313,13 @@ jobs:
         env:
           HFS: ${{ matrix.hfs-path }}
 
-#      - name: Build Debug
-#        working-directory: ${{ github.workspace }}
-#        shell: pwsh
-#        # Need to delete all generated artifacts, so Ninja Multi-Config does not get tripped up by existing artifacts when building Release
-#        run: |
-#          cmake --build build --config Debug
-#          Remove-Item -Recurse -Force "${{ github.workspace }}/package"
+      - name: Build Debug
+        working-directory: ${{ github.workspace }}
+        shell: pwsh
+        # Need to delete all generated artifacts, so Ninja Multi-Config does not get tripped up by existing artifacts when building Release
+        run: |
+          cmake --build build --config Debug
+          Remove-Item -Recurse -Force "${{ github.workspace }}/package"
 
       - name: Build Release
         working-directory: ${{ github.workspace }}

@@ -431,7 +431,12 @@ namespace Zibra::ZibraVDBCompressor
     {
         using namespace std::literals;
 
-        assert(LibraryUtils::IsZibSDKLoaded());
+        if (!LibraryUtils::IsSDKLibraryLoaded())
+        {
+            assert(0);
+            addError(ROP_MESSAGE, "Unexpected error, ZibraVDB SDK is not loaded.");
+            return ROP_ABORT_RENDER;
+        }
 
         executePreFrameScript(time);
 

@@ -15,8 +15,8 @@ set(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ Standard")
 # Force it to be as close to C++ standard as possible
 set(CMAKE_CXX_STANDARD_REQUIRED ON CACHE BOOL "C++ Standard Required")
 set(CMAKE_CXX_EXTENSIONS OFF CACHE BOOL "C++ Standard Extensions")
-if (MSVC)
-   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive- /Zc:__cplusplus" CACHE STRING "C++ Compiler Flags")
+if(MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive- /Zc:__cplusplus" CACHE STRING "C++ Compiler Flags")
 endif()
 
 # Houdini specific settings
@@ -30,19 +30,19 @@ cmake_print_variables(LABS_BUILD)
 project(ZibraVDBForHoudini)
 
 # Target OS detection
-if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     set(ZIB_TARGET_OS_NAME "WIN" CACHE STRING "Target OS Name")
-elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
     set(ZIB_TARGET_OS_NAME "LINUX" CACHE STRING "Target OS Name")
-elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
     set(ZIB_TARGET_OS_NAME "MAC" CACHE STRING "Target OS Name")
 else()
     message(FATAL_ERROR "Unknown target OS: ${CMAKE_SYSTEM}.")
 endif()
 cmake_print_variables(ZIB_TARGET_OS_NAME)
 
-if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
-    
+if("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
+
     if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
         message(STATUS "MSVC platform toolset version: ${CMAKE_VS_PLATFORM_TOOLSET_VERSION}")
         message(STATUS "MSVC version: ${CMAKE_CXX_COMPILER_VERSION}")
@@ -50,7 +50,7 @@ if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
         message(FATAL_ERROR "Unsupported compiler for Windows: ${CMAKE_CXX_COMPILER_ID}.")
     endif()
 
-elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "LINUX")
+elseif("${ZIB_TARGET_OS_NAME}" STREQUAL "LINUX")
 
     set(CMAKE_INSTALL_RPATH "${INSTALL_RPATH}")
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -59,10 +59,10 @@ elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "LINUX")
         message(FATAL_ERROR "Unsupported compiler for Linux: ${CMAKE_CXX_COMPILER_ID}.")
     endif()
 
-elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
+elseif("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
 
     set(CMAKE_INSTALL_RPATH "${INSTALL_RPATH}")
-    if (NOT {$LABS_BUILD})
+    if(NOT {$LABS_BUILD})
         # Do not bake in absolute path in labs build
         set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
     endif()
@@ -77,7 +77,7 @@ else()
     message(FATAL_ERROR "Unknown target OS: ${ZIB_TARGET_OS_NAME}.")
 endif()
 
-if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
+if("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
     set(ZIB_NETWORK_REQUEST_BACKEND "WINHTTP")
 elseif("${ZIB_TARGET_OS_NAME}" STREQUAL "LINUX")
     set(ZIB_NETWORK_REQUEST_BACKEND "CURL")
@@ -89,7 +89,6 @@ endif()
 cmake_print_variables(ZIB_NETWORK_REQUEST_BACKEND)
 
 set(HeaderFiles
-    #TODO check if we still need it
     src/PrecompiledHeader.h
     src/ROP/CompressorManager/CompressorManager.h
     src/ROP/ROP_ZibraVDBCompressor.h
@@ -112,7 +111,7 @@ set(SourceFiles
 add_library(ZibraVDBForHoudini SHARED ${HeaderFiles} ${SourceFiles})
 target_include_directories(ZibraVDBForHoudini PRIVATE src)
 target_precompile_headers(ZibraVDBForHoudini PRIVATE src/PrecompiledHeader.h)
-target_compile_definitions(ZibraVDBForHoudini PRIVATE 
+target_compile_definitions(ZibraVDBForHoudini PRIVATE
     ZIB_NETWORK_REQUEST_BACKEND_${ZIB_NETWORK_REQUEST_BACKEND}=1
     ZIB_TARGET_OS_${ZIB_TARGET_OS_NAME}=1)
 
@@ -178,63 +177,23 @@ else()
     add_dependencies(ZibraVDBForHoudini ZibraVDBForHoudiniAssetsCopy ZibraVDBForHoudiniCopyrightCopy)
 endif()
 
-add_subdirectory(common)
-
 list(APPEND CMAKE_PREFIX_PATH "${HOUDINI_PATH}/toolkit/cmake")
 find_package(Houdini REQUIRED)
 
-target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini ZibraVDBCommon)
-if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
-    # Select boost python target based on Houdini version
-    if(${Houdini_VERSION_MAJOR} GREATER_EQUAL 21)
-        set(HOUDINI_BOOST_PYTHON_TARGET "pxr_python")
-    else()
-        set(HOUDINI_BOOST_PYTHON_TARGET "hboost_python")
-    endif()
-    
-    target_link_libraries(ZibraVDBForHoudini PRIVATE
-        Houdini::Dep::openvdb_sesi
-        Houdini::Dep::${HOUDINI_BOOST_PYTHON_TARGET}
+set(DETECTED_HOUDINI_VERSION "${Houdini_VERSION_MAJOR}.${Houdini_VERSION_MINOR}")
+cmake_print_variables(DETECTED_HOUDINI_VERSION)
 
+add_subdirectory(common)
+setup_common_houdini_dependencies(ZibraVDBForHoudini)
+
+if("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
+    target_link_libraries(ZibraVDBForHoudini PRIVATE
         Houdini::Dep::pxr_tf
         Houdini::Dep::pxr_sdf
         Houdini::Dep::pxr_usd
         Houdini::Dep::pxr_usdVol
     )
-    if(DEFINED _houdini_python_version)
-        #TODO fix the hardcoded python path
-        set(PYTHON_DEBUG_LIB_PATH "C:/Users/sskap/AppData/Local/Programs/Python/Python311/libs/python311_d.lib")
-        set(PYTHON_DEBUG_INCLUDE_PATH "C:/Users/sskap/AppData/Local/Programs/Python/Python311/include")
-        set(PYTHON_TARGET_NAME "python${_houdini_python_version}")
-        if(TARGET Houdini::Dep::${PYTHON_TARGET_NAME})
-            target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::${PYTHON_TARGET_NAME})
-            message(STATUS "ZibraVDBForHoudini linking with Houdini::Dep::${PYTHON_TARGET_NAME}")
-        else()
-            message(WARNING "ZibraVDBForHoudini: Target Houdini::Dep::${PYTHON_TARGET_NAME} not found")
-        endif()
-
-        # link with debug Python if available
-        if(EXISTS ${PYTHON_DEBUG_LIB_PATH} AND EXISTS ${PYTHON_DEBUG_INCLUDE_PATH})
-            target_link_libraries(ZibraVDBForHoudini PRIVATE
-                $<$<CONFIG:Debug>:${PYTHON_DEBUG_LIB_PATH}>
-            )
-            target_include_directories(ZibraVDBForHoudini SYSTEM PRIVATE
-                $<$<CONFIG:Debug>:${PYTHON_DEBUG_INCLUDE_PATH}>
-            )
-            message(STATUS "ZibraVDBForHoudini will use debug Python library for Debug builds: ${PYTHON_DEBUG_LIB_PATH}")
-        else()
-            message(STATUS "Debug Python not found, using Houdini's Python for all configurations")
-        endif()
-    else()
-        message(FATAL_ERROR "ZibraVDBForHoudini: Houdini Python version not detected")
-    endif()
-elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
-    target_link_libraries(ZibraVDBForHoudini PRIVATE "-framework Python")
-endif ()
-
-
-set(DETECTED_HOUDINI_VERSION "${Houdini_VERSION_MAJOR}.${Houdini_VERSION_MINOR}")
-cmake_print_variables(DETECTED_HOUDINI_VERSION)
+endif()
 
 # Add USD Asset Resolver subdirectory
 add_subdirectory(ZibraVDBAssetResolver)
