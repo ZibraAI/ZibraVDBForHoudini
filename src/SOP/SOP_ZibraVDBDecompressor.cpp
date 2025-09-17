@@ -7,12 +7,6 @@
 #include "ui/PluginManagementWindow.h"
 #include "utils/MetadataHelper.h"
 
-#ifdef _DEBUG
-#define DBG_NAME(expression) expression
-#else
-#define DBG_NAME(expression) ""
-#endif
-
 namespace Zibra::ZibraVDBDecompressor
 {
     using namespace std::literals;
