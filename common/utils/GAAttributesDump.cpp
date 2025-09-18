@@ -155,8 +155,121 @@ namespace Zibra::Utils
         return result;
     }
 
-    MetaAttributesLoadStatus LoadEntityAttributesFromMeta(GU_Detail* gdp, GA_AttributeOwner owner, GA_Offset mapOffset,
-                                                          const nlohmann::json& meta) noexcept
+    void AttributeStoragePolicy<std::tuple<GU_Detail*, GA_AttributeOwner, GA_Offset>>::StoreBool(const TargetType& target,
+                                                                                                 const std::string& attribName, bool value)
+    {
+        auto [gdp, owner, mapOffset] = target;
+        GA_Attribute* attr = gdp->addTuple(GA_STORE_BOOL, owner, attribName, 1);
+        GA_RWHandleI attrRWHandle{attr};
+        attrRWHandle.set(mapOffset, value ? 1 : 0);
+    }
+
+    void AttributeStoragePolicy<std::tuple<GU_Detail*, GA_AttributeOwner, GA_Offset>>::StoreIntArray(const TargetType& target,
+                                                                                                     const std::string& attribName,
+                                                                                                     const std::vector<int32>& values,
+                                                                                                     GA_Storage storage)
+    {
+        auto [gdp, owner, mapOffset] = target;
+        GA_Attribute* attr = gdp->addTuple(storage, owner, attribName, static_cast<int>(values.size()));
+        GA_RWHandleI attrRWHandle{attr};
+        attrRWHandle.setV(mapOffset, values.data(), static_cast<int>(values.size()));
+    }
+
+    void AttributeStoragePolicy<std::tuple<GU_Detail*, GA_AttributeOwner, GA_Offset>>::StoreFloatArray(const TargetType& target,
+                                                                                                       const std::string& attribName,
+                                                                                                       const std::vector<float>& values,
+                                                                                                       GA_Storage storage)
+    {
+        auto [gdp, owner, mapOffset] = target;
+        GA_Attribute* attr = gdp->addTuple(storage, owner, attribName, static_cast<int>(values.size()));
+        GA_RWHandleF attrRWHandle{attr};
+        attrRWHandle.setV(mapOffset, values.data(), static_cast<int>(values.size()));
+    }
+
+    void AttributeStoragePolicy<std::tuple<GU_Detail*, GA_AttributeOwner, GA_Offset>>::StoreString(const TargetType& target,
+                                                                                                   const std::string& attribName,
+                                                                                                   const std::string& value)
+    {
+        auto [gdp, owner, mapOffset] = target;
+        GA_Attribute* attr = gdp->addTuple(GA_STORE_STRING, owner, attribName, 1);
+        GA_RWHandleS attrRWHandle{attr};
+        attrRWHandle.set(mapOffset, value);
+    }
+
+    void AttributeStoragePolicy<openvdb::GridBase::Ptr>::StoreBool(TargetType& target, const std::string& attribName, bool value)
+    {
+        std::string metaName = "houdini_attr_" + attribName;
+        target->insertMeta(metaName + "_type", openvdb::StringMetadata("bool"));
+        target->insertMeta(metaName, openvdb::StringMetadata(value ? "true" : "false"));
+    }
+
+    void AttributeStoragePolicy<openvdb::GridBase::Ptr>::StoreIntArray(TargetType& target, const std::string& attribName,
+                                                                       const std::vector<int32>& values, const std::string& typeStr)
+    {
+        std::string metaName = "houdini_attr_" + attribName;
+        target->insertMeta(metaName + "_type", openvdb::StringMetadata(typeStr));
+        nlohmann::json jsonArray(values);
+        target->insertMeta(metaName, openvdb::StringMetadata(jsonArray.dump()));
+    }
+
+    void AttributeStoragePolicy<openvdb::GridBase::Ptr>::StoreFloatArray(TargetType& target, const std::string& attribName,
+                                                                         const std::vector<float>& values, const std::string& typeStr)
+    {
+        std::string metaName = "houdini_attr_" + attribName;
+        target->insertMeta(metaName + "_type", openvdb::StringMetadata(typeStr));
+        nlohmann::json jsonArray(values);
+        target->insertMeta(metaName, openvdb::StringMetadata(jsonArray.dump()));
+    }
+
+    void AttributeStoragePolicy<openvdb::GridBase::Ptr>::StoreString(TargetType& target, const std::string& attribName,
+                                                                     const std::string& value)
+    {
+        std::string metaName = "houdini_attr_" + attribName;
+        target->insertMeta(metaName + "_type", openvdb::StringMetadata("string"));
+        target->insertMeta(metaName, openvdb::StringMetadata(value));
+    }
+
+    void AttributeStoragePolicy<openvdb::MetaMap>::StoreBool(TargetType& target, const std::string& attribName, bool value)
+    {
+        std::string metaName = "houdini_attr_" + attribName;
+        target.insertMeta(metaName + "_type", openvdb::StringMetadata("bool"));
+        target.insertMeta(metaName, openvdb::StringMetadata(value ? "true" : "false"));
+    }
+
+    void AttributeStoragePolicy<openvdb::MetaMap>::StoreIntArray(TargetType& target, const std::string& attribName,
+                                                                 const std::vector<int32>& values, const std::string& typeStr)
+    {
+        std::string metaName = "houdini_attr_" + attribName;
+        target.insertMeta(metaName + "_type", openvdb::StringMetadata(typeStr));
+        nlohmann::json jsonArray(values);
+        target.insertMeta(metaName, openvdb::StringMetadata(jsonArray.dump()));
+    }
+
+    void AttributeStoragePolicy<openvdb::MetaMap>::StoreFloatArray(TargetType& target, const std::string& attribName,
+                                                                   const std::vector<float>& values, const std::string& typeStr)
+    {
+        std::string metaName = "houdini_attr_" + attribName;
+        target.insertMeta(metaName + "_type", openvdb::StringMetadata(typeStr));
+        nlohmann::json jsonArray(values);
+        target.insertMeta(metaName, openvdb::StringMetadata(jsonArray.dump()));
+    }
+
+    void AttributeStoragePolicy<openvdb::MetaMap>::StoreString(TargetType& target, const std::string& attribName, const std::string& value)
+    {
+        std::string metaName = "houdini_attr_" + attribName;
+        target.insertMeta(metaName + "_type", openvdb::StringMetadata("string"));
+        target.insertMeta(metaName, openvdb::StringMetadata(value));
+    }
+
+    template MetaAttributesLoadStatus LoadEntityAttributesFromMeta<std::tuple<GU_Detail*, GA_AttributeOwner, GA_Offset>>(
+        std::tuple<GU_Detail*, GA_AttributeOwner, GA_Offset>& target, const nlohmann::json& meta) noexcept;
+    template MetaAttributesLoadStatus LoadEntityAttributesFromMeta<openvdb::GridBase::Ptr>(openvdb::GridBase::Ptr& target,
+                                                                                           const nlohmann::json& meta) noexcept;
+    template MetaAttributesLoadStatus LoadEntityAttributesFromMeta<openvdb::MetaMap>(openvdb::MetaMap& target,
+                                                                                     const nlohmann::json& meta) noexcept;
+
+    template <typename TargetType>
+    MetaAttributesLoadStatus LoadEntityAttributesFromMeta(TargetType& target, const nlohmann::json& meta) noexcept
     {
 #define ZIB_LOCAL_HELPER_WARNING_AND_RETURN(cond)                      \
     if (cond)                                                          \
@@ -173,6 +286,8 @@ namespace Zibra::Utils
         ZIB_LOCAL_HELPER_WARNING_AND_RETURN(!meta.is_object());
 
         MetaAttributesLoadStatus status = MetaAttributesLoadStatus::SUCCESS;
+        using PolicyType = AttributeStoragePolicy<TargetType>;
+
         for (const auto& [attribName, attrContainer] : meta.items())
         {
             ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE(!attrContainer.is_object());
@@ -181,109 +296,37 @@ namespace Zibra::Utils
             auto valContainer = attrContainer["v"];
             ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE(!typeContainer.is_string() || valContainer.is_object() || valContainer.is_null());
 
-            GA_Storage storage = StrTypeToGAStorage(typeContainer);
-
-            ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE(storage == GA_STORE_INVALID);
-            GA_Attribute* attr = gdp->addTuple(storage, owner, attribName, static_cast<int>(valContainer.size()));
-
-            switch (storage)
-            {
-            case GA_STORE_BOOL:
-                // TODO: finish
-                break;
-            case GA_STORE_UINT8:
-                // TODO: finish
-                break;
-            case GA_STORE_INT8:
-            case GA_STORE_INT16:
-            case GA_STORE_INT32:
-            case GA_STORE_INT64: {
-                GA_RWHandleI attrRWHandle{attr};
-                std::vector<int32> values{};
-                values.reserve(valContainer.size());
-                for (int32_t val : valContainer)
-                {
-                    values.emplace_back(val);
-                }
-                attrRWHandle.setV(mapOffset, values.data(), static_cast<int>(values.size()));
-                break;
-            }
-            case GA_STORE_REAL16:
-            case GA_STORE_REAL32:
-            case GA_STORE_REAL64: {
-                GA_RWHandleF attrRWHandle{attr};
-                std::vector<float> values{};
-                values.reserve(valContainer.size());
-                for (float val : valContainer)
-                {
-                    values.emplace_back(static_cast<float>(val));
-                }
-                attrRWHandle.setV(mapOffset, values.data(), static_cast<int>(values.size()));
-                break;
-            }
-            case GA_STORE_STRING: {
-                GA_RWHandleS attrRWHandle{attr};
-                std::string value = valContainer;
-                attrRWHandle.set(mapOffset, value);
-                break;
-            }
-            default:
-                continue;
-            }
-        }
-        return status;
-
-#undef ZIB_LOCAL_HELPER_WARNING_AND_RETURN
-#undef ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE
-    }
-
-    MetaAttributesLoadStatus LoadEntityAttributesFromMeta(openvdb::GridBase::Ptr& grid,
-                                                          const nlohmann::json& meta) noexcept
-    {
-#define ZIB_LOCAL_HELPER_WARNING_AND_RETURN(cond)                      \
-    if (cond)                                                          \
-    {                                                                  \
-        return MetaAttributesLoadStatus::FATAL_ERROR_INVALID_METADATA; \
-    }
-#define ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE(cond)                          \
-    if (cond)                                                                \
-    {                                                                        \
-        status = MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA; \
-        continue;                                                            \
-    }
-
-        ZIB_LOCAL_HELPER_WARNING_AND_RETURN(!meta.is_object());
-
-        MetaAttributesLoadStatus status = MetaAttributesLoadStatus::SUCCESS;
-        for (const auto& [attribName, attrContainer] : meta.items())
-        {
-            ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE(!attrContainer.is_object());
-            ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE(!attrContainer.contains("t") || !attrContainer.contains("v"));
-            auto typeContainer = attrContainer["t"];
-            auto valContainer = attrContainer["v"];
-            ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE(!typeContainer.is_string() || valContainer.is_object() || valContainer.is_null());
-
-            std::string metaName = "houdini_attr_" + attribName; // Prefix to distinguish from native OpenVDB metadata
-
-            // Convert Houdini attribute data to OpenVDB metadata
             std::string typeStr = typeContainer;
+
             if (typeStr == "bool")
             {
                 if (valContainer.is_boolean())
                 {
-                    grid->insertMeta(metaName + "_type", openvdb::StringMetadata(typeStr));
-                    grid->insertMeta(metaName, openvdb::StringMetadata(valContainer.get<bool>() ? "true" : "false"));
+                    PolicyType::StoreBool(target, attribName, valContainer.template get<bool>());
+                }
+                else
+                {
+                    status = MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA;
                 }
             }
             else if (typeStr == "int8" || typeStr == "int16" || typeStr == "int32" || typeStr == "int64")
             {
                 if (valContainer.is_array())
                 {
-                    std::vector<int32_t> values = valContainer;
-                    grid->insertMeta(metaName + "_type", openvdb::StringMetadata(typeStr));
-
-                    // For arrays, store as JSON string
-                    grid->insertMeta(metaName, openvdb::StringMetadata(valContainer.dump()));
+                    std::vector<int32> values = valContainer;
+                    if constexpr (std::is_same_v<TargetType, std::tuple<GU_Detail*, GA_AttributeOwner, GA_Offset>>)
+                    {
+                        GA_Storage storage = StrTypeToGAStorage(typeStr);
+                        PolicyType::StoreIntArray(target, attribName, values, storage);
+                    }
+                    else
+                    {
+                        PolicyType::StoreIntArray(target, attribName, values, typeStr);
+                    }
+                }
+                else
+                {
+                    status = MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA;
                 }
             }
             else if (typeStr == "float16" || typeStr == "float32" || typeStr == "float64")
@@ -291,108 +334,38 @@ namespace Zibra::Utils
                 if (valContainer.is_array())
                 {
                     std::vector<float> values = valContainer;
-                    grid->insertMeta(metaName + "_type", openvdb::StringMetadata(typeStr));
-
-                    // For arrays, store as JSON string
-                    grid->insertMeta(metaName, openvdb::StringMetadata(valContainer.dump()));
+                    if constexpr (std::is_same_v<TargetType, std::tuple<GU_Detail*, GA_AttributeOwner, GA_Offset>>)
+                    {
+                        GA_Storage storage = StrTypeToGAStorage(typeStr);
+                        PolicyType::StoreFloatArray(target, attribName, values, storage);
+                    }
+                    else
+                    {
+                        PolicyType::StoreFloatArray(target, attribName, values, typeStr);
+                    }
+                }
+                else
+                {
+                    status = MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA;
                 }
             }
             else if (typeStr == "string")
             {
                 if (valContainer.is_string())
                 {
-                    grid->insertMeta(metaName + "_type", openvdb::StringMetadata(typeStr));
-                    grid->insertMeta(metaName, openvdb::StringMetadata(valContainer.get<std::string>()));
+                    PolicyType::StoreString(target, attribName, valContainer.template get<std::string>());
+                }
+                else
+                {
+                    status = MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA;
                 }
             }
             else
             {
-                // Unknown type, skip
                 status = MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA;
-                continue;
             }
         }
-        return status;
 
-#undef ZIB_LOCAL_HELPER_WARNING_AND_RETURN
-#undef ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE
-    }
-
-    MetaAttributesLoadStatus LoadEntityAttributesFromMeta(openvdb::MetaMap& fileMetadata,
-                                                          const nlohmann::json& meta) noexcept
-    {
-#define ZIB_LOCAL_HELPER_WARNING_AND_RETURN(cond)                      \
-    if (cond)                                                          \
-    {                                                                  \
-        return MetaAttributesLoadStatus::FATAL_ERROR_INVALID_METADATA; \
-    }
-#define ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE(cond)                          \
-    if (cond)                                                                \
-    {                                                                        \
-        status = MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA; \
-        continue;                                                            \
-    }
-
-        ZIB_LOCAL_HELPER_WARNING_AND_RETURN(!meta.is_object());
-
-        MetaAttributesLoadStatus status = MetaAttributesLoadStatus::SUCCESS;
-        for (const auto& [attribName, attrContainer] : meta.items())
-        {
-            ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE(!attrContainer.is_object());
-            ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE(!attrContainer.contains("t") || !attrContainer.contains("v"));
-            auto typeContainer = attrContainer["t"];
-            auto valContainer = attrContainer["v"];
-            ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE(!typeContainer.is_string() || valContainer.is_object() || valContainer.is_null());
-
-            std::string metaName = "houdini_attr_" + attribName; // Prefix to distinguish from native OpenVDB metadata
-
-            // Convert Houdini attribute data to OpenVDB metadata
-            std::string typeStr = typeContainer;
-            if (typeStr == "bool")
-            {
-                if (valContainer.is_boolean())
-                {
-                    fileMetadata.insertMeta(metaName + "_type", openvdb::StringMetadata(typeStr));
-                    fileMetadata.insertMeta(metaName, openvdb::StringMetadata(valContainer.get<bool>() ? "true" : "false"));
-                }
-            }
-            else if (typeStr == "int8" || typeStr == "int16" || typeStr == "int32" || typeStr == "int64")
-            {
-                if (valContainer.is_array())
-                {
-                    std::vector<int32_t> values = valContainer;
-                    fileMetadata.insertMeta(metaName + "_type", openvdb::StringMetadata(typeStr));
-
-                    // For arrays, store as JSON string
-                    fileMetadata.insertMeta(metaName, openvdb::StringMetadata(valContainer.dump()));
-                }
-            }
-            else if (typeStr == "float16" || typeStr == "float32" || typeStr == "float64")
-            {
-                if (valContainer.is_array())
-                {
-                    std::vector<float> values = valContainer;
-                    fileMetadata.insertMeta(metaName + "_type", openvdb::StringMetadata(typeStr));
-
-                    // For arrays, store as JSON string
-                    fileMetadata.insertMeta(metaName, openvdb::StringMetadata(valContainer.dump()));
-                }
-            }
-            else if (typeStr == "string")
-            {
-                if (valContainer.is_string())
-                {
-                    fileMetadata.insertMeta(metaName + "_type", openvdb::StringMetadata(typeStr));
-                    fileMetadata.insertMeta(metaName, openvdb::StringMetadata(valContainer.get<std::string>()));
-                }
-            }
-            else
-            {
-                // Unknown type, skip
-                status = MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA;
-                continue;
-            }
-        }
         return status;
 
 #undef ZIB_LOCAL_HELPER_WARNING_AND_RETURN
