@@ -11,6 +11,7 @@
 #include <licensing/LicenseManager.h>
 #include <ui/PluginManagementWindow.h>
 #include <utils/Helpers.h>
+#include <utils/DecompressorManager.h>
 
 PXR_NAMESPACE_USING_DIRECTIVE
 
@@ -62,18 +63,10 @@ namespace Zibra::ZibraVDBImport
         : LOP_Node(net, name, entry)
     {
         LibraryUtils::LoadSDKLibrary();
-        if (LibraryUtils::IsSDKLibraryLoaded())
-        {
-            m_DecompressorManager.Initialize();
-        }
     }
 
     LOP_ZibraVDBImport::~LOP_ZibraVDBImport() noexcept
     {
-        if (LibraryUtils::IsSDKLibraryLoaded())
-        {
-            m_DecompressorManager.Release();
-        }
     }
 
     void LOP_ZibraVDBImport::BuildFieldsChoiceList(void* data, PRM_Name* choiceNames, int maxListSize, const PRM_SpareData*, const PRM_Parm*)
@@ -98,7 +91,7 @@ namespace Zibra::ZibraVDBImport
             choiceIndex++;
         }
         
-        for (const auto& gridName : node->m_AvailableGrids)
+        for (const auto& gridName : node->m_CachedFileInfo.availableGrids)
         {
             if (choiceIndex >= maxListSize - 1)
                 break;
@@ -136,53 +129,28 @@ namespace Zibra::ZibraVDBImport
         }
 
         updateParmsFlags();
-        if (!m_IsFileValid)
+        if (!m_CachedFileInfo.error.empty())
         {
-            addError(LOP_MESSAGE, "Invalid or missing ZibraVDB file");
+            addError(LOP_MESSAGE, m_CachedFileInfo.error.c_str());
             return error(context);
         }
 
-        if (!LibraryUtils::IsSDKLibraryLoaded())
+        if (m_CachedFileInfo.uuid.empty())
         {
-            addError(LOP_MESSAGE, "ZibraVDB library not loaded");
+            addError(LOP_MESSAGE, "No valid ZibraVDB file loaded");
             return error(context);
         }
-
-        // License may or may not be required depending on .zibravdb file
-        // So we need to trigger license check, but if it fails we proceed with decompression
-        LicenseManager::GetInstance().CheckLicense(Zibra::LicenseManager::Product::Decompression);
-
-        if (m_LastFilePath != filePath)
-        {
-            if (!std::filesystem::exists(filePath))
-            {
-                addError(LOP_MESSAGE, "ZibraVDB file does not exist");
-                return error(context);
-            }
-            auto status = m_DecompressorManager.RegisterDecompressor(UT_String(filePath));
-            if (status != CE::ZCE_SUCCESS)
-            {
-                std::string errorMessage = "Failed to initialize decompressor: " + LibraryUtils::ErrorCodeToString(status);
-                addError(LOP_MESSAGE, errorMessage.c_str());
-                return error(context);
-            }
-
-            ParseAvailableGrids();
-            m_LastFilePath = filePath;
-        }
-
-        auto frameRange = m_DecompressorManager.GetFrameRange();
         int currentFrame = static_cast<int>(std::round(context.getFrame()));
-        if (currentFrame < frameRange.start || currentFrame > frameRange.end)
+        if (currentFrame < m_CachedFileInfo.frameStart || currentFrame > m_CachedFileInfo.frameEnd)
         {
             addWarning(LOP_MESSAGE, ("No volume data available for frame " + std::to_string(currentFrame) +
-                      " (ZibraVDB range: " + std::to_string(frameRange.start) + "-" + std::to_string(frameRange.end) + ")").c_str());
+                      " (ZibraVDB range: " + std::to_string(m_CachedFileInfo.frameStart) + "-" + std::to_string(m_CachedFileInfo.frameEnd) + ")").c_str());
             return error(context);
         }
 
         auto [primPath, primName] = ParsePrimitivePath(fullPrimPath, filePath);
 
-        std::set<std::string> selectedFields = ParseSelectedFields(fields, m_AvailableGrids);
+        std::set<std::string> selectedFields = ParseSelectedFields(fields, m_CachedFileInfo.availableGrids);
         if (selectedFields.empty())
         {
             addWarning(LOP_MESSAGE, "No valid fields selected");
@@ -206,28 +174,24 @@ namespace Zibra::ZibraVDBImport
     {
         bool changed = LOP_Node::updateParmsFlags();
         flags().setTimeDep(true);
-
-        std::string filePath = GetFilePath(0);
-        bool isValidFile = false;
-
-        if (!filePath.empty())
+        
+        // Load file info when file parameter changes
+        std::string currentFilePath = GetFilePath(0.0);
+        if (m_CachedFileInfo.filePath != currentFilePath)
         {
-            if (std::filesystem::exists(filePath))
+            if (!currentFilePath.empty())
             {
-                std::unordered_map<std::string, std::string> parseResult;
-                if (Helpers::ParseZibraVDBURI(filePath, parseResult))
-                {
-                    isValidFile = true;
-                }
+                FileInfo newFileInfo = LoadFileInfo(currentFilePath);
+                m_CachedFileInfo = std::move(newFileInfo);
+                changed = true;
+            }
+            else
+            {
+                m_CachedFileInfo = FileInfo{};
+                changed = true;
             }
         }
-
-        if (m_IsFileValid != isValidFile)
-        {
-            m_IsFileValid = isValidFile;
-            changed = true;
-        }
-
+        
         return changed;
     }
     
@@ -332,42 +296,87 @@ namespace Zibra::ZibraVDBImport
         return selectedFields;
     }
 
-    void LOP_ZibraVDBImport::ParseAvailableGrids()
+    LOP_ZibraVDBImport::FileInfo LOP_ZibraVDBImport::LoadFileInfo(const std::string& filePath)
     {
+        FileInfo info;
+        info.filePath = filePath;
+        
         if (!LibraryUtils::IsSDKLibraryLoaded())
         {
-            addError(LOP_MESSAGE, "ZibraVDB library not loaded");
-            return;
+            info.error = "ZibraVDB library not loaded";
+            return info;
         }
 
-        m_AvailableGrids.clear();
-
-        auto frameRange = m_DecompressorManager.GetFrameRange();
-        if (frameRange.start > frameRange.end)
+        if (!std::filesystem::exists(filePath))
         {
-            return;
+            info.error = "ZibraVDB file does not exist";
+            return info;
         }
 
-        auto frameContainer = m_DecompressorManager.FetchFrame(frameRange.start);
-        if (!frameContainer)
+        std::unordered_map<std::string, std::string> parseResult;
+        if (!Helpers::ParseZibraVDBURI(filePath, parseResult))
         {
-            return;
+            info.error = "No valid .zibravdb file found";
+            return info;
         }
 
-        auto gridShuffle = m_DecompressorManager.DeserializeGridShuffleInfo(frameContainer);
-        if (!gridShuffle.empty())
+        // License may or may not be required depending on .zibravdb file
+        // So we need to trigger license check, but if it fails we proceed with decompression
+        LicenseManager::GetInstance().CheckLicense(Zibra::LicenseManager::Product::Decompression);
+
+        Helpers::DecompressorManager decompressor;
+        auto result = decompressor.Initialize();
+        if (result != CE::ZCE_SUCCESS)
         {
-            for (const auto& gridDesc : gridShuffle)
+            info.error = "Failed to initialize ZibraVDB decompressor";
+            return info;
+        }
+
+        result = decompressor.RegisterDecompressor(UT_String(filePath));
+        if (result != CE::ZCE_SUCCESS)
+        {
+            decompressor.Release();
+            info.error = "Failed to register ZibraVDB file with decompressor";
+            return info;
+        }
+
+        auto sequenceInfo = decompressor.GetSequenceInfo();
+        info.uuid = Helpers::FormatUUID(sequenceInfo.fileUUID);
+        
+        auto frameRange = decompressor.GetFrameRange();
+        info.frameStart = frameRange.start;
+        info.frameEnd = frameRange.end;
+        
+        if (frameRange.start <= frameRange.end)
+        {
+            auto frameContainer = decompressor.FetchFrame(frameRange.start);
+            if (frameContainer)
             {
-                if (gridDesc.gridName && strlen(gridDesc.gridName) > 0)
+                auto gridShuffle = decompressor.DeserializeGridShuffleInfo(frameContainer);
+                if (!gridShuffle.empty())
                 {
-                    m_AvailableGrids.insert(gridDesc.gridName);
+                    for (const auto& gridDesc : gridShuffle)
+                    {
+                        if (gridDesc.gridName && strlen(gridDesc.gridName) > 0)
+                        {
+                            info.availableGrids.insert(gridDesc.gridName);
+                        }
+                    }
                 }
+                
+                decompressor.ReleaseGridShuffleInfo(gridShuffle);
+                frameContainer->Release();
             }
         }
-
-        m_DecompressorManager.ReleaseGridShuffleInfo(gridShuffle);
-        frameContainer->Release();
+        
+        decompressor.Release();
+        
+        if (info.uuid.empty())
+        {
+            info.error = "Invalid ZibraVDB file - no UUID found";
+        }
+        
+        return info;
     }
 
     std::pair<std::string, std::string> LOP_ZibraVDBImport::ParsePrimitivePath(const std::string& fullPrimPath, const std::string& filePath)

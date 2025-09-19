@@ -287,4 +287,11 @@ namespace Zibra::Helpers
         }
     }
 
+    std::string FormatUUID(uint64_t uuid[2])
+    {
+        std::stringstream ss;
+        ss << std::hex << std::setfill('0') << std::setw(16) << uuid[0] << std::setw(16) << uuid[1];
+        return ss.str();
+    }
+
 } // namespace Zibra::Helpers

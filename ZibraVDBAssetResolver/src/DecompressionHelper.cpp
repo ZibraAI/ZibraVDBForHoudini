@@ -6,6 +6,7 @@
 #include "bridge/LibraryUtils.h"
 #include "licensing/LicenseManager.h"
 #include "utils/MetadataHelper.h"
+#include "utils/Helpers.h"
 
 namespace Zibra::AssetResolver
 {
@@ -59,7 +60,7 @@ namespace Zibra::AssetResolver
         }
 
         auto sequenceInfo = decompressor->GetSequenceInfo();
-        std::string uniqueId = FormatUUID(sequenceInfo.fileUUID);
+        std::string uniqueId = Helpers::FormatUUID(sequenceInfo.fileUUID);
         std::string outputPath = TfStringCatPaths(zibraVDBTmpDir, uniqueId + "." + std::to_string(frame) + ".vdb");
 
         if (TfPathExists(outputPath))
@@ -215,7 +216,7 @@ namespace Zibra::AssetResolver
 
         // Get UUID from the registered decompressor to use as key
         auto sequenceInfo = manager->GetSequenceInfo();
-        std::string uuidKey = FormatUUID(sequenceInfo.fileUUID);
+        std::string uuidKey = Helpers::FormatUUID(sequenceInfo.fileUUID);
 
         // Check if a manager with this UUID already exists
         auto uuidIt = ms_DecompressorManagers.find(uuidKey);
@@ -269,11 +270,5 @@ namespace Zibra::AssetResolver
         return true;
     }
 
-    std::string DecompressionHelper::FormatUUID(uint64_t uuid[2])
-    {
-        std::stringstream ss;
-        ss << std::hex << std::setfill('0') << std::setw(16) << uuid[0] << std::setw(16) << uuid[1];
-        return ss.str();
-    }
 
 } // namespace Zibra::AssetResolver

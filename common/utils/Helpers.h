@@ -24,4 +24,7 @@ namespace Zibra::Helpers
 
     // Number parsing
     bool TryParseInt(const std::string& str, int& result);
+
+    // UUID formatting
+    std::string FormatUUID(uint64_t uuid[2]);
 }

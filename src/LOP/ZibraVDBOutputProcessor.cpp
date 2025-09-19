@@ -14,10 +14,14 @@ namespace Zibra::ZibraVDBOutputProcessor
 
     bool ZibraVDBOutputProcessor::CompressionSequenceEntryKey::operator<(const CompressionSequenceEntryKey& other) const
     {
-        if (sopNode != other.sopNode) return sopNode < other.sopNode;
-        if (referencingLayerPath != other.referencingLayerPath) return referencingLayerPath < other.referencingLayerPath;
-        if (outputFile != other.outputFile) return outputFile < other.outputFile;
-        if (quality != other.quality) return quality < other.quality;
+        if (sopNode != other.sopNode)
+            return sopNode < other.sopNode;
+        if (referencingLayerPath != other.referencingLayerPath)
+            return referencingLayerPath < other.referencingLayerPath;
+        if (outputFile != other.outputFile)
+            return outputFile < other.outputFile;
+        if (quality != other.quality)
+            return quality < other.quality;
         return compressorManager < other.compressorManager;
     }
 
@@ -33,7 +37,8 @@ namespace Zibra::ZibraVDBOutputProcessor
     {
         if (!LibraryUtils::IsPlatformSupported())
         {
-            error = "ZibraVDB Output Processor Error: Platform not supported. Required: Windows/Linux/macOS. Falling back to uncompressed VDB files.";
+            error = "ZibraVDB Output Processor Error: Platform not supported. Required: Windows/Linux/macOS. Falling back to uncompressed "
+                    "VDB files.";
             UTaddError(error.buffer(), UT_ERROR_MESSAGE, error.buffer());
             return false;
         }
@@ -77,21 +82,18 @@ namespace Zibra::ZibraVDBOutputProcessor
         return std::make_shared<ZibraVDBOutputProcessor>();
     }
 
-    const PI_EditScriptedParms *ZibraVDBOutputProcessor::parameters() const
+    const PI_EditScriptedParms* ZibraVDBOutputProcessor::parameters() const
     {
         return nullptr;
     }
 
-    void ZibraVDBOutputProcessor::beginSave(OP_Node *config_node,
-                                           const UT_Options &config_overrides,
-                                           OP_Node *lop_node,
-                                           fpreal t,
-                                           const UT_Options &stage_variables
-#if UT_VERSION_INT >= 0x15000000  // Houdini 21.0+
-                                           ,
-                                           UT_String &error
+    void ZibraVDBOutputProcessor::beginSave(OP_Node* config_node, const UT_Options& config_overrides, OP_Node* lop_node, fpreal t,
+                                            const UT_Options& stage_variables
+#if UT_VERSION_INT >= 0x15000000 // Houdini 21.0+
+                                            ,
+                                            UT_String& error
 #endif
-                                           )
+    )
     {
         m_CompressionEntries.clear();
         m_ConfigNode = config_node;
@@ -101,7 +103,7 @@ namespace Zibra::ZibraVDBOutputProcessor
                                                   bool asset_is_layer, UT_String& newpath, UT_String& error)
     {
         std::string pathStr = asset_path.toStdString();
-        
+
         if (asset_is_layer)
         {
             return false;
@@ -113,7 +115,13 @@ namespace Zibra::ZibraVDBOutputProcessor
         }
 
         UT_String errorString;
-        if (!CheckLibrary(errorString) || !CheckLicense(errorString))
+        if (!CheckLibrary(errorString))
+        {
+            error = errorString;
+            return false;
+        }
+
+        if (!CheckLicense(errorString))
         {
             error = errorString;
             return false;
@@ -122,18 +130,16 @@ namespace Zibra::ZibraVDBOutputProcessor
         auto nodeIt = parsedURI.find("node");
         if (nodeIt == parsedURI.end() || nodeIt->second.empty())
         {
-            error = nodeIt == parsedURI.end() ?
-                "ZibraVDB Output Processor Error: Missing required node parameter in .zibravdb path" :
-                "ZibraVDB Output Processor Error: Empty node parameter in .zibravdb path";
+            error = nodeIt == parsedURI.end() ? "ZibraVDB Output Processor Error: Missing required node parameter in .zibravdb path"
+                                              : "ZibraVDB Output Processor Error: Empty node parameter in .zibravdb path";
             return false;
         }
 
         auto frameIt = parsedURI.find("frame");
         if (frameIt == parsedURI.end() || frameIt->second.empty())
         {
-            error = frameIt == parsedURI.end() ?
-                "ZibraVDB Output Processor Error: Missing required frame parameter in .zibravdb path" :
-                "ZibraVDB Output Processor Error: Empty frame parameter in .zibravdb path";
+            error = frameIt == parsedURI.end() ? "ZibraVDB Output Processor Error: Missing required frame parameter in .zibravdb path"
+                                               : "ZibraVDB Output Processor Error: Empty frame parameter in .zibravdb path";
             return false;
         }
 
@@ -164,9 +170,9 @@ namespace Zibra::ZibraVDBOutputProcessor
         std::string output_file_str = "zibravdb://" + dir + "/" + name + "." + std::to_string(frame_index) + ".vdb";
 
         auto& entries = m_CompressionEntries;
-        auto it =
-            std::find_if(entries.begin(), entries.end(), [sop_node](const auto& entry) { return entry.first.sopNode == sop_node; });
-        if (it == entries.end()) {
+        auto it = std::find_if(entries.begin(), entries.end(), [sop_node](const auto& entry) { return entry.first.sopNode == sop_node; });
+        if (it == entries.end())
+        {
             CompressionSequenceEntryKey entryKey{};
             entryKey.sopNode = sop_node;
             entryKey.referencingLayerPath = referencing_layer_path.toStdString();
@@ -190,8 +196,7 @@ namespace Zibra::ZibraVDBOutputProcessor
             status = entryKey.compressorManager->StartSequence(UT_String(file_path));
             if (status != CE::ZCE_SUCCESS)
             {
-                error = "ZibraVDB Output Processor Error: Failed to start compression sequence, status: " + std::to_string(static_cast<int>(status));
-                assert(false && ("Failed to start sequence for compression, status: " + std::to_string(static_cast<int>(status))).c_str());
+                error = "ZibraVDB Output Processor Error: Failed to start compression sequence, status: " + std::to_string(status);
                 return false;
             }
             entries.emplace_back(entryKey, std::vector<std::pair<int, std::string>>{{frame_index, output_file_str}});
@@ -207,11 +212,8 @@ namespace Zibra::ZibraVDBOutputProcessor
         return true;
     }
 
-    bool ZibraVDBOutputProcessor::processReferencePath(const UT_StringRef &asset_path,
-                                                      const UT_StringRef &referencing_layer_path,
-                                                      bool asset_is_layer,
-                                                      UT_String &newpath,
-                                                      UT_String &error)
+    bool ZibraVDBOutputProcessor::processReferencePath(const UT_StringRef& asset_path, const UT_StringRef& referencing_layer_path,
+                                                       bool asset_is_layer, UT_String& newpath, UT_String& error)
     {
         if (asset_is_layer)
         {
@@ -221,24 +223,23 @@ namespace Zibra::ZibraVDBOutputProcessor
         std::string pathStr = asset_path.toStdString();
         double t;
         std::string extractedPath;
-        
+
         if (!Helpers::ParseRelSOPNodeParams(pathStr, t, extractedPath))
         {
             return false;
         }
 
         std::string layerPath = referencing_layer_path.toStdString();
-        
-        // We search for the compression entry which we added in processSavePath
-        auto it = std::find_if(m_CompressionEntries.begin(), m_CompressionEntries.end(), 
-            [&layerPath, &extractedPath](const auto& entry) {
-                bool layerMatches = entry.first.referencingLayerPath == layerPath;
-                std::string sopNodePath = entry.first.sopNode->getFullPath().c_str();
 
-                bool pathMatches = extractedPath.empty() || sopNodePath.find(extractedPath) == 0;
-                return layerMatches && pathMatches;
-            });
-            
+        // We search for the compression entry which we added in processSavePath
+        auto it = std::find_if(m_CompressionEntries.begin(), m_CompressionEntries.end(), [&layerPath, &extractedPath](const auto& entry) {
+            bool layerMatches = entry.first.referencingLayerPath == layerPath;
+            std::string sopNodePath = entry.first.sopNode->getFullPath().c_str();
+
+            bool pathMatches = extractedPath.empty() || sopNodePath.find(extractedPath) == 0;
+            return layerMatches && pathMatches;
+        });
+
         if (it == m_CompressionEntries.end())
         {
             return false;
@@ -276,7 +277,12 @@ namespace Zibra::ZibraVDBOutputProcessor
                 auto status = sequence.first.compressorManager->FinishSequence(warning);
                 if (status != CE::ZCE_SUCCESS)
                 {
-                    assert(false && ("Failed to finish compression sequence for in-memory VDBs. Status: " + std::to_string(static_cast<int>(status))).c_str());
+                    UTaddError(
+                        ("Failed to finish compression sequence for in-memory VDBs. Status: " + std::to_string(static_cast<int>(status)))
+                            .c_str(),
+                        UT_ERROR_MESSAGE,
+                        ("Failed to finish compression sequence for in-memory VDBs. Status: " + std::to_string(static_cast<int>(status)))
+                            .c_str());
                 }
                 sequence.first.compressorManager->Release();
                 delete sequence.first.compressorManager;
@@ -287,12 +293,13 @@ namespace Zibra::ZibraVDBOutputProcessor
         return true;
     }
 
-    void ZibraVDBOutputProcessor::ExtractVDBFromSOP(SOP_Node* sopNode, fpreal t, CE::Compression::CompressorManager* compressorManager, bool compress)
+    void ZibraVDBOutputProcessor::ExtractVDBFromSOP(SOP_Node* sopNode, fpreal t, CE::Compression::CompressorManager* compressorManager,
+                                                    bool compress)
     {
         if (!sopNode)
+        {
             return;
-
-        int frameIndex = OPgetDirector()->getChannelManager()->getFrame(t);
+        }
 
         OP_Context context(t);
         sopNode->flags().setTimeDep(true);
@@ -379,21 +386,21 @@ namespace Zibra::ZibraVDBOutputProcessor
         auto status = compressorManager->CompressFrame(compressFrameDesc, &frameManager);
         if (status != CE::ZCE_SUCCESS || !frameManager)
         {
-            UT_String error = ("CompressFrame failed or frameManager is null for in-memory grids: status " + std::to_string(static_cast<int>(status))).c_str();
+            UT_String error = ("CompressFrame failed or frameManager is null for in-memory grids: status " + std::to_string(status)).c_str();
             UTaddError(error.c_str(), UT_ERROR_ABORT, error.c_str());
             frameLoader.ReleaseFrame(frame);
             return;
         }
 
         const auto& gridsShuffleInfo = frameLoader.GetGridsShuffleInfo();
-        
+
         auto frameMetadata = Utils::MetadataHelper::DumpAttributes(gdp, encodingMetadata);
         frameMetadata.push_back({"chShuffle", Utils::MetadataHelper::DumpGridsShuffleInfo(gridsShuffleInfo).dump()});
         for (const auto& [key, val] : frameMetadata)
         {
             frameManager->AddMetadata(key.c_str(), val.c_str());
         }
-        
+
         status = frameManager->Finish();
         frameLoader.ReleaseFrame(frame);
     }

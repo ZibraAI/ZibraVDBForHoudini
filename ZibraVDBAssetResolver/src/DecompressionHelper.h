@@ -22,7 +22,6 @@ namespace Zibra::AssetResolver
         Helpers::DecompressorManager* GetOrCreateDecompressorManager(const std::string& compressedFile);
         bool LoadSDKLib();
 
-        static std::string FormatUUID(uint64_t uuid[2]);
 
         static std::unordered_map<std::string, std::unordered_set<std::string>> ms_DecompressedFilesDict;
         static std::mutex ms_DecompressedFilesMutex;

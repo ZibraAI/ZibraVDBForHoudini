@@ -9,12 +9,12 @@
                     }
                 }
             },
-            "LibraryPath": "../../usd/ZibraVDBResolver.dylib",
-            "Name": "ZibraVDBResolver_Mac",
+            "LibraryPath": "../../usd/ZibraVDBResolver.so",
+            "Name": "ZibraVDBResolver_Linux",
             "ResourcePath": "resources",
             "Root": "..",
             "Type": "library",
-            "Platform": "Darwin"
+            "Platform": "Linux"
         },
         {
             "Info": {
@@ -25,12 +25,12 @@
                     }
                 }
             },
-            "LibraryPath": "../../usd/ZibraVDBResolver.so",
-            "Name": "ZibraVDBResolver_Linux",
+            "LibraryPath": "../../usd/ZibraVDBResolver.dylib",
+            "Name": "ZibraVDBResolver_Mac",
             "ResourcePath": "resources",
             "Root": "..",
             "Type": "library",
-            "Platform": "Linux"
+            "Platform": "Darwin"
         },
         {
             "Info": {

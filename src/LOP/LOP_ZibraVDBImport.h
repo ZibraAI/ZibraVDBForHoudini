@@ -3,7 +3,6 @@
 #include <LOP/LOP_Node.h>
 #include <pxr/usd/usd/common.h>
 #include <pxr/usd/usdVol/volume.h>
-#include <utils/DecompressorManager.h>
 
 PXR_NAMESPACE_USING_DIRECTIVE
 
@@ -38,9 +37,19 @@ namespace Zibra::ZibraVDBImport
         std::string GetFields(fpreal t) const;
 
     private:
+        struct FileInfo
+        {
+            std::string filePath;
+            std::string uuid;
+            std::unordered_set<std::string> availableGrids;
+            int frameStart = 0;
+            int frameEnd = 0;
+            std::string error;
+        };
+
         std::string SanitizeFieldNameForUSD(const std::string& fieldName);
         std::set<std::string> ParseSelectedFields(const std::string& fieldsStr, const std::unordered_set<std::string>& availableGrids);
-        void ParseAvailableGrids();
+        FileInfo LoadFileInfo(const std::string& filePath);
         void CreateVolumeStructure(UsdStageRefPtr stage, const std::string& primPath, const std::string& primName,
                                    const std::set<std::string>& selectedFields, const std::string& parentPrimType, fpreal t,
                                    int frameIndex);
@@ -54,10 +63,7 @@ namespace Zibra::ZibraVDBImport
         static void BuildFieldsChoiceList(void* data, PRM_Name* choiceNames, int maxListSize, const PRM_SpareData*, const PRM_Parm*);
 
     private:
-        Helpers::DecompressorManager m_DecompressorManager;
-        std::string m_LastFilePath;
-        std::unordered_set<std::string> m_AvailableGrids;
-        bool m_IsFileValid = false;
+        FileInfo m_CachedFileInfo;
     };
 
     class LOP_ZibraVDBImport_Operator final : public OP_Operator
