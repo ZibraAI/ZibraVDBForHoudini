@@ -1,6 +1,8 @@
 #include "PrecompiledHeader.h"
 
 #include "ZibraVDBAssetResolver.h"
+
+#include "DecompressionHelper.h"
 #include "utils/Helpers.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
@@ -58,7 +60,6 @@ size_t hash_value(const ZibraVDBResolverContext& context)
 
 AR_DECLARE_RESOLVER_CONTEXT(ZibraVDBResolverContext);
 
-// TODO verify its working on windows and linux
 AR_DEFINE_RESOLVER(ZibraVDBResolver, ArResolver);
 
 ZibraVDBResolver::ZibraVDBResolver()
@@ -184,7 +185,7 @@ ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
 
     TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_Resolve - Using temp directory: '%s'\n", tmpDir.c_str());
 
-    std::string decompressedPath = m_DecompressionManager.DecompressZibraVDBFile(actualFilePath, tmpDir, frame);
+    std::string decompressedPath = Zibra::AssetResolver::DecompressionHelper::DecompressZibraVDBFile(actualFilePath, tmpDir, frame);
     if (decompressedPath.empty())
     {
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
@@ -194,8 +195,8 @@ ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
         return ArResolvedPath();
     }
 
-    m_DecompressionManager.CleanupUnneededDecompressedFiles(actualFilePath, decompressedPath);
-    m_DecompressionManager.AddDecompressedFile(actualFilePath, decompressedPath);
+    Zibra::AssetResolver::DecompressionHelper::CleanupOldFiles(actualFilePath, decompressedPath);
+    Zibra::AssetResolver::DecompressionHelper::AddDecompressedFile(actualFilePath, decompressedPath);
 
     TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_Resolve - Successfully decompressed to: '%s'\n", decompressedPath.c_str());
     return ArResolvedPath(decompressedPath);

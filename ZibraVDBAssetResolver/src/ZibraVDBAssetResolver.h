@@ -1,7 +1,5 @@
 #pragma once
 
-#include "DecompressionHelper.h"
-
 #ifdef _WIN32
     #define ZIB_RESOLVER_API __declspec(dllexport)
 #else
@@ -51,10 +49,6 @@ protected:
     std::shared_ptr<ArWritableAsset> _OpenAssetForWrite(
         const ArResolvedPath& resolvedPath,
         WriteMode writeMode) const final;
-
-private:
-
-    mutable Zibra::AssetResolver::DecompressionHelper m_DecompressionManager;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

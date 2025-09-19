@@ -9,21 +9,19 @@ namespace Zibra::AssetResolver
     class DecompressionHelper
     {
     public:
-        DecompressionHelper();
-        ~DecompressionHelper();
-
-        std::string DecompressZibraVDBFile(const std::string& zibraVDBPath, const std::string& tmpDir, int frame = 0);
-        void CleanupUnneededDecompressedFiles(const std::string& currentCompressedFile, const std::string& currentDecompressedFile);
+        static std::string DecompressZibraVDBFile(const std::string& zibraVDBPath, const std::string& tmpDir, int frame = 0);
+        static void AddDecompressedFile(const std::string& compressedFile, const std::string& decompressedFile);
+        static void CleanupOldFiles(const std::string& currentCompressedFile, const std::string& currentDecompressedFile);
         static void CleanupAllDecompressedFilesStatic();
         static void CleanupAllDecompressorManagers();
-        void AddDecompressedFile(const std::string& compressedFile, const std::string& decompressedFile);
 
     private:
-        Helpers::DecompressorManager* GetOrCreateDecompressorManager(const std::string& compressedFile);
-        bool LoadSDKLib();
+        static bool LoadSDKLib();
+        static Helpers::DecompressorManager* GetOrCreateDecompressorManager(const std::string& compressedFile);
 
-
-        static std::unordered_map<std::string, std::unordered_set<std::string>> ms_DecompressedFilesDict;
+    private:
+        static size_t ms_MaxCachedFramesPerFile;
+        static std::unordered_map<std::string, std::deque<std::string>> ms_DecompressedFilesDict;
         static std::mutex ms_DecompressedFilesMutex;
         static std::unordered_map<std::string, std::unique_ptr<Helpers::DecompressorManager>> ms_DecompressorManagers;
         static std::mutex ms_DecompressorManagersMutex;
