@@ -22,7 +22,7 @@ public:
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER_CONTEXT).Msg("ZibraVDBResolverContext: Using temp directory: %s\n", m_TmpDir.c_str());
     }
 
-    ZibraVDBResolverContext(const std::string& tmpdir)
+    explicit ZibraVDBResolverContext(const std::string& tmpdir)
         : m_TmpDir(tmpdir.empty() ? TfGetenv("HOUDINI_TEMP_DIR") : tmpdir)
     {
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER_CONTEXT).Msg("ZibraVDBResolverContext: Using temp directory: %s\n", m_TmpDir.c_str());
@@ -66,8 +66,9 @@ ZibraVDBResolver::ZibraVDBResolver()
 {
     UT_Exit::addExitCallback(
         [](void*) {
-            Zibra::AssetResolver::DecompressionHelper::CleanupAllDecompressorManagers();
-            Zibra::AssetResolver::DecompressionHelper::CleanupAllDecompressedFilesStatic();
+            auto& helper = Zibra::AssetResolver::DecompressionHelper::GetInstance();
+            helper.CleanupAllDecompressorManagers();
+            helper.CleanupAllDecompressedFiles();
         },
         nullptr);
 }
@@ -185,18 +186,19 @@ ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
 
     TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_Resolve - Using temp directory: '%s'\n", tmpDir.c_str());
 
-    std::string decompressedPath = Zibra::AssetResolver::DecompressionHelper::DecompressZibraVDBFile(actualFilePath, tmpDir, frame);
+    auto& helper = Zibra::AssetResolver::DecompressionHelper::GetInstance();
+    std::string decompressedPath = helper.DecompressZibraVDBFile(actualFilePath, tmpDir, frame);
     if (decompressedPath.empty())
     {
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
             .Msg("ZibraVDBResolver::_Resolve - Decompression failed for file '%s' (check temp directory permissions, decompressor manager "
                  "initialization, frame availability, or compression format)\n",
                  actualFilePath.c_str());
-        return ArResolvedPath();
+        return {};
     }
 
-    Zibra::AssetResolver::DecompressionHelper::CleanupOldFiles(actualFilePath, decompressedPath);
-    Zibra::AssetResolver::DecompressionHelper::AddDecompressedFile(actualFilePath, decompressedPath);
+    helper.CleanupOldFiles(actualFilePath, decompressedPath);
+    helper.AddDecompressedFile(actualFilePath, decompressedPath);
 
     TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_Resolve - Successfully decompressed to: '%s'\n", decompressedPath.c_str());
     return ArResolvedPath(decompressedPath);
@@ -220,13 +222,13 @@ std::shared_ptr<ArWritableAsset> ZibraVDBResolver::_OpenAssetForWrite(const ArRe
 
 ArResolverContext ZibraVDBResolver::_CreateContextFromString(const std::string& contextStr) const
 {
-    return ArResolverContext(ZibraVDBResolverContext(contextStr));
+    return ZibraVDBResolverContext(contextStr);
 }
 
 ArResolverContext ZibraVDBResolver::_CreateDefaultContext() const
 {
     TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER_CONTEXT).Msg("ZibraVDBResolver::_CreateDefaultContext - Creating default resolver context\n");
-    return ArResolverContext(ZibraVDBResolverContext());
+    return ZibraVDBResolverContext();
 }
 
 bool ZibraVDBResolver::_IsContextDependentPath(const std::string& path) const
