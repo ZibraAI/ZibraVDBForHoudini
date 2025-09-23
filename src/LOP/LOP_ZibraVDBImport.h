@@ -53,6 +53,7 @@ namespace Zibra::ZibraVDBImport
         void CreateVolumeStructure(UsdStageRefPtr stage, const std::string& primPath, const std::string& primName,
                                    const std::set<std::string>& selectedFields, const std::string& parentPrimType, fpreal t,
                                    int frameIndex);
+        void CreateParentPrimHierarchy(UsdStageRefPtr stage, const std::string& primPath, const std::string& parentPrimType);
         void CreateOpenVDBAssetPrim(UsdStageRefPtr stage, const std::string& volumePath, const std::string& fieldName,
                                     const std::string& sanitizedFieldName, const std::string& filePath, int frameIndex);
         void CreateFieldRelationship(UsdVolVolume& volumePrim, const std::string& fieldName, const std::string& assetPath);

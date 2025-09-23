@@ -2,7 +2,6 @@
 
 #include <HUSD/HUSD_OutputProcessor.h>
 #include <UT/UT_Version.h>
-#include <unordered_map>
 
 #include "ROP/CompressorManager/CompressorManager.h"
 #include "SOP/SOP_ZibraVDBUSDExport.h"

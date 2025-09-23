@@ -6,6 +6,8 @@
 #include <HUSD/HUSD_FindPrims.h>
 #include <HUSD/XUSD_Data.h>
 #include <pxr/usd/usdVol/openVDBAsset.h>
+#include <pxr/usd/sdf/path.h>
+#include <pxr/base/tf/stringUtils.h>
 
 #include <bridge/LibraryUtils.h>
 #include <licensing/LicenseManager.h>
@@ -231,43 +233,22 @@ namespace Zibra::ZibraVDBImport
     
     std::string LOP_ZibraVDBImport::SanitizeFieldNameForUSD(const std::string& fieldName)
     {
-        std::string sanitized = fieldName;
-        
-        if (sanitized.empty())
+        if (fieldName.empty())
         {
             return "field";
         }
         
-        for (char& c : sanitized)
+        if (SdfPath::IsValidIdentifier(fieldName))
         {
-            if (!std::isalnum(c) && c != '_')
-            {
-                c = '_';
-            }
+            return fieldName;
         }
         
-        while (!sanitized.empty() && sanitized[0] == '_')
-        {
-            sanitized.erase(0, 1);
-        }
-        while (!sanitized.empty() && sanitized.back() == '_')
-        {
-            sanitized.pop_back();
-        }
-        
-        if (!sanitized.empty() && std::isdigit(sanitized[0]))
-        {
-            sanitized = "field_" + sanitized;
-        }
-        
-        if (sanitized.empty())
-        {
-            sanitized = "field";
-        }
-        
-        return sanitized;
+        return TfMakeValidIdentifier(fieldName);
     }
 
+    // Parses field selection string. Expected formats:
+    // "*" - selects all available fields
+    // "field1 field2 field3" - space-separated field names (no support for fields with spaces in names)
     std::set<std::string> LOP_ZibraVDBImport::ParseSelectedFields(const std::string& fieldsStr, const std::unordered_set<std::string>& availableGrids)
     {
         std::set<std::string> selectedFields;
@@ -436,32 +417,7 @@ namespace Zibra::ZibraVDBImport
             return;
         }
 
-        if (primPath != "/" && !primPath.empty() && parentPrimType != "none")
-        {
-            std::string parentPath = primPath;
-            size_t pos = 0;
-            while ((pos = parentPath.find('/', pos + 1)) != std::string::npos)
-            {
-                std::string currentPath = parentPath.substr(0, pos);
-                if (!currentPath.empty() && currentPath != "/")
-                {
-                    SdfPath currentSdfPath(currentPath);
-                    if (!stage->GetPrimAtPath(currentSdfPath))
-                    {
-                        // Use the specified parent primitive type for intermediate prims
-                        TfToken primType = (parentPrimType == "scope") ? TfToken("Scope") : TfToken("Xform");
-                        stage->DefinePrim(currentSdfPath, primType);
-                    }
-                }
-            }
-            
-            SdfPath parentSdfPath(primPath);
-            if (!stage->GetPrimAtPath(parentSdfPath))
-            {
-                TfToken primType = (parentPrimType == "scope") ? TfToken("Scope") : TfToken("Xform");
-                stage->DefinePrim(parentSdfPath, primType);
-            }
-        }
+        CreateParentPrimHierarchy(stage, primPath, parentPrimType);
 
         // Normalize primitive path: ensure leading slash, remove trailing slash
         std::string cleanPrimPath = primPath;
@@ -507,6 +463,41 @@ namespace Zibra::ZibraVDBImport
         UT_StringArray primPaths;
         primPaths.append(volumePrim.GetPath().GetString().c_str());
         setLastModifiedPrims(primPaths);
+    }
+
+    // Creates the USD parent prim hierarchy for proper scene graph organization.
+    // For "/world/volumes/sequence01", this creates "/world", "/world/volumes", etc.
+    // Uses the specified parentPrimType (Xform or Scope) for all intermediate prims.
+    void LOP_ZibraVDBImport::CreateParentPrimHierarchy(UsdStageRefPtr stage, const std::string& primPath, const std::string& parentPrimType)
+    {
+        if (primPath == "/" || primPath.empty() || parentPrimType == "none")
+        {
+            return;
+        }
+
+        std::string parentPath = primPath;
+        size_t pos = 0;
+        
+        while ((pos = parentPath.find('/', pos + 1)) != std::string::npos)
+        {
+            std::string currentPath = parentPath.substr(0, pos);
+            if (!currentPath.empty() && currentPath != "/")
+            {
+                SdfPath currentSdfPath(currentPath);
+                if (!stage->GetPrimAtPath(currentSdfPath))
+                {
+                    TfToken primType = (parentPrimType == "scope") ? TfToken("Scope") : TfToken("Xform");
+                    stage->DefinePrim(currentSdfPath, primType);
+                }
+            }
+        }
+        
+        SdfPath parentSdfPath(primPath);
+        if (!stage->GetPrimAtPath(parentSdfPath))
+        {
+            TfToken primType = (parentPrimType == "scope") ? TfToken("Scope") : TfToken("Xform");
+            stage->DefinePrim(parentSdfPath, primType);
+        }
     }
 
     void LOP_ZibraVDBImport::CreateOpenVDBAssetPrim(UsdStageRefPtr stage, const std::string& volumePath, const std::string& fieldName,
