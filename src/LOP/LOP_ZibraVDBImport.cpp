@@ -167,7 +167,7 @@ namespace Zibra::ZibraVDBImport
         }
 
         CreateVolumeStructure(stage, primPath, primName, selectedFields, parentPrimType, t, frameIndex);
-        return UT_ERROR_NONE;
+        return error(context);
     }
 
     bool LOP_ZibraVDBImport::updateParmsFlags()
@@ -357,10 +357,7 @@ namespace Zibra::ZibraVDBImport
                 {
                     for (const auto& gridDesc : gridShuffle)
                     {
-                        if (gridDesc.gridName && strlen(gridDesc.gridName) > 0)
-                        {
-                            info.availableGrids.insert(gridDesc.gridName);
-                        }
+                        info.availableGrids.insert(gridDesc.gridName);
                     }
                 }
                 
