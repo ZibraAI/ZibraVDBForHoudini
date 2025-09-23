@@ -2,6 +2,7 @@
 
 #include <HUSD/HUSD_OutputProcessor.h>
 #include <UT/UT_Version.h>
+#include <unordered_map>
 
 #include "ROP/CompressorManager/CompressorManager.h"
 #include "SOP/SOP_ZibraVDBUSDExport.h"
@@ -13,15 +14,13 @@ namespace Zibra::ZibraVDBOutputProcessor
     class ZibraVDBOutputProcessor final : public HUSD_OutputProcessor
     {
     private:
-        struct CompressionSequenceEntryKey
+        struct CompressionEntry
         {
-            ZibraVDBUSDExport::SOP_ZibraVDBUSDExport* sopNode;
             CE::Compression::CompressorManager* compressorManager;
             std::string referencingLayerPath;
             std::string outputFile;
             float quality;
-
-            bool operator<(const CompressionSequenceEntryKey& other) const;
+            std::vector<std::pair<int, std::string>> frameOutputs;
         };
 
     public:
@@ -55,7 +54,7 @@ namespace Zibra::ZibraVDBOutputProcessor
                                   CE::Compression::CompressorManager* compressorManager, const GU_Detail* gdp);
 
     private:
-        std::vector<std::pair<CompressionSequenceEntryKey, std::vector<std::pair<int, std::string>>>> m_CompressionEntries;
+        std::unordered_map<ZibraVDBUSDExport::SOP_ZibraVDBUSDExport*, CompressionEntry> m_CompressionEntries;
         OP_Node* m_ConfigNode = nullptr;
     };
 
