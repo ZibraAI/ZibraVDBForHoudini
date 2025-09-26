@@ -19,7 +19,7 @@ namespace Zibra::AssetResolver
     size_t DecompressionHelper::GetMaxCachedFramesPerFile()
     {
         static size_t maxCachedFrames = []() -> size_t {
-            const char* envValue = std::getenv("ZIB_MAX_CACHED_FILES_CNT");
+            const char* envValue = std::getenv("ZIB_MAX_CACHED_FILES_COUNT");
             if (envValue)
             {
                 try
@@ -31,7 +31,7 @@ namespace Zibra::AssetResolver
                     // Fall back to default on parse error
                 }
             }
-            return ZIB_MAX_CACHED_FRAMES;
+            return ZIB_MAX_CACHED_FRAMES_DEFAULT;
         }();
 
         return maxCachedFrames;
@@ -144,6 +144,7 @@ namespace Zibra::AssetResolver
         std::lock_guard lock(m_DecompressedFilesMutex);
         auto& fileQueue = m_DecompressedFilesDict[compressedFile];
 
+        // If file present in queue - we just move it to the end so it become most recent one
         auto it = std::find(fileQueue.begin(), fileQueue.end(), decompressedFile);
         if (it != fileQueue.end())
         {

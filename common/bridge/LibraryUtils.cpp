@@ -43,7 +43,7 @@ namespace Zibra::LibraryUtils
     bool g_IsLibraryInitialized = false;
     Zibra::Version g_CompressionEngineVersion = {};
 
-    std::vector<std::filesystem::path> GetSDKLibsBasePaths() noexcept
+    std::vector<std::filesystem::path> GetSDKLibraryBasePaths() noexcept
     {
         std::vector<std::filesystem::path> result{};
 
@@ -70,10 +70,10 @@ namespace Zibra::LibraryUtils
     // Returns vector of paths that can be used to search for the library
     // First element is the path used for downloading the library
     // Other elements are alternative load paths for manual library installation
-    std::vector<std::string> GetSDKLibsPaths() noexcept
+    std::vector<std::string> GetSDKLibraryPaths() noexcept
     {
         std::vector<std::string> result;
-        for (const auto path : GetSDKLibsBasePaths()) {
+        for (const auto path : GetSDKLibraryBasePaths()) {
             auto newPath = path / ZIB_DYNAMIC_LIB_NAME;
             result.emplace_back(newPath.string());
         }
@@ -236,7 +236,7 @@ namespace Zibra::LibraryUtils
             return;
         }
 
-        const std::vector<std::string> libraryPaths = GetSDKLibsPaths();
+        const std::vector<std::string> libraryPaths = GetSDKLibraryPaths();
 
         bool isLoaded = false;
         for (const std::string& libraryPath : libraryPaths)
@@ -275,7 +275,7 @@ namespace Zibra::LibraryUtils
         return Version{version.major, version.minor, version.patch, version.build};
     }
 
-    Version GetZibSDKVersion() noexcept
+    Version GetSDKLibraryVersion() noexcept
     {
         assert(g_IsLibraryLoaded);
         return ToLibraryUtilsVersion(g_CompressionEngineVersion);

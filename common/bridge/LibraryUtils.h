@@ -24,10 +24,11 @@ namespace Zibra::LibraryUtils {
 #endif
     }
 
+    Version GetSDKLibraryVersion() noexcept;
     std::string GetSDKLibraryVersionString() noexcept;
-    std::string ErrorCodeToString(CE::ReturnCode errorCode);
-    Version GetZibSDKVersion() noexcept;
 
-    std::vector<std::filesystem::path> GetSDKLibsBasePaths() noexcept;
-    std::vector<std::string> GetSDKLibsPaths() noexcept;
+    std::string ErrorCodeToString(CE::ReturnCode errorCode);
+
+    std::vector<std::filesystem::path> GetSDKLibraryBasePaths() noexcept;
+    std::vector<std::string> GetSDKLibraryPaths() noexcept;
 } // namespace Zibra::LibraryUtils
