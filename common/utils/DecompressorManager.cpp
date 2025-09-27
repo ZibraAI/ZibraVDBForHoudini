@@ -7,6 +7,11 @@
 
 namespace Zibra::Helpers
 {
+    DecompressorManager::~DecompressorManager() noexcept
+    {
+        Release();
+    }
+
     CE::ReturnCode DecompressorManager::Initialize() noexcept
     {
         if (m_IsInitialized)

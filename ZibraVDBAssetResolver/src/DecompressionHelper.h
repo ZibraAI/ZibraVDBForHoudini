@@ -8,6 +8,16 @@ namespace Zibra::AssetResolver
 {
     class DecompressionHelper
     {
+    private:
+        struct DecompressionItem
+        {
+            std::deque<int> decompressedFrames;
+            std::unique_ptr<Helpers::DecompressorManager> decompressor;
+            CE::Decompression::FrameRange frameRange;
+            std::string tmpDir;
+            std::string uuid;
+        };
+
     public:
         DecompressionHelper(const DecompressionHelper&) = delete;
         DecompressionHelper& operator=(const DecompressionHelper&) = delete;
@@ -15,25 +25,23 @@ namespace Zibra::AssetResolver
         DecompressionHelper& operator=(DecompressionHelper&&) = delete;
 
         static DecompressionHelper& GetInstance();
-
         std::string DecompressZibraVDBFile(const std::string& zibraVDBPath, const std::string& tmpDir, int frame = 0);
-        void AddDecompressedFile(const std::string& compressedFile, const std::string& decompressedFile);
-        void CleanupOldFiles(const std::string& currentCompressedFile, const std::string& currentDecompressedFile);
-        void CleanupAllDecompressedFiles();
-        void CleanupAllDecompressorManagers();
+        void Cleanup();
 
     private:
         DecompressionHelper() = default;
         ~DecompressionHelper() = default;
 
         bool LoadSDKLib();
-        Helpers::DecompressorManager* GetOrCreateDecompressorManager(const std::string& compressedFile);
+        std::unique_ptr<Helpers::DecompressorManager> CreateDecompressorManager(const std::string& compressedFile);
+        DecompressionItem* AddDecompressionItem(const std::string& zibraVDBPath, const std::string& tmpDir);
+        void AddDecompressedFrame(DecompressionItem* item, int frame);
+        void CleanupOldFrames(DecompressionItem* item, int recentFrame);
         size_t GetMaxCachedFramesPerFile();
+        std::string ComposeDecompressedFrameFileName(const std::string& dir, const std::string& name, int frame);
 
     private:
-        std::unordered_map<std::string, std::deque<std::string>> m_DecompressedFilesDict;
-        std::mutex m_DecompressedFilesMutex;
-        std::unordered_map<std::string, std::unique_ptr<Helpers::DecompressorManager>> m_DecompressorManagers;
-        std::mutex m_DecompressorManagersMutex;
+        std::unordered_map<std::string, std::unique_ptr<DecompressionItem>> m_DecompressionFiles;
+        std::mutex m_DecompressionFilesMutex;
     };
 } // namespace Zibra::AssetResolver

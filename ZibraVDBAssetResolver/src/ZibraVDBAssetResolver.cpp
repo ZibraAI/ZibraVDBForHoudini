@@ -18,12 +18,12 @@ class ZibraVDBResolverContext
 public:
     ZibraVDBResolverContext()
     {
-        m_TmpDir = TfGetenv("HOUDINI_TEMP_DIR");
+        m_TmpDir = ComposeTmpDirPath();
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER_CONTEXT).Msg("ZibraVDBResolverContext: Using temp directory: %s\n", m_TmpDir.c_str());
     }
 
     explicit ZibraVDBResolverContext(const std::string& tmpdir)
-        : m_TmpDir(tmpdir.empty() ? TfGetenv("HOUDINI_TEMP_DIR") : tmpdir)
+        : m_TmpDir(tmpdir.empty() ? ComposeTmpDirPath() : tmpdir)
     {
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER_CONTEXT).Msg("ZibraVDBResolverContext: Using temp directory: %s\n", m_TmpDir.c_str());
     }
@@ -49,6 +49,11 @@ public:
     }
 
 private:
+    static std::string ComposeTmpDirPath()
+    {
+        return TfStringCatPaths(TfGetenv("HOUDINI_TEMP_DIR"), ZIB_TMP_FILES_FOLDER_NAME);
+    }
+
     std::string m_TmpDir;
 };
 
@@ -66,9 +71,7 @@ ZibraVDBResolver::ZibraVDBResolver()
 {
     UT_Exit::addExitCallback(
         [](void*) {
-            auto& helper = Zibra::AssetResolver::DecompressionHelper::GetInstance();
-            helper.CleanupAllDecompressorManagers();
-            helper.CleanupAllDecompressedFiles();
+            Zibra::AssetResolver::DecompressionHelper::GetInstance().Cleanup();
         },
         nullptr);
 }
@@ -196,9 +199,6 @@ ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
                  actualFilePath.c_str());
         return {};
     }
-
-    decompressionHelper.CleanupOldFiles(actualFilePath, decompressedPath);
-    decompressionHelper.AddDecompressedFile(actualFilePath, decompressedPath);
 
     TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_Resolve - Successfully decompressed to: '%s'\n", decompressedPath.c_str());
     return ArResolvedPath(decompressedPath);

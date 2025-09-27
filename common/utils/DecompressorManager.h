@@ -17,6 +17,7 @@ namespace Zibra::Helpers
         };
 
     public:
+        ~DecompressorManager() noexcept;
         CE::ReturnCode Initialize() noexcept;
         CE::ReturnCode RegisterDecompressor(const UT_String& filename) noexcept;
         CE::ReturnCode DecompressFrame(CE::Decompression::CompressedFrameContainer* frameContainer,
