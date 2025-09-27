@@ -196,7 +196,7 @@ if("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
 endif()
 
 # Add USD Asset Resolver subdirectory
-add_subdirectory(ZibraVDBAssetResolver)
+add_subdirectory(AssetResolver)
 
 if(${LABS_BUILD})
     set_target_properties(ZibraVDBForHoudini PROPERTIES PREFIX "")
