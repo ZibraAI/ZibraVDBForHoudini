@@ -10,60 +10,7 @@ PXR_NAMESPACE_OPEN_SCOPE
 TF_REGISTRY_FUNCTION(TfDebug)
 {
     TF_DEBUG_ENVIRONMENT_SYMBOL(ZIBRAVDBRESOLVER_RESOLVER, "Print debug output during ZibraVDB path resolution");
-    TF_DEBUG_ENVIRONMENT_SYMBOL(ZIBRAVDBRESOLVER_RESOLVER_CONTEXT, "Print debug output during ZibraVDB context creating and modification");
 }
-
-class ZibraVDBResolverContext
-{
-public:
-    ZibraVDBResolverContext()
-    {
-        m_TmpDir = ComposeTmpDirPath();
-        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER_CONTEXT).Msg("ZibraVDBResolverContext: Using temp directory: %s\n", m_TmpDir.c_str());
-    }
-
-    explicit ZibraVDBResolverContext(const std::string& tmpdir)
-        : m_TmpDir(tmpdir.empty() ? ComposeTmpDirPath() : tmpdir)
-    {
-        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER_CONTEXT).Msg("ZibraVDBResolverContext: Using temp directory: %s\n", m_TmpDir.c_str());
-    }
-
-    bool operator<(const ZibraVDBResolverContext& rhs) const
-    {
-        return m_TmpDir < rhs.m_TmpDir;
-    }
-
-    bool operator==(const ZibraVDBResolverContext& rhs) const
-    {
-        return m_TmpDir == rhs.m_TmpDir;
-    }
-
-    bool operator!=(const ZibraVDBResolverContext& rhs) const
-    {
-        return m_TmpDir != rhs.m_TmpDir;
-    }
-
-    const std::string& getTmpDir() const
-    {
-        return m_TmpDir;
-    }
-
-private:
-    static std::string ComposeTmpDirPath()
-    {
-        return TfStringCatPaths(TfGetenv("HOUDINI_TEMP_DIR"), ZIB_TMP_FILES_FOLDER_NAME);
-    }
-
-    std::string m_TmpDir;
-};
-
-size_t hash_value(const ZibraVDBResolverContext& context)
-{
-    size_t hash = SYShash(context.getTmpDir());
-    return hash;
-}
-
-AR_DECLARE_RESOLVER_CONTEXT(ZibraVDBResolverContext);
 
 AR_DEFINE_RESOLVER(ZibraVDBResolver, ArResolver);
 
@@ -77,6 +24,12 @@ ZibraVDBResolver::ZibraVDBResolver()
 }
 
 ZibraVDBResolver::~ZibraVDBResolver() = default;
+
+const std::string& ZibraVDBResolver::GetTempDirectory()
+{
+    static const std::string ms_TempDir = TfStringCatPaths(TfGetenv("HOUDINI_TEMP_DIR"), ZIB_TMP_FILES_FOLDER_NAME);
+    return ms_TempDir;
+}
 
 std::string ZibraVDBResolver::_CreateIdentifier(const std::string& assetPath, const ArResolvedPath& anchorAssetPath) const
 {
@@ -178,15 +131,7 @@ ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
         return {};
     }
 
-    const auto* ctx = _GetCurrentContextObject<ZibraVDBResolverContext>();
-    if (!ctx || ctx->getTmpDir().empty())
-    {
-        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_Resolve - No valid context or temp directory found\n");
-        return {};
-    }
-
-    std::string tmpDir = ctx->getTmpDir();
-
+    const std::string& tmpDir = GetTempDirectory();
     TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_Resolve - Using temp directory: '%s'\n", tmpDir.c_str());
 
     auto& decompressionHelper = Zibra::AssetResolver::DecompressionHelper::GetInstance();
@@ -218,23 +163,6 @@ std::shared_ptr<ArAsset> ZibraVDBResolver::_OpenAsset(const ArResolvedPath& reso
 std::shared_ptr<ArWritableAsset> ZibraVDBResolver::_OpenAssetForWrite(const ArResolvedPath& resolvedPath, WriteMode writeMode) const
 {
     return ArFilesystemWritableAsset::Create(resolvedPath, writeMode);
-}
-
-ArResolverContext ZibraVDBResolver::_CreateContextFromString(const std::string& contextStr) const
-{
-    return ZibraVDBResolverContext(contextStr);
-}
-
-ArResolverContext ZibraVDBResolver::_CreateDefaultContext() const
-{
-    TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER_CONTEXT).Msg("ZibraVDBResolver::_CreateDefaultContext - Creating default resolver context\n");
-    return ZibraVDBResolverContext();
-}
-
-bool ZibraVDBResolver::_IsContextDependentPath(const std::string& path) const
-{
-    std::unordered_map<std::string, std::string> parseResult;
-    return Zibra::Helpers::ParseZibraVDBURI(path, parseResult);
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

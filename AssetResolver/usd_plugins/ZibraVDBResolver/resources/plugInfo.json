@@ -4,8 +4,7 @@
             "Info": {
                 "Types": {
                     "ZibraVDBResolver": {
-                        "bases": ["ArResolver"],
-                        "implementsContexts": true
+                        "bases": ["ArResolver"]
                     }
                 }
             },
@@ -15,6 +14,36 @@
             "Root": "..",
             "Type": "library",
             "Platform": "Linux"
+        },
+        {
+            "Info": {
+                "Types": {
+                    "ZibraVDBResolver": {
+                        "bases": ["ArResolver"]
+                    }
+                }
+            },
+            "LibraryPath": "../../usd/ZibraVDBResolver.dylib",
+            "Name": "ZibraVDBResolver_Mac",
+            "ResourcePath": "resources",
+            "Root": "..",
+            "Type": "library",
+            "Platform": "Darwin"
+        },
+        {
+            "Info": {
+                "Types": {
+                    "ZibraVDBResolver": {
+                        "bases": ["ArResolver"]
+                    }
+                }
+            },
+            "LibraryPath": "../../usd/ZibraVDBResolver.dll",
+            "Name": "ZibraVDBResolver_Win",
+            "ResourcePath": "resources",
+            "Root": "..",
+            "Type": "library",
+            "Platform": "Windows"
         }
     ]
 }

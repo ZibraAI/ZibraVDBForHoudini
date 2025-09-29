@@ -9,8 +9,7 @@
 PXR_NAMESPACE_OPEN_SCOPE
 
 TF_DEBUG_CODES(
-    ZIBRAVDBRESOLVER_RESOLVER,
-    ZIBRAVDBRESOLVER_RESOLVER_CONTEXT
+    ZIBRAVDBRESOLVER_RESOLVER
 );
 
 class ZIB_RESOLVER_API ZibraVDBResolver final : public ArResolver
@@ -34,21 +33,15 @@ protected:
     ArResolvedPath _ResolveForNewAsset(
         const std::string& assetPath) const final;
 
-    ArResolverContext _CreateContextFromString(
-        const std::string& contextStr) const final;
-
-    ArResolverContext _CreateDefaultContext() const final;
-
-    bool _IsContextDependentPath(
-        const std::string &assetPath) const final;
-
-
     std::shared_ptr<ArAsset> _OpenAsset(
         const ArResolvedPath& resolvedPath) const final;
 
     std::shared_ptr<ArWritableAsset> _OpenAssetForWrite(
         const ArResolvedPath& resolvedPath,
         WriteMode writeMode) const final;
+
+private:
+    static const std::string& GetTempDirectory();
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE
