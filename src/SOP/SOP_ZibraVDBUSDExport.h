@@ -24,7 +24,6 @@ namespace Zibra::ZibraVDBUSDExport
         ~SOP_ZibraVDBUSDExport() noexcept final = default;
 
         OP_ERROR cookMySop(OP_Context& context) final;
-        bool updateParmsFlags() final;
 
         bool UsePerChannelCompressionSettings() const noexcept;
         std::vector<std::pair<UT_String, float>> GetPerChannelCompressionSettings() const noexcept;

@@ -1,6 +1,7 @@
 #include "PrecompiledHeader.h"
 
 #include "Helpers.h"
+#include <regex>
 
 namespace Zibra::Helpers
 {
@@ -194,25 +195,8 @@ namespace Zibra::Helpers
                 size_t equalPos = param.find('=');
                 if (equalPos != std::string::npos && equalPos > 0 && equalPos + 1 < param.length())
                 {
-                    std::string key = param.substr(0, equalPos);
-                    std::string value = param.substr(equalPos + 1);
-
-                    if (key == "node")
-                    {
-                        size_t pos = 0;
-                        while ((pos = value.find("%2F", pos)) != std::string::npos)
-                        {
-                            value.replace(pos, 3, "/");
-                            pos += 1;
-                        }
-                        pos = 0;
-                        while ((pos = value.find("%20", pos)) != std::string::npos)
-                        {
-                            value.replace(pos, 3, " ");
-                            pos += 1;
-                        }
-                    }
-
+                    const std::string key = param.substr(0, equalPos);
+                    const std::string value = param.substr(equalPos + 1);
                     keyValuePairs[key] = value;
                 }
 

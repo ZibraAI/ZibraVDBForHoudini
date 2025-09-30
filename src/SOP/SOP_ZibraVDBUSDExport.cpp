@@ -67,100 +67,79 @@ namespace Zibra::ZibraVDBUSDExport
     SOP_ZibraVDBUSDExport::SOP_ZibraVDBUSDExport(OP_Network* net, const char* name, OP_Operator* entry) noexcept
         : SOP_Node(net, name, entry)
     {
-        mySopFlags.setManagesDataIDs(true);
+        flags().setTimeDep(true);
     }
 
     OP_ERROR SOP_ZibraVDBUSDExport::cookMySop(OP_Context& context)
     {
-        int num_inputs = nConnectedInputs();
-        if (num_inputs == 0)
+#define SHOW_ERROR_AND_RETURN(message) \
+    addError(SOP_MESSAGE, message);    \
+    return error(context);
+
+        if (nConnectedInputs() == 0)
         {
-            addError(SOP_MESSAGE, "No input geometry connected");
-            return error();
+            SHOW_ERROR_AND_RETURN("No input geometry connected")
         }
 
         gdp->clearAndDestroy();
-        OP_ERROR lock_error = lockInput(0, context);
-        if (lock_error != 0)
+        if (lockInput(0, context) > 0)
         {
-            addError(SOP_MESSAGE, "Failed to lock input geometry");
-            return error();
+            SHOW_ERROR_AND_RETURN("Failed to lock input geometry")
         }
 
-        OP_ERROR dup_error = duplicateSource(0, context);
-        unlockInput(0);
-        if (dup_error != 0)
+        if (duplicateSource(0, context) > 0)
         {
-            addError(SOP_MESSAGE, "Failed to duplicate input geometry");
-            return error();
+            SHOW_ERROR_AND_RETURN("Failed to duplicate input geometry")
         }
+        unlockInput(0);
 
         if (gdp->getNumPrimitives() == 0)
         {
-            exint current_frame = context.getFrame();
-            addWarning(SOP_MESSAGE, ("No primitives in input geometry - frame " + std::to_string(current_frame) + " may be empty").c_str());
-            return error();
+            addWarning(SOP_MESSAGE,
+                       ("No primitives in input geometry - frame " + std::to_string(context.getFrame()) + " may be empty").c_str());
+            return error(context);
         }
 
         GA_RWHandleS savePathAttrib(gdp, GA_ATTRIB_PRIMITIVE, "usdvolumesavepath");
         if (!savePathAttrib.isValid())
         {
-            GA_RWAttributeRef attr_ref = gdp->addStringTuple(GA_ATTRIB_PRIMITIVE, "usdvolumesavepath", 1);
-            if (attr_ref.isValid())
+            GA_RWAttributeRef attrRef = gdp->addStringTuple(GA_ATTRIB_PRIMITIVE, "usdvolumesavepath", 1);
+            if (attrRef.isValid())
             {
-                savePathAttrib = GA_RWHandleS(attr_ref.getAttribute());
+                savePathAttrib = GA_RWHandleS(attrRef.getAttribute());
             }
             else
             {
-                addError(SOP_MESSAGE, "Failed to create primitive attribute");
-                return error();
+                SHOW_ERROR_AND_RETURN("Failed to create primitive attribute")
             }
         }
 
         m_AvailableChannels.clear();
-        const GEO_Primitive *prim;
+        const GEO_Primitive* prim;
         GA_FOR_ALL_PRIMITIVES(gdp, prim)
         {
             if (prim->getTypeId() == GEO_PRIMVDB)
             {
-                auto vdbPrim = dynamic_cast<const GEO_PrimVDB*>(prim);
-                auto gridName = vdbPrim->getGridName();
+                const auto vdbPrim = dynamic_cast<const GEO_PrimVDB*>(prim);
+                const auto gridName = vdbPrim->getGridName();
                 if (m_AvailableChannels.size() >= CE::MAX_CHANNEL_COUNT)
                 {
-                    std::string m = "Input has quantity of VDB primitives greater than " + std::to_string(CE::MAX_CHANNEL_COUNT)
-                                    + " supported. Skipping '"s + gridName + "'.";
-                    addError(ROP_MESSAGE, m.c_str());
+                    const std::string error = "Input has quantity of VDB primitives greater than " + std::to_string(CE::MAX_CHANNEL_COUNT) +
+                                              " supported. Skipping '"s + gridName + "'.";
+                    addError(SOP_MESSAGE, error.c_str());
                     break;
                 }
-                exint current_frame = context.getFrame();
 
-                UT_String output_filepath;
-                evalString(output_filepath, FILENAME_PARAM_NAME, 0, context.getTime());
-                std::string filename = output_filepath.toStdString();
-
-                std::string node_path = getFullPath().toStdString();
-                std::string encoded_node_path = node_path;
-                size_t pos = 0;
-                while ((pos = encoded_node_path.find('/', pos)) != std::string::npos)
-                {
-                    encoded_node_path.replace(pos, 1, "%2F");
-                    pos += 3;
-                }
-
-                std::string new_path = filename + "?node=" + encoded_node_path + "&frame=" + std::to_string(current_frame);
+                UT_String outputFilepath;
+                evalString(outputFilepath, FILENAME_PARAM_NAME, 0, context.getTime());
+                std::string new_path =
+                    outputFilepath.toStdString() + "?node=" + getFullPath().toStdString() + "&frame=" + std::to_string(context.getFrame());
                 savePathAttrib.set(prim->getMapOffset(), new_path.c_str());
                 m_AvailableChannels.insert(gridName);
             }
         }
 
-        return error();
-    }
-
-    bool SOP_ZibraVDBUSDExport::updateParmsFlags()
-    {
-        bool changed = SOP_Node::updateParmsFlags();
-        flags().setTimeDep(true);
-        return changed;
+        return error(context);
     }
 
     std::vector<std::pair<UT_String, float>> SOP_ZibraVDBUSDExport::GetPerChannelCompressionSettings() const noexcept
@@ -208,4 +187,5 @@ namespace Zibra::ZibraVDBUSDExport
     {
         return static_cast<float>(evalFloat(QUALITY_PARAM_NAME, 0, 0));
     }
+
 } // namespace Zibra::ZibraVDBUSDExport

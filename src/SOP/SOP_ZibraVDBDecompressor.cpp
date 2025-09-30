@@ -12,22 +12,6 @@ namespace Zibra::ZibraVDBDecompressor
     using namespace std::literals;
     using namespace CE::Decompression;
 
-    class StreamAutorelease
-    {
-    public:
-        explicit StreamAutorelease(std::ifstream& stream) noexcept
-            : m_ManagedStream(stream)
-        {
-        }
-        ~StreamAutorelease() noexcept
-        {
-            m_ManagedStream.close();
-        }
-
-    private:
-        std::ifstream& m_ManagedStream;
-    };
-
     OP_Node* SOP_ZibraVDBDecompressor::Constructor(OP_Network* net, const char* name, OP_Operator* op) noexcept
     {
         return new SOP_ZibraVDBDecompressor{net, name, op};
@@ -64,10 +48,6 @@ namespace Zibra::ZibraVDBDecompressor
         : SOP_Node(net, name, entry)
     {
         LibraryUtils::LoadSDKLibrary();
-        if (!LibraryUtils::IsSDKLibraryLoaded())
-        {
-            return;
-        }
     }
 
     SOP_ZibraVDBDecompressor::~SOP_ZibraVDBDecompressor() noexcept

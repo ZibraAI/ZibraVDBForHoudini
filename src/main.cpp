@@ -23,7 +23,8 @@
 #include "SOP/SOP_ZibraVDBDecompressor.h"
 #include "SOP/SOP_ZibraVDBUSDExport.h"
 
-extern "C" {
+extern "C"
+{
     SYS_VISIBILITY_EXPORT void newSopOperator(OP_OperatorTable* table)
     {
         using namespace Zibra;
