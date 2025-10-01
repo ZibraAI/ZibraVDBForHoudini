@@ -2,7 +2,7 @@
 
 #include "ZibraVDBAssetResolver.h"
 
-#include "DecompressionHelper.h"
+#include "decompression/DecompressionHelper.h"
 #include "utils/Helpers.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
@@ -21,14 +21,6 @@ ZibraVDBResolver::ZibraVDBResolver()
             Zibra::AssetResolver::DecompressionHelper::GetInstance().Cleanup();
         },
         nullptr);
-}
-
-ZibraVDBResolver::~ZibraVDBResolver() = default;
-
-const std::string& ZibraVDBResolver::GetTempDirectory()
-{
-    static const std::string ms_TempDir = TfStringCatPaths(TfGetenv("HOUDINI_TEMP_DIR"), ZIB_TMP_FILES_FOLDER_NAME);
-    return ms_TempDir;
 }
 
 std::string ZibraVDBResolver::_CreateIdentifier(const std::string& assetPath, const ArResolvedPath& anchorAssetPath) const
@@ -131,11 +123,8 @@ ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
         return {};
     }
 
-    const std::string& tmpDir = GetTempDirectory();
-    TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_Resolve - Using temp directory: '%s'\n", tmpDir.c_str());
-
     auto& decompressionHelper = Zibra::AssetResolver::DecompressionHelper::GetInstance();
-    std::string decompressedPath = decompressionHelper.DecompressZibraVDBFile(actualFilePath, tmpDir, frame);
+    std::string decompressedPath = decompressionHelper.DecompressZibraVDBFile(actualFilePath, frame);
     if (decompressedPath.empty())
     {
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)

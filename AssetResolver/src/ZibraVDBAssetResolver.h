@@ -16,7 +16,6 @@ class ZIB_RESOLVER_API ZibraVDBResolver final : public ArResolver
 {
 public:
     ZibraVDBResolver();
-    virtual ~ZibraVDBResolver();
 
 protected:
     std::string _CreateIdentifier(
@@ -39,9 +38,6 @@ protected:
     std::shared_ptr<ArWritableAsset> _OpenAssetForWrite(
         const ArResolvedPath& resolvedPath,
         WriteMode writeMode) const final;
-
-private:
-    static const std::string& GetTempDirectory();
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

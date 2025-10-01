@@ -1,0 +1,39 @@
+#pragma once
+
+#include "utils/DecompressorManager.h"
+
+PXR_NAMESPACE_USING_DIRECTIVE
+
+namespace Zibra::AssetResolver
+{
+    class DecompressionSequenceItem
+    {
+    public:
+        explicit DecompressionSequenceItem(const std::string& zibraVDBPath);
+        ~DecompressionSequenceItem();
+
+        DecompressionSequenceItem(const DecompressionSequenceItem&) = delete;
+        DecompressionSequenceItem& operator=(const DecompressionSequenceItem&) = delete;
+        DecompressionSequenceItem(DecompressionSequenceItem&&) = default;
+        DecompressionSequenceItem& operator=(DecompressionSequenceItem&&) = default;
+
+        std::string DecompressFrame(int frame);
+
+    private:
+        void AddDecompressedFrame(int frame);
+        void CleanupOldFrames(int currentFrame);
+
+        static const std::string& GetTempDir();
+        static int GetMaxCachedFrames();
+        std::string ComposeDecompressedFrameFileName(int frame) const;
+
+        std::unique_ptr<Helpers::DecompressorManager> CreateDecompressorManager(const std::string& compressedFile);
+
+    private:
+
+        std::deque<int> m_DecompressedFrames;
+        std::unique_ptr<Helpers::DecompressorManager> m_Decompressor;
+        CE::Decompression::FrameRange m_FrameRange{};
+        std::string m_UUID;
+    };
+} // namespace Zibra::AssetResolver

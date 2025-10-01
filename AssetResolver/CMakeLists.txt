@@ -4,12 +4,14 @@ project(ZibraVDBAssetResolver)
 
 set(RESOLVER_HEADERS
     src/ZibraVDBAssetResolver.h
-    src/DecompressionHelper.h
+    src/decompression/DecompressionHelper.h
+    src/decompression/DecompressionSequenceItem.h
 )
 
 set(RESOLVER_SOURCES
     src/ZibraVDBAssetResolver.cpp
-    src/DecompressionHelper.cpp
+    src/decompression/DecompressionHelper.cpp
+        src/decompression/DecompressionSequenceItem.cpp
 )
 
 add_library(ZibraVDBResolver SHARED ${RESOLVER_HEADERS} ${RESOLVER_SOURCES})
