@@ -50,10 +50,10 @@ namespace Zibra::ZibraVDBImport
         std::set<std::string> ParseSelectedFields(const std::string& fieldsStr, const std::unordered_set<std::string>& availableGrids);
         FileInfo LoadFileInfo(const std::string& filePath);
 
-        void WriteZibraVolumeToStage(const UsdStageRefPtr& stage, const std::filesystem::path& volumePrimPath, const std::set<std::string>& selectedFields, int frameIndex);
-        void WriteParentPrimHierarchyToStage(const UsdStageRefPtr& stage, const std::filesystem::path& primPath);
-        void WriteOpenVDBAssetPrimToStage(const UsdStageRefPtr& stage, const std::filesystem::path& assetPath, int frameIndex);
-        void WriteVolumeFieldRelationshipsToStage(const UsdVolVolume& volumePrim, const std::filesystem::path& primPath);
+        void WriteZibraVolumeToStage(const UsdStageRefPtr& stage, const SdfPath& volumePrimPath, const std::set<std::string>& selectedFields, int frameIndex);
+        void WriteParentPrimHierarchyToStage(const UsdStageRefPtr& stage, const SdfPath& primPath);
+        void WriteOpenVDBAssetPrimToStage(const UsdStageRefPtr& stage, const SdfPath& assetPath, int frameIndex);
+        void WriteVolumeFieldRelationshipsToStage(const UsdVolVolume& volumePrim, const SdfPath& primPath);
 
         static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate);
         static void BuildFieldsChoiceList(void* data, PRM_Name* choiceNames, int maxListSize, const PRM_SpareData*, const PRM_Parm*);
