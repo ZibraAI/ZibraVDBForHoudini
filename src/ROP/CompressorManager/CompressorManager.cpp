@@ -2,9 +2,6 @@
 
 #include "CompressorManager.h"
 
-#include "bridge/LibraryUtils.h"
-#include "utils/Helpers.h"
-
 namespace Zibra::CE::Compression
 {
     ReturnCode CompressorManager::Initialize(FrameMappingDecs frameMappingDesc, float defaultQuality,

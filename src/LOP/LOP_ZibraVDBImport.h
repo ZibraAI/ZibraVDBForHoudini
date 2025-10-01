@@ -14,6 +14,17 @@ namespace Zibra::ZibraVDBImport
     class LOP_ZibraVDBImport final : public LOP_Node
     {
     private:
+        struct FileInfo
+        {
+            std::string filePath;
+            std::string uuid;
+            std::unordered_set<std::string> availableGrids;
+            int frameStart = 0;
+            int frameEnd = 0;
+            std::string error;
+        };
+
+    private:
         static constexpr const char* FILE_PARAM_NAME = "file";
         static constexpr const char* PRIMPATH_PARAM_NAME = "primpath";
         static constexpr const char* PARENTPRIMTYPE_PARAM_NAME = "parentprimtype";
@@ -25,7 +36,6 @@ namespace Zibra::ZibraVDBImport
         static PRM_Template* GetTemplateList() noexcept;
 
         LOP_ZibraVDBImport(OP_Network* net, const char* name, OP_Operator* entry) noexcept;
-        ~LOP_ZibraVDBImport() noexcept final;
 
         OP_ERROR cookMyLop(OP_Context& context) final;
         bool updateParmsFlags() final;
@@ -36,30 +46,15 @@ namespace Zibra::ZibraVDBImport
         std::string GetParentPrimType(fpreal t) const;
         std::string GetFields(fpreal t) const;
 
-    private:
-        struct FileInfo
-        {
-            std::string filePath;
-            std::string uuid;
-            std::unordered_set<std::string> availableGrids;
-            int frameStart = 0;
-            int frameEnd = 0;
-            std::string error;
-        };
-
-        std::string SanitizeFieldNameForUSD(const std::string& fieldName);
+        inline std::string SanitizeFieldNameForUSD(const std::string& fieldName);
         std::set<std::string> ParseSelectedFields(const std::string& fieldsStr, const std::unordered_set<std::string>& availableGrids);
         FileInfo LoadFileInfo(const std::string& filePath);
-        void CreateVolumeStructure(UsdStageRefPtr stage, const std::string& primPath, const std::string& primName,
-                                   const std::set<std::string>& selectedFields, const std::string& parentPrimType, fpreal t,
-                                   int frameIndex);
-        void CreateParentPrimHierarchy(UsdStageRefPtr stage, const std::string& primPath, const std::string& parentPrimType);
-        void CreateOpenVDBAssetPrim(UsdStageRefPtr stage, const std::string& volumePath, const std::string& fieldName,
-                                    const std::string& sanitizedFieldName, const std::string& filePath, int frameIndex);
-        void CreateFieldRelationship(UsdVolVolume& volumePrim, const std::string& fieldName, const std::string& assetPath);
-        std::string GenerateZibraVDBURL(const std::string& filePath, const std::string& fieldName, int frameNumber) const;
 
-        static std::pair<std::string, std::string> ParsePrimitivePath(const std::string& fullPrimPath, const std::string& filePath);
+        void WriteZibraVolumeToStage(const UsdStageRefPtr& stage, const std::filesystem::path& volumePrimPath, const std::set<std::string>& selectedFields, int frameIndex);
+        void WriteParentPrimHierarchyToStage(const UsdStageRefPtr& stage, const std::filesystem::path& primPath);
+        void WriteOpenVDBAssetPrimToStage(const UsdStageRefPtr& stage, const std::filesystem::path& assetPath, int frameIndex);
+        void WriteVolumeFieldRelationshipsToStage(const UsdVolVolume& volumePrim, const std::filesystem::path& primPath);
+
         static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate);
         static void BuildFieldsChoiceList(void* data, PRM_Name* choiceNames, int maxListSize, const PRM_SpareData*, const PRM_Parm*);
 

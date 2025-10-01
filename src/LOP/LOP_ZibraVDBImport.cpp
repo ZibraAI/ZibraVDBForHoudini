@@ -5,15 +5,9 @@
 #include <HUSD/HUSD_DataHandle.h>
 #include <HUSD/HUSD_FindPrims.h>
 #include <HUSD/XUSD_Data.h>
-#include <pxr/usd/usdVol/openVDBAsset.h>
-#include <pxr/usd/sdf/path.h>
 #include <pxr/base/tf/stringUtils.h>
-
-#include <bridge/LibraryUtils.h>
-#include <licensing/LicenseManager.h>
-#include <ui/PluginManagementWindow.h>
-#include <utils/Helpers.h>
-#include <utils/DecompressorManager.h>
+#include <pxr/usd/sdf/path.h>
+#include <pxr/usd/usdVol/openVDBAsset.h>
 
 PXR_NAMESPACE_USING_DIRECTIVE
 
@@ -65,10 +59,7 @@ namespace Zibra::ZibraVDBImport
         : LOP_Node(net, name, entry)
     {
         LibraryUtils::LoadSDKLibrary();
-    }
-
-    LOP_ZibraVDBImport::~LOP_ZibraVDBImport() noexcept
-    {
+        flags().setTimeDep(true);
     }
 
     void LOP_ZibraVDBImport::BuildFieldsChoiceList(void* data, PRM_Name* choiceNames, int maxListSize, const PRM_SpareData*, const PRM_Parm*)
@@ -112,37 +103,40 @@ namespace Zibra::ZibraVDBImport
 
     OP_ERROR LOP_ZibraVDBImport::cookMyLop(OP_Context &context)
     {
-        flags().setTimeDep(true);
+#define SHOW_ERROR_AND_RETURN(message) \
+    addError(LOP_MESSAGE, message);    \
+    return error(context);
 
         if (cookModifyInput(context) >= UT_ERROR_FATAL)
             return error(context);
 
-        fpreal t = context.getTime();
-        int frameIndex = context.getFrame();
-        std::string filePath = GetFilePath(t);
-        std::string fullPrimPath = GetPrimitivePath(t);
-        std::string parentPrimType = GetParentPrimType(t);
-        std::string fields = GetFields(t);
+        const fpreal t = context.getTime();
+        const int currentFrame = static_cast<int>(context.getFrame());
+        // const std::string parentPrimType = GetParentPrimType(t);
+        const std::string fields = GetFields(t);
 
-        if (filePath.empty())
+        if (GetFilePath(t).empty())
         {
-            addError(LOP_MESSAGE, "No ZibraVDB file specified");
-            return error(context);
+            SHOW_ERROR_AND_RETURN("No ZibraVDB file specified")
+        }
+
+        auto volumePrimPath = std::filesystem::path(GetPrimitivePath(t));
+        if (volumePrimPath.empty() || !volumePrimPath.has_filename())
+        {
+            SHOW_ERROR_AND_RETURN("No valid USD primitive name specified")
         }
 
         updateParmsFlags();
         if (!m_CachedFileInfo.error.empty())
         {
-            addError(LOP_MESSAGE, m_CachedFileInfo.error.c_str());
-            return error(context);
+            SHOW_ERROR_AND_RETURN(m_CachedFileInfo.error.c_str())
         }
 
         if (m_CachedFileInfo.uuid.empty())
         {
-            addError(LOP_MESSAGE, "No valid ZibraVDB file loaded");
-            return error(context);
+            SHOW_ERROR_AND_RETURN("No valid ZibraVDB file loaded")
         }
-        int currentFrame = static_cast<int>(std::round(context.getFrame()));
+
         if (currentFrame < m_CachedFileInfo.frameStart || currentFrame > m_CachedFileInfo.frameEnd)
         {
             addWarning(LOP_MESSAGE, ("No volume data available for frame " + std::to_string(currentFrame) +
@@ -150,25 +144,22 @@ namespace Zibra::ZibraVDBImport
             return error(context);
         }
 
-        auto [primPath, primName] = ParsePrimitivePath(fullPrimPath, filePath);
-
-        std::set<std::string> selectedFields = ParseSelectedFields(fields, m_CachedFileInfo.availableGrids);
+        const std::set<std::string> selectedFields = ParseSelectedFields(fields, m_CachedFileInfo.availableGrids);
         if (selectedFields.empty())
         {
-            addWarning(LOP_MESSAGE, "No valid fields selected");
+            SHOW_ERROR_AND_RETURN("No valid fields selected")
         }
 
-        HUSD_AutoWriteLock writelock(editableDataHandle());
-        HUSD_AutoLayerLock layerlock(writelock);
-        auto stage = writelock.data()->stage();
-
+        const HUSD_AutoWriteLock writeLock(editableDataHandle());
+        HUSD_AutoLayerLock layerLock(writeLock);
+        const auto stage = writeLock.data()->stage();
         if (!stage)
         {
-            addError(LOP_MESSAGE, "Failed to get USD stage");
-            return error(context);
+            SHOW_ERROR_AND_RETURN("Failed to get USD stage")
         }
 
-        CreateVolumeStructure(stage, primPath, primName, selectedFields, parentPrimType, t, frameIndex);
+        volumePrimPath = volumePrimPath.parent_path() / SanitizeFieldNameForUSD(volumePrimPath.filename());
+        WriteZibraVolumeToStage(stage, volumePrimPath, selectedFields, currentFrame);
         return error(context);
     }
 
@@ -233,17 +224,7 @@ namespace Zibra::ZibraVDBImport
     
     std::string LOP_ZibraVDBImport::SanitizeFieldNameForUSD(const std::string& fieldName)
     {
-        if (fieldName.empty())
-        {
-            return "field";
-        }
-        
-        if (SdfPath::IsValidIdentifier(fieldName))
-        {
-            return fieldName;
-        }
-        
-        return TfMakeValidIdentifier(fieldName);
+        return SdfPath::IsValidIdentifier(fieldName) ? fieldName : TfMakeValidIdentifier(fieldName);
     }
 
     // Parses field selection string. Expected formats:
@@ -357,107 +338,35 @@ namespace Zibra::ZibraVDBImport
         return info;
     }
 
-    std::pair<std::string, std::string> LOP_ZibraVDBImport::ParsePrimitivePath(const std::string& fullPrimPath, const std::string& filePath)
+    void LOP_ZibraVDBImport::WriteZibraVolumeToStage(const UsdStageRefPtr& stage, const std::filesystem::path& volumePrimPath,
+                                                     const std::set<std::string>& selectedFields, int frameIndex)
     {
-        std::string primPath;
-        std::string primName;
-        
-        if (fullPrimPath.empty())
+        if (volumePrimPath.has_parent_path())
         {
-            primPath = "";
-            primName = "ZibraVolume";
-        }
-        else
-        {
-            size_t lastSlash = fullPrimPath.find_last_of('/');
-            if (lastSlash == std::string::npos)
-            {
-                primPath = "";
-                primName = fullPrimPath;
-            }
-            else if (lastSlash == 0)
-            {
-                primPath = "";
-                primName = fullPrimPath.substr(1);
-            }
-            else
-            {
-                primPath = fullPrimPath.substr(0, lastSlash);
-                primName = fullPrimPath.substr(lastSlash + 1);
-            }
-        }
-        
-        if (primName == "ZibraVolume" && !filePath.empty())
-        {
-            std::filesystem::path path(filePath);
-            std::string filename = path.stem().string();
-            primName = filename;
-        }
-        
-        return std::make_pair(primPath, primName);
-    }
-
-    void LOP_ZibraVDBImport::CreateVolumeStructure(UsdStageRefPtr stage, const std::string& primPath, const std::string& primName,
-                                                   const std::set<std::string>& selectedFields, const std::string& parentPrimType,
-                                                   fpreal time, int frameIndex)
-    {
-        if (!stage)
-        {
-            return;
+            WriteParentPrimHierarchyToStage(stage, volumePrimPath);
         }
 
-        std::string filePath = GetFilePath(time);
-        if (filePath.empty())
-        {
-            return;
-        }
-
-        if (selectedFields.empty())
-        {
-            return;
-        }
-
-        CreateParentPrimHierarchy(stage, primPath, parentPrimType);
-
-        // Normalize primitive path: ensure leading slash, remove trailing slash
-        std::string cleanPrimPath = primPath;
-        if (!cleanPrimPath.empty())
-        {
-            if (cleanPrimPath[0] != '/') cleanPrimPath = "/" + cleanPrimPath;
-            if (cleanPrimPath.length() > 1 && cleanPrimPath.back() == '/') cleanPrimPath.pop_back();
-        }
-        
-        std::string safePrimName = primName.empty() ? "volume" : primName;
-        std::string volumePath = cleanPrimPath + "/" + safePrimName;
-        
-        if (volumePath.empty() || volumePath[0] != '/')
-        {
-            const auto error = "Invalid volume path: '" + volumePath + "'";
-            addError(LOP_MESSAGE, error.c_str());
-            return;
-        }
-        
-        SdfPath volumeSdfPath = SdfPath(volumePath);
+        const auto volumeSdfPath = SdfPath(volumePrimPath);
         if (!volumeSdfPath.IsAbsolutePath() || volumeSdfPath.IsEmpty())
         {
-            const auto error = "Invalid SdfPath for volume: " + volumePath;
+            const auto error = "Invalid SdfPath for volume: " + volumePrimPath.string();
             addError(LOP_MESSAGE, error.c_str());
             return;
         }
 
-        UsdVolVolume volumePrim = UsdVolVolume::Define(stage, volumeSdfPath);
+        const UsdVolVolume volumePrim = UsdVolVolume::Define(stage, volumeSdfPath);
         if (!volumePrim)
         {
-            const auto error = "Failed to create Volume prim: " + volumePath;
+            const auto error = "Failed to create Volume prim: " + volumePrimPath.string();
             addError(LOP_MESSAGE, error.c_str());
             return;
         }
 
         for (const std::string& fieldName : selectedFields)
         {
-            std::string sanitizedFieldName = SanitizeFieldNameForUSD(fieldName);
-            CreateOpenVDBAssetPrim(stage, volumePath, fieldName, sanitizedFieldName, filePath, frameIndex);
-            CreateFieldRelationship(volumePrim, sanitizedFieldName, volumePath + "/" + sanitizedFieldName);
+            const auto vdbPrimPath = std::filesystem::path(volumePrimPath) / SanitizeFieldNameForUSD(fieldName);
+            WriteOpenVDBAssetPrimToStage(stage, vdbPrimPath, frameIndex);
+            WriteVolumeFieldRelationshipsToStage(volumePrim, vdbPrimPath);
         }
 
         UT_StringArray primPaths;
@@ -468,131 +377,79 @@ namespace Zibra::ZibraVDBImport
     // Creates the USD parent prim hierarchy for proper scene graph organization.
     // For "/world/volumes/sequence01", this creates "/world", "/world/volumes", etc.
     // Uses the specified parentPrimType (Xform or Scope) for all intermediate prims.
-    void LOP_ZibraVDBImport::CreateParentPrimHierarchy(UsdStageRefPtr stage, const std::string& primPath, const std::string& parentPrimType)
+    void LOP_ZibraVDBImport::WriteParentPrimHierarchyToStage(const UsdStageRefPtr& stage, const std::filesystem::path& primPath)
     {
-        if (primPath == "/" || primPath.empty() || parentPrimType == "none")
+        auto parentPrimType = GetParentPrimType(0);
+        if (parentPrimType == "none")
         {
             return;
         }
 
-        std::string parentPath = primPath;
-        size_t pos = 0;
+        TfToken primType = (parentPrimType == "scope") ? TfToken("Scope") : TfToken("Xform");
         
-        while ((pos = parentPath.find('/', pos + 1)) != std::string::npos)
+        std::filesystem::path currentPath = primPath;
+        while (currentPath.has_parent_path() && currentPath != currentPath.parent_path())
         {
-            std::string currentPath = parentPath.substr(0, pos);
-            if (!currentPath.empty() && currentPath != "/")
+            currentPath = currentPath.parent_path();
+            if (currentPath != "/" && !currentPath.empty())
             {
-                SdfPath currentSdfPath(currentPath);
-                if (!stage->GetPrimAtPath(currentSdfPath))
+                if (SdfPath sdfPath(currentPath.string()); !stage->GetPrimAtPath(sdfPath))
                 {
-                    TfToken primType = (parentPrimType == "scope") ? TfToken("Scope") : TfToken("Xform");
-                    stage->DefinePrim(currentSdfPath, primType);
+                    stage->DefinePrim(sdfPath, primType);
                 }
             }
         }
         
-        SdfPath parentSdfPath(primPath);
-        if (!stage->GetPrimAtPath(parentSdfPath))
+        if (const SdfPath finalPath(primPath.string()); !stage->GetPrimAtPath(finalPath))
         {
-            TfToken primType = (parentPrimType == "scope") ? TfToken("Scope") : TfToken("Xform");
-            stage->DefinePrim(parentSdfPath, primType);
+            stage->DefinePrim(finalPath, primType);
         }
     }
 
-    void LOP_ZibraVDBImport::CreateOpenVDBAssetPrim(UsdStageRefPtr stage, const std::string& volumePath, const std::string& fieldName,
-                                                    const std::string& sanitizedFieldName, const std::string& filePath, int frameIndex)
+    void LOP_ZibraVDBImport::WriteOpenVDBAssetPrimToStage(const UsdStageRefPtr& stage, const std::filesystem::path& assetPath, int frameIndex)
     {
-        if (!stage)
-            return;
-
-        std::string assetPath = volumePath + "/" + sanitizedFieldName;
-        if (assetPath.empty() || assetPath[0] != '/')
+        const auto sdfPath = SdfPath(assetPath);
+        if (!sdfPath.IsAbsolutePath() || sdfPath.IsEmpty())
         {
-            addError(LOP_MESSAGE, ("Invalid OpenVDBAsset path (not absolute): " + assetPath).c_str());
+            addError(LOP_MESSAGE, "Empty SdfPath for OpenVDBAsset");
             return;
         }
-        
-        if (assetPath.find("//") != std::string::npos)
-        {
-            addError(LOP_MESSAGE, ("Invalid OpenVDBAsset path (double slashes): " + assetPath).c_str());
-            return;
-        }
-        
-        SdfPath assetSdfPath;
-        try
-        {
-            assetSdfPath = SdfPath(assetPath);
-        }
-        catch (const std::exception& e)
-        {
-            addError(LOP_MESSAGE, ("Failed to create SdfPath for OpenVDBAsset: " + std::string(e.what())).c_str());
-            return;
-        }
-        
-        if (!assetSdfPath.IsAbsolutePath() || assetSdfPath.IsEmpty())
-        {
-            addError(LOP_MESSAGE, ("Invalid SdfPath for OpenVDBAsset: " + assetPath).c_str());
-            return;
-        }
-        
-        UsdVolOpenVDBAsset openVDBAsset = UsdVolOpenVDBAsset::Define(stage, assetSdfPath);
+        const UsdVolOpenVDBAsset openVDBAsset = UsdVolOpenVDBAsset::Define(stage, sdfPath);
         if (!openVDBAsset)
         {
-            addError(LOP_MESSAGE, ("Failed to create OpenVDBAsset prim for field: " + fieldName).c_str());
+            addError(LOP_MESSAGE, ("Failed to create OpenVDBAsset prim for field: " + assetPath.filename().string()).c_str());
             return;
         }
 
-        std::string zibraURL = GenerateZibraVDBURL(filePath, fieldName, frameIndex);
+        const std::string zibraURL = GetFilePath(0) + "?frame=" + std::to_string(frameIndex);
+        const auto timeCode = UsdTimeCode(frameIndex);
 
-        UsdAttribute filePathAttr = openVDBAsset.GetFilePathAttr();
-        if (filePathAttr)
+        if (const auto filePathAttr = openVDBAsset.GetFilePathAttr())
         {
-            UsdTimeCode timeCode = UsdTimeCode(frameIndex);
             filePathAttr.Set(SdfAssetPath(zibraURL), timeCode);
         }
-
-        UsdAttribute fieldIndexAttr = openVDBAsset.GetFieldIndexAttr();
-        if (fieldIndexAttr)
+        if (const auto fieldNameAttr = openVDBAsset.GetFieldNameAttr())
         {
-            UsdTimeCode timeCode = UsdTimeCode(frameIndex);
-            fieldIndexAttr.Set(0, timeCode);
+            fieldNameAttr.Set(TfToken(assetPath.filename().string()), timeCode);
         }
-
-        UsdAttribute fieldNameAttr = openVDBAsset.GetFieldNameAttr();
-        if (fieldNameAttr)
+        if (const auto fieldIndexAttr = openVDBAsset.GetFieldIndexAttr())
         {
-            UsdTimeCode timeCode = UsdTimeCode(frameIndex);
-            fieldNameAttr.Set(TfToken(fieldName), timeCode);
+            fieldIndexAttr.Set(0, timeCode);
         }
     }
 
-    void LOP_ZibraVDBImport::CreateFieldRelationship(UsdVolVolume& volumePrim, const std::string& fieldName, const std::string& assetPath)
+    void LOP_ZibraVDBImport::WriteVolumeFieldRelationshipsToStage(const UsdVolVolume& volumePrim, const std::filesystem::path& primPath)
     {
-        if (!volumePrim)
-            return;
-
-        std::string relationshipName = "field:" + fieldName;
-
-        UsdPrim prim = volumePrim.GetPrim();
+        const std::string relationshipName = "field:" + primPath.filename().string();
+        const UsdPrim prim = volumePrim.GetPrim();
         if (!prim)
         {
             return;
         }
-        
-        UsdRelationship fieldRel = prim.CreateRelationship(TfToken(relationshipName), true);
-        
-        if (fieldRel)
+        if (const auto fieldRel = prim.CreateRelationship(TfToken(relationshipName), true))
         {
-            SdfPath targetPath(assetPath);
-            fieldRel.SetTargets({targetPath});
+            fieldRel.SetTargets({SdfPath(primPath.string())});
         }
-    }
-
-    std::string LOP_ZibraVDBImport::GenerateZibraVDBURL(const std::string& filePath, const std::string& fieldName, int frameNumber) const
-    {
-        std::string url = filePath + "?frame=" + std::to_string(frameNumber);
-        return url;
     }
 
 } // namespace Zibra::ZibraVDBImport

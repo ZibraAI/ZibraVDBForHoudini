@@ -3,11 +3,6 @@
 #include "ZibraVDBOutputProcessor.h"
 
 #include "SOP/SOP_ZibraVDBUSDExport.h"
-#include "bridge/LibraryUtils.h"
-#include "licensing/LicenseManager.h"
-#include "utils/Helpers.h"
-#include "utils/MetadataHelper.h"
-#include <iostream>
 
 namespace Zibra::ZibraVDBOutputProcessor
 {

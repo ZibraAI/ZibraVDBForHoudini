@@ -98,12 +98,13 @@
 #error Unexpected OS
 #endif
 
-#define ZRHI_NO_STATIC_API_DECL
-#include <Zibra/RHI.h>
-
-#define ZCE_NO_STATIC_API_DECL
+#include <Zibra/CE/Addons/OpenVDBFrameLoader.h>
 #include <Zibra/CE/Compression.h>
-#include <Zibra/CE/Decompression.h>
-#include <Zibra/CE/Licensing.h>
 
 #include "Globals.h"
+#include "bridge/LibraryUtils.h"
+#include "licensing/LicenseManager.h"
+#include "ui/PluginManagementWindow.h"
+#include "utils/DecompressorManager.h"
+#include "utils/Helpers.h"
+#include "utils/MetadataHelper.h"

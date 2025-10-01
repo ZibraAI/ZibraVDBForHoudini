@@ -1,7 +1,6 @@
 #pragma once
 
 #include "CompressorManager/CompressorManager.h"
-#include "utils/MetadataHelper.h"
 
 namespace CE::Addons::OpenVDBUtils
 {

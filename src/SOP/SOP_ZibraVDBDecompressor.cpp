@@ -2,11 +2,6 @@
 
 #include "SOP_ZibraVDBDecompressor.h"
 
-#include "bridge/LibraryUtils.h"
-#include "licensing/LicenseManager.h"
-#include "ui/PluginManagementWindow.h"
-#include "utils/MetadataHelper.h"
-
 namespace Zibra::ZibraVDBDecompressor
 {
     using namespace std::literals;

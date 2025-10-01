@@ -2,11 +2,6 @@
 
 #include "ROP_ZibraVDBCompressor.h"
 
-#include "bridge/LibraryUtils.h"
-#include "licensing/LicenseManager.h"
-#include "ui/PluginManagementWindow.h"
-#include "utils/GAAttributesDump.h"
-
 namespace Zibra::ZibraVDBCompressor
 {
     using namespace std::literals;

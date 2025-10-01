@@ -1,8 +1,5 @@
 #pragma once
 
-#include <Zibra/CE/Addons/OpenVDBFrameLoader.h>
-#include <Zibra/CE/Compression.h>
-
 namespace Zibra::CE::Compression
 {
     class CompressorManager
