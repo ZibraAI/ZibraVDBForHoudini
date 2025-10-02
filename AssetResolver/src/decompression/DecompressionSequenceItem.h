@@ -25,7 +25,7 @@ namespace Zibra::AssetResolver
 
         static const std::string& GetTempDir();
         static int GetMaxCachedFrames();
-        std::string ComposeDecompressedFrameFileName(int frame) const;
+        std::string ComposeDecompressedFrameFilePath(int frame) const;
 
         std::unique_ptr<Helpers::DecompressorManager> CreateDecompressorManager(const std::string& compressedFile);
 

@@ -67,7 +67,7 @@ namespace Zibra::AssetResolver
 
         for (int frame : m_DecompressedFrames)
         {
-            std::string fileToDelete = ComposeDecompressedFrameFileName(frame);
+            std::string fileToDelete = ComposeDecompressedFrameFilePath(frame);
             TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
                 .Msg("DecompressionItem::~DecompressionItem - Deleting: '%s'\n", fileToDelete.c_str());
 
@@ -96,7 +96,7 @@ namespace Zibra::AssetResolver
             return {};
         }
 
-        std::string outputPath = ComposeDecompressedFrameFileName(frame);
+        std::string outputPath = ComposeDecompressedFrameFilePath(frame);
         if (std::find(m_DecompressedFrames.begin(), m_DecompressedFrames.end(), frame) != m_DecompressedFrames.end() ||
             TfPathExists(outputPath))
         {
@@ -152,7 +152,7 @@ namespace Zibra::AssetResolver
         return outputPath;
     }
 
-    std::string DecompressionSequenceItem::ComposeDecompressedFrameFileName(int frame) const
+    std::string DecompressionSequenceItem::ComposeDecompressedFrameFilePath(int frame) const
     {
         return TfStringCatPaths(GetTempDir(), m_UUID + "." + std::to_string(frame) + ".vdb");
     }
@@ -178,7 +178,7 @@ namespace Zibra::AssetResolver
                 TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
                     .Msg("DecompressionItem::CleanupOldFrames - Current frame requested to delete. Skipping '%d'\n", frameToDelete);
             }
-            const std::string fileToDelete = ComposeDecompressedFrameFileName(frameToDelete);
+            const std::string fileToDelete = ComposeDecompressedFrameFilePath(frameToDelete);
             TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
                 .Msg("DecompressionItem::CleanupOldFrames - Deleting old file: '%s'\n", fileToDelete.c_str());
             if (!TfPathExists(fileToDelete))

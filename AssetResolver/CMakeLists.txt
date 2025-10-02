@@ -49,9 +49,9 @@ set_target_properties(ZibraVDBResolver PROPERTIES
     PREFIX ""
 )
 
-add_custom_target(ZibraVDBResolverPluginsCopy
+add_custom_target(ZibraVDBCopyAssetResolverPluginConfig
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_CURRENT_SOURCE_DIR}/usd_plugins
     ${ASSET_RESOLVER_OUTPUT_PATH}/../usd_plugins
 )
-add_dependencies(ZibraVDBResolver ZibraVDBResolverPluginsCopy)
+add_dependencies(ZibraVDBResolver ZibraVDBCopyAssetResolverPluginConfig)
