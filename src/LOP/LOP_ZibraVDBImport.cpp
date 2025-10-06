@@ -163,6 +163,7 @@ namespace Zibra::ZibraVDBImport
         volumePrimPath = volumePrimPath.GetParentPath().AppendChild(TfToken(sanitizedName));
         WriteZibraVolumeToStage(stage, volumePrimPath, selectedFields, currentFrame);
         return error(context);
+#undef SHOW_ERROR_AND_RETURN
     }
 
     bool LOP_ZibraVDBImport::updateParmsFlags()

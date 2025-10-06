@@ -38,7 +38,8 @@ std::string ZibraVDBResolver::_CreateIdentifier(const std::string& assetPath, co
     std::string extractedPath = parseResult["path"] + "/" + parseResult["name"];
     int frame = 1;
 
-    if (const auto frameIt = parseResult.find("frame"); frameIt != parseResult.end())
+    const auto frameIt = parseResult.find("frame");
+    if (frameIt != parseResult.end())
     {
         if (!Zibra::Helpers::TryParseInt(frameIt->second, frame))
         {

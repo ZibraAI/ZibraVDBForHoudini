@@ -88,11 +88,11 @@
 #undef ERROR
 #undef OUT
 #elif ZIB_TARGET_OS_LINUX
-#include <dlfcn.h>
 #include <curl/curl.h>
+#include <dlfcn.h>
 #elif ZIB_TARGET_OS_MAC
-#include <dlfcn.h>
 #include <curl/curl.h>
+#include <dlfcn.h>
 #include <sys/xattr.h>
 #else
 #error Unexpected OS
@@ -105,6 +105,7 @@
 #include <Zibra/CE/Addons/OpenVDBFrameLoader.h>
 #include <Zibra/CE/Compression.h>
 
+// Project includes
 #include "Globals.h"
 #include "bridge/LibraryUtils.h"
 #include "licensing/LicenseManager.h"

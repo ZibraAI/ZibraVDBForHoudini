@@ -40,7 +40,7 @@ extern "C"
 
         table->addOperator(new ZibraVDBImport::LOP_ZibraVDBImport_Operator());
 
-        HUSD_OutputProcessorRegistry::get().registerOutputProcessor(ZibraVDBOutputProcessor::OUTPUT_PROCESSOR_NAME,
+        HUSD_OutputProcessorRegistry::get().registerOutputProcessor(ZibraVDBOutputProcessor::OUTPUT_PROCESSOR_INNER_NAME,
                                                                     ZibraVDBOutputProcessor::createZibraVDBOutputProcessor);
     }
 

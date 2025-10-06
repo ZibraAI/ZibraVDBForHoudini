@@ -161,8 +161,8 @@ namespace Zibra::AssetResolver
     void DecompressionSequenceItem::AddNewFrame(int frame)
     {
         // If frame already present in queue - we just move it to the end so it becomes most recent
-        if (const auto frameIt = std::find(m_DecompressedFrames.begin(), m_DecompressedFrames.end(), frame);
-            frameIt != m_DecompressedFrames.end())
+        const auto frameIt = std::find(m_DecompressedFrames.begin(), m_DecompressedFrames.end(), frame);
+        if (frameIt != m_DecompressedFrames.end())
         {
             m_DecompressedFrames.erase(frameIt);
         }

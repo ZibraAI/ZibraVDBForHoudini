@@ -32,7 +32,8 @@ namespace Zibra::AssetResolver
         LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Decompression);
 
         DecompressionSequenceItem* item;
-        if (const auto it = m_DecompressionFiles.find(zibraVDBPath); it != m_DecompressionFiles.end())
+        const auto it = m_DecompressionFiles.find(zibraVDBPath);
+        if (it != m_DecompressionFiles.end())
         {
             item = it->second.get();
         }

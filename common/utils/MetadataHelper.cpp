@@ -28,10 +28,8 @@ namespace Zibra::Utils
                                                                             const std::string& visDensityMetadata,
                                                                             const std::string& visLodMetadata)
     {
-        vdbGrid->insertMeta("houdini_vis_mode", openvdb::StringMetadata(visModeMetadata));
-        vdbGrid->insertMeta("houdini_vis_iso", openvdb::StringMetadata(visIsoMetadata));
-        vdbGrid->insertMeta("houdini_vis_density", openvdb::StringMetadata(visDensityMetadata));
-        vdbGrid->insertMeta("houdini_vis_lod", openvdb::StringMetadata(visLodMetadata));
+        // Currently no-op
+        // TODO We need to add the visualisation metadata so the houdini interpret it correctly
     }
 
     void MetadataPolicy<std::pair<GU_Detail*, GU_PrimVDB*>>::ApplyAttributeMetadata(const std::pair<GU_Detail*, GU_PrimVDB*>& context,

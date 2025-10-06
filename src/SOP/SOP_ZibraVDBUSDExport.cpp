@@ -1,6 +1,7 @@
 #include "PrecompiledHeader.h"
 
 #include "SOP_ZibraVDBUSDExport.h"
+
 #include "SOP_ZibraVDBDecompressor.h"
 
 namespace Zibra::ZibraVDBUSDExport
@@ -14,27 +15,15 @@ namespace Zibra::ZibraVDBUSDExport
 
     PRM_Template* SOP_ZibraVDBUSDExport::GetTemplateList() noexcept
     {
-        static std::vector<PRM_Template> templateList;
-        if (!templateList.empty())
-        {
-            return templateList.data();
-        }
-
         static PRM_Name theFileName(FILENAME_PARAM_NAME, "Out File");
         static PRM_Default theFileDefault(0, "$HIP/vol/$HIPNAME.$OS.zibravdb");
-
-        templateList.emplace_back(PRM_FILE, 1, &theFileName, &theFileDefault);
 
         static PRM_Name theQualityName(QUALITY_PARAM_NAME, "Quality");
         static PRM_Default theQualityDefault(0.6, nullptr);
         static PRM_Range theQualityRange(PRM_RANGE_RESTRICTED, 0.0f, PRM_RANGE_RESTRICTED, 1.0f);
 
-        templateList.emplace_back(PRM_FLT, 1, &theQualityName, &theQualityDefault, nullptr, &theQualityRange);
-
         static PRM_Name theUsePerChannelCompressionSettingsName(USE_PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME,
                                                                 "Use per Channel Compression Settings");
-
-        templateList.emplace_back(PRM_TOGGLE, 1, &theUsePerChannelCompressionSettingsName);
 
         static PRM_Name thePerChannelCompressionSettingsFieldsNames[] = {
             PRM_Name("perchname#", "Channel Name"),
@@ -51,17 +40,18 @@ namespace Zibra::ZibraVDBUSDExport
         };
         static PRM_Conditional thePerChannelCompressionSettingsNameCondition("{ useperchsettings == \"off\" }", PRM_CONDTYPE_DISABLE);
 
-        templateList.emplace_back(PRM_MULTITYPE_LIST, thePerChannelCompressionSettingsTemplates, 2,
-                                  &thePerChannelCompressionSettingsName[0], nullptr, nullptr, nullptr, nullptr,
-                                  &thePerChannelCompressionSettingsNameCondition);
-
         static PRM_Name theOpenPluginManagementButtonName(OPEN_PLUGIN_MANAGEMENT_BUTTON_NAME, "Open Plugin Management");
 
-        templateList.emplace_back(PRM_CALLBACK, 1, &theOpenPluginManagementButtonName, nullptr, nullptr, nullptr,
-                                  &Zibra::ZibraVDBDecompressor::SOP_ZibraVDBDecompressor::OpenManagementWindow);
-
-        templateList.emplace_back();
-        return templateList.data();
+        static PRM_Template templateList[] = {PRM_Template(PRM_FILE, 1, &theFileName, &theFileDefault),
+                                              PRM_Template(PRM_FLT, 1, &theQualityName, &theQualityDefault, nullptr, &theQualityRange),
+                                              PRM_Template(PRM_TOGGLE, 1, &theUsePerChannelCompressionSettingsName),
+                                              PRM_Template(PRM_MULTITYPE_LIST, thePerChannelCompressionSettingsTemplates, 2,
+                                                           &thePerChannelCompressionSettingsName[0], nullptr, nullptr, nullptr, nullptr,
+                                                           &thePerChannelCompressionSettingsNameCondition),
+                                              PRM_Template(PRM_CALLBACK, 1, &theOpenPluginManagementButtonName, nullptr, nullptr, nullptr,
+                                                           &Zibra::ZibraVDBDecompressor::SOP_ZibraVDBDecompressor::OpenManagementWindow),
+                                              PRM_Template()};
+        return templateList;
     }
 
     SOP_ZibraVDBUSDExport::SOP_ZibraVDBUSDExport(OP_Network* net, const char* name, OP_Operator* entry) noexcept
@@ -140,6 +130,7 @@ namespace Zibra::ZibraVDBUSDExport
         }
 
         return error(context);
+#undef SHOW_ERROR_AND_RETURN
     }
 
     std::vector<std::pair<UT_String, float>> SOP_ZibraVDBUSDExport::GetPerChannelCompressionSettings() const noexcept

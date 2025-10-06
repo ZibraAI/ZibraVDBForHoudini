@@ -8,7 +8,9 @@
 
 namespace Zibra::ZibraVDBOutputProcessor
 {
-    constexpr const char* OUTPUT_PROCESSOR_NAME = "ZibraVDBCompressionProcessor";
+    constexpr const char* OUTPUT_PROCESSOR_INNER_NAME = "ZibraVDBCompressionProcessor";
+    constexpr const char* OUTPUT_PROCESSOR_UI_NAME = "ZibraVDB Processor";
+    constexpr const char* ERROR_PREFIX = "ZibraVDB Output Processor Error: ";
 
     class ZibraVDBOutputProcessor final : public HUSD_OutputProcessor
     {
@@ -17,9 +19,9 @@ namespace Zibra::ZibraVDBOutputProcessor
         {
             std::unique_ptr<CE::Compression::CompressorManager> compressorManager;
             std::string referencingLayerPath;
-            std::string outputFile;
+            std::filesystem::path compressedFilePath;
+            std::set<int> requestedFrames;
             float quality;
-            std::vector<std::pair<int, std::string>> frameOutputs;
         };
 
     public:
@@ -42,7 +44,8 @@ namespace Zibra::ZibraVDBOutputProcessor
         const PI_EditScriptedParms* parameters() const final;
 
     private:
-        void ExtractVDBFromSOP(SOP_Node* sopNode, fpreal t, CE::Compression::CompressorManager* compressorManager, bool compress = true);
+        static void RecookNodeAndCompressVDBGrids(SOP_Node* sopNode, fpreal t, CE::Compression::CompressorManager* compressorManager,
+                                                  bool compress = true);
         static void CompressGrids(std::vector<openvdb::GridBase::ConstPtr>& grids, const std::vector<std::string>& gridNames,
                                   CE::Compression::CompressorManager* compressorManager, const GU_Detail* gdp);
 
