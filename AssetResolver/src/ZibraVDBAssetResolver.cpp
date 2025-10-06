@@ -25,7 +25,7 @@ ZibraVDBResolver::ZibraVDBResolver()
 
 std::string ZibraVDBResolver::_CreateIdentifier(const std::string& assetPath, const ArResolvedPath& anchorAssetPath) const
 {
-    std::unordered_map<std::string, std::string> parseResult;
+    std::map<std::string, std::string> parseResult;
     if (!Zibra::Helpers::ParseZibraVDBURI(assetPath, parseResult))
     {
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
@@ -36,20 +36,16 @@ std::string ZibraVDBResolver::_CreateIdentifier(const std::string& assetPath, co
     TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::CreateIdentifier - ZibraVDB URI detected: '%s'\n", assetPath.c_str());
 
     std::string extractedPath = parseResult["path"] + "/" + parseResult["name"];
-    auto frameIt = parseResult.find("frame");
-    if (frameIt == parseResult.end() || frameIt->second.empty())
-    {
-        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
-            .Msg("ZibraVDBResolver::CreateIdentifier - Missing or empty frame parameter\n");
-        return ArDefaultResolver().CreateIdentifier(assetPath, anchorAssetPath);
-    }
+    int frame = 1;
 
-    int frame = 0;
-    if (!Zibra::Helpers::TryParseInt(frameIt->second, frame))
+    if (const auto frameIt = parseResult.find("frame"); frameIt != parseResult.end())
     {
-        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
-            .Msg("ZibraVDBResolver::CreateIdentifier - Invalid frame parameter '%s'.\n", frameIt->second.c_str());
-        return ArDefaultResolver().CreateIdentifier(assetPath, anchorAssetPath);
+        if (!Zibra::Helpers::TryParseInt(frameIt->second, frame))
+        {
+            TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
+                .Msg("ZibraVDBResolver::CreateIdentifier - Invalid frame parameter '%s'. Falling back to frame #1\n",
+                     frameIt->second.c_str());
+        }
     }
 
     if (TfIsRelativePath(extractedPath) && anchorAssetPath)
@@ -74,7 +70,7 @@ std::string ZibraVDBResolver::_CreateIdentifier(const std::string& assetPath, co
 
 std::string ZibraVDBResolver::_CreateIdentifierForNewAsset(const std::string& assetPath, const ArResolvedPath& anchorAssetPath) const
 {
-    std::unordered_map<std::string, std::string> parseResult;
+    std::map<std::string, std::string> parseResult;
     if (!Zibra::Helpers::ParseZibraVDBURI(assetPath, parseResult))
     {
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
@@ -89,7 +85,7 @@ std::string ZibraVDBResolver::_CreateIdentifierForNewAsset(const std::string& as
 
 ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
 {
-    std::unordered_map<std::string, std::string> parseResult;
+    std::map<std::string, std::string> parseResult;
     if (!Zibra::Helpers::ParseZibraVDBURI(assetPath, parseResult))
     {
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)

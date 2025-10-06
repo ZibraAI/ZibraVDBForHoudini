@@ -27,22 +27,23 @@ namespace Zibra::AssetResolver
 
     int DecompressionSequenceItem::GetMaxCachedFrames()
     {
-        static int maxCachedFrames = []()
+        static int ms_MaxCachedFrames = []()
         {
             const char* envValue = std::getenv("ZIB_MAX_CACHED_FILES_COUNT");
-            if (envValue)
+            int numOfCachedFrames;
+            if (envValue && Helpers::TryParseInt(envValue, numOfCachedFrames))
             {
-                try
+                if (numOfCachedFrames >= 0)
                 {
-                    return static_cast<int>(std::stoull(envValue));
+                    return numOfCachedFrames;
                 }
-                catch (const std::exception& e)
-                {
-                }
+                TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
+                    .Msg("ZIB_MAX_CACHED_FILES_COUNT is set to %d which is invalid. Falling back to default value: %d\n", numOfCachedFrames,
+                         ZIB_MAX_CACHED_FRAMES_DEFAULT);
             }
             return ZIB_MAX_CACHED_FRAMES_DEFAULT;
         }();
-        return maxCachedFrames;
+        return ms_MaxCachedFrames;
     }
 
     DecompressionSequenceItem::DecompressionSequenceItem(const std::string& zibraVDBPath)
@@ -55,7 +56,7 @@ namespace Zibra::AssetResolver
             throw std::runtime_error("Failed to create decompressor manager for: " + zibraVDBPath);
         }
 
-        m_UUID = Helpers::FormatUUID(m_Decompressor->GetSequenceInfo().fileUUID);
+        m_UUIDString = Helpers::FormatUUIDString(m_Decompressor->GetSequenceInfo().fileUUID);
         m_FrameRange = m_Decompressor->GetFrameRange();
     }
 
@@ -63,7 +64,7 @@ namespace Zibra::AssetResolver
     {
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
             .Msg("DecompressionItem::~DecompressionItem - Cleaning up %zu decompressed frames for UUID: %s\n",
-                 m_DecompressedFrames.size(), m_UUID.c_str());
+                 m_DecompressedFrames.size(), m_UUIDString.c_str());
 
         for (int frame : m_DecompressedFrames)
         {
@@ -74,7 +75,7 @@ namespace Zibra::AssetResolver
             if (!TfPathExists(fileToDelete))
             {
                 TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
-                    .Msg("DecompressionItem::~DecompressionItem - File already gone: '%s'\n", fileToDelete.c_str());
+                    .Msg("DecompressionItem::~DecompressionItem - File doesn't exist: '%s'\n", fileToDelete.c_str());
                 continue;
             }
 
@@ -102,12 +103,11 @@ namespace Zibra::AssetResolver
         {
             TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
                 .Msg("DecompressionItem::DecompressFrame - File already exists, skipping decompression: '%s'\n", outputPath.c_str());
-            AddDecompressedFrame(frame);
-            CleanupOldFrames(frame);
+            AddNewFrame(frame);
             return outputPath;
         }
 
-        auto frameContainer = m_Decompressor->FetchFrame(frame);
+        const auto frameContainer = m_Decompressor->FetchFrame(frame);
         if (!frameContainer)
         {
             TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("DecompressionItem::DecompressFrame - Failed to fetch frame %d\n", frame);
@@ -123,6 +123,7 @@ namespace Zibra::AssetResolver
             TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
                 .Msg("DecompressionItem::DecompressFrame - Failed to decompress frame: %d\n", (int)result);
             m_Decompressor->ReleaseGridShuffleInfo(gridShuffle);
+            frameContainer->Release();
             return {};
         }
 
@@ -145,19 +146,19 @@ namespace Zibra::AssetResolver
                  outputPath.c_str());
 
         m_Decompressor->ReleaseGridShuffleInfo(gridShuffle);
+        frameContainer->Release();
 
-        AddDecompressedFrame(frame);
-        CleanupOldFrames(frame);
+        AddNewFrame(frame);
 
         return outputPath;
     }
 
     std::string DecompressionSequenceItem::ComposeDecompressedFrameFilePath(int frame) const
     {
-        return TfStringCatPaths(GetTempDir(), m_UUID + "." + std::to_string(frame) + ".vdb");
+        return TfStringCatPaths(GetTempDir(), m_UUIDString + "." + std::to_string(frame) + ".vdb");
     }
 
-    void DecompressionSequenceItem::AddDecompressedFrame(int frame)
+    void DecompressionSequenceItem::AddNewFrame(int frame)
     {
         // If frame already present in queue - we just move it to the end so it becomes most recent
         if (const auto frameIt = std::find(m_DecompressedFrames.begin(), m_DecompressedFrames.end(), frame);
@@ -166,31 +167,23 @@ namespace Zibra::AssetResolver
             m_DecompressedFrames.erase(frameIt);
         }
         m_DecompressedFrames.push_back(frame);
-    }
 
-    void DecompressionSequenceItem::CleanupOldFrames(int currentFrame)
-    {
         while (m_DecompressedFrames.size() > GetMaxCachedFrames())
         {
-            int frameToDelete = m_DecompressedFrames.front();
-            if (frameToDelete == currentFrame)
-            {
-                TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
-                    .Msg("DecompressionItem::CleanupOldFrames - Current frame requested to delete. Skipping '%d'\n", frameToDelete);
-            }
+            const int frameToDelete = m_DecompressedFrames.front();
             const std::string fileToDelete = ComposeDecompressedFrameFilePath(frameToDelete);
             TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
-                .Msg("DecompressionItem::CleanupOldFrames - Deleting old file: '%s'\n", fileToDelete.c_str());
+                .Msg("DecompressionItem::AddNewFrame - Deleting old file: '%s'\n", fileToDelete.c_str());
             if (!TfPathExists(fileToDelete))
             {
                 TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
-                    .Msg("DecompressionItem::CleanupOldFrames - Failed to delete old frame: '%s'. File does no exists.\n",
+                    .Msg("DecompressionItem::AddNewFrame - Failed to delete old frame: '%s'. File does no exists.\n",
                          fileToDelete.c_str());
             }
             if (!TfDeleteFile(fileToDelete))
             {
                 TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
-                    .Msg("DecompressionItem::CleanupOldFrames - Failed to delete old frame: '%s'.\n", fileToDelete.c_str());
+                    .Msg("DecompressionItem::AddNewFrame - Failed to delete old frame: '%s'.\n", fileToDelete.c_str());
             }
             m_DecompressedFrames.pop_front();
         }

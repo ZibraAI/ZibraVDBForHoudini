@@ -1,13 +1,10 @@
-#include <string>
-#include <vector>
-#include <unordered_map>
 #include <UT/UT_EnvControl.h>
 #include <Zibra/RHI.h>
 
 namespace Zibra::Helpers
 {
     // Querying environment variables
-    std::vector<std::string> GetHoudiniEnvironmentVariable(UT_StrControl envVarEnum, const char* envVarName);    
+    std::vector<std::string> GetHoudiniEnvironmentVariable(UT_StrControl envVarEnum, const char* envVarName);
     void AppendToPath(std::vector<std::string>& pathsToModify, const std::string& relativePath);
 
     // Actions to perform
@@ -19,12 +16,12 @@ namespace Zibra::Helpers
     bool NeedForceSoftwareDevice();
 
     // URI parsing
-    bool ParseZibraVDBURI(const std::string& uri, std::unordered_map<std::string, std::string>& keyValuePairs);
+    bool ParseZibraVDBURI(const std::string& uri, std::map<std::string, std::string>& keyValuePairs);
     bool ParseRelSOPNodeParams(const std::string& pathStr, double& t, std::string& extractedPath);
 
     // Number parsing
     bool TryParseInt(const std::string& str, int& result);
 
     // UUID formatting
-    std::string FormatUUID(uint64_t uuid[2]);
+    std::string FormatUUIDString(uint64_t uuid[2]);
 }

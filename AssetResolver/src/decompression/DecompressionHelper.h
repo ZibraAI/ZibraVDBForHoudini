@@ -23,7 +23,6 @@ namespace Zibra::AssetResolver
         ~DecompressionHelper() = default;
 
         bool LoadSDKLib();
-//        DecompressionItem* AddDecompressionItem(const std::string& zibraVDBPath);
 
     private:
         std::unordered_map<std::string, std::unique_ptr<DecompressionSequenceItem>> m_DecompressionFiles;

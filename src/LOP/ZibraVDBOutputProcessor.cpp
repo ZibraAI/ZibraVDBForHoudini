@@ -82,7 +82,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         {
             return false;
         }
-        std::unordered_map<std::string, std::string> parsedURI;
+        std::map<std::string, std::string> parsedURI;
         if (!Helpers::ParseZibraVDBURI(pathStr, parsedURI))
         {
             return false;

@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.25)
 project(ZibraVDBAssetResolver)
 
 set(RESOLVER_HEADERS
+    src/PrecompiledHeader.h
     src/ZibraVDBAssetResolver.h
     src/decompression/DecompressionHelper.h
     src/decompression/DecompressionSequenceItem.h
@@ -11,7 +12,7 @@ set(RESOLVER_HEADERS
 set(RESOLVER_SOURCES
     src/ZibraVDBAssetResolver.cpp
     src/decompression/DecompressionHelper.cpp
-        src/decompression/DecompressionSequenceItem.cpp
+    src/decompression/DecompressionSequenceItem.cpp
 )
 
 add_library(ZibraVDBResolver SHARED ${RESOLVER_HEADERS} ${RESOLVER_SOURCES})

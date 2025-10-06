@@ -20,8 +20,7 @@ namespace Zibra::AssetResolver
         std::string DecompressFrame(int frame);
 
     private:
-        void AddDecompressedFrame(int frame);
-        void CleanupOldFrames(int currentFrame);
+        void AddNewFrame(int frame);
 
         static const std::string& GetTempDir();
         static int GetMaxCachedFrames();
@@ -34,6 +33,6 @@ namespace Zibra::AssetResolver
         std::deque<int> m_DecompressedFrames;
         std::unique_ptr<Helpers::DecompressorManager> m_Decompressor;
         CE::Decompression::FrameRange m_FrameRange{};
-        std::string m_UUID;
+        std::string m_UUIDString;
     };
 } // namespace Zibra::AssetResolver

@@ -422,7 +422,7 @@ namespace Zibra::Helpers
         m_IsInitialized = false;
     }
 
-    inline char* TransferStr(const std::string& src) noexcept
+    inline char* AllocateStringCopy(const std::string& src) noexcept
     {
         char* dst = new char[src.length() + 1];
         strcpy(dst, src.c_str());
@@ -453,7 +453,7 @@ namespace Zibra::Helpers
             {
                 continue;
             }
-            gridDesc.gridName = TransferStr(serializedDesc["gridName"]);
+            gridDesc.gridName = AllocateStringCopy(serializedDesc["gridName"]);
             gridDesc.voxelType = strToVoxelType.at(serializedDesc["voxelType"]);
 
             for (size_t i = 0; i < std::size(gridDesc.chSource); ++i)
@@ -461,7 +461,7 @@ namespace Zibra::Helpers
                 auto key = std::string{"chSource"} + std::to_string(i);
                 if (serializedDesc.contains(key) && serializedDesc[key].is_string())
                 {
-                    gridDesc.chSource[i] = TransferStr(serializedDesc[key]);
+                    gridDesc.chSource[i] = AllocateStringCopy(serializedDesc[key]);
                 }
             }
             result.emplace_back(gridDesc);

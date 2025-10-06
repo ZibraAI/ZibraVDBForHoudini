@@ -8,9 +8,11 @@ namespace Zibra::Utils
 {
     using namespace std::literals;
 
-    void MetadataPolicy<std::pair<GU_Detail*, GU_PrimVDB*>>::ApplyVisualizationMetadata(const std::pair<GU_Detail*, GU_PrimVDB*>& context, const std::string& visModeMetadata,
-                                                                                       const std::string& visIsoMetadata, const std::string& visDensityMetadata,
-                                                                                       const std::string& visLodMetadata)
+    void MetadataPolicy<std::pair<GU_Detail*, GU_PrimVDB*>>::ApplyVisualizationMetadata(const std::pair<GU_Detail*, GU_PrimVDB*>& context,
+                                                                                        const std::string& visModeMetadata,
+                                                                                        const std::string& visIsoMetadata,
+                                                                                        const std::string& visDensityMetadata,
+                                                                                        const std::string& visLodMetadata)
     {
         GEO_VolumeOptions visOptions{};
         visOptions.myMode = static_cast<GEO_VolumeVis>(std::stoi(visModeMetadata));
@@ -20,9 +22,11 @@ namespace Zibra::Utils
         context.second->setVisOptions(visOptions);
     }
 
-    void MetadataPolicy<openvdb::GridBase::Ptr>::ApplyVisualizationMetadata(openvdb::GridBase::Ptr& vdbGrid, const std::string& visModeMetadata,
-                                                                          const std::string& visIsoMetadata, const std::string& visDensityMetadata,
-                                                                          const std::string& visLodMetadata)
+    void MetadataPolicy<openvdb::GridBase::Ptr>::ApplyVisualizationMetadata(openvdb::GridBase::Ptr& vdbGrid,
+                                                                            const std::string& visModeMetadata,
+                                                                            const std::string& visIsoMetadata,
+                                                                            const std::string& visDensityMetadata,
+                                                                            const std::string& visLodMetadata)
     {
         vdbGrid->insertMeta("houdini_vis_mode", openvdb::StringMetadata(visModeMetadata));
         vdbGrid->insertMeta("houdini_vis_iso", openvdb::StringMetadata(visIsoMetadata));
@@ -30,25 +34,27 @@ namespace Zibra::Utils
         vdbGrid->insertMeta("houdini_vis_lod", openvdb::StringMetadata(visLodMetadata));
     }
 
-    void MetadataPolicy<std::pair<GU_Detail*, GU_PrimVDB*>>::ApplyAttributeMetadata(const std::pair<GU_Detail*, GU_PrimVDB*>& context, const nlohmann::json& primAttribMeta)
+    void MetadataPolicy<std::pair<GU_Detail*, GU_PrimVDB*>>::ApplyAttributeMetadata(const std::pair<GU_Detail*, GU_PrimVDB*>& context,
+                                                                                    const nlohmann::json& primAttribMeta)
     {
         auto target = std::make_tuple(context.first, GA_ATTRIB_PRIMITIVE, context.second->getMapOffset());
         LoadEntityAttributesFromMeta(target, primAttribMeta);
     }
 
-    void MetadataPolicy<openvdb::GridBase::Ptr>::ApplyAttributeMetadata(openvdb::GridBase::Ptr& vdbGrid, const nlohmann::json& primAttribMeta)
+    void MetadataPolicy<openvdb::GridBase::Ptr>::ApplyAttributeMetadata(openvdb::GridBase::Ptr& vdbGrid,
+                                                                        const nlohmann::json& primAttribMeta)
     {
         LoadEntityAttributesFromMeta(vdbGrid, primAttribMeta);
     }
 
-    template<typename GridType>
+    template <typename GridType>
     void MetadataHelper::ApplyGridMetadata(GridType& grid, CE::Decompression::CompressedFrameContainer* frameContainer)
     {
         ApplyGridAttributeMetadata(grid, frameContainer);
         ApplyGridVisualizationMetadata(grid, frameContainer);
     }
 
-    template<typename TargetType>
+    template <typename TargetType>
     void MetadataHelper::ApplyDetailMetadata(TargetType& target, CE::Decompression::CompressedFrameContainer* frameContainer)
     {
         const char* detailMetadata = frameContainer->GetMetadataByKey("houdiniDetailAttributes");
@@ -62,7 +68,7 @@ namespace Zibra::Utils
         LoadEntityAttributesFromMeta(target, detailAttribMeta);
     }
 
-    template<typename GridType>
+    template <typename GridType>
     void MetadataHelper::ApplyGridAttributeMetadata(GridType& grid, CE::Decompression::CompressedFrameContainer* frameContainer)
     {
         using PolicyType = MetadataPolicy<GridType>;
@@ -77,7 +83,7 @@ namespace Zibra::Utils
         }
     }
 
-    template<typename GridType>
+    template <typename GridType>
     void MetadataHelper::ApplyGridVisualizationMetadata(GridType& grid, CE::Decompression::CompressedFrameContainer* frameContainer)
     {
         using PolicyType = MetadataPolicy<GridType>;
@@ -101,18 +107,25 @@ namespace Zibra::Utils
         }
     }
 
-    template void MetadataHelper::ApplyGridMetadata<std::pair<GU_Detail*, GU_PrimVDB*>>(std::pair<GU_Detail*, GU_PrimVDB*>& context, CE::Decompression::CompressedFrameContainer* frameContainer);
-    template void MetadataHelper::ApplyGridMetadata<openvdb::GridBase::Ptr>(openvdb::GridBase::Ptr& vdbGrid, CE::Decompression::CompressedFrameContainer* frameContainer);
+    template void MetadataHelper::ApplyGridMetadata<std::pair<GU_Detail*, GU_PrimVDB*>>(
+        std::pair<GU_Detail*, GU_PrimVDB*>& context, CE::Decompression::CompressedFrameContainer* frameContainer);
+    template void MetadataHelper::ApplyGridMetadata<openvdb::GridBase::Ptr>(openvdb::GridBase::Ptr& vdbGrid,
+                                                                            CE::Decompression::CompressedFrameContainer* frameContainer);
 
-    template void MetadataHelper::ApplyGridAttributeMetadata<std::pair<GU_Detail*, GU_PrimVDB*>>(std::pair<GU_Detail*, GU_PrimVDB*>& context, CE::Decompression::CompressedFrameContainer* frameContainer);
-    template void MetadataHelper::ApplyGridAttributeMetadata<openvdb::GridBase::Ptr>(openvdb::GridBase::Ptr& vdbGrid, CE::Decompression::CompressedFrameContainer* frameContainer);
+    template void MetadataHelper::ApplyGridAttributeMetadata<std::pair<GU_Detail*, GU_PrimVDB*>>(
+        std::pair<GU_Detail*, GU_PrimVDB*>& context, CE::Decompression::CompressedFrameContainer* frameContainer);
+    template void MetadataHelper::ApplyGridAttributeMetadata<openvdb::GridBase::Ptr>(
+        openvdb::GridBase::Ptr& vdbGrid, CE::Decompression::CompressedFrameContainer* frameContainer);
 
-    template void MetadataHelper::ApplyGridVisualizationMetadata<std::pair<GU_Detail*, GU_PrimVDB*>>(std::pair<GU_Detail*, GU_PrimVDB*>& context, CE::Decompression::CompressedFrameContainer* frameContainer);
-    template void MetadataHelper::ApplyGridVisualizationMetadata<openvdb::GridBase::Ptr>(openvdb::GridBase::Ptr& vdbGrid, CE::Decompression::CompressedFrameContainer* frameContainer);
+    template void MetadataHelper::ApplyGridVisualizationMetadata<std::pair<GU_Detail*, GU_PrimVDB*>>(
+        std::pair<GU_Detail*, GU_PrimVDB*>& context, CE::Decompression::CompressedFrameContainer* frameContainer);
+    template void MetadataHelper::ApplyGridVisualizationMetadata<openvdb::GridBase::Ptr>(
+        openvdb::GridBase::Ptr& vdbGrid, CE::Decompression::CompressedFrameContainer* frameContainer);
 
-    template void MetadataHelper::ApplyDetailMetadata<std::tuple<GU_Detail*, GA_AttributeOwner, GA_Offset>>(std::tuple<GU_Detail*, GA_AttributeOwner, GA_Offset>& target, CE::Decompression::CompressedFrameContainer* frameContainer);
-    template void MetadataHelper::ApplyDetailMetadata<openvdb::MetaMap>(openvdb::MetaMap& fileMetadata, CE::Decompression::CompressedFrameContainer* frameContainer);
-
+    template void MetadataHelper::ApplyDetailMetadata<std::tuple<GU_Detail*, GA_AttributeOwner, GA_Offset>>(
+        std::tuple<GU_Detail*, GA_AttributeOwner, GA_Offset>& target, CE::Decompression::CompressedFrameContainer* frameContainer);
+    template void MetadataHelper::ApplyDetailMetadata<openvdb::MetaMap>(openvdb::MetaMap& fileMetadata,
+                                                                        CE::Decompression::CompressedFrameContainer* frameContainer);
 
     std::vector<std::pair<std::string, std::string>> MetadataHelper::DumpAttributes(
         const GU_Detail* gdp, const CE::Addons::OpenVDBUtils::EncodingMetadata& encodingMetadata) noexcept

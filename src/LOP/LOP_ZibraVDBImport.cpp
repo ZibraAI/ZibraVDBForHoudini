@@ -276,7 +276,7 @@ namespace Zibra::ZibraVDBImport
             return info;
         }
 
-        std::unordered_map<std::string, std::string> parseResult;
+        std::map<std::string, std::string> parseResult;
         if (!Helpers::ParseZibraVDBURI(filePath, parseResult))
         {
             info.error = "No valid .zibravdb file found";
@@ -304,7 +304,7 @@ namespace Zibra::ZibraVDBImport
         }
 
         auto sequenceInfo = decompressor.GetSequenceInfo();
-        info.uuid = Helpers::FormatUUID(sequenceInfo.fileUUID);
+        info.uuid = Helpers::FormatUUIDString(sequenceInfo.fileUUID);
         
         auto frameRange = decompressor.GetFrameRange();
         info.frameStart = frameRange.start;

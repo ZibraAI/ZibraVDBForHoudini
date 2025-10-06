@@ -2,17 +2,22 @@ cmake_minimum_required(VERSION 3.25)
 
 project(ZibraVDBCommon)
 
-set(COMMON_HEADERS
+set(COMMON_PUBLIC_HEADERS
+    Globals.h
     utils/Helpers.h
     utils/MetadataHelper.h
-    utils/GAAttributesDump.h
     utils/DecompressorManager.h
     licensing/LicenseManager.h
     bridge/LibraryUtils.h
+    ui/PluginManagementWindow.h
+)
+
+set(COMMON_INTERNAL_HEADERS
+    PrecompiledHeader.h
+    utils/GAAttributesDump.h
     bridge/UpdateCheck.h
     bridge/networking/NetworkRequest.h
     ui/MessageBox.h
-    ui/PluginManagementWindow.h
 )
 
 set(COMMON_SOURCES
@@ -28,12 +33,18 @@ set(COMMON_SOURCES
     ui/PluginManagementWindow.cpp
 )
 
-add_library(ZibraVDBCommon STATIC ${COMMON_HEADERS} ${COMMON_SOURCES})
+add_library(ZibraVDBCommon STATIC)
+target_sources(ZibraVDBCommon
+    PUBLIC FILE_SET HEADERS
+        FILES ${COMMON_PUBLIC_HEADERS}
+    PRIVATE
+        ${COMMON_INTERNAL_HEADERS}
+        ${COMMON_SOURCES}
+)
+
 target_include_directories(ZibraVDBCommon
-    PUBLIC ${CMAKE_SOURCE_DIR}/common
     PUBLIC ${CMAKE_SOURCE_DIR}/external/Include
-    PUBLIC ${CMAKE_SOURCE_DIR}/SDK/include
-    PRIVATE "${HOUDINI_INCLUDE_DIR}")
+    PUBLIC ${CMAKE_SOURCE_DIR}/SDK/include)
 
 target_compile_definitions(ZibraVDBCommon PUBLIC
     ZIB_NETWORK_REQUEST_BACKEND_${ZIB_NETWORK_REQUEST_BACKEND}=1
@@ -74,4 +85,5 @@ function(setup_common_houdini_dependencies target)
     elseif("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
         target_link_libraries(${target} PRIVATE "-framework Python")
     endif()
+    # For Linux all the dependencies already included in Houdini target and no need to link anything explicitly
 endfunction()

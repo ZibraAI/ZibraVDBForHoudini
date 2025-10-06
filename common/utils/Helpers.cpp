@@ -143,7 +143,7 @@ namespace Zibra::Helpers
         return false;
     }
 
-    bool ParseZibraVDBURI(const std::string& uri, std::unordered_map<std::string, std::string>& keyValuePairs)
+    bool ParseZibraVDBURI(const std::string& uri, std::map<std::string, std::string>& keyValuePairs)
     {
         keyValuePairs.clear();
 
@@ -271,7 +271,7 @@ namespace Zibra::Helpers
         }
     }
 
-    std::string FormatUUID(uint64_t uuid[2])
+    std::string FormatUUIDString(uint64_t uuid[2])
     {
         std::stringstream ss;
         ss << std::hex << std::setfill('0') << std::setw(16) << uuid[0] << std::setw(16) << uuid[1];
