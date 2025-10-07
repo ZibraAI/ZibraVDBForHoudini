@@ -2,8 +2,10 @@
 
 #include "LibraryUtils.h"
 
+#if !LABS_BUILD
 #include <pxr/base/plug/registry.h>
 #include <pxr/base/tf/type.h>
+#endif
 
 #include "licensing/LicenseManager.h"
 #include "utils/Helpers.h"
@@ -261,6 +263,7 @@ namespace Zibra::LibraryUtils
         return g_IsLibraryLoaded;
     }
 
+#if !LABS_BUILD
     bool IsAssetResolverRegistered()
     {
         PXR_NS::TfType resolverType = PXR_NS::TfType::FindByName("ZibraVDBResolver");
@@ -275,11 +278,11 @@ namespace Zibra::LibraryUtils
         }
 
 #if ZIB_TARGET_OS_WIN
-#define PLUG_INFO_FOLDER "win"
+#define PLUG_INFO_FOLDER "ZibraVDBResolver_win"
 #elif ZIB_TARGET_OS_LINUX
-#define PLUG_INFO_FOLDER "linux"
+#define PLUG_INFO_FOLDER "ZibraVDBResolver_linux"
 #elif ZIB_TARGET_OS_MAC
-#define PLUG_INFO_FOLDER "mac"
+#define PLUG_INFO_FOLDER "ZibraVDBResolver_mac"
 #endif
 
         auto baseLibPaths = Zibra::LibraryUtils::GetLibrariesBasePaths();
@@ -309,6 +312,7 @@ namespace Zibra::LibraryUtils
             assert(false && "Failed to register ZibraVDBResolver. Make sure the library file is present.");
         }
     }
+#endif
 
     std::string GetSDKLibraryVersionString() noexcept
     {

@@ -14,7 +14,9 @@ namespace Zibra::LibraryUtils {
     void LoadSDKLibrary() noexcept;
     bool IsSDKLibraryLoaded() noexcept;
 
+#if !LABS_BUILD
     void RegisterAssetResolver() noexcept;
+#endif
 
     constexpr bool IsPlatformSupported() noexcept
     {

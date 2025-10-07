@@ -56,12 +56,21 @@ configure_file(
     @ONLY
 )
 
-add_custom_target(ZibraVDBCopyAssetResolverPluginConfig
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/usd_plugins
-    ${ASSET_RESOLVER_OUTPUT_PATH}/../usd_plugins
-    COMMAND ${CMAKE_COMMAND} -E copy
-    ${CMAKE_CURRENT_BINARY_DIR}/plugInfo.json
-    ${ASSET_RESOLVER_OUTPUT_PATH}/../usd_plugins/ZibraVDBResolver/resources/plugInfo.json
-)
+if (${LABS_BUILD})
+    add_custom_target(ZibraVDBCopyAssetResolverPluginConfig
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}/usd_plugins
+        ${ASSET_RESOLVER_OUTPUT_PATH}/../usd_plugins
+        COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_CURRENT_BINARY_DIR}/plugInfo.json
+        ${ASSET_RESOLVER_OUTPUT_PATH}/../usd_plugins/ZibraVDBResolver/resources/plugInfo.json
+    )
+else ()
+    string(TOLOWER "${ZIB_TARGET_OS_NAME}" ZIB_TARGET_OS_NAME_LOWER)
+    add_custom_target(ZibraVDBCopyAssetResolverPluginConfig
+        COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_CURRENT_BINARY_DIR}/plugInfo.json
+        ${ASSET_RESOLVER_OUTPUT_PATH}/../usd_plugins/ZibraVDBResolver_${ZIB_TARGET_OS_NAME_LOWER}/resources/plugInfo.json
+    )
+endif ()
 add_dependencies(ZibraVDBResolver ZibraVDBCopyAssetResolverPluginConfig)
