@@ -53,6 +53,13 @@ target_compile_definitions(ZibraVDBCommon PUBLIC
 target_precompile_headers(ZibraVDBCommon PRIVATE PrecompiledHeader.h)
 target_link_libraries(ZibraVDBCommon PUBLIC Houdini)
 
+if(NOT LABS_BUILD AND "${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
+    target_link_libraries(ZibraVDBCommon PUBLIC
+        Houdini::Dep::pxr_plug
+        Houdini::Dep::pxr_tf
+    )
+endif()
+
 function(setup_common_houdini_dependencies target)
     message(STATUS "Setting up dependencies for ${target}")
     target_link_libraries(${target} PRIVATE Houdini ZibraVDBCommon)

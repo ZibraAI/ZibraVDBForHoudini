@@ -300,7 +300,7 @@ namespace Zibra::LibraryUtils
                 continue;
             }
 
-            PXR_NS::PlugRegistry::GetInstance().RegisterPlugins(resourcesPath);
+            PXR_NS::PlugRegistry::GetInstance().RegisterPlugins(resourcesPath.string());
             if (IsAssetResolverRegistered())
             {
                 break;

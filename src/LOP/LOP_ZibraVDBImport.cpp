@@ -112,7 +112,6 @@ namespace Zibra::ZibraVDBImport
 
         const fpreal t = context.getTime();
         const int currentFrame = static_cast<int>(context.getFrame());
-        // const std::string parentPrimType = GetParentPrimType(t);
         const std::string fields = GetFields(t);
 
         if (GetFilePath(t).empty())
@@ -145,7 +144,7 @@ namespace Zibra::ZibraVDBImport
             return error(context);
         }
 
-        const std::set<std::string> selectedFields = ParseSelectedFields(fields, m_CachedFileInfo.availableGrids);
+        const std::set<std::string> selectedFields = ParseSelectedChannels(fields, m_CachedFileInfo.availableGrids);
         if (selectedFields.empty())
         {
             SHOW_ERROR_AND_RETURN("No valid fields selected")
@@ -232,7 +231,7 @@ namespace Zibra::ZibraVDBImport
     // Parses field selection string. Expected formats:
     // "*" - selects all available fields
     // "field1 field2 field3" - space-separated field names (no support for fields with spaces in names)
-    std::set<std::string> LOP_ZibraVDBImport::ParseSelectedFields(const std::string& fieldsStr, const std::unordered_set<std::string>& availableGrids)
+    std::set<std::string> LOP_ZibraVDBImport::ParseSelectedChannels(const std::string& fieldsStr, const std::unordered_set<std::string>& availableGrids)
     {
         std::set<std::string> selectedFields;
         
@@ -331,12 +330,7 @@ namespace Zibra::ZibraVDBImport
         }
         
         decompressor.Release();
-        
-        if (info.uuid.empty())
-        {
-            info.error = "Invalid ZibraVDB file - no UUID found";
-        }
-        
+
         return info;
     }
 
@@ -348,7 +342,7 @@ namespace Zibra::ZibraVDBImport
             WriteParentPrimHierarchyToStage(stage, volumePrimPath);
         }
 
-        if (!volumePrimPath.IsAbsolutePath() || volumePrimPath.IsEmpty())
+        if (volumePrimPath.IsEmpty() || !volumePrimPath.IsAbsolutePath())
         {
             const auto error = "Invalid SdfPath for volume: " + volumePrimPath.GetString();
             addError(LOP_MESSAGE, error.c_str());
