@@ -42,6 +42,7 @@ extern "C"
 
         HUSD_OutputProcessorRegistry::get().registerOutputProcessor(ZibraVDBOutputProcessor::OUTPUT_PROCESSOR_INNER_NAME,
                                                                     ZibraVDBOutputProcessor::createZibraVDBOutputProcessor);
+        LibraryUtils::RegisterAssetResolver();
     }
 
     SYS_VISIBILITY_EXPORT void newDriverOperator(OP_OperatorTable* table)

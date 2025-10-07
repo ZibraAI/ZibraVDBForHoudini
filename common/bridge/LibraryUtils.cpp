@@ -2,6 +2,9 @@
 
 #include "LibraryUtils.h"
 
+#include <pxr/base/plug/registry.h>
+#include <pxr/base/tf/type.h>
+
 #include "licensing/LicenseManager.h"
 #include "utils/Helpers.h"
 
@@ -43,25 +46,23 @@ namespace Zibra::LibraryUtils
     bool g_IsLibraryInitialized = false;
     Zibra::Version g_CompressionEngineVersion = {};
 
-    std::vector<std::filesystem::path> GetSDKLibraryBasePaths() noexcept
+    std::vector<std::filesystem::path> GetLibrariesBasePaths() noexcept
     {
         std::vector<std::filesystem::path> result{};
-
         const std::pair<UT_StrControl, const char*> basePathEnvVars[] = {
             // HSite and HQRoot have priority over HOUDINI_USER_PREF_DIR
             // So that same version of library shared between multiple computers
+            {ENV_MAX_STR_CONTROLS, "HOUDINI_ZIBRAVDB_LIBRARY_DIR"},
             {ENV_HSITE, "HSITE"},
             {ENV_MAX_STR_CONTROLS, "HQROOT"},
             {ENV_HOUDINI_USER_PREF_DIR, "HOUDINI_USER_PREF_DIR"},
         };
-
         for (const auto& [envVarEnum, envVarName] : basePathEnvVars)
         {
-            const std::vector<std::string> baseDirs = Helpers::GetHoudiniEnvironmentVariable(envVarEnum, envVarName);
+            const auto baseDirs = Helpers::GetHoudiniEnvironmentVariable(envVarEnum, envVarName);
             for (const std::string& baseDir : baseDirs)
             {
-                std::filesystem::path libraryPath = std::filesystem::path(baseDir) / ZIB_LIBRARY_FOLDER;
-                result.push_back(libraryPath);
+                result.push_back(baseDir);
             }
         }
         return result;
@@ -73,8 +74,8 @@ namespace Zibra::LibraryUtils
     std::vector<std::string> GetSDKLibraryPaths() noexcept
     {
         std::vector<std::string> result;
-        for (const auto path : GetSDKLibraryBasePaths()) {
-            auto newPath = path / ZIB_DYNAMIC_LIB_NAME;
+        for (const auto path : GetLibrariesBasePaths()) {
+            auto newPath = path / ZIB_LIBRARY_FOLDER / ZIB_DYNAMIC_LIB_NAME;
             result.emplace_back(newPath.string());
         }
 
@@ -258,6 +259,55 @@ namespace Zibra::LibraryUtils
     bool IsSDKLibraryLoaded() noexcept
     {
         return g_IsLibraryLoaded;
+    }
+
+    bool IsAssetResolverRegistered()
+    {
+        PXR_NS::TfType resolverType = PXR_NS::TfType::FindByName("ZibraVDBResolver");
+        return !resolverType.IsUnknown();
+    }
+
+    void RegisterAssetResolver() noexcept
+    {
+        if (IsAssetResolverRegistered())
+        {
+            return;
+        }
+
+#if ZIB_TARGET_OS_WIN
+#define PLUG_INFO_FOLDER "win"
+#elif ZIB_TARGET_OS_LINUX
+#define PLUG_INFO_FOLDER "linux"
+#elif ZIB_TARGET_OS_MAC
+#define PLUG_INFO_FOLDER "mac"
+#endif
+
+        auto baseLibPaths = Zibra::LibraryUtils::GetLibrariesBasePaths();
+        for (const auto& baseLibPath : baseLibPaths)
+        {
+            if (baseLibPath.empty() || !std::filesystem::exists(baseLibPath))
+            {
+                continue;
+            }
+
+            std::filesystem::path resourcesPath = baseLibPath / "dso"/ "usd_plugins" / PLUG_INFO_FOLDER / "resources";
+            if (!std::filesystem::exists(resourcesPath) || !std::filesystem::is_directory(resourcesPath))
+            {
+                std::cout << "[RegisterAssetResolver]   USD plugin path exists but is not a directory" << std::endl;
+                continue;
+            }
+
+            PXR_NS::PlugRegistry::GetInstance().RegisterPlugins(resourcesPath);
+            if (IsAssetResolverRegistered())
+            {
+                break;
+            }
+        }
+
+        if (!IsAssetResolverRegistered())
+        {
+            assert(false && "Failed to register ZibraVDBResolver. Make sure the library file is present.");
+        }
     }
 
     std::string GetSDKLibraryVersionString() noexcept

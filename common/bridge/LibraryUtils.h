@@ -14,6 +14,8 @@ namespace Zibra::LibraryUtils {
     void LoadSDKLibrary() noexcept;
     bool IsSDKLibraryLoaded() noexcept;
 
+    void RegisterAssetResolver() noexcept;
+
     constexpr bool IsPlatformSupported() noexcept
     {
 #if ZIB_TARGET_OS_WIN || ZIB_TARGET_OS_LINUX || ZIB_TARGET_OS_MAC
@@ -29,6 +31,6 @@ namespace Zibra::LibraryUtils {
 
     std::string ErrorCodeToString(CE::ReturnCode errorCode);
 
-    std::vector<std::filesystem::path> GetSDKLibraryBasePaths() noexcept;
+    std::vector<std::filesystem::path> GetLibrariesBasePaths() noexcept;
     std::vector<std::string> GetSDKLibraryPaths() noexcept;
 } // namespace Zibra::LibraryUtils
