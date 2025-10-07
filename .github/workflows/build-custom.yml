@@ -222,6 +222,10 @@ jobs:
           lipo -create -output merged/dso/ZibraVDBForHoudini.dylib ZibraVDBForHoudini-${{ inputs.houdini-version }}.${{ inputs.houdini-build }}-${{ inputs.houdini-mac-arm64-architecture }}/dso/ZibraVDBForHoudini.dylib ZibraVDBForHoudini-${{ inputs.houdini-version }}.${{ inputs.houdini-build }}-${{ inputs.houdini-mac-x64-architecture }}/dso/ZibraVDBForHoudini.dylib
           lipo -create -output merged/dso/usd/ZibraVDBResolver.dylib ZibraVDBForHoudini-${{ inputs.houdini-version }}.${{ inputs.houdini-build }}-${{ inputs.houdini-mac-arm64-architecture }}/dso/usd/ZibraVDBResolver.dylib ZibraVDBForHoudini-${{ inputs.houdini-version }}.${{ inputs.houdini-build }}-${{ inputs.houdini-mac-x64-architecture }}/dso/usd/ZibraVDBResolver.dylib
 
+          # Copy platform-specific asset resolver plugin descriptor (win already copied)
+          mv ZibraVDBForHoudini-${{ inputs.houdini-version }}.${{ inputs.houdini-build }}-${{ inputs.houdini-linux-x64-architecture }}/dso/usd_plugins/ZibraVDBResolver_linux/resources/* merged/dso/usd_plugins/ZibraVDBResolver_linux/resources/
+          mv ZibraVDBForHoudini-${{ inputs.houdini-version }}.${{ inputs.houdini-build }}-${{ inputs.houdini-mac-arm64-architecture }}/dso/usd_plugins/ZibraVDBResolver_mac/resources/* merged/dso/usd_plugins/ZibraVDBResolver_mac/resources/
+
       - name: Apple sign and notarize
         shell: bash
         run: |
