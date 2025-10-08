@@ -207,6 +207,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             result->info.channelBlockCount = channelBlockAccumulator;
             result->info.spatialInfoCount = spatialBlocks.size();
             result->info.channelsCount = m_Channels.size();
+            result->info.aabb = totalAABB;
 
             // Allocating result frame buffers from precalculated data
             auto* resultBlocks = new ChannelBlock[result->info.channelBlockCount];

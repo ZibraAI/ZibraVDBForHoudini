@@ -112,11 +112,15 @@ namespace Zibra::CE::Decompression
     struct MaxDimensionsPerSubmit
     {
         /**
-         * Maximum allowed spatial blocks decoding at once. Calculates based based on max VRAM limit per resource provided by user.
+         * Maximum allowed 128MiB chunks decoding at once. Calculates based on max VRAM limit per resource provided by user.
+         */
+        size_t maxChunks;
+        /**
+         * Maximum allowed spatial blocks decoding at once. Calculates based on max VRAM limit per resource provided by user.
          */
         size_t maxSpatialBlocks;
         /**
-         * Maximum allowed channel blocks decoding at once. Calculates based based on max VRAM limit per resource provided by user.
+         * Maximum allowed channel blocks decoding at once. Calculates based on max VRAM limit per resource provided by user.
          */
         size_t maxChannelBlocks;
     };
@@ -126,16 +130,10 @@ namespace Zibra::CE::Decompression
         /// FrameContainer object allocated by FormatMapper created by this class instance.
         /// If frameContainer is nullptr Result::ZCE_ERROR_INVALID_ARGUMENTS will be returned.
         CompressedFrameContainer* frameContainer = nullptr;
-
-        /// First index of spatial block that need to be decompressed.
-        /// If firstSpatialBlockIndex is out of bounce of frame spatial block range Result::ZCE_ERROR_INVALID_ARGUMENTS will be
-        /// returned.
-        size_t firstSpatialBlockIndex = 0;
-        /// Amount of spatial blocks that need to be decompressed.
-        /// If firstSpatialBlockIndex + spatialBlocksCount is out of bounce of frame spatial block range or
-        /// larger than MaxDimensionsPerSubmit.maxSpatialBlocks Result::ZCE_ERROR_INVALID_ARGUMENTS will be returned.
-        size_t spatialBlocksCount = 0;
-
+        /// First chunk index to decompress. Must be in range [0; frameTotalChunksCount].
+        size_t firstChunkIndex = 0;
+        /// Chunks number per batch. Must be less or equal to MaxDimensionsPerSubmit::maxChunks.
+        size_t chunkCount = 0;
         /// Write offset in bytes for decompressionPerChannelBlockData buffer. Must be multiple of 4 (sizeof uint).
         /// Decompressor expects the size of registered buffer to be larger than offset + VRAM MemoryLimitPerResource.
         size_t decompressionPerChannelBlockDataOffset = 0;
@@ -152,7 +150,11 @@ namespace Zibra::CE::Decompression
         /// First index of channel block that was decompressed.
         size_t firstChannelBlockIndex = 0;
         /// Amount of channel blocks that were decompressed.
-        size_t channelBlocksCount = 0;
+        size_t channelBlockCount = 0;
+        /// First index of spatial block that was decompressed.
+        size_t firstSpatialBlockIndex = 0;
+        /// Amount of spatial blocks that were decompressed.
+        size_t spatialBlockCount = 0;
     };
 
     class Decompressor
@@ -177,6 +179,7 @@ namespace Zibra::CE::Decompression
          * Initializes decompressor instance. Can enqueue RHI commands and submit work.
          * Must be called before any other method.
          */
+        virtual size_t GetFrameChunkCount(CompressedFrameContainer* frame) noexcept = 0;
     public:
         virtual Result Initialize() noexcept = 0;
         /**

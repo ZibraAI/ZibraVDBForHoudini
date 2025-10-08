@@ -11,6 +11,26 @@
 namespace Zibra::Math
 {
     template <class T, std::enable_if_t<std::is_integral_v<T>, int> = 0>
+    constexpr auto IntDivideCeil(T intValue, T factor) noexcept
+    {
+        return (intValue + factor - 1) / factor;
+    }
+
+    template <class T, std::enable_if_t<std::is_integral_v<T>, int> = 0>
+    constexpr auto CeilToPowerOfTwo(T intValue, T powerOfTwo) noexcept
+    {
+        assert(powerOfTwo != 0 && (powerOfTwo & (powerOfTwo - 1)) == 0);
+        return (intValue + (powerOfTwo - 1)) & (~(powerOfTwo - 1));
+    }
+
+    template <class T, std::enable_if_t<std::is_integral_v<T>, int> = 0>
+    constexpr auto FloorToPowerOfTwo(T intValue, T powerOfTwo) noexcept
+    {
+        assert(powerOfTwo != 0 && (powerOfTwo & (powerOfTwo - 1)) == 0);
+        return intValue & (~(powerOfTwo - 1));
+    }
+
+    template <class T, std::enable_if_t<std::is_integral_v<T>, int> = 0>
     constexpr auto CeilToMultipleOf(T intValue, T multiple) noexcept
     {
         return ((intValue + multiple - 1) / multiple) * multiple;

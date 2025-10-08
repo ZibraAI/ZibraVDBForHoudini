@@ -28,6 +28,7 @@ namespace Zibra::CE
     static constexpr int SPARSE_BLOCK_SIZE = 8;
     static constexpr int SPARSE_BLOCK_VOXEL_COUNT = SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE;
     static constexpr size_t MAX_CHANNEL_COUNT = 32;
+    static constexpr size_t CHUNK_SIZE_IN_BYTES = 128 * 1024 * 1024;
 
     using ChannelMask = uint32_t;
 
@@ -43,7 +44,7 @@ namespace Zibra::CE
          * Dense voxels container.
          * @range [-INF; INF]
          */
-        float voxels[SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE] = {};
+        float voxels[SPARSE_BLOCK_VOXEL_COUNT] = {};
     };
 
     struct SpatialBlockInfo

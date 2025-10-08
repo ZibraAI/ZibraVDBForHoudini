@@ -222,36 +222,39 @@ namespace Zibra::Helpers
         CE::Addons::OpenVDBUtils::FrameEncoder encoder{gridShuffle.data(), gridShuffle.size(), frameInfo};
 
         const CE::Decompression::MaxDimensionsPerSubmit maxDimensionsPerSubmit = m_Decompressor->GetMaxDimensionsPerSubmit();
-        const uint32_t maxChunkSize = static_cast<uint32_t>(maxDimensionsPerSubmit.maxSpatialBlocks);
-        const uint32_t chunksCount = (frameInfo.spatialInfoCount + maxChunkSize - 1) / maxChunkSize;
+        const auto maxChunksPerSubmit = maxDimensionsPerSubmit.maxChunks;
+        const auto chunksCount = m_Decompressor->GetFrameChunkCount(frameContainer);
+        const auto chunkedIterations = Math::CeilToMultipleOf(chunksCount, maxChunksPerSubmit) / maxChunksPerSubmit;
 
         std::vector<CE::Decompression::Shaders::PackedSpatialBlockInfo> readbackDecompressionPerSpatialBlockInfo{};
-        readbackDecompressionPerSpatialBlockInfo.reserve(maxChunkSize);
+        readbackDecompressionPerSpatialBlockInfo.reserve(maxDimensionsPerSubmit.maxSpatialBlocks);
         std::vector<uint16_t> readbackDecompressionPerChannelBlockData{};
-        readbackDecompressionPerChannelBlockData.reserve(maxChunkSize * CE::MAX_CHANNEL_COUNT * CE::SPARSE_BLOCK_VOXEL_COUNT);
+        readbackDecompressionPerChannelBlockData.reserve(maxDimensionsPerSubmit.maxChannelBlocks * CE::SPARSE_BLOCK_VOXEL_COUNT);
 
-        for (int chunkIdx = 0; chunkIdx < chunksCount; ++chunkIdx)
+        auto chunksToDecompress = chunksCount;
+        for (int chunkIter = 0; chunkIter < chunkedIterations; ++chunkIter)
         {
             CE::Decompression::DecompressFrameDesc decompressDesc{};
             decompressDesc.frameContainer = frameContainer;
-            decompressDesc.firstSpatialBlockIndex = maxChunkSize * chunkIdx;
-            decompressDesc.spatialBlocksCount = std::min(maxChunkSize, frameInfo.spatialInfoCount - maxChunkSize * chunkIdx);
+            decompressDesc.firstChunkIndex = chunksCount - chunksToDecompress;
+            decompressDesc.chunkCount = std::min(chunksToDecompress, maxChunksPerSubmit);
             decompressDesc.decompressionPerChannelBlockDataOffset = 0;
             decompressDesc.decompressionPerChannelBlockInfoOffset = 0;
             decompressDesc.decompressionPerSpatialBlockInfoOffset = 0;
 
-            CE::Decompression::DecompressedFrameFeedback fFeedback{};
+            chunksToDecompress -= decompressDesc.chunkCount;
 
+            CE::Decompression::DecompressedFrameFeedback fFeedback{};
             Result status = m_Decompressor->DecompressFrame(decompressDesc, &fFeedback);
             if (status != RESULT_SUCCESS)
             {
                 return status;
             }
 
-            readbackDecompressionPerSpatialBlockInfo.resize(decompressDesc.spatialBlocksCount);
-            readbackDecompressionPerChannelBlockData.resize(fFeedback.channelBlocksCount * CE::SPARSE_BLOCK_VOXEL_COUNT);
-            GetDecompressedFrameData(readbackDecompressionPerChannelBlockData.data(), fFeedback.channelBlocksCount,
-                                     readbackDecompressionPerSpatialBlockInfo.data(), decompressDesc.spatialBlocksCount);
+            readbackDecompressionPerSpatialBlockInfo.resize(maxDimensionsPerSubmit.maxSpatialBlocks);
+            readbackDecompressionPerChannelBlockData.resize(fFeedback.channelBlockCount * CE::SPARSE_BLOCK_VOXEL_COUNT);
+            GetDecompressedFrameData(readbackDecompressionPerChannelBlockData.data(), fFeedback.channelBlockCount,
+                                     readbackDecompressionPerSpatialBlockInfo.data(), fFeedback.spatialBlockCount);
             m_RHIRuntime->GarbageCollect();
 
             CE::Addons::OpenVDBUtils::FrameData fData{};
@@ -260,7 +263,7 @@ namespace Zibra::Helpers
             // TODO VDB-1291: Implement read-back circular buffer, to optimize GPU stalls.
             //                Implement cpu circular buffer to optimize RAM allocation for DecompressedFrameData.
             //                Move EncodeChunk into separate thread to overlay CPU and CPU work.
-            encoder.EncodeChunk(fData, decompressDesc.spatialBlocksCount, fFeedback.firstChannelBlockIndex);
+            encoder.EncodeChunk(fData, fFeedback.spatialBlockCount, fFeedback.firstChannelBlockIndex);
         }
         res = m_RHIRuntime->StopRecording();
         if (ZIB_FAILED(res))
