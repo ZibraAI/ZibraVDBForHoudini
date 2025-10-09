@@ -28,8 +28,7 @@ namespace Zibra::Utils
                                                                             const std::string& visDensityMetadata,
                                                                             const std::string& visLodMetadata)
     {
-        // Currently no-op
-        // TODO We need to add the visualisation metadata so the houdini interpret it correctly
+        // NOOP for OpenVDB grids
     }
 
     void MetadataPolicy<std::pair<GU_Detail*, GU_PrimVDB*>>::ApplyAttributeMetadata(const std::pair<GU_Detail*, GU_PrimVDB*>& context,

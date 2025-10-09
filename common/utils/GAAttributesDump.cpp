@@ -198,67 +198,103 @@ namespace Zibra::Utils
 
     void AttributeStoragePolicy<openvdb::GridBase::Ptr>::StoreBool(TargetType& target, const std::string& attribName, bool value)
     {
-        std::string metaName = "houdini_attr_" + attribName;
-        target->insertMeta(metaName + "_type", openvdb::StringMetadata("bool"));
-        target->insertMeta(metaName, openvdb::StringMetadata(value ? "true" : "false"));
+        target->insertMeta(attribName, openvdb::BoolMetadata(value));
     }
 
     void AttributeStoragePolicy<openvdb::GridBase::Ptr>::StoreIntArray(TargetType& target, const std::string& attribName,
                                                                        const std::vector<int32>& values, const std::string& typeStr)
     {
-        std::string metaName = "houdini_attr_" + attribName;
-        target->insertMeta(metaName + "_type", openvdb::StringMetadata(typeStr));
-        nlohmann::json jsonArray(values);
-        target->insertMeta(metaName, openvdb::StringMetadata(jsonArray.dump()));
+        switch (values.size())
+        {
+        case 1:
+            target->insertMeta(attribName, openvdb::Int32Metadata(values[0]));
+            break;
+        case 2:
+            target->insertMeta(attribName, openvdb::Vec2IMetadata(openvdb::Vec2i(values[0], values[1])));
+            break;
+        case 3:
+            target->insertMeta(attribName, openvdb::Vec3IMetadata(openvdb::Vec3i(values[0], values[1], values[2])));
+            break;
+        default:
+            assert(false && "Only arrays with 1-3 elements are supported");
+            break;
+        }
     }
 
     void AttributeStoragePolicy<openvdb::GridBase::Ptr>::StoreFloatArray(TargetType& target, const std::string& attribName,
                                                                          const std::vector<float>& values, const std::string& typeStr)
     {
-        std::string metaName = "houdini_attr_" + attribName;
-        target->insertMeta(metaName + "_type", openvdb::StringMetadata(typeStr));
-        nlohmann::json jsonArray(values);
-        target->insertMeta(metaName, openvdb::StringMetadata(jsonArray.dump()));
+        switch (values.size())
+        {
+        case 1:
+            target->insertMeta(attribName, openvdb::FloatMetadata(values[0]));
+            break;
+        case 2:
+            target->insertMeta(attribName, openvdb::Vec2SMetadata(openvdb::Vec2s(values[0], values[1])));
+            break;
+        case 3:
+            target->insertMeta(attribName, openvdb::Vec3SMetadata(openvdb::Vec3s(values[0], values[1], values[2])));
+            break;
+        default:
+            assert(false && "Only arrays with 1-3 elements are supported");
+            break;
+        }
     }
 
     void AttributeStoragePolicy<openvdb::GridBase::Ptr>::StoreString(TargetType& target, const std::string& attribName,
                                                                      const std::string& value)
     {
-        std::string metaName = "houdini_attr_" + attribName;
-        target->insertMeta(metaName + "_type", openvdb::StringMetadata("string"));
-        target->insertMeta(metaName, openvdb::StringMetadata(value));
+        target->insertMeta(attribName, openvdb::StringMetadata(value));
     }
 
     void AttributeStoragePolicy<openvdb::MetaMap>::StoreBool(TargetType& target, const std::string& attribName, bool value)
     {
-        std::string metaName = "houdini_attr_" + attribName;
-        target.insertMeta(metaName + "_type", openvdb::StringMetadata("bool"));
-        target.insertMeta(metaName, openvdb::StringMetadata(value ? "true" : "false"));
+        target.insertMeta(attribName, openvdb::BoolMetadata(value));
     }
 
     void AttributeStoragePolicy<openvdb::MetaMap>::StoreIntArray(TargetType& target, const std::string& attribName,
                                                                  const std::vector<int32>& values, const std::string& typeStr)
     {
-        std::string metaName = "houdini_attr_" + attribName;
-        target.insertMeta(metaName + "_type", openvdb::StringMetadata(typeStr));
-        nlohmann::json jsonArray(values);
-        target.insertMeta(metaName, openvdb::StringMetadata(jsonArray.dump()));
+        switch (values.size())
+        {
+        case 1:
+            target.insertMeta(attribName, openvdb::Int32Metadata(values[0]));
+            break;
+        case 2:
+            target.insertMeta(attribName, openvdb::Vec2IMetadata(openvdb::Vec2i(values[0], values[1])));
+            break;
+        case 3:
+            target.insertMeta(attribName, openvdb::Vec3IMetadata(openvdb::Vec3i(values[0], values[1], values[2])));
+            break;
+        default:
+            assert(false && "Only arrays with 1-3 elements are supported");
+            break;
+        }
     }
 
     void AttributeStoragePolicy<openvdb::MetaMap>::StoreFloatArray(TargetType& target, const std::string& attribName,
                                                                    const std::vector<float>& values, const std::string& typeStr)
     {
-        std::string metaName = "houdini_attr_" + attribName;
-        target.insertMeta(metaName + "_type", openvdb::StringMetadata(typeStr));
-        nlohmann::json jsonArray(values);
-        target.insertMeta(metaName, openvdb::StringMetadata(jsonArray.dump()));
+        switch (values.size())
+        {
+        case 1:
+            target.insertMeta(attribName, openvdb::FloatMetadata(values[0]));
+            break;
+        case 2:
+            target.insertMeta(attribName, openvdb::Vec2SMetadata(openvdb::Vec2s(values[0], values[1])));
+            break;
+        case 3:
+            target.insertMeta(attribName, openvdb::Vec3SMetadata(openvdb::Vec3s(values[0], values[1], values[2])));
+            break;
+        default:
+            assert(false && "Only arrays with 1-3 elements are supported");
+            break;
+        }
     }
 
     void AttributeStoragePolicy<openvdb::MetaMap>::StoreString(TargetType& target, const std::string& attribName, const std::string& value)
     {
-        std::string metaName = "houdini_attr_" + attribName;
-        target.insertMeta(metaName + "_type", openvdb::StringMetadata("string"));
-        target.insertMeta(metaName, openvdb::StringMetadata(value));
+        target.insertMeta(attribName, openvdb::StringMetadata(value));
     }
 
     template MetaAttributesLoadStatus LoadEntityAttributesFromMeta<std::tuple<GU_Detail*, GA_AttributeOwner, GA_Offset>>(
