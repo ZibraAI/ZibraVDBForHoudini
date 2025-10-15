@@ -22,7 +22,7 @@ namespace Zibra::ZibraVDBImport
     PRM_Template* LOP_ZibraVDBImport::GetTemplateList() noexcept
     {
         static PRM_Name theFileName(FILE_PARAM_NAME, "ZibraVDB File");
-        static PRM_Default theFileDefault(0.0f, "$HIP/vol/$HIPNAME.zibravdb");
+        static PRM_Default theFileDefault(0.0f, "");
 
         static PRM_Name thePrimitivePath(PRIMPATH_PARAM_NAME, "Primitive Path");
         static PRM_Default thePrimitivePathDefault(0.0f, "/$OS");
@@ -59,7 +59,6 @@ namespace Zibra::ZibraVDBImport
         : LOP_Node(net, name, entry)
     {
         LibraryUtils::LoadSDKLibrary();
-        flags().setTimeDep(true);
     }
 
     void LOP_ZibraVDBImport::BuildFieldsChoiceList(void* data, PRM_Name* choiceNames, int maxListSize, const PRM_SpareData*, const PRM_Parm*)
@@ -110,6 +109,9 @@ namespace Zibra::ZibraVDBImport
         if (cookModifyInput(context) >= UT_ERROR_FATAL)
             return error(context);
 
+        updateParmsFlags();
+        flags().setTimeDep(true);
+
         const fpreal t = context.getTime();
         const int currentFrame = static_cast<int>(context.getFrame());
         const std::string fields = GetFields(t);
@@ -126,7 +128,6 @@ namespace Zibra::ZibraVDBImport
             SHOW_ERROR_AND_RETURN("No valid USD primitive name specified")
         }
 
-        updateParmsFlags();
         if (!m_CachedFileInfo.error.empty())
         {
             SHOW_ERROR_AND_RETURN(m_CachedFileInfo.error.c_str())
@@ -168,8 +169,7 @@ namespace Zibra::ZibraVDBImport
     bool LOP_ZibraVDBImport::updateParmsFlags()
     {
         bool changed = LOP_Node::updateParmsFlags();
-        flags().setTimeDep(true);
-        
+
         // Load file info when file parameter changes
         std::string currentFilePath = GetFilePath(0.0);
         if (m_CachedFileInfo.filePath != currentFilePath)

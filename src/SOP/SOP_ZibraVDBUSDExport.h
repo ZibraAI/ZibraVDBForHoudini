@@ -3,7 +3,7 @@
 namespace Zibra::ZibraVDBUSDExport
 {
     constexpr const char* SOP_NODE_NAME = "labs::zibravdb_compress_to_usd::" ZIB_ZIBRAVDB_VERSION_SHORT;
-    constexpr const char* SOP_NODE_LABEL = "Labs ZibraVDB Compress to USD";
+    constexpr const char* SOP_NODE_LABEL = "Labs ZibraVDB Configure USD";
 
     class SOP_ZibraVDBUSDExport final : public SOP_Node
     {
