@@ -64,7 +64,7 @@ namespace Zibra::LibraryUtils
             const auto baseDirs = Helpers::GetHoudiniEnvironmentVariable(envVarEnum, envVarName);
             for (const std::string& baseDir : baseDirs)
             {
-                result.push_back(baseDir);
+                result.emplace_back(baseDir);
             }
         }
         return result;
@@ -296,7 +296,6 @@ namespace Zibra::LibraryUtils
             std::filesystem::path resourcesPath = baseLibPath / "dso"/ "usd_plugins" / PLUG_INFO_FOLDER / "resources";
             if (!std::filesystem::exists(resourcesPath) || !std::filesystem::is_directory(resourcesPath))
             {
-                std::cout << "[RegisterAssetResolver]   USD plugin path exists but is not a directory" << std::endl;
                 continue;
             }
 

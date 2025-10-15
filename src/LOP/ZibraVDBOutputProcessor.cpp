@@ -143,7 +143,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         }
 
         int frameIndex;
-        if (Helpers::TryParseInt(frameStr, frameIndex))
+        if (!Helpers::TryParseInt(frameStr, frameIndex))
         {
             error = COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_PARSE_FRAME_INDEX_TEMPLATE + frameStr);
             return false;

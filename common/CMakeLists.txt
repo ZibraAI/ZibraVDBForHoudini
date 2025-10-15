@@ -48,7 +48,8 @@ target_include_directories(ZibraVDBCommon
 
 target_compile_definitions(ZibraVDBCommon PUBLIC
     ZIB_NETWORK_REQUEST_BACKEND_${ZIB_NETWORK_REQUEST_BACKEND}=1
-    ZIB_TARGET_OS_${ZIB_TARGET_OS_NAME}=1)
+    ZIB_TARGET_OS_${ZIB_TARGET_OS_NAME}=1
+    LABS_BUILD=$<BOOL:${LABS_BUILD}>)
 
 target_precompile_headers(ZibraVDBCommon PRIVATE PrecompiledHeader.h)
 target_link_libraries(ZibraVDBCommon PUBLIC Houdini)
