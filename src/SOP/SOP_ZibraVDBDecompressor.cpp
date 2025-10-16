@@ -132,7 +132,7 @@ namespace Zibra::ZibraVDBDecompressor
 
         const exint frameIndex = evalInt(FRAME_PARAM_NAME, 0, context.getTime());
 
-        CompressedFrameContainer* frameContainer = m_DecompressorManager.FetchFrame(frameIndex);
+        FrameHandle* frameContainer = m_DecompressorManager.FetchFrame(frameIndex);
         if (frameContainer == nullptr)
         {
             addWarning(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_FRAME_NOT_PRESENT);
@@ -185,13 +185,13 @@ namespace Zibra::ZibraVDBDecompressor
         return 0;
     }
 
-    void SOP_ZibraVDBDecompressor::ApplyGridMetadata(GU_PrimVDB* vdbPrim, CompressedFrameContainer* const frameContainer)
+    void SOP_ZibraVDBDecompressor::ApplyGridMetadata(GU_PrimVDB* vdbPrim, FrameHandle* const frameContainer)
     {
         ApplyGridAttributeMetadata(vdbPrim, frameContainer);
         ApplyGridVisualizationMetadata(vdbPrim, frameContainer);
     }
 
-    void SOP_ZibraVDBDecompressor::ApplyGridAttributeMetadata(GU_PrimVDB* vdbPrim, CompressedFrameContainer* const frameContainer)
+    void SOP_ZibraVDBDecompressor::ApplyGridAttributeMetadata(GU_PrimVDB* vdbPrim, FrameHandle* const frameContainer)
     {
         const std::string attributeMetadataName = "houdiniPrimitiveAttributes_"s + vdbPrim->getGridName();
 
@@ -214,7 +214,7 @@ namespace Zibra::ZibraVDBDecompressor
         }
     }
 
-    void SOP_ZibraVDBDecompressor::ApplyGridVisualizationMetadata(GU_PrimVDB* vdbPrim, CompressedFrameContainer* const frameContainer)
+    void SOP_ZibraVDBDecompressor::ApplyGridVisualizationMetadata(GU_PrimVDB* vdbPrim, FrameHandle* const frameContainer)
     {
         const std::string keyPrefix = "houdiniVisualizationAttributes_"s + vdbPrim->getGridName();
 
@@ -241,7 +241,7 @@ namespace Zibra::ZibraVDBDecompressor
         }
     }
 
-    void SOP_ZibraVDBDecompressor::ApplyDetailMetadata(GU_Detail* gdp, CompressedFrameContainer* const frameContainer)
+    void SOP_ZibraVDBDecompressor::ApplyDetailMetadata(GU_Detail* gdp, FrameHandle* const frameContainer)
     {
         const char* detailMetadata = frameContainer->GetMetadataByKey("houdiniDetailAttributes");
 
@@ -272,7 +272,7 @@ namespace Zibra::ZibraVDBDecompressor
     }
 
     std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> SOP_ZibraVDBDecompressor::DeserializeGridShuffleInfo(
-        CompressedFrameContainer* frameContainer) noexcept
+        FrameHandle* frameContainer) noexcept
     {
         static std::map<std::string, CE::Addons::OpenVDBUtils::GridVoxelType> strToVoxelType = {
             {"Float1", CE::Addons::OpenVDBUtils::GridVoxelType::Float1}, {"Float3", CE::Addons::OpenVDBUtils::GridVoxelType::Float3}};

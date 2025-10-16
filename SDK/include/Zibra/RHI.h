@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstring>
 #include <cstddef>
 
 #include <Zibra/Result.h>
@@ -33,23 +34,23 @@
 #endif // ZRHI_USE_METAL_INTEGRATION
 
 #define ZRHI_DEFINE_BITMASK_ENUM(enumType)                                                 \
-    inline enumType operator&(enumType a, enumType b) noexcept                             \
+    inline constexpr enumType operator&(enumType a, enumType b) noexcept                   \
     {                                                                                      \
         return static_cast<enumType>(static_cast<uint32_t>(a) & static_cast<uint32_t>(b)); \
     }                                                                                      \
-    inline enumType operator|(enumType a, enumType b) noexcept                             \
+    inline  constexpr enumType operator|(enumType a, enumType b) noexcept                  \
     {                                                                                      \
         return static_cast<enumType>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b)); \
     }                                                                                      \
-    inline bool operator||(bool a, enumType b) noexcept                                    \
+    inline  constexpr bool operator||(bool a, enumType b) noexcept                         \
     {                                                                                      \
         return a || static_cast<uint32_t>(b) != 0;                                         \
     }                                                                                      \
-    inline bool operator&&(bool a, enumType b) noexcept                                    \
+    inline  constexpr bool operator&&(bool a, enumType b) noexcept                         \
     {                                                                                      \
         return a && static_cast<uint32_t>(b) != 0;                                         \
     }                                                                                      \
-    inline bool operator!(enumType a) noexcept                                             \
+    inline  constexpr bool operator!(enumType a) noexcept                                  \
     {                                                                                      \
         return static_cast<uint32_t>(a) == 0;                                              \
     }
@@ -740,24 +741,6 @@ namespace Zibra::RHI
     };
     ZRHI_DEFINE_BITMASK_ENUM(ColorWriteMask);
 
-    // Caution: this data type is used in bridge structs. Consider change c# code or separate Bridge from RHI
-    /// DESC for texture payload. Used for texture upload.
-    struct TextureData
-    {
-        /// Pointer to binary data of texture content.
-        const void* data;
-        /// Binary data size.
-        int dataSize;
-        /// The size in bytes of one row of the source texture data.
-        int rowPitch;
-        /// Texture data dimension X
-        int dimensionX;
-        /// Texture data dimension Y
-        int dimensionY;
-        /// Texture data dimension Z
-        int dimensionZ;
-    };
-
     /// DESC for depth stencil state of GraphicsPSO.
     struct DepthStencilDesc
     {
@@ -935,6 +918,19 @@ namespace Zibra::RHI
         DescriptorHeap* heap;
     };
 
+    /// DESC for buffer to texture copy.
+    struct CopyBufferToTextureDesc
+    {
+        /// The size in bytes of one row of the source texture data.
+        uint32_t rowPitch;
+        /// Texture data dimension X
+        uint32_t dimensionX;
+        /// Texture data dimension Y
+        uint32_t dimensionY;
+        /// Texture data dimension Z
+        uint32_t dimensionZ;
+    };
+
     /// Arguments for draw instanced indirect command. Meant to be used in indirect draw buffer.
     struct DrawInstancedIndirectParams
     {
@@ -991,6 +987,12 @@ namespace Zibra::RHI
         uint32_t groupCountZ;
     };
 
+    struct MemoryRange
+    {
+        size_t start;
+        size_t size;
+    };
+
     struct QueryDesc
     {
         QueryType type;
@@ -998,11 +1000,11 @@ namespace Zibra::RHI
 
     struct TimestampCalibrationResult
     {
-        // CPU timestamp value queried at the same time as GPU timestamp.
+        /// CPU timestamp value queried at the same time as GPU timestamp.
         uint64_t CPUTimestamp;
-        // GPU timestamp value queried at the same time as CPU timestamp.
+        /// GPU timestamp value queried at the same time as CPU timestamp.
         uint64_t GPUTimestamp;
-        // Frequency of CPU timestamp counter in Hz.
+        /// Frequency of CPU timestamp counter in Hz.
         uint64_t CPUTimestampFrequency;
     };
 
@@ -1560,51 +1562,23 @@ namespace Zibra::RHI
          * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
         virtual Result StopRecording() noexcept = 0;
-
         /**
-         * Uploads binary data to buffer using Upload Ring on platforms where it is used.
-         * @note If destination buffer is CBV - replaces whole buffer on DX11, independently of size
-         * @attention Uploaded data will be available in frame CurrentFrame + MaxFramesInFlight
-         * @attention You should always pass correct size of the buffer, so Metal can work correctly
-         * @param [in] buffer - Target RHI Buffer instance.
-         * @param [in] data - binary upload data.
-         * @param [in] size - upload data size in bytes.
-         * @param [in] offset - offset in destination buffer memory in bytes.
+         * Maps buffer memory to RAM.
+         * @note Resource must be created either with ResourceHeapType::Upload or ResourceHeapType::Readback heap type.
+         * @param buffer [in] Target RHI Buffer instance.
+         * @param readRange [in] Memory read range if mapped memory going to be read, NULL otherwise.
+         * @param outMem [out] Output mapped memory pointer.
          * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual Result UploadBuffer(Buffer* buffer, const void* data, uint32_t size, uint32_t offset) noexcept = 0;
+        virtual Result MapBufferMemory(Buffer* buffer, const MemoryRange* readRange, void** outMem) noexcept = 0;
         /**
-         * Uploads data bypassing Upload Ring on platforms where it is used.
-         * @remark Needed to upload a large data on initialization
-         * @attention Creates new buffer and replaces old one in future frames, so shouldn't be
-         * abused for best performance.
-         * @param [in] buffer - Target RHI Buffer instance.
-         * @param [in] data - binary upload data.
-         * @param [in] size - upload data size in bytes.
-         * @param [in] offset - offset in destination buffer memory in bytes.
+         * Unmaps mapped buffer memory.
+         * @note Resource must be created either with ResourceHeapType::Upload or ResourceHeapType::Readback heap type.
+         * @param buffer [in] Target RHI Buffer instance.
+         * @param writtenRange [in] Memory written range if mapped memory was modified, NULL otherwise.
          * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual Result UploadBufferSlow(Buffer* buffer, const void* data, uint32_t size, uint32_t offset) noexcept = 0;
-        /**
-         * Uploads 3D texture data from CPU memory.
-         * @remark Needed to upload a 3D texture initial data on initialization.
-         * @attention Creates new staging buffer for transferring data. Not very performant.
-         * @param [in] texture - Target RHI Texture instance.
-         * @param [in] uploadData - upload data DESC.
-         * @return RESULT_SUCCESS in case of success or other code in case of error.
-         */
-        virtual Result UploadTextureSlow(Texture3D* texture, const TextureData& uploadData) noexcept = 0;
-
-        /**
-         * Maps buffer and copies data to address in destination param.
-         * @param [in] buffer - Target RHI Buffer to read from.
-         * @param [out] destination - Address of memory to copy to.
-         * @param [in] size - Size in bytes or requested data.
-         * @param [in] srcOffset - Offset in input Buffer to read from.
-         * @attention destination must point on allocated memory sith size in bytes greater or equal than value in size param.
-         * @return RESULT_SUCCESS in case of success or other code in case of error.
-         */
-        virtual Result GetBufferData(Buffer* buffer, void* destination, size_t size, size_t srcOffset) noexcept = 0;
+        virtual Result UnmapBufferMemory(Buffer* buffer, const MemoryRange* writtenRange) noexcept = 0;
         /**
          * Waits for GPU work finish and gets data from Buffer. Buffer must have ResourceUsage::CopySource.
          * @attention Stalls CPU till GPU work related to target buffer finished.
@@ -1655,7 +1629,7 @@ namespace Zibra::RHI
         virtual Result DrawIndexedInstancedIndirect(const DrawIndexedInstancedIndirectDesc& desc) noexcept = 0;
 
         /**
-         * Enqueues Copy command in GPU.
+         * Enqueues Copy command on GPU.
          * @param [in] dstBuffer - Copy destination RHI Buffer instance.
          * @param [in] dstOffset - Copy destination buffer offset in bytes.
          * @param [in] srcBuffer - Copy source RHI Buffer instance.
@@ -1664,6 +1638,15 @@ namespace Zibra::RHI
          * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
         virtual Result CopyBufferRegion(Buffer* dstBuffer, uint32_t dstOffset, Buffer* srcBuffer, uint32_t srcOffset, uint32_t size) noexcept = 0;
+        /**
+         * Enqueues Copy command on GPU.
+         * @param dstTexture [in] - Copy destination RHI Buffer instance.
+         * @param srcBuffer [in] - Copy source RHI Buffer instance.
+         * @param srcOffset [in] - Copy source buffer offset in bytes.
+         * @param desc [in] - command Desc structure.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
+         */
+        virtual Result CopyBufferToTexture(Texture3D* dstTexture, Buffer* srcBuffer, const CopyBufferToTextureDesc& desc) noexcept = 0;
         /**
          * Clears formatted RHI Buffer data with value in clearValue param.
          * @param [in] buffer - Target RHI Buffer instance.
@@ -1814,6 +1797,65 @@ namespace Zibra::RHI
 #else
     constexpr const char* GetVersionExportName = "Zibra_RHI_GetVersion";
 #endif
+
+
+    class UploadRingBuffer
+    {
+    public:
+        UploadRingBuffer() = default;
+        // Do not allow copies
+        UploadRingBuffer(const UploadRingBuffer&) = delete;
+        UploadRingBuffer& operator=(const UploadRingBuffer&) = delete;
+        // Only allow moves
+        UploadRingBuffer(UploadRingBuffer&&) = default;
+        UploadRingBuffer& operator=(UploadRingBuffer&&) = default;
+
+    public:
+        virtual Result Initialize(RHIRuntime* rhi, size_t bufferSize = 1 * 1024 * 1024) noexcept
+        {
+            if (m_RingBuffer)
+                return RESULT_ALREADY_INITIALIZED;
+            m_RHI = rhi;
+            m_BufferSize = bufferSize;
+
+            return m_RHI->CreateBuffer(m_BufferSize, ResourceHeapType::Upload, ResourceUsage::CopySource, 0, "UploadRing", &m_RingBuffer);
+        }
+
+        virtual Result Upload(Buffer* dstBuffer, uint32_t dstOffset, const void* data, uint32_t size) noexcept
+        {
+            if (m_CurrentOffset + size > m_BufferSize)
+                m_CurrentOffset = 0;
+
+            Result status;
+            void* mappedMemory;
+            status = m_RHI->MapBufferMemory(m_RingBuffer, nullptr, &mappedMemory);
+            if (ZIB_FAILED(status))
+                return status;
+            memcpy(static_cast<char*>(mappedMemory) + m_CurrentOffset, data, size);
+            MemoryRange writtenRange{};
+            writtenRange.start = m_CurrentOffset;
+            writtenRange.size = size;
+            status = m_RHI->UnmapBufferMemory(m_RingBuffer, &writtenRange);
+            if (ZIB_FAILED(status))
+                return status;
+            status = m_RHI->CopyBufferRegion(dstBuffer, dstOffset, m_RingBuffer, m_CurrentOffset, size);
+            if (ZIB_FAILED(status))
+                return status;
+            m_CurrentOffset += size;
+            return RESULT_SUCCESS;
+        }
+
+        virtual void Release() noexcept
+        {
+            if (m_RingBuffer)
+                m_RHI->ReleaseBuffer(m_RingBuffer);
+        }
+    protected:
+        RHIRuntime* m_RHI = nullptr;
+        Buffer* m_RingBuffer = nullptr;
+        size_t m_BufferSize = 0;
+        size_t m_CurrentOffset = 0;
+    };
 }
 
 #undef ZRHI_API_IMPORT

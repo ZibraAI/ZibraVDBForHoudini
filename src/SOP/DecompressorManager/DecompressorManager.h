@@ -19,9 +19,9 @@ namespace Zibra::Helpers
     public:
         Result Initialize() noexcept;
         Result RegisterDecompressor(const UT_String& filename) noexcept;
-        Result DecompressFrame(CE::Decompression::CompressedFrameContainer* frameContainer,
+        Result DecompressFrame(CE::Decompression::FrameHandle* frameContainer,
                                std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridShuffle, openvdb::GridPtrVec* vdbGrids) noexcept;
-        CE::Decompression::CompressedFrameContainer* FetchFrame(const exint& frameIndex) const noexcept;
+        CE::Decompression::FrameHandle* FetchFrame(const exint& frameIndex) const noexcept;
         CE::Decompression::FrameRange GetFrameRange() const noexcept;
         void Release() noexcept;
 

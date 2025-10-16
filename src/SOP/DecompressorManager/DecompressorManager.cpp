@@ -189,7 +189,7 @@ namespace Zibra::Helpers
 
         return RESULT_SUCCESS;
     }
-    Result DecompressorManager::DecompressFrame(CE::Decompression::CompressedFrameContainer* frameContainer,
+    Result DecompressorManager::DecompressFrame(CE::Decompression::FrameHandle* frameContainer,
                                                 std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridShuffle,
                                                 openvdb::GridPtrVec* vdbGrids) noexcept
     {
@@ -235,7 +235,7 @@ namespace Zibra::Helpers
         for (int chunkIter = 0; chunkIter < chunkedIterations; ++chunkIter)
         {
             CE::Decompression::DecompressFrameDesc decompressDesc{};
-            decompressDesc.frameContainer = frameContainer;
+            decompressDesc.frameHandle = frameContainer;
             decompressDesc.firstChunkIndex = chunksCount - chunksToDecompress;
             decompressDesc.chunkCount = std::min(chunksToDecompress, maxChunksPerSubmit);
             decompressDesc.decompressionPerChannelBlockDataOffset = 0;
@@ -302,13 +302,13 @@ namespace Zibra::Helpers
         return RESULT_SUCCESS;
     }
 
-    CE::Decompression::CompressedFrameContainer* DecompressorManager::FetchFrame(const exint& frameIndex) const noexcept
+    CE::Decompression::FrameHandle* DecompressorManager::FetchFrame(const exint& frameIndex) const noexcept
     {
         if (!m_FormatMapper)
         {
             return nullptr;
         }
-        CE::Decompression::CompressedFrameContainer* frameContainer = nullptr;
+        CE::Decompression::FrameHandle* frameContainer = nullptr;
         auto status = m_FormatMapper->FetchFrame(frameIndex, &frameContainer);
         if (status != RESULT_SUCCESS)
         {

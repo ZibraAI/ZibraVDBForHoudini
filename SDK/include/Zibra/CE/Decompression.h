@@ -22,10 +22,10 @@ namespace Zibra::CE::Decompression
 {
     constexpr Version DECOMPRESSOR_VERSION = {1, 0, 0, 0};
 
-    class CompressedFrameContainer
+    class FrameHandle
     {
     protected:
-        virtual ~CompressedFrameContainer() noexcept = default;
+        virtual ~FrameHandle() noexcept = default;
 
     public:
         virtual FrameInfo GetInfo() const noexcept = 0;
@@ -33,7 +33,7 @@ namespace Zibra::CE::Decompression
          * Finds metadata entry by key and returns payload.
          * @param key - Metadata key
          * @return String payload or nullptr if key is not present.
-         * Memory managed by CompressedFrameContainer instance and present while container exists.
+         * Memory managed by FrameHandle instance and present while handle exists.
          */
         virtual const char* GetMetadataByKey(const char* key) const noexcept = 0;
         virtual size_t GetMetadataCount() const noexcept = 0;
@@ -92,8 +92,10 @@ namespace Zibra::CE::Decompression
          * @layout ZCEDecompressionPackedChannelBlockInfo[FrameInfo::channelBlockCount]
          */
         RHI::Buffer* decompressionPerChannelBlockInfo = nullptr;
-        /// Info per spatial group
-        /// @layout ZCEDecompressionPackedSpatialBlock[FrameInfo::spatialBlockCount]
+        /**
+         * Info per spatial group
+         * @layout ZCEDecompressionPackedSpatialBlock[FrameInfo::spatialBlockCount]
+         */
         RHI::Buffer* decompressionPerSpatialBlockInfo = nullptr;
     };
 
@@ -111,17 +113,11 @@ namespace Zibra::CE::Decompression
 
     struct MaxDimensionsPerSubmit
     {
-        /**
-         * Maximum allowed 128MiB chunks decoding at once. Calculates based on max VRAM limit per resource provided by user.
-         */
+        /// Maximum allowed 128MiB chunks decoding at once. Calculates based on max VRAM limit per resource provided by user.
         size_t maxChunks;
-        /**
-         * Maximum allowed spatial blocks decoding at once. Calculates based on max VRAM limit per resource provided by user.
-         */
+        /// Maximum allowed spatial blocks decoding at once. Calculates based on max VRAM limit per resource provided by user.
         size_t maxSpatialBlocks;
-        /**
-         * Maximum allowed channel blocks decoding at once. Calculates based on max VRAM limit per resource provided by user.
-         */
+        /// Maximum allowed channel blocks decoding at once. Calculates based on max VRAM limit per resource provided by user.
         size_t maxChannelBlocks;
     };
 
@@ -129,19 +125,25 @@ namespace Zibra::CE::Decompression
     {
         /// FrameContainer object allocated by FormatMapper created by this class instance.
         /// If frameContainer is nullptr Result::ZCE_ERROR_INVALID_ARGUMENTS will be returned.
-        CompressedFrameContainer* frameContainer = nullptr;
+        FrameHandle* frameHandle = nullptr;
         /// First chunk index to decompress. Must be in range [0; frameTotalChunksCount].
         size_t firstChunkIndex = 0;
         /// Chunks number per batch. Must be less or equal to MaxDimensionsPerSubmit::maxChunks.
         size_t chunkCount = 0;
-        /// Write offset in bytes for decompressionPerChannelBlockData buffer. Must be multiple of 4 (sizeof uint).
-        /// Decompressor expects the size of registered buffer to be larger than offset + VRAM MemoryLimitPerResource.
+        /**
+         * Write offset in bytes for decompressionPerChannelBlockData buffer. Must be multiple of 4 (sizeof uint).
+         * @note Decompressor expects the size of registered buffer to be larger than offset + VRAM MemoryLimitPerResource.
+        */
         size_t decompressionPerChannelBlockDataOffset = 0;
-        /// Write offset in bytes for decompressionPerChannelBlockInfo buffer. Must be multiple of 4 (sizeof uint).
-        /// Decompressor expects the size of registered buffer to be larger than offset + VRAM MemoryLimitPerResource.
+        /**
+         * Write offset in bytes for decompressionPerChannelBlockInfo buffer. Must be multiple of 4 (sizeof uint).
+         * @note Decompressor expects the size of registered buffer to be larger than offset + VRAM MemoryLimitPerResource.
+         */
         size_t decompressionPerChannelBlockInfoOffset = 0;
-        /// Write offset in bytes for decompressionPerSpatialBlockInfo buffer. Must be multiple of 4 (sizeof uint).
-        /// Decompressor expects the size of registered buffer to be larger than offset + VRAM MemoryLimitPerResource.
+        /**
+         * Write offset in bytes for decompressionPerSpatialBlockInfo buffer. Must be multiple of 4 (sizeof uint).
+         * @note Decompressor expects the size of registered buffer to be larger than offset + VRAM MemoryLimitPerResource.
+         */
         size_t decompressionPerSpatialBlockInfoOffset = 0;
     };
 
@@ -179,7 +181,8 @@ namespace Zibra::CE::Decompression
          * Initializes decompressor instance. Can enqueue RHI commands and submit work.
          * Must be called before any other method.
          */
-        virtual size_t GetFrameChunkCount(CompressedFrameContainer* frame) noexcept = 0;
+        virtual size_t GetFrameChunkCount(FrameHandle* frame) noexcept = 0;
+
     public:
         virtual Result Initialize() noexcept = 0;
         /**
@@ -190,7 +193,7 @@ namespace Zibra::CE::Decompression
         virtual Result RegisterResources(const DecompressorResources& resources) noexcept = 0;
         /**
          * Enqueues GPU frame decompression work for provided spatial blocks range.
-         * @param desc - DecompressFrameDesc structure that contains input frame container and decompression spatial blocks range.
+         * @param desc - DecompressFrameDesc structure that contains input frame handle and decompression spatial blocks range.
          * @param outFeedback - [Output] DecompressedFrameStats structure that contains statistics of decompressed frame.
          * @return Writes data to registered resources on GPU side, and decompression channel blocks range to output DecompressedFrameStats.
          */
@@ -208,14 +211,16 @@ namespace Zibra::CE::Decompression
         virtual ~DecompressorFactory() noexcept = default;
 
     public:
-        /// Sets VRAM limit per resource.
-        /// During resource allocation minimum of user defined limit and RHI capabilities limit will be chosen.
+        /**
+         * Sets VRAM limit per resource.
+         * @note During resource allocation minimum of user defined limit and RHI capabilities limit will be chosen.
+         */
         virtual Result SetMemoryLimitPerResource(size_t limit) noexcept = 0;
         virtual Result UseRHI(RHI::RHIRuntime* rhi) noexcept = 0;
         virtual Result Create(Decompressor** outInstance) noexcept = 0;
         /**
          * Destructs DecompressorFactory instance and releases it's memory.
-         * After release pointer becomes invalid.
+         * @warning After release pointer becomes invalid.
          */
         virtual void Release() noexcept = 0;
     };
@@ -245,7 +250,7 @@ namespace Zibra::CE::Decompression
 
     /**
      * General file format -> specific compression implementation frames mapper.
-     * @note All CompressedFrameContainers allocated by this class become not valid after its release.
+     * @note All FrameHandle allocated by this class become not valid after its release.
      */
     class FormatMapper
     {
@@ -254,12 +259,28 @@ namespace Zibra::CE::Decompression
 
     public:
         /**
+         * Returns byte range needed for compression initialization in source ZibraVDB encoded file.
+         * @return byte range in ZibraVDB file.
+         */
+        virtual ByteRange GetInitializationByteRange() noexcept = 0;
+        /**
          * Allocates CompressedFrameContainer object from input position params.
          * @param frame - frame index in original frame space
          * @return CompressedFrameContainer with data or fails assertion.
          */
-        virtual Result FetchFrame(float frame, CompressedFrameContainer** outFrame) noexcept = 0;
+        virtual Result FetchFrame(float frame, FrameHandle** outFrame) noexcept = 0;
+        /**
+         * Returns frame byte range in source ZibraVDB encoded file.
+         * @param frame - frame index in original frame space
+         * @return byte range in ZibraVDB file.
+         */
         virtual ByteRange GetFrameFileByteRange(float frame) noexcept = 0;
+        /**
+         * Returns reads frame info from file and returns it.
+         * @deprecated
+         * @param frame - frame index in original frame space
+         * @return RESULT_SUCCESS in case of success or other code in case of failure.
+         */
         virtual Result FetchFrameInfo(float frame, FrameInfo* outInfo) noexcept = 0;
         /**
          * Returns valid frame range decompression parametrization.
@@ -272,7 +293,7 @@ namespace Zibra::CE::Decompression
          * Finds metadata entry by key and returns payload.
          * @param key - Metadata key
          * @return String payload or nullptr if key is not present.
-         * Memory managed by CompressedFrameContainer instance and present while container exists.
+         * Memory managed by FrameHandle instance and present while handle exists.
          */
         virtual const char* GetMetadataByKey(const char* key) const noexcept = 0;
         virtual size_t GetMetadataCount() const noexcept = 0;

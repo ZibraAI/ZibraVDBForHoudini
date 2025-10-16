@@ -30,12 +30,12 @@ namespace Zibra::ZibraVDBDecompressor
     private:
         static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate);
 
-        void ApplyGridMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::CompressedFrameContainer* frameContainer);
-        void ApplyGridAttributeMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::CompressedFrameContainer* frameContainer);
-        void ApplyGridVisualizationMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::CompressedFrameContainer* frameContainer);
-        void ApplyDetailMetadata(GU_Detail* gdp, CE::Decompression::CompressedFrameContainer* frameContainer);
+        void ApplyGridMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::FrameHandle* frameContainer);
+        void ApplyGridAttributeMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::FrameHandle* frameContainer);
+        void ApplyGridVisualizationMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::FrameHandle* frameContainer);
+        void ApplyDetailMetadata(GU_Detail* gdp, CE::Decompression::FrameHandle* frameContainer);
         std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> DeserializeGridShuffleInfo(
-            CE::Decompression::CompressedFrameContainer* frameContainer) noexcept;
+            CE::Decompression::FrameHandle* frameContainer) noexcept;
         void ReleaseGridShuffleInfo(std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc>& gridDescs) noexcept;
 
     private:
