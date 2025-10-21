@@ -145,10 +145,21 @@ namespace Zibra::ZibraVDBImport
             return error(context);
         }
 
-        const std::set<std::string> selectedFields = ParseSelectedChannels(fields, m_CachedFileInfo.availableGrids);
+        std::unordered_set<std::string> misspelledGrids;
+        const std::set<std::string> selectedFields = ParseSelectedChannels(fields, misspelledGrids);
         if (selectedFields.empty())
         {
             SHOW_ERROR_AND_RETURN("No valid fields selected")
+        }
+        if (!misspelledGrids.empty())
+        {
+            std::string misspelledList;
+            for (const auto& grid : misspelledGrids)
+            {
+                if (!misspelledList.empty()) misspelledList += ", ";
+                misspelledList += grid;
+            }
+            addWarning(LOP_MESSAGE, ("Unknown field names specified: " + misspelledList).c_str());
         }
 
         const HUSD_AutoWriteLock writeLock(editableDataHandle());
@@ -170,8 +181,7 @@ namespace Zibra::ZibraVDBImport
     {
         bool changed = LOP_Node::updateParmsFlags();
 
-        // Load file info when file parameter changes
-        std::string currentFilePath = GetFilePath(0.0);
+        std::string currentFilePath = GetFilePath(CHgetEvalTime());
         if (m_CachedFileInfo.filePath != currentFilePath)
         {
             if (!currentFilePath.empty())
@@ -231,7 +241,7 @@ namespace Zibra::ZibraVDBImport
     // Parses field selection string. Expected formats:
     // "*" - selects all available fields
     // "field1 field2 field3" - space-separated field names (no support for fields with spaces in names)
-    std::set<std::string> LOP_ZibraVDBImport::ParseSelectedChannels(const std::string& fieldsStr, const std::unordered_set<std::string>& availableGrids)
+    std::set<std::string> LOP_ZibraVDBImport::ParseSelectedChannels(const std::string& fieldsStr, std::unordered_set<std::string>& misspelledGrids)
     {
         std::set<std::string> selectedFields;
         
@@ -242,7 +252,7 @@ namespace Zibra::ZibraVDBImport
         
         if (fieldsStr == "*")
         {
-            selectedFields.insert(availableGrids.begin(), availableGrids.end());
+            selectedFields.insert(m_CachedFileInfo.availableGrids.begin(), m_CachedFileInfo.availableGrids.end());
             return selectedFields;
         }
         
@@ -250,9 +260,13 @@ namespace Zibra::ZibraVDBImport
         std::string field;
         while (iss >> field)
         {
-            if (availableGrids.find(field) != availableGrids.end())
+            if (m_CachedFileInfo.availableGrids.find(field) != m_CachedFileInfo.availableGrids.end())
             {
                 selectedFields.insert(field);
+            }
+            else
+            {
+                misspelledGrids.insert(field);
             }
         }
         
