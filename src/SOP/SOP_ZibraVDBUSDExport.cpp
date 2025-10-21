@@ -122,8 +122,9 @@ namespace Zibra::ZibraVDBUSDExport
 
                 UT_String outputFilepath;
                 evalString(outputFilepath, FILENAME_PARAM_NAME, 0, context.getTime());
-                std::string new_path =
-                    outputFilepath.toStdString() + "?node=" + getFullPath().toStdString() + "&frame=" + std::to_string(context.getFrame());
+                std::string new_path = outputFilepath.toStdString() + "?"
+                                     + Helpers::URI_NODE_PARAM + "=" + getFullPath().toStdString() + "&"
+                                     + Helpers::URI_FRAME_PARAM + "=" + std::to_string(context.getFrame());
                 savePathAttrib.set(prim->getMapOffset(), new_path.c_str());
                 m_AvailableChannels.insert(gridName);
             }

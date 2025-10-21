@@ -143,113 +143,136 @@ namespace Zibra::Helpers
         return false;
     }
 
-    bool ParseZibraVDBURI(const std::string& uri, std::map<std::string, std::string>& keyValuePairs)
+    bool IsZibraVDBExtension(const std::string& uri)
     {
-        keyValuePairs.clear();
-
-        size_t questionMarkCount = 0;
-        size_t questionMarkPos = std::string::npos;
-        for (size_t i = 0; i < uri.length(); i++)
-        {
-            if (uri[i] == '?')
-            {
-                questionMarkCount++;
-                questionMarkPos = i;
-                if (questionMarkCount > 1)
-                {
-                    return false;
-                }
-            }
-        }
-
-        std::string filePath = (questionMarkCount == 0) ? uri : uri.substr(0, questionMarkPos);
-        size_t lastDotPos = filePath.find_last_of('.');
-        if (lastDotPos == std::string::npos)
-        {
-            return false;
-        }
-
-        std::string extension = filePath.substr(lastDotPos);
-        if (extension != ZIB_ZIBRAVDB_EXT)
-        {
-            return false;
-        }
-
-        std::filesystem::path filepath(filePath);
-        keyValuePairs["path"] = filepath.parent_path().string();
-        keyValuePairs["name"] = filepath.filename().string();
-
-        if (questionMarkCount == 1 && questionMarkPos + 1 < uri.length())
-        {
-            std::string queryString = uri.substr(questionMarkPos + 1);
-
-            size_t start = 0;
-            size_t ampPos;
-            do
-            {
-                ampPos = queryString.find('&', start);
-                std::string param = (ampPos == std::string::npos) ?
-                    queryString.substr(start) :
-                    queryString.substr(start, ampPos - start);
-
-                size_t equalPos = param.find('=');
-                if (equalPos != std::string::npos && equalPos > 0 && equalPos + 1 < param.length())
-                {
-                    const std::string key = param.substr(0, equalPos);
-                    const std::string value = param.substr(equalPos + 1);
-                    keyValuePairs[key] = value;
-                }
-
-                start = ampPos + 1;
-            } while (ampPos != std::string::npos);
-        }
-
-        return true;
-    }
-
-    bool ParseRelSOPNodeParams(const std::string& pathStr, double& t, std::string& extractedPath)
-    {
-        if (pathStr.compare(0, 4, "op:/") != 0)
-        {
-            return false;
-        }
-
-        // Extract the SOP path from op:/ URL (e.g., "op:/stage/cloud/sopnet/OUT.sop.volumes" -> "/stage/cloud/sopnet")
-        extractedPath.clear();
-        size_t pathStart = 3; // Skip "op:"
-        size_t firstColon = pathStr.find(':', pathStart);
+        const size_t queryPos = uri.find('?');
+        std::string pathPart = (queryPos == std::string::npos) ? uri : uri.substr(0, queryPos);
         
-        std::string fullPath;
-        if (firstColon != std::string::npos) {
-            fullPath = pathStr.substr(pathStart, firstColon - pathStart);
-        } else {
-            fullPath = pathStr.substr(pathStart);
-        }
-        
-        // Remove the last component to get the parent path
-        size_t lastSlash = fullPath.find_last_of('/');
-        if (lastSlash != std::string::npos) {
-            extractedPath = fullPath.substr(0, lastSlash);
-        } else {
-            extractedPath = fullPath;
-        }
-        std::regex t_regex(R"([?&]t=([0-9]+(?:\.[0-9]+)?)(?:[&]|$))");
-        std::smatch match;
-        if (!std::regex_search(pathStr, match, t_regex))
-        {
-            return false;
-        }
-
         try
         {
-            t = std::stod(match[1].str());
+            std::filesystem::path path(pathPart);
+            return path.extension() == ZIB_ZIBRAVDB_EXT;
         }
         catch (const std::exception&)
         {
             return false;
         }
+    }
 
-        return true;
+    std::unordered_map<std::string, std::string> ParseQueryString(const std::string& queryString)
+    {
+        std::unordered_map<std::string, std::string> result;
+
+        size_t start = 0;
+        size_t ampPos;
+        do
+        {
+            ampPos = queryString.find('&', start);
+            std::string param = (ampPos == std::string::npos) ?
+                queryString.substr(start) :
+                queryString.substr(start, ampPos - start);
+
+            size_t equalPos = param.find('=');
+            if (equalPos != std::string::npos && equalPos > 0 && equalPos + 1 < param.length())
+            {
+                const std::string key = param.substr(0, equalPos);
+                const std::string value = param.substr(equalPos + 1);
+                result.insert({key, value});
+            }
+
+            start = ampPos + 1;
+        } while (ampPos != std::string::npos);
+        
+        return result;
+    }
+
+    // Parses a ZibraVDB URI with optional query parameters
+    // Format: path/file.zibravdb?param1=value1&param2=value2
+    //
+    // Returns empty map if URI is invalid (wrong extension, multiple '?' chars, or invalid path)
+    //
+    // Special parameters added automatically:
+    // - URI_PATH_PARAM: directory portion of the URI path (before filename)
+    // - URI_NAME_PARAM: filename portion of the URI path
+    //
+    // Note: If duplicate parameters exist in query string, later values override earlier ones
+    std::unordered_map<std::string, std::string> ParseZibraVDBPath(const std::string& uri)
+    {
+        if (!IsZibraVDBExtension(uri))
+        {
+            return {};
+        }
+
+        std::unordered_map<std::string, std::string> result;
+
+        const size_t questionMarkPos = uri.find('?');
+        if (uri.find('?', questionMarkPos + 1) != std::string::npos)
+        {
+            // More than one '?' char in uri
+            return {};
+        }
+        // If found some query params
+        if (questionMarkPos != std::string::npos && questionMarkPos + 1 < uri.length())
+        {
+            std::string queryString = uri.substr(questionMarkPos + 1);
+            auto queryParams = ParseQueryString(queryString);
+            result.insert(queryParams.begin(), queryParams.end());
+        }
+
+        try
+        {
+            const std::string uriPath = (questionMarkPos == std::string::npos) ? uri : uri.substr(0, questionMarkPos);
+            const std::filesystem::path filepath(uriPath);
+            result.insert({URI_PATH_PARAM, filepath.parent_path().string()});
+            result.insert({URI_NAME_PARAM, filepath.filename().string()});
+        }
+        catch (const std::exception&)
+        {
+            return {};
+        }
+
+        return result;
+    }
+
+    // Parses a Houdini SOP node URI with parameters from "op:/" format
+    // Format: op:/path/to/node.sop.volumes:FORMAT_ARGS:param1=value1&param2=value2&t=0.123
+    // Example:
+    // op:/obj/geo1/zibravdb_configure_usd1.sop.volumes:SDF_FORMAT_ARGS:authormaterialpath=0&globalauthortimesamples=1&pathprefix=/sopimport1&savepath=/home/sskaplun/src/houdini/usd/test/explosion.usda&savepathtimedep=0&setmissingwidths=0.010000&t=0.4166666666666667
+    //
+    // Returns empty map if URI is invalid (doesn't start with "op:/" or has no parameters after last colon)
+    //
+    // Special parameters added automatically:
+    // - URI_PATH_PARAM: parent path of the SOP node (e.g., "/obj/geo1" from "/obj/geo1/node")
+    //
+    // Note: Parameters are extracted from the part after the last colon
+    // If duplicate parameters exist, later values override earlier ones
+    std::unordered_map<std::string, std::string> ParseRelSOPNodeParams(const std::string& pathStr)
+    {
+        if (pathStr.compare(0, 4, "op:/") != 0)
+        {
+            return {};
+        }
+
+        std::unordered_map<std::string, std::string> result;
+
+        // Find the last colon to get the query string part
+        const size_t lastColonPos = pathStr.find_last_of(':');
+        if (lastColonPos == std::string::npos || lastColonPos + 1 >= pathStr.length())
+        {
+            return {};
+        }
+
+        const std::string queryString = pathStr.substr(lastColonPos + 1);
+        auto queryParams = ParseQueryString(queryString);
+        result.insert(queryParams.begin(), queryParams.end());
+
+        // Extract the SOP path (everything between "op:/" and the last colon)
+        std::string fullPath = pathStr.substr(3, lastColonPos - 3);
+        // Remove the last component to get the parent path
+        const size_t lastSlash = fullPath.find_last_of('/');
+        result.insert({URI_PATH_PARAM, lastSlash != std::string::npos ? fullPath.substr(0, lastSlash) : fullPath});
+
+        return result;
     }
 
     bool TryParseInt(const std::string& str, int& result)

@@ -83,8 +83,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         {
             return false;
         }
-        std::map<std::string, std::string> parsedURI;
-        if (!Helpers::ParseZibraVDBURI(pathStr, parsedURI))
+        if (!Helpers::IsZibraVDBExtension(pathStr))
         {
             return false;
         }
@@ -100,8 +99,9 @@ namespace Zibra::ZibraVDBOutputProcessor
             return false;
         }
 
-        auto nodeIt = parsedURI.find("node");
-        if (nodeIt == parsedURI.end())
+        auto queryParams = Helpers::ParseZibraVDBPath(pathStr);
+        auto nodeIt = queryParams.find(Helpers::URI_NODE_PARAM);
+        if (nodeIt == queryParams.end())
         {
             error = COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_MISSING_NODE_PARAM);
             return false;
@@ -112,8 +112,8 @@ namespace Zibra::ZibraVDBOutputProcessor
             return false;
         }
 
-        auto frameIt = parsedURI.find("frame");
-        if (frameIt == parsedURI.end())
+        auto frameIt = queryParams.find(Helpers::URI_FRAME_PARAM);
+        if (frameIt == queryParams.end())
         {
             error = COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_MISSING_FRAME_PARAM);
             return false;
@@ -126,7 +126,7 @@ namespace Zibra::ZibraVDBOutputProcessor
 
         std::string decodedNodeName = nodeIt->second;
         std::string frameStr = frameIt->second;
-        std::string filePath = parsedURI["path"] + "/" + parsedURI["name"];
+        std::string filePath = queryParams[Helpers::URI_PATH_PARAM] + "/" + queryParams[queryParams[Helpers::URI_NAME_PARAM]];
 
         OP_Node* opNode = OPgetDirector()->findNode(decodedNodeName.c_str());
         if (!opNode)
@@ -212,15 +212,25 @@ namespace Zibra::ZibraVDBOutputProcessor
         }
 
         const std::string pathStr = assetPath.toStdString();
-        double t;
-        std::string extractedPath;
+        auto queryParams = Helpers::ParseRelSOPNodeParams(pathStr);
+        if (queryParams.empty() || queryParams.find("t") == queryParams.end() ||
+            queryParams.find(Helpers::URI_PATH_PARAM) == queryParams.end())
+        {
+            return false;
+        }
 
-        if (!Helpers::ParseRelSOPNodeParams(pathStr, t, extractedPath))
+        double time = 0;
+        try
+        {
+            time = std::stod(queryParams["t"]);
+        }
+        catch (const std::exception&)
         {
             return false;
         }
 
         std::string layerPath = referencingLayerPath.toStdString();
+        std::string extractedPath = queryParams[Helpers::URI_PATH_PARAM];
 
         // We search for the compression entry which we added in processSavePath
         auto it = std::find_if(m_CompressionEntries.begin(), m_CompressionEntries.end(), [&layerPath, &extractedPath](const auto& entry) {
@@ -237,7 +247,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         }
 
         auto& [sopNode, entry] = *it;
-        int compressionFrameIndex = OPgetDirector()->getChannelManager()->getFrame(t);
+        int compressionFrameIndex = OPgetDirector()->getChannelManager()->getFrame(time);
         std::string outputRef = entry.compressedFilePath.string() + "?frame=" + std::to_string(compressionFrameIndex);
         newPath = UT_String(outputRef);
 
@@ -254,7 +264,7 @@ namespace Zibra::ZibraVDBOutputProcessor
                 }
             }
         }
-        RecookNodeAndCompressVDBGrids(sopNode, t, entry.compressorManager.get());
+        RecookNodeAndCompressVDBGrids(sopNode, time, entry.compressorManager.get());
 
         return true;
     }
