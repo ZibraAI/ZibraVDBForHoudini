@@ -40,4 +40,5 @@
 #include "pxr/usd/ar/notice.h"
 #include "pxr/usd/ar/resolver.h"
 
+// Project code
 #include "Globals.h"
