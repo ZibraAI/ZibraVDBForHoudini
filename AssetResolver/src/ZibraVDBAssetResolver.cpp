@@ -75,16 +75,16 @@ std::string ZibraVDBResolver::_CreateIdentifier(const std::string& assetPath, co
 
 std::string ZibraVDBResolver::_CreateIdentifierForNewAsset(const std::string& assetPath, const ArResolvedPath& anchorAssetPath) const
 {
-    if (!Zibra::Helpers::IsZibraVDBExtension(assetPath))
+    // ZibraVDB files are created through the ROP compressor, not through USD's layer API.
+    // This resolver only handles decompression of existing .zibravdb files.
+    if (Zibra::Helpers::IsZibraVDBExtension(assetPath))
     {
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
-            .Msg("ZibraVDBResolver::CreateIdentifierForNewAsset - Failed to parse ZibraVDB URI: '%s'\n", assetPath.c_str());
-        return ArDefaultResolver().CreateIdentifierForNewAsset(assetPath, anchorAssetPath);
+            .Msg("ZibraVDBResolver::CreateIdentifierForNewAsset - Cannot create new ZibraVDB files through USD layer API.\n");
+        return {};
     }
 
-    TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
-        .Msg("ZibraVDBResolver::CreateIdentifierForNewAsset('%s', '%s')\n", assetPath.c_str(), anchorAssetPath.GetPathString().c_str());
-    return _CreateIdentifier(assetPath, anchorAssetPath);
+    return ArDefaultResolver().CreateIdentifierForNewAsset(assetPath, anchorAssetPath);
 }
 
 ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
@@ -144,7 +144,17 @@ ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
 ArResolvedPath ZibraVDBResolver::_ResolveForNewAsset(const std::string& assetPath) const
 {
     TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_ResolveForNewAsset('%s')\n", assetPath.c_str());
-    return _Resolve(assetPath);
+
+    // ZibraVDB files are created through the ROP compressor, not through USD's layer API.
+    // This resolver only handles decompression of existing .zibravdb files.
+    if (Zibra::Helpers::IsZibraVDBExtension(assetPath))
+    {
+        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
+            .Msg("ZibraVDBResolver::_ResolveForNewAsset - Cannot create new ZibraVDB files through USD layer API.\n");
+        return {};
+    }
+
+    return ArDefaultResolver().ResolveForNewAsset(assetPath);
 }
 
 std::shared_ptr<ArAsset> ZibraVDBResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
