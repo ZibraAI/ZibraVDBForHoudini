@@ -145,21 +145,21 @@ namespace Zibra::ZibraVDBImport
             return error(context);
         }
 
-        std::unordered_set<std::string> misspelledGrids;
-        const std::set<std::string> selectedFields = ParseSelectedChannels(fields, misspelledGrids);
+        std::unordered_set<std::string> invalidGridNames;
+        const std::set<std::string> selectedFields = ParseSelectedChannels(fields, invalidGridNames);
         if (selectedFields.empty())
         {
             SHOW_ERROR_AND_RETURN("No valid fields selected")
         }
-        if (!misspelledGrids.empty())
+        if (!invalidGridNames.empty())
         {
-            std::string misspelledList;
-            for (const auto& grid : misspelledGrids)
+            std::string invalidNamesList;
+            for (const auto& grid : invalidGridNames)
             {
-                if (!misspelledList.empty()) misspelledList += ", ";
-                misspelledList += grid;
+                if (!invalidNamesList.empty()) invalidNamesList += ", ";
+                invalidNamesList += grid;
             }
-            addWarning(LOP_MESSAGE, ("Unknown field names specified: " + misspelledList).c_str());
+            addWarning(LOP_MESSAGE, ("Unknown field names specified: " + invalidNamesList).c_str());
         }
 
         const HUSD_AutoWriteLock writeLock(editableDataHandle());
@@ -290,7 +290,8 @@ namespace Zibra::ZibraVDBImport
             return info;
         }
 
-        if (!Helpers::IsZibraVDBExtension(filePath))
+        auto zibraURI = Helpers::ParseZibraVDBURI(filePath);
+        if (!zibraURI.isZibraVDB || !zibraURI.isValid || !std::filesystem::exists(zibraURI.filepath))
         {
             info.error = "No valid .zibravdb file found";
             return info;
@@ -312,7 +313,7 @@ namespace Zibra::ZibraVDBImport
         if (result != CE::ZCE_SUCCESS)
         {
             decompressor.Release();
-            info.error = "Failed to register ZibraVDB file with decompressor";
+            info.error = "Failed to register ZibraVDB file with decompressor: " + LibraryUtils::ErrorCodeToString(result);
             return info;
         }
 

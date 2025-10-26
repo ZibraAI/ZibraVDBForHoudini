@@ -7,43 +7,47 @@
 
 namespace Zibra::AssetResolver
 {
+    std::string InitializeTempDir()
+    {
+        std::string dir = TfStringCatPaths(TfGetenv("HOUDINI_TEMP_DIR"), ZIB_TMP_FILES_FOLDER_NAME);
+        if (!TfPathExists(dir))
+        {
+            if (!TfMakeDirs(dir))
+            {
+                TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
+                    .Msg("DecompressionItem::GetTempDir - Failed to create tmp directory: '%s'\n", dir.c_str());
+            }
+        }
+        return dir;
+    }
+
+    int InitializeMaxCachedFrames()
+    {
+        const char* envValue = std::getenv("ZIB_MAX_CACHED_FILES_COUNT");
+        int numOfCachedFrames;
+        if (envValue && Helpers::TryParseInt(envValue, numOfCachedFrames))
+        {
+            if (numOfCachedFrames > 0)
+            {
+                return numOfCachedFrames;
+            }
+            TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
+                .Msg("ZIB_MAX_CACHED_FILES_COUNT is set to %d which is invalid. Falling back to default value: %d\n", numOfCachedFrames,
+                     ZIB_MAX_CACHED_FRAMES_DEFAULT);
+        }
+        return ZIB_MAX_CACHED_FRAMES_DEFAULT;
+    }
+
     const std::string& DecompressionSequenceItem::GetTempDir()
     {
-        static std::string ms_tempDir = []()
-        {
-            std::string dir = TfStringCatPaths(TfGetenv("HOUDINI_TEMP_DIR"), ZIB_TMP_FILES_FOLDER_NAME);
-            if (!TfPathExists(dir))
-            {
-                if (!TfMakeDirs(dir))
-                {
-                    TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
-                        .Msg("DecompressionItem::GetTempDir - Failed to create tmp directory: '%s'\n", dir.c_str());
-                }
-            }
-            return dir;
-        }();
-        return ms_tempDir;
+        static std::string tempDir = InitializeTempDir();
+        return tempDir;
     }
 
     int DecompressionSequenceItem::GetMaxCachedFrames()
     {
-        static int ms_MaxCachedFrames = []()
-        {
-            const char* envValue = std::getenv("ZIB_MAX_CACHED_FILES_COUNT");
-            int numOfCachedFrames;
-            if (envValue && Helpers::TryParseInt(envValue, numOfCachedFrames))
-            {
-                if (numOfCachedFrames >= 0)
-                {
-                    return numOfCachedFrames;
-                }
-                TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
-                    .Msg("ZIB_MAX_CACHED_FILES_COUNT is set to %d which is invalid. Falling back to default value: %d\n", numOfCachedFrames,
-                         ZIB_MAX_CACHED_FRAMES_DEFAULT);
-            }
-            return ZIB_MAX_CACHED_FRAMES_DEFAULT;
-        }();
-        return ms_MaxCachedFrames;
+        static int maxCachedFrames = InitializeMaxCachedFrames();
+        return maxCachedFrames;
     }
 
     DecompressionSequenceItem::DecompressionSequenceItem(const std::string& zibraVDBPath)

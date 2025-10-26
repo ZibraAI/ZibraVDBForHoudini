@@ -79,11 +79,7 @@ namespace Zibra::ZibraVDBOutputProcessor
     {
         std::string pathStr = assetPath.toStdString();
 
-        if (assetIsLayer)
-        {
-            return false;
-        }
-        if (!Helpers::IsZibraVDBExtension(pathStr))
+        if (assetIsLayer || !Helpers::ParseZibraVDBURI(pathStr).isZibraVDB)
         {
             return false;
         }
@@ -99,34 +95,26 @@ namespace Zibra::ZibraVDBOutputProcessor
             return false;
         }
 
-        auto queryParams = Helpers::ParseZibraVDBPath(pathStr);
-        auto nodeIt = queryParams.find(Helpers::URI_NODE_PARAM);
-        if (nodeIt == queryParams.end())
+        auto parsedURI = Helpers::ParseZibraVDBURI(pathStr);
+        if (!parsedURI.isValid)
         {
-            error = COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_MISSING_NODE_PARAM);
+            error = COMPOSE_PROCESSOR_ERROR("Invalid ZibraVDB URI format");
             return false;
         }
-        if (nodeIt->second.empty())
+        if (parsedURI.configurationNode.empty())
         {
             error = COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_EMPTY_NODE_PARAM);
             return false;
         }
-
-        auto frameIt = queryParams.find(Helpers::URI_FRAME_PARAM);
-        if (frameIt == queryParams.end())
-        {
-            error = COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_MISSING_FRAME_PARAM);
-            return false;
-        }
-        if (frameIt->second.empty())
+        if (parsedURI.frame == 0)
         {
             error = COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_EMPTY_FRAME_PARAM);
             return false;
         }
 
-        std::string decodedNodeName = nodeIt->second;
-        std::string frameStr = frameIt->second;
-        std::string filePath = queryParams[Helpers::URI_PATH_PARAM] + "/" + queryParams[queryParams[Helpers::URI_NAME_PARAM]];
+        std::string decodedNodeName = parsedURI.configurationNode;
+        std::string frameStr = std::to_string(parsedURI.frame);
+        std::string filePath = parsedURI.filepath.string();
 
         OP_Node* opNode = OPgetDirector()->findNode(decodedNodeName.c_str());
         if (!opNode)
@@ -142,12 +130,7 @@ namespace Zibra::ZibraVDBOutputProcessor
             return false;
         }
 
-        int frameIndex;
-        if (!Helpers::TryParseInt(frameStr, frameIndex))
-        {
-            error = COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_PARSE_FRAME_INDEX_TEMPLATE + frameStr);
-            return false;
-        }
+        int frameIndex = parsedURI.frame;
 
         float quality = sopNode->GetCompressionQuality();
 
@@ -189,7 +172,7 @@ namespace Zibra::ZibraVDBOutputProcessor
             status = entry.compressorManager->StartSequence(UT_String(filePath));
             if (status != CE::ZCE_SUCCESS)
             {
-                error = COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_START_COMPRESSION_TEMPLATE + std::to_string(status));
+                error = COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_START_COMPRESSION_TEMPLATE + LibraryUtils::ErrorCodeToString(status));
                 return false;
             }
             entry.requestedFrames.insert(frameIndex);
@@ -203,6 +186,56 @@ namespace Zibra::ZibraVDBOutputProcessor
         return true;
     }
 
+    // Parses a SOP node reference path and extracts node path and frame information
+    // Format: op:/path/to/node.sop.volumes:FORMAT_ARGS:param1=value1&t=0.123
+    // Returns true if parsing was successful
+    bool ParseSOPNodeReferencePath(const std::string& pathStr, std::string& nodePath, double& frame)
+    {
+        if (pathStr.compare(0, 4, "op:/") != 0)
+        {
+            return false;
+        }
+
+        // Find the last colon to get the query string part
+        const size_t lastColonPos = pathStr.find_last_of(':');
+        if (lastColonPos == std::string::npos || lastColonPos + 1 >= pathStr.length())
+        {
+            return false;
+        }
+
+        try
+        {
+            const std::string queryString = pathStr.substr(lastColonPos + 1);
+            auto queryParams = Helpers::ParseQueryParamsString(queryString);
+
+            // Extract the SOP path (everything between "op:/" and the last colon)
+            std::string fullPath = pathStr.substr(3, lastColonPos - 3);
+            
+            // Remove the last component to get the parent path (node path)
+            const size_t lastSlash = fullPath.find_last_of('/');
+            nodePath = lastSlash != std::string::npos ? fullPath.substr(0, lastSlash) : fullPath;
+
+            // Extract frame parameter (t parameter)
+            auto frameIt = queryParams.find("t");
+            if (frameIt != queryParams.end())
+            {
+                char* endPtr;
+                frame = std::strtod(frameIt->second.c_str(), &endPtr);
+                if (endPtr == frameIt->second.c_str() || *endPtr != '\0')
+                {
+                    // Invalid frame format
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        catch (const std::exception&)
+        {
+            return false;
+        }
+    }
+
     bool ZibraVDBOutputProcessor::processReferencePath(const UT_StringRef& assetPath, const UT_StringRef& referencingLayerPath,
                                                        bool assetIsLayer, UT_String& newPath, UT_String& error)
     {
@@ -212,32 +245,22 @@ namespace Zibra::ZibraVDBOutputProcessor
         }
 
         const std::string pathStr = assetPath.toStdString();
-        auto queryParams = Helpers::ParseRelSOPNodeParams(pathStr);
-        if (queryParams.empty() || queryParams.find("t") == queryParams.end() ||
-            queryParams.find(Helpers::URI_PATH_PARAM) == queryParams.end())
-        {
-            return false;
-        }
-
-        double time = 0;
-        try
-        {
-            time = std::stod(queryParams["t"]);
-        }
-        catch (const std::exception&)
+        
+        std::string configSopNodePath;
+        double time = 0.0;
+        if (!ParseSOPNodeReferencePath(pathStr, configSopNodePath, time))
         {
             return false;
         }
 
         std::string layerPath = referencingLayerPath.toStdString();
-        std::string extractedPath = queryParams[Helpers::URI_PATH_PARAM];
 
         // We search for the compression entry which we added in processSavePath
-        auto it = std::find_if(m_CompressionEntries.begin(), m_CompressionEntries.end(), [&layerPath, &extractedPath](const auto& entry) {
+        auto it = std::find_if(m_CompressionEntries.begin(), m_CompressionEntries.end(), [&layerPath, &configSopNodePath](const auto& entry) {
             bool layerMatches = entry.second.referencingLayerPath == layerPath;
             std::string sopNodePath = entry.first->getFullPath().c_str();
 
-            bool pathMatches = extractedPath.empty() || sopNodePath.find(extractedPath) == 0;
+            bool pathMatches = configSopNodePath.empty() || sopNodePath.find(configSopNodePath) == 0;
             return layerMatches && pathMatches;
         });
 
@@ -279,7 +302,7 @@ namespace Zibra::ZibraVDBOutputProcessor
                 auto status = entry.compressorManager->FinishSequence(warning);
                 if (status != CE::ZCE_SUCCESS)
                 {
-                    error = COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_FINISH_COMPRESSION_TEMPLATE + std::to_string(status));
+                    error = COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_FINISH_COMPRESSION_TEMPLATE + LibraryUtils::ErrorCodeToString(status));
                     return false;
                 }
                 entry.compressorManager->Release();
@@ -378,7 +401,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         auto status = compressorManager->CompressFrame(compressFrameDesc, &frameManager);
         if (status != CE::ZCE_SUCCESS)
         {
-            UT_String error(COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_COMPRESS_FRAME_FAILED_TEMPLATE + std::to_string(status)));
+            UT_String error(COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_COMPRESS_FRAME_FAILED_TEMPLATE + LibraryUtils::ErrorCodeToString(status)));
             UTaddError(error.c_str(), UT_ERROR_ABORT, error.c_str());
             frameLoader.ReleaseFrame(frame);
             return;
@@ -403,7 +426,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         status = frameManager->Finish();
         if (status != CE::ZCE_SUCCESS)
         {
-            UT_String error(COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_FINISH_FRAME_MANAGER_TEMPLATE + std::to_string(status)));
+            UT_String error(COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_FINISH_FRAME_MANAGER_TEMPLATE + LibraryUtils::ErrorCodeToString(status)));
             UTaddError(error.c_str(), UT_ERROR_ABORT, error.c_str());
         }
         frameLoader.ReleaseFrame(frame);

@@ -31,18 +31,20 @@ ZSDK_RUNTIME_FUNCTION_LIST_APPLY(ZSDK_DEFINE_FUNCTION_POINTER)
 namespace Zibra::LibraryUtils
 {
 #if ZIB_TARGET_OS_WIN
-#define ZIB_TARGET_OS_NAME "Windows"
+#define ZIB_TARGET_OS_NAME "WIN"
 #define ZIB_DYNAMIC_LIB_NAME "ZibraVDBSDK.dll"
 #elif ZIB_TARGET_OS_LINUX
-#define ZIB_TARGET_OS_NAME "Linux"
+#define ZIB_TARGET_OS_NAME "LINUX"
 #define ZIB_DYNAMIC_LIB_NAME "libZibraVDBSDK.so"
 #elif ZIB_TARGET_OS_MAC
-#define ZIB_TARGET_OS_NAME "macOS"
+#define ZIB_TARGET_OS_NAME "MAC"
 // actual dynamic library loadable by dlopen is inside .bundle
 #define ZIB_DYNAMIC_LIB_NAME "ZibraVDBSDK.bundle/Contents/MacOS/ZibraVDBSDK"
 #else
 #error Unsupported platform
 #endif
+
+#define ZIB_ASSET_RESOLVER_RESOURCES_FOLDER "dso/usd_plugins/ZibraVDBResolver_" ZIB_TARGET_OS_NAME "/resources"
 
     bool g_IsLibraryLoaded = false;
     bool g_IsLibraryInitialized = false;
@@ -277,15 +279,7 @@ namespace Zibra::LibraryUtils
             return;
         }
 
-#if ZIB_TARGET_OS_WIN
-#define PLUG_INFO_FOLDER "ZibraVDBResolver_win"
-#elif ZIB_TARGET_OS_LINUX
-#define PLUG_INFO_FOLDER "ZibraVDBResolver_linux"
-#elif ZIB_TARGET_OS_MAC
-#define PLUG_INFO_FOLDER "ZibraVDBResolver_mac"
-#endif
-
-        auto baseLibPaths = Zibra::LibraryUtils::GetLibrariesBasePaths();
+        auto baseLibPaths = GetLibrariesBasePaths();
         for (const auto& baseLibPath : baseLibPaths)
         {
             if (baseLibPath.empty() || !std::filesystem::exists(baseLibPath))
@@ -293,7 +287,7 @@ namespace Zibra::LibraryUtils
                 continue;
             }
 
-            std::filesystem::path resourcesPath = baseLibPath / "dso"/ "usd_plugins" / PLUG_INFO_FOLDER / "resources";
+            std::filesystem::path resourcesPath = baseLibPath / ZIB_ASSET_RESOLVER_RESOURCES_FOLDER;
             if (!std::filesystem::exists(resourcesPath) || !std::filesystem::is_directory(resourcesPath))
             {
                 continue;

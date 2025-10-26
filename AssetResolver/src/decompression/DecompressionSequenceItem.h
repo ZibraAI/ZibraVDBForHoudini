@@ -14,8 +14,6 @@ namespace Zibra::AssetResolver
 
         DecompressionSequenceItem(const DecompressionSequenceItem&) = delete;
         DecompressionSequenceItem& operator=(const DecompressionSequenceItem&) = delete;
-        DecompressionSequenceItem(DecompressionSequenceItem&&) = default;
-        DecompressionSequenceItem& operator=(DecompressionSequenceItem&&) = default;
 
         std::string DecompressFrame(int frame);
 
