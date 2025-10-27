@@ -1,6 +1,6 @@
 #include "PrecompiledHeader.h"
 
-#include "LicenseManager.h"
+#include "licensing/LicenseManager.h"
 
 #include "bridge/LibraryUtils.h"
 #include "ui/MessageBox.h"

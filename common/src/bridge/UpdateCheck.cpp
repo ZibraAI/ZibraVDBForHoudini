@@ -2,7 +2,7 @@
 
 #include "UpdateCheck.h"
 
-#include "LibraryUtils.h"
+#include "bridge/LibraryUtils.h"
 #include "networking/NetworkRequest.h"
 
 namespace Zibra::UpdateCheck

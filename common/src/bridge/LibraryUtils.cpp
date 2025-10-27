@@ -1,6 +1,6 @@
 #include "PrecompiledHeader.h"
 
-#include "LibraryUtils.h"
+#include "bridge/LibraryUtils.h"
 
 #if !LABS_BUILD
 #include <pxr/base/plug/registry.h>

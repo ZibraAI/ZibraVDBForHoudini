@@ -1,6 +1,8 @@
 #include <UT/UT_EnvControl.h>
 #include <Zibra/RHI.h>
 
+#include "Types.h"
+
 namespace Zibra::Helpers
 {
     // Querying environment variables
@@ -16,14 +18,6 @@ namespace Zibra::Helpers
     bool NeedForceSoftwareDevice();
 
     // URI parsing
-    struct ParsedZibraURI {
-        std::filesystem::path filepath;
-        std::string configurationNode;
-        int frame = -1;
-        bool isZibraVDB = false;
-        bool isValid = false;
-    };
-    
     std::map<std::string, std::string> ParseQueryParamsString(const std::string& queryString);
     ParsedZibraURI ParseZibraVDBURI(const std::string& uri);
 

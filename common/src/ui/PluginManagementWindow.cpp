@@ -1,4 +1,6 @@
-#include "PluginManagementWindow.h"
+#include "PrecompiledHeader.h"
+
+#include "ui/PluginManagementWindow.h"
 
 #include "MessageBox.h"
 

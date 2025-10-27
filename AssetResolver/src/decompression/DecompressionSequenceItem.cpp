@@ -135,11 +135,11 @@ namespace Zibra::AssetResolver
         openvdb::MetaMap fileMetadata;
         switch (Utils::MetadataHelper::ApplyDetailMetadata(fileMetadata, frameContainer))
         {
-        case Utils::MetaAttributesLoadStatus::FATAL_ERROR_INVALID_METADATA:
+        case MetaAttributesLoadStatus::FATAL_ERROR_INVALID_METADATA:
             TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
                 .Msg("DecompressionItem::DecompressFrame - Corrupted metadata for channel. Canceling attributes transfer.\n");
             break;
-        case Utils::MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA:
+        case MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA:
             TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
                 .Msg("DecompressionItem::DecompressFrame - Partially corrupted metadata for channel. Skipping invalid attributes.\n");
             break;
@@ -152,11 +152,11 @@ namespace Zibra::AssetResolver
         {
             switch (Utils::MetadataHelper::ApplyGridMetadata(grid, frameContainer))
             {
-            case Utils::MetaAttributesLoadStatus::FATAL_ERROR_INVALID_METADATA:
+            case MetaAttributesLoadStatus::FATAL_ERROR_INVALID_METADATA:
                 TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
                     .Msg("DecompressionItem::DecompressFrame - Corrupted metadata for grid '%s'. Canceling attributes transfer.\n", grid->getName().c_str());
                 break;
-            case Utils::MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA:
+            case MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA:
                 TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
                     .Msg("DecompressionItem::DecompressFrame - Partially corrupted metadata for grid '%s'. Skipping invalid attributes.\n", grid->getName().c_str());
                 break;

@@ -1,6 +1,6 @@
 #include "PrecompiledHeader.h"
 
-#include "DecompressorManager.h"
+#include "utils/DecompressorManager.h"
 
 #include "bridge/LibraryUtils.h"
 #include "utils/Helpers.h"
