@@ -43,10 +43,10 @@ std::string ZibraVDBResolver::_CreateIdentifier(const std::string& assetPath, co
         return {};
     }
 
-    if (TfIsRelativePath(zibraURI.filepath) && anchorAssetPath)
+    if (TfIsRelativePath(zibraURI.filepath.string()) && anchorAssetPath)
     {
         std::string anchorDir = TfGetPathName(anchorAssetPath);
-        std::string resolvedPath = TfStringCatPaths(anchorDir, zibraURI.filepath);
+        std::string resolvedPath = TfStringCatPaths(anchorDir, zibraURI.filepath.string());
         std::string normalizedPath = TfNormPath(resolvedPath);
 
         std::string resolvedURI = normalizedPath;
@@ -91,9 +91,8 @@ ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_Resolve - ZibraVDB URI is malformatted: '%s'\n", assetPath.c_str());
         return {};
     }
-    // std::string actualFilePath = zibraURI.filepath.string();
-    // int frame = zibraURI.frame;
-    if (!TfPathExists(zibraURI.filepath))
+
+    if (!TfPathExists(zibraURI.filepath.string()))
     {
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
             .Msg("ZibraVDBResolver::_Resolve - ZibraVDB file does not exist: '%s'\n", zibraURI.filepath.c_str());
@@ -107,7 +106,7 @@ ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
     }
 
     auto& decompressionHelper = Zibra::AssetResolver::DecompressionHelper::GetInstance();
-    std::string decompressedPath = decompressionHelper.DecompressZibraVDBFile(zibraURI.filepath, zibraURI.frame);
+    std::string decompressedPath = decompressionHelper.DecompressZibraVDBFile(zibraURI.filepath.string(), zibraURI.frame);
     if (decompressedPath.empty())
     {
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)

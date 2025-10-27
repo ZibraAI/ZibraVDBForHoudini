@@ -189,25 +189,23 @@ namespace Zibra::ZibraVDBOutputProcessor
     // Returns true if parsing was successful
     bool ParseSOPNodeReferencePath(const std::string& pathStr, std::string& nodePath, double& frame)
     {
-        if (pathStr.compare(0, 4, "op:/") != 0)
+        if (pathStr.compare(0, 3, "op:") != 0)
         {
             return false;
         }
 
-        // Find the last colon to get the query string part
-        const size_t lastColonPos = pathStr.find_last_of(':');
-        if (lastColonPos == std::string::npos || lastColonPos + 1 >= pathStr.length())
+        // Find the first colon after "op:" to get the query string part
+        const size_t colonAfterPrefix = pathStr.find(':', 3);
+        if (colonAfterPrefix == std::string::npos || colonAfterPrefix + 1 >= pathStr.length())
         {
             return false;
         }
 
         try
         {
-            const std::string queryString = pathStr.substr(lastColonPos + 1);
+            const std::string queryString = pathStr.substr(colonAfterPrefix + 1);
             auto queryParams = Helpers::ParseQueryParamsString(queryString);
-
-            // Extract the SOP path (everything between "op:/" and the last colon)
-            std::string fullPath = pathStr.substr(3, lastColonPos - 3);
+            std::string fullPath = pathStr.substr(3, colonAfterPrefix - 3);
             
             // Remove the last component to get the parent path (node path)
             const size_t lastSlash = fullPath.find_last_of('/');
