@@ -4,8 +4,6 @@
 
 #include "SOP/SOP_ZibraVDBUSDExport.h"
 
-#define COMPOSE_PROCESSOR_ERROR(message) (std::string(ERROR_PREFIX) + (message))
-
 namespace Zibra::ZibraVDBOutputProcessor
 {
     using namespace std::literals;
@@ -14,7 +12,7 @@ namespace Zibra::ZibraVDBOutputProcessor
     {
         if constexpr (!LibraryUtils::IsPlatformSupported())
         {
-            error = COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_MESSAGE_PLATFORM_NOT_SUPPORTED);
+            error = ERROR_PREFIX + ZIBRAVDB_ERROR_MESSAGE_PLATFORM_NOT_SUPPORTED;
             UTaddError(error.buffer(), UT_ERROR_MESSAGE, error.buffer());
             return false;
         }
@@ -22,7 +20,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         LibraryUtils::LoadSDKLibrary();
         if (!LibraryUtils::IsSDKLibraryLoaded())
         {
-            error = COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_MESSAGE_COMPRESSION_ENGINE_MISSING);
+            error = ERROR_PREFIX + ZIBRAVDB_ERROR_MESSAGE_COMPRESSION_ENGINE_MISSING;
             UTaddError(error.buffer(), UT_ERROR_MESSAGE, error.buffer());
             return false;
         }
@@ -34,13 +32,13 @@ namespace Zibra::ZibraVDBOutputProcessor
     {
         if (!LibraryUtils::IsSDKLibraryLoaded())
         {
-            error = COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_MESSAGE_COMPRESSION_ENGINE_MISSING);
+            error = ERROR_PREFIX + ZIBRAVDB_ERROR_MESSAGE_COMPRESSION_ENGINE_MISSING;
             UTaddError(error.buffer(), UT_ERROR_MESSAGE, error.buffer());
             return false;
         }
         if (!LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Compression))
         {
-            error = COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_MESSAGE_LICENSE_NO_COMPRESSION);
+            error = ERROR_PREFIX + ZIBRAVDB_ERROR_MESSAGE_LICENSE_NO_COMPRESSION;
             UTaddError(error.buffer(), UT_ERROR_MESSAGE, error.buffer());
             return false;
         }
@@ -98,17 +96,17 @@ namespace Zibra::ZibraVDBOutputProcessor
         auto parsedURI = Helpers::ParseZibraVDBURI(pathStr);
         if (!parsedURI.isValid)
         {
-            error = COMPOSE_PROCESSOR_ERROR("Invalid ZibraVDB URI format");
+            error = ERROR_PREFIX + "Invalid ZibraVDB URI format"s;
             return false;
         }
         if (parsedURI.configurationNode.empty())
         {
-            error = COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_EMPTY_NODE_PARAM);
+            error = ERROR_PREFIX + ZIBRAVDB_ERROR_EMPTY_NODE_PARAM;
             return false;
         }
         if (parsedURI.frame == 0)
         {
-            error = COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_EMPTY_FRAME_PARAM);
+            error = ERROR_PREFIX + ZIBRAVDB_ERROR_EMPTY_FRAME_PARAM;
             return false;
         }
 
@@ -119,14 +117,14 @@ namespace Zibra::ZibraVDBOutputProcessor
         OP_Node* opNode = OPgetDirector()->findNode(decodedNodeName.c_str());
         if (!opNode)
         {
-            error = COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_NODE_NOT_FOUND_TEMPLATE + decodedNodeName);
+            error = ERROR_PREFIX + ZIBRAVDB_ERROR_NODE_NOT_FOUND_TEMPLATE + decodedNodeName;
             return false;
         }
 
         auto* sopNode = dynamic_cast<ZibraVDBUSDExport::SOP_ZibraVDBUSDExport*>(opNode);
         if (!sopNode)
         {
-            error = COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_WRONG_NODE_TYPE_TEMPLATE + decodedNodeName);
+            error = ERROR_PREFIX + ZIBRAVDB_ERROR_WRONG_NODE_TYPE_TEMPLATE + decodedNodeName;
             return false;
         }
 
@@ -161,7 +159,7 @@ namespace Zibra::ZibraVDBOutputProcessor
                 }
                 catch (const std::exception& e)
                 {
-                    error = COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_CREATE_OUTPUT_DIRECTORY_TEMPLATE + std::string(e.what()));
+                    error = ERROR_PREFIX + ZIBRAVDB_ERROR_CREATE_OUTPUT_DIRECTORY_TEMPLATE + std::string(e.what());
                     return false;
                 }
             }
@@ -172,7 +170,7 @@ namespace Zibra::ZibraVDBOutputProcessor
             status = entry.compressorManager->StartSequence(UT_String(filePath));
             if (status != CE::ZCE_SUCCESS)
             {
-                error = COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_START_COMPRESSION_TEMPLATE + LibraryUtils::ErrorCodeToString(status));
+                error = ERROR_PREFIX + ZIBRAVDB_ERROR_START_COMPRESSION_TEMPLATE + LibraryUtils::ErrorCodeToString(status);
                 return false;
             }
             entry.requestedFrames.insert(frameIndex);
@@ -302,7 +300,7 @@ namespace Zibra::ZibraVDBOutputProcessor
                 auto status = entry.compressorManager->FinishSequence(warning);
                 if (status != CE::ZCE_SUCCESS)
                 {
-                    error = COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_FINISH_COMPRESSION_TEMPLATE + LibraryUtils::ErrorCodeToString(status));
+                    error = ERROR_PREFIX + ZIBRAVDB_ERROR_FINISH_COMPRESSION_TEMPLATE + LibraryUtils::ErrorCodeToString(status);
                     return false;
                 }
                 entry.compressorManager->Release();
@@ -333,7 +331,7 @@ namespace Zibra::ZibraVDBOutputProcessor
 
         if (!gdp)
         {
-            UT_String error(COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_NULL_GEOMETRY));
+            UT_String error(ERROR_PREFIX + ZIBRAVDB_ERROR_NULL_GEOMETRY);
             UTaddError(error.c_str(), UT_ERROR_ABORT, error.c_str());
             return;
         }
@@ -360,7 +358,7 @@ namespace Zibra::ZibraVDBOutputProcessor
 
         if (grids.empty())
         {
-            UT_String error(COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_NO_VDB_GRIDS));
+            UT_String error(ERROR_PREFIX + ZIBRAVDB_ERROR_NO_VDB_GRIDS);
             UTaddError(error.c_str(), UT_ERROR_ABORT, error.c_str());
             return;
         }
@@ -373,7 +371,7 @@ namespace Zibra::ZibraVDBOutputProcessor
     {
         if (grids.empty())
         {
-            UT_String error(COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_NO_GRIDS_TO_COMPRESS));
+            UT_String error(ERROR_PREFIX + ZIBRAVDB_ERROR_NO_GRIDS_TO_COMPRESS);
             UTaddError(error.c_str(), UT_ERROR_ABORT, error.c_str());
             return;
         }
@@ -388,7 +386,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         auto frame = frameLoader.LoadFrame(&encodingMetadata);
         if (!frame)
         {
-            UT_String error(COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_LOAD_FRAME_FAILED));
+            UT_String error(ERROR_PREFIX + ZIBRAVDB_ERROR_LOAD_FRAME_FAILED);
             UTaddError(error.c_str(), UT_ERROR_ABORT, error.c_str());
             return;
         }
@@ -401,14 +399,14 @@ namespace Zibra::ZibraVDBOutputProcessor
         auto status = compressorManager->CompressFrame(compressFrameDesc, &frameManager);
         if (status != CE::ZCE_SUCCESS)
         {
-            UT_String error(COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_COMPRESS_FRAME_FAILED_TEMPLATE + LibraryUtils::ErrorCodeToString(status)));
+            UT_String error(ERROR_PREFIX + ZIBRAVDB_ERROR_COMPRESS_FRAME_FAILED_TEMPLATE + LibraryUtils::ErrorCodeToString(status));
             UTaddError(error.c_str(), UT_ERROR_ABORT, error.c_str());
             frameLoader.ReleaseFrame(frame);
             return;
         }
         if (!frameManager)
         {
-            UT_String error(COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_FRAME_MANAGER_NULL));
+            UT_String error(ERROR_PREFIX + ZIBRAVDB_ERROR_FRAME_MANAGER_NULL);
             UTaddError(error.c_str(), UT_ERROR_ABORT, error.c_str());
             frameLoader.ReleaseFrame(frame);
             return;
@@ -426,7 +424,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         status = frameManager->Finish();
         if (status != CE::ZCE_SUCCESS)
         {
-            UT_String error(COMPOSE_PROCESSOR_ERROR(ZIBRAVDB_ERROR_FINISH_FRAME_MANAGER_TEMPLATE + LibraryUtils::ErrorCodeToString(status)));
+            UT_String error(ERROR_PREFIX + ZIBRAVDB_ERROR_FINISH_FRAME_MANAGER_TEMPLATE + LibraryUtils::ErrorCodeToString(status));
             UTaddError(error.c_str(), UT_ERROR_ABORT, error.c_str());
         }
         frameLoader.ReleaseFrame(frame);

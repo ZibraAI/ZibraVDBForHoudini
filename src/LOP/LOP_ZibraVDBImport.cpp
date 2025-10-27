@@ -21,18 +21,18 @@ namespace Zibra::ZibraVDBImport
 
     PRM_Template* LOP_ZibraVDBImport::GetTemplateList() noexcept
     {
-        static PRM_Name theFileName(FILE_PARAM_NAME, "ZibraVDB File");
-        static PRM_Default theFileDefault(0.0f, "");
+        static PRM_Name fileName(FILE_PARAM_NAME, "ZibraVDB File");
+        static PRM_Default fileDefault(0.0f, "");
 
-        static PRM_Name thePrimitivePath(PRIMPATH_PARAM_NAME, "Primitive Path");
-        static PRM_Default thePrimitivePathDefault(0.0f, "/$OS");
+        static PRM_Name primitivePath(PRIMPATH_PARAM_NAME, "Primitive Path");
+        static PRM_Default primitivePathDefault(0.0f, "/$OS");
 
-        static PRM_Name theParentPrimType(PARENTPRIMTYPE_PARAM_NAME, "Parent Primitive Type");
-        static PRM_Default theParentPrimTypeDefault(1, "xform");
+        static PRM_Name parentPrimType(PARENTPRIMTYPE_PARAM_NAME, "Parent Primitive Type");
+        static PRM_Default parentPrimTypeDefault(1, "xform");
 
-        static PRM_Name theFields(FIELDS_PARAM_NAME, "Fields");
-        static PRM_Default theFieldsDefault(0.0f, "*");
-        static PRM_ChoiceList fieldsChoiceList(PRM_CHOICELIST_REPLACE, &LOP_ZibraVDBImport::BuildFieldsChoiceList);
+        static PRM_Name channels(CHANNELS_PARAM_NAME, "Channels");
+        static PRM_Default channelsDefault(0.0f, "*");
+        static PRM_ChoiceList channelsChoiceList(PRM_CHOICELIST_REPLACE, &LOP_ZibraVDBImport::BuildChannelsChoiceList);
 
         static PRM_Name parentPrimTypeChoices[] = {
             PRM_Name("none", "None"),
@@ -42,14 +42,14 @@ namespace Zibra::ZibraVDBImport
         };
         static PRM_ChoiceList PRMparentPrimTypeChoiceList(PRM_CHOICELIST_SINGLE, parentPrimTypeChoices);
 
-        static PRM_Name theOpenPluginManagement(OPEN_PLUGIN_MANAGEMENT_PARAM_NAME, "Open Plugin Management");
+        static PRM_Name openPluginManagement(OPEN_PLUGIN_MANAGEMENT_PARAM_NAME, "Open Plugin Management");
 
         static PRM_Template templateList[] = {
-            PRM_Template(PRM_FILE, 1, &theFileName, &theFileDefault),
-            PRM_Template(PRM_STRING, 1, &thePrimitivePath, &thePrimitivePathDefault),
-            PRM_Template(PRM_ORD, 1, &theParentPrimType, &theParentPrimTypeDefault, &PRMparentPrimTypeChoiceList),
-            PRM_Template(PRM_STRING, 1, &theFields, &theFieldsDefault, &fieldsChoiceList),
-            PRM_Template(PRM_CALLBACK, 1, &theOpenPluginManagement, nullptr, nullptr, nullptr, &LOP_ZibraVDBImport::OpenManagementWindow),
+            PRM_Template(PRM_FILE, 1, &fileName, &fileDefault),
+            PRM_Template(PRM_STRING, 1, &primitivePath, &primitivePathDefault),
+            PRM_Template(PRM_ORD, 1, &parentPrimType, &parentPrimTypeDefault, &PRMparentPrimTypeChoiceList),
+            PRM_Template(PRM_STRING, 1, &channels, &channelsDefault, &channelsChoiceList),
+            PRM_Template(PRM_CALLBACK, 1, &openPluginManagement, nullptr, nullptr, nullptr, &LOP_ZibraVDBImport::OpenManagementWindow),
             PRM_Template()
         };
         return templateList;
@@ -61,7 +61,7 @@ namespace Zibra::ZibraVDBImport
         LibraryUtils::LoadSDKLibrary();
     }
 
-    void LOP_ZibraVDBImport::BuildFieldsChoiceList(void* data, PRM_Name* choiceNames, int maxListSize, const PRM_SpareData*, const PRM_Parm*)
+    void LOP_ZibraVDBImport::BuildChannelsChoiceList(void* data, PRM_Name* choiceNames, int maxListSize, const PRM_SpareData*, const PRM_Parm*)
     {
         if (!choiceNames || maxListSize <= 0)
         {
@@ -79,7 +79,7 @@ namespace Zibra::ZibraVDBImport
         if (choiceIndex < maxListSize - 1)
         {
             choiceNames[choiceIndex].setToken("*");
-            choiceNames[choiceIndex].setLabel("All Fields");
+            choiceNames[choiceIndex].setLabel("All Channels");
             choiceIndex++;
         }
         
@@ -114,7 +114,7 @@ namespace Zibra::ZibraVDBImport
 
         const fpreal t = context.getTime();
         const int currentFrame = static_cast<int>(context.getFrame());
-        const std::string fields = GetFields(t);
+        const std::string channels = GetChannels(t);
 
         if (GetFilePath(t).empty())
         {
@@ -145,21 +145,21 @@ namespace Zibra::ZibraVDBImport
             return error(context);
         }
 
-        std::unordered_set<std::string> invalidGridNames;
-        const std::set<std::string> selectedFields = ParseSelectedChannels(fields, invalidGridNames);
-        if (selectedFields.empty())
+        std::unordered_set<std::string> invalidChannelNames;
+        const std::set<std::string> selectedChannels = ParseSelectedChannels(channels, invalidChannelNames);
+        if (selectedChannels.empty())
         {
-            SHOW_ERROR_AND_RETURN("No valid fields selected")
+            SHOW_ERROR_AND_RETURN("No valid channels selected")
         }
-        if (!invalidGridNames.empty())
+        if (!invalidChannelNames.empty())
         {
             std::string invalidNamesList;
-            for (const auto& grid : invalidGridNames)
+            for (const auto& channel : invalidChannelNames)
             {
                 if (!invalidNamesList.empty()) invalidNamesList += ", ";
-                invalidNamesList += grid;
+                invalidNamesList += channel;
             }
-            addWarning(LOP_MESSAGE, ("Unknown field names specified: " + invalidNamesList).c_str());
+            addWarning(LOP_MESSAGE, ("Unknown channel names specified: " + invalidNamesList).c_str());
         }
 
         const HUSD_AutoWriteLock writeLock(editableDataHandle());
@@ -172,7 +172,7 @@ namespace Zibra::ZibraVDBImport
 
         const std::string sanitizedName = SanitizeFieldNameForUSD(volumePrimPath.GetName());
         volumePrimPath = volumePrimPath.GetParentPath().AppendChild(TfToken(sanitizedName));
-        WriteZibraVolumeToStage(stage, volumePrimPath, selectedFields, currentFrame);
+        WriteZibraVolumeToStage(stage, volumePrimPath, selectedChannels, currentFrame);
         return error(context);
 #undef SHOW_ERROR_AND_RETURN
     }
@@ -226,11 +226,11 @@ namespace Zibra::ZibraVDBImport
         return parentPrimType.toStdString();
     }
     
-    std::string LOP_ZibraVDBImport::GetFields(fpreal t) const
+    std::string LOP_ZibraVDBImport::GetChannels(fpreal t) const
     {
-        UT_String fields;
-        evalString(fields, FIELDS_PARAM_NAME, 0, t);
-        return fields.toStdString();
+        UT_String channels;
+        evalString(channels, CHANNELS_PARAM_NAME, 0, t);
+        return channels.toStdString();
     }
     
     std::string LOP_ZibraVDBImport::SanitizeFieldNameForUSD(const std::string& fieldName)
@@ -238,39 +238,39 @@ namespace Zibra::ZibraVDBImport
         return SdfPath::IsValidIdentifier(fieldName) ? fieldName : TfMakeValidIdentifier(fieldName);
     }
 
-    // Parses field selection string. Expected formats:
-    // "*" - selects all available fields
-    // "field1 field2 field3" - space-separated field names (no support for fields with spaces in names)
-    std::set<std::string> LOP_ZibraVDBImport::ParseSelectedChannels(const std::string& fieldsStr, std::unordered_set<std::string>& misspelledGrids)
+    // Parses channel selection string. Expected formats:
+    // "*" - selects all available channels
+    // "channel1 channel2 channel3" - space-separated channel names (no support for channels with spaces in names)
+    std::set<std::string> LOP_ZibraVDBImport::ParseSelectedChannels(const std::string& channelsStr, std::unordered_set<std::string>& invalidChannelNames)
     {
-        std::set<std::string> selectedFields;
+        std::set<std::string> selectedChannels;
         
-        if (fieldsStr.empty())
+        if (channelsStr.empty())
         {
-            return selectedFields;
+            return selectedChannels;
         }
         
-        if (fieldsStr == "*")
+        if (channelsStr == "*")
         {
-            selectedFields.insert(m_CachedFileInfo.availableGrids.begin(), m_CachedFileInfo.availableGrids.end());
-            return selectedFields;
+            selectedChannels.insert(m_CachedFileInfo.availableGrids.begin(), m_CachedFileInfo.availableGrids.end());
+            return selectedChannels;
         }
         
-        std::istringstream iss(fieldsStr);
-        std::string field;
-        while (iss >> field)
+        std::istringstream iss(channelsStr);
+        std::string channel;
+        while (iss >> channel)
         {
-            if (m_CachedFileInfo.availableGrids.find(field) != m_CachedFileInfo.availableGrids.end())
+            if (m_CachedFileInfo.availableGrids.find(channel) != m_CachedFileInfo.availableGrids.end())
             {
-                selectedFields.insert(field);
+                selectedChannels.insert(channel);
             }
             else
             {
-                misspelledGrids.insert(field);
+                invalidChannelNames.insert(channel);
             }
         }
         
-        return selectedFields;
+        return selectedChannels;
     }
 
     LOP_ZibraVDBImport::FileInfo LOP_ZibraVDBImport::LoadFileInfo(const std::string& filePath)
@@ -349,7 +349,7 @@ namespace Zibra::ZibraVDBImport
     }
 
     void LOP_ZibraVDBImport::WriteZibraVolumeToStage(const UsdStageRefPtr& stage, const SdfPath& volumePrimPath,
-                                                     const std::set<std::string>& selectedFields, int frameIndex)
+                                                     const std::set<std::string>& selectedChannels, int frameIndex)
     {
         if (!volumePrimPath.IsRootPrimPath())
         {
@@ -371,12 +371,12 @@ namespace Zibra::ZibraVDBImport
             return;
         }
 
-        for (const std::string& fieldName : selectedFields)
+        for (const std::string& channelName : selectedChannels)
         {
-            const std::string sanitizedFieldName = SanitizeFieldNameForUSD(fieldName);
-            const SdfPath vdbPrimPath = volumePrimPath.AppendChild(TfToken(sanitizedFieldName));
+            const std::string sanitizedChannelName = SanitizeFieldNameForUSD(channelName);
+            const SdfPath vdbPrimPath = volumePrimPath.AppendChild(TfToken(sanitizedChannelName));
             WriteOpenVDBAssetPrimToStage(stage, vdbPrimPath, frameIndex);
-            WriteVolumeFieldRelationshipsToStage(volumePrim, vdbPrimPath);
+            WriteVolumeChannelRelationshipsToStage(volumePrim, vdbPrimPath);
         }
 
         UT_StringArray primPaths;
@@ -443,7 +443,7 @@ namespace Zibra::ZibraVDBImport
         }
     }
 
-    void LOP_ZibraVDBImport::WriteVolumeFieldRelationshipsToStage(const UsdVolVolume& volumePrim, const SdfPath& primPath)
+    void LOP_ZibraVDBImport::WriteVolumeChannelRelationshipsToStage(const UsdVolVolume& volumePrim, const SdfPath& primPath)
     {
         const std::string relationshipName = "field:" + primPath.GetName();
         const UsdPrim prim = volumePrim.GetPrim();

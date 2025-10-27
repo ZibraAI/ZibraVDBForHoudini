@@ -28,7 +28,7 @@ namespace Zibra::ZibraVDBImport
         static constexpr const char* FILE_PARAM_NAME = "file";
         static constexpr const char* PRIMPATH_PARAM_NAME = "primpath";
         static constexpr const char* PARENTPRIMTYPE_PARAM_NAME = "parentprimtype";
-        static constexpr const char* FIELDS_PARAM_NAME = "fields";
+        static constexpr const char* CHANNELS_PARAM_NAME = "channels";
         static constexpr const char* OPEN_PLUGIN_MANAGEMENT_PARAM_NAME = "openmanagement";
 
     public:
@@ -44,19 +44,19 @@ namespace Zibra::ZibraVDBImport
         std::string GetFilePath(fpreal t) const;
         std::string GetPrimitivePath(fpreal t) const;
         std::string GetParentPrimType(fpreal t) const;
-        std::string GetFields(fpreal t) const;
+        std::string GetChannels(fpreal t) const;
 
         inline std::string SanitizeFieldNameForUSD(const std::string& fieldName);
-        std::set<std::string> ParseSelectedChannels(const std::string& fieldsStr, std::unordered_set<std::string>& misspelledGrids);
+        std::set<std::string> ParseSelectedChannels(const std::string& fieldsStr, std::unordered_set<std::string>& invalidGridNames);
         FileInfo LoadFileInfo(const std::string& filePath);
 
-        void WriteZibraVolumeToStage(const UsdStageRefPtr& stage, const SdfPath& volumePrimPath, const std::set<std::string>& selectedFields, int frameIndex);
+        void WriteZibraVolumeToStage(const UsdStageRefPtr& stage, const SdfPath& volumePrimPath, const std::set<std::string>& selectedChannels, int frameIndex);
         void WriteParentPrimHierarchyToStage(const UsdStageRefPtr& stage, const SdfPath& primPath);
         void WriteOpenVDBAssetPrimToStage(const UsdStageRefPtr& stage, const SdfPath& assetPath, int frameIndex);
-        void WriteVolumeFieldRelationshipsToStage(const UsdVolVolume& volumePrim, const SdfPath& primPath);
+        void WriteVolumeChannelRelationshipsToStage(const UsdVolVolume& volumePrim, const SdfPath& primPath);
 
         static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate);
-        static void BuildFieldsChoiceList(void* data, PRM_Name* choiceNames, int maxListSize, const PRM_SpareData*, const PRM_Parm*);
+        static void BuildChannelsChoiceList(void* data, PRM_Name* choiceNames, int maxListSize, const PRM_SpareData*, const PRM_Parm*);
 
     private:
         FileInfo m_CachedFileInfo;

@@ -10,7 +10,7 @@ namespace Zibra::ZibraVDBOutputProcessor
 {
     constexpr const char* OUTPUT_PROCESSOR_INNER_NAME = "ZibraVDBCompressionProcessor";
     constexpr const char* OUTPUT_PROCESSOR_UI_NAME = "ZibraVDB Processor";
-    constexpr const char* ERROR_PREFIX = "ZibraVDB Output Processor Error: ";
+    const std::string ERROR_PREFIX = "ZibraVDB Output Processor Error: ";
 
     class ZibraVDBOutputProcessor final : public HUSD_OutputProcessor
     {
