@@ -1,11 +1,11 @@
 #pragma once
 
+#include <GU/GU_PrimVDB.h>
 #include <json.hpp>
 
+#include "Types.h"
 #include "Zibra/CE/Addons/OpenVDBCommon.h"
 #include "Zibra/CE/Decompression.h"
-#include <GU/GU_PrimVDB.h>
-#include "GAAttributesDump.h"
 
 namespace Zibra::Utils
 {

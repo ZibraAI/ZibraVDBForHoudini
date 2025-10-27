@@ -2,47 +2,43 @@ cmake_minimum_required(VERSION 3.25)
 
 project(ZibraVDBCommon)
 
-set(COMMON_PUBLIC_HEADERS
-    Globals.h
-    utils/Helpers.h
-    utils/MetadataHelper.h
-    utils/DecompressorManager.h
-    licensing/LicenseManager.h
-    bridge/LibraryUtils.h
-    ui/PluginManagementWindow.h
-)
-
-set(COMMON_INTERNAL_HEADERS
-    PrecompiledHeader.h
-    utils/GAAttributesDump.h
-    bridge/UpdateCheck.h
-    bridge/networking/NetworkRequest.h
-    ui/MessageBox.h
-)
-
-set(COMMON_SOURCES
-    utils/Helpers.cpp
-    utils/MetadataHelper.cpp
-    utils/GAAttributesDump.cpp
-    utils/DecompressorManager.cpp
-    licensing/LicenseManager.cpp
-    bridge/LibraryUtils.cpp
-    bridge/UpdateCheck.cpp
-    bridge/networking/NetworkRequest.cpp
-    ui/MessageBox.cpp
-    ui/PluginManagementWindow.cpp
-)
-
 add_library(ZibraVDBCommon STATIC)
 target_sources(ZibraVDBCommon
     PUBLIC FILE_SET HEADERS
-        FILES ${COMMON_PUBLIC_HEADERS}
+        BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include
+        FILES
+            include/Globals.h
+            include/Types.h
+            include/utils/Helpers.h
+            include/utils/MetadataHelper.h
+            include/utils/DecompressorManager.h
+            include/licensing/LicenseManager.h
+            include/bridge/LibraryUtils.h
+            include/ui/PluginManagementWindow.h
     PRIVATE
-        ${COMMON_INTERNAL_HEADERS}
-        ${COMMON_SOURCES}
+        # Private Headers
+        PrecompiledHeader.h
+        src/utils/GAAttributesDump.h
+        src/bridge/UpdateCheck.h
+        src/bridge/networking/NetworkRequest.h
+        src/ui/MessageBox.h
+        
+        # Source Files
+        src/utils/Helpers.cpp
+        src/utils/MetadataHelper.cpp
+        src/utils/GAAttributesDump.cpp
+        src/utils/DecompressorManager.cpp
+        src/licensing/LicenseManager.cpp
+        src/bridge/LibraryUtils.cpp
+        src/bridge/UpdateCheck.cpp
+        src/bridge/networking/NetworkRequest.cpp
+        src/ui/MessageBox.cpp
+        src/ui/PluginManagementWindow.cpp
 )
 
 target_include_directories(ZibraVDBCommon
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
     PUBLIC ${CMAKE_SOURCE_DIR}/external/Include
     PUBLIC ${CMAKE_SOURCE_DIR}/SDK/include)
 
