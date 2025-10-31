@@ -17,7 +17,8 @@ target_sources(ZibraVDBCommon
             include/bridge/LibraryUtils.h
             include/ui/PluginManagementWindow.h
     PRIVATE
-        # Private Headers
+    FILE_SET private_headers TYPE HEADERS
+    BASE_DIRS src
         PrecompiledHeader.h
         src/utils/GAAttributesDump.h
         src/bridge/UpdateCheck.h
