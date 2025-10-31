@@ -213,7 +213,7 @@ namespace Zibra::Helpers
         const size_t questionMarkPos = uri.find('?');
         if (uri.find('?', questionMarkPos + 1) != std::string::npos)
         {
-            // More than one '?' char in uri - malformatted
+            // Valid URI can't have more than one '?' character
             return result;
         }
         
