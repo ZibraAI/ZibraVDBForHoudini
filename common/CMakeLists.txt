@@ -25,7 +25,7 @@ target_sources(ZibraVDBCommon
         src/bridge/networking/NetworkRequest.h
         src/ui/MessageBox.h
         
-        # Source Files
+    PRIVATE
         src/utils/Helpers.cpp
         src/utils/MetadataHelper.cpp
         src/utils/GAAttributesDump.cpp
