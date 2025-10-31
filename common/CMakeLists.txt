@@ -39,8 +39,6 @@ target_sources(ZibraVDBCommon
 )
 
 target_include_directories(ZibraVDBCommon
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
     PUBLIC ${CMAKE_SOURCE_DIR}/external/Include
     PUBLIC ${CMAKE_SOURCE_DIR}/SDK/include)
 
