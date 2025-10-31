@@ -18,12 +18,13 @@ target_sources(ZibraVDBCommon
             include/ui/PluginManagementWindow.h
     PRIVATE
     FILE_SET private_headers TYPE HEADERS
-    BASE_DIRS src
-        PrecompiledHeader.h
-        src/utils/GAAttributesDump.h
-        src/bridge/UpdateCheck.h
-        src/bridge/networking/NetworkRequest.h
-        src/ui/MessageBox.h
+        BASE_DIRS src
+        FILES
+            src/PrecompiledHeader.h
+            src/utils/GAAttributesDump.h
+            src/bridge/UpdateCheck.h
+            src/bridge/networking/NetworkRequest.h
+            src/ui/MessageBox.h
         
     PRIVATE
         src/utils/Helpers.cpp
@@ -47,7 +48,7 @@ target_compile_definitions(ZibraVDBCommon PUBLIC
     ZIB_TARGET_OS_${ZIB_TARGET_OS_NAME}=1
     LABS_BUILD=$<BOOL:${LABS_BUILD}>)
 
-target_precompile_headers(ZibraVDBCommon PRIVATE PrecompiledHeader.h)
+target_precompile_headers(ZibraVDBCommon PRIVATE src/PrecompiledHeader.h)
 target_link_libraries(ZibraVDBCommon PUBLIC Houdini)
 
 if(NOT LABS_BUILD AND "${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")

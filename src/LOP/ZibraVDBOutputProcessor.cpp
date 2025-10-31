@@ -184,10 +184,10 @@ namespace Zibra::ZibraVDBOutputProcessor
         return true;
     }
 
-    // Parses a SOP node reference path and extracts node path and frame information
+    // Parses a SOP node reference path and extracts node path and time information
     // Format: op:/path/to/node.sop.volumes:FORMAT_ARGS:param1=value1&t=0.123
     // Returns true if parsing was successful
-    bool ParseSOPNodeReferencePath(const std::string& pathStr, std::string& nodePath, double& frame)
+    bool ParseSOPNodeReferencePath(const std::string& pathStr, std::string& nodePath, double& time)
     {
         if (pathStr.compare(0, 3, "op:") != 0)
         {
@@ -201,35 +201,28 @@ namespace Zibra::ZibraVDBOutputProcessor
             return false;
         }
 
-        try
-        {
-            const std::string queryString = pathStr.substr(colonAfterPrefix + 1);
-            auto queryParams = Helpers::ParseQueryParamsString(queryString);
-            std::string fullPath = pathStr.substr(3, colonAfterPrefix - 3);
-            
-            // Remove the last component to get the parent path (node path)
-            const size_t lastSlash = fullPath.find_last_of('/');
-            nodePath = lastSlash != std::string::npos ? fullPath.substr(0, lastSlash) : fullPath;
+        const std::string queryString = pathStr.substr(colonAfterPrefix + 1);
+        auto queryParams = Helpers::ParseQueryParamsString(queryString);
+        std::string fullPath = pathStr.substr(3, colonAfterPrefix - 3);
+        
+        // Remove the last component to get the parent path (node path)
+        const size_t lastSlash = fullPath.find_last_of('/');
+        nodePath = lastSlash != std::string::npos ? fullPath.substr(0, lastSlash) : fullPath;
 
-            // Extract frame parameter (t parameter)
-            auto frameIt = queryParams.find("t");
-            if (frameIt != queryParams.end())
+        // Extract frame parameter (t parameter)
+        auto frameIt = queryParams.find("t");
+        if (frameIt != queryParams.end())
+        {
+            char* endPtr;
+            time = std::strtod(frameIt->second.c_str(), &endPtr);
+            if (endPtr == frameIt->second.c_str() || *endPtr != '\0')
             {
-                char* endPtr;
-                frame = std::strtod(frameIt->second.c_str(), &endPtr);
-                if (endPtr == frameIt->second.c_str() || *endPtr != '\0')
-                {
-                    // Invalid frame format
-                    return false;
-                }
+                // Invalid frame format
+                return false;
             }
+        }
 
-            return true;
-        }
-        catch (const std::exception&)
-        {
-            return false;
-        }
+        return true;
     }
 
     bool ZibraVDBOutputProcessor::processReferencePath(const UT_StringRef& assetPath, const UT_StringRef& referencingLayerPath,
