@@ -4,7 +4,8 @@ project(ZibraVDBCommon)
 
 add_library(ZibraVDBCommon STATIC)
 target_sources(ZibraVDBCommon
-    PUBLIC FILE_SET HEADERS
+    PUBLIC
+    FILE_SET public_interface TYPE HEADERS
         BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include
         FILES
             include/Globals.h
