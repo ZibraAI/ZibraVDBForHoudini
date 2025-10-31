@@ -21,7 +21,7 @@ namespace Zibra::AssetResolver
         return dir;
     }
 
-    int InitializeMaxCachedFrames()
+    inline int InitializeMaxCachedFrames()
     {
         const char* envValue = std::getenv("ZIB_MAX_CACHED_FILES_COUNT");
         int numOfCachedFrames;
