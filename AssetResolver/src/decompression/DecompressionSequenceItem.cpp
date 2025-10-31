@@ -7,7 +7,7 @@
 
 namespace Zibra::AssetResolver
 {
-    std::string InitializeTempDir()
+    inline std::string InitializeTempDir()
     {
         std::string dir = TfStringCatPaths(TfGetenv("HOUDINI_TEMP_DIR"), ZIB_TMP_FILES_FOLDER_NAME);
         if (!TfPathExists(dir))
