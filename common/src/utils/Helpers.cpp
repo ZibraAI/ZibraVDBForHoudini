@@ -1,7 +1,6 @@
 #include "PrecompiledHeader.h"
 
 #include "utils/Helpers.h"
-#include <regex>
 
 namespace Zibra::Helpers
 {
