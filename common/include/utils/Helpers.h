@@ -19,7 +19,8 @@ namespace Zibra::Helpers
 
     // URI parsing
     std::map<std::string, std::string> ParseQueryParamsString(const std::string& queryString);
-    ParsedZibraURI ParseZibraVDBURI(const std::string& uri);
+    inline bool IsZibraVDBURI(const URI& assetURI);
+    inline bool IsZibraVDBURI(const std::string& assetPath);
 
     // Number parsing
     bool TryParseInt(const std::string& str, int& result);

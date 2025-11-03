@@ -7,10 +7,12 @@ enum class MetaAttributesLoadStatus
     SUCCESS,
 };
 
-struct ParsedZibraURI {
-    std::filesystem::path filepath;
-    std::string configurationNode;
-    int frame = -1;
-    bool isZibraVDB = false;
+struct URI {
+    std::string scheme;
+    std::filesystem::path path;
+    std::map<std::string, std::string> queryParams;
     bool isValid = false;
+
+    URI() = delete;
+    explicit URI(const std::string& URIString);
 };

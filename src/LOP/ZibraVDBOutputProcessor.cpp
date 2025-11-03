@@ -75,9 +75,8 @@ namespace Zibra::ZibraVDBOutputProcessor
     bool ZibraVDBOutputProcessor::processSavePath(const UT_StringRef& assetPath, const UT_StringRef& referencingLayerPath,
                                                   bool assetIsLayer, UT_String& newPath, UT_String& error)
     {
-        std::string pathStr = assetPath.toStdString();
-
-        if (assetIsLayer || !Helpers::ParseZibraVDBURI(pathStr).isZibraVDB)
+        const URI assetURI(assetPath.toStdString());
+        if (assetIsLayer || !assetURI.isValid || !Helpers::IsZibraVDBURI(assetURI))
         {
             return false;
         }
@@ -93,26 +92,30 @@ namespace Zibra::ZibraVDBOutputProcessor
             return false;
         }
 
-        auto parsedURI = Helpers::ParseZibraVDBURI(pathStr);
-        if (!parsedURI.isValid)
-        {
-            error = ERROR_PREFIX + "Invalid ZibraVDB URI format"s;
-            return false;
-        }
-        if (parsedURI.configurationNode.empty())
+        auto nodeIt = assetURI.queryParams.find("node");
+        if (nodeIt == assetURI.queryParams.end() || nodeIt->second.empty())
         {
             error = ERROR_PREFIX + ZIBRAVDB_ERROR_EMPTY_NODE_PARAM;
             return false;
         }
-        if (parsedURI.frame == 0)
+        
+        auto frameIt = assetURI.queryParams.find("frame");
+        if (frameIt == assetURI.queryParams.end())
+        {
+            error = ERROR_PREFIX + ZIBRAVDB_ERROR_EMPTY_FRAME_PARAM;
+            return false;
+        }
+        
+        int frameIndex;
+        if (!Helpers::TryParseInt(frameIt->second, frameIndex) || frameIndex <= 0)
         {
             error = ERROR_PREFIX + ZIBRAVDB_ERROR_EMPTY_FRAME_PARAM;
             return false;
         }
 
-        std::string decodedNodeName = parsedURI.configurationNode;
-        std::string frameStr = std::to_string(parsedURI.frame);
-        std::string filePath = parsedURI.filepath.string();
+        std::string decodedNodeName = nodeIt->second;
+        std::string frameStr = frameIt->second;
+        std::string filePath = assetURI.path.string();
 
         OP_Node* opNode = OPgetDirector()->findNode(decodedNodeName.c_str());
         if (!opNode)
@@ -127,8 +130,6 @@ namespace Zibra::ZibraVDBOutputProcessor
             error = ERROR_PREFIX + ZIBRAVDB_ERROR_WRONG_NODE_TYPE_TEMPLATE + decodedNodeName;
             return false;
         }
-
-        int frameIndex = parsedURI.frame;
 
         float quality = sopNode->GetCompressionQuality();
 

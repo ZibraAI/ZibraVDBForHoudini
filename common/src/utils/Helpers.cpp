@@ -142,22 +142,6 @@ namespace Zibra::Helpers
         return false;
     }
 
-    bool IsZibraVDBExtension(const std::string& uri)
-    {
-        const size_t queryPos = uri.find('?');
-        std::string pathPart = (queryPos == std::string::npos) ? uri : uri.substr(0, queryPos);
-        
-        try
-        {
-            std::filesystem::path path(pathPart);
-            return path.extension() == ZIB_ZIBRAVDB_EXT;
-        }
-        catch (const std::exception&)
-        {
-            return false;
-        }
-    }
-
     std::map<std::string, std::string> ParseQueryParamsString(const std::string& queryString)
     {
         std::map<std::string, std::string> result;
@@ -185,78 +169,15 @@ namespace Zibra::Helpers
         return result;
     }
 
-    // Parses a ZibraVDB URI and returns structured information
-    // Format: path/file.zibravdb?frame=N&node=configNode
-    //
-    // Returns ParsedZibraURI with:
-    // - isZibraVDB: true if URI has .zibravdb extension
-    // - isValid: true if URI is properly formatted (only if isZibraVDB=true)
-    // - filepath: path to the .zibravdb file
-    // - frame: frame number from query parameter (default -1)
-    // - configurationNode: node parameter from query string
-    //
-    // Examples:
-    // - "file.zibravdb" -> isZibraVDB=true, isValid=true, frame=-1
-    // - "file.zibravdb?frame=5" -> isZibraVDB=true, isValid=true, frame=5
-    // - "file.zibravdb?frame=abc" -> isZibraVDB=true, isValid=false (malformatted)
-    // - "file.vdb" -> isZibraVDB=false, isValid=false
-    ParsedZibraURI ParseZibraVDBURI(const std::string& uri)
+    bool IsZibraVDBURI(const URI& assetURI)
     {
-        ParsedZibraURI result;
-        result.isZibraVDB = IsZibraVDBExtension(uri);
-        
-        if (!result.isZibraVDB)
-        {
-            return result;
-        }
+        return assetURI.path.has_extension() && assetURI.path.extension() == ZIB_ZIBRAVDB_EXT;
+    }
 
-        const size_t questionMarkPos = uri.find('?');
-        if (uri.find('?', questionMarkPos + 1) != std::string::npos)
-        {
-            // Valid URI can't have more than one '?' character
-            return result;
-        }
-        
-        try
-        {
-            const std::string uriPath = (questionMarkPos == std::string::npos) ? uri : uri.substr(0, questionMarkPos);
-            result.filepath = std::filesystem::path(uriPath);
-            
-            // Parse query parameters if they exist
-            if (questionMarkPos != std::string::npos && questionMarkPos + 1 < uri.length())
-            {
-                std::string queryString = uri.substr(questionMarkPos + 1);
-                auto queryParams = ParseQueryParamsString(queryString);
-                
-                // Extract frame parameter - validate format
-                auto frameIt = queryParams.find("frame");
-                if (frameIt != queryParams.end())
-                {
-                    if (!TryParseInt(frameIt->second, result.frame))
-                    {
-                        // Invalid frame format - malformatted but still ZibraVDB
-                        return result;
-                    }
-                }
-                
-                // Extract node parameter
-                auto nodeIt = queryParams.find("node");
-                if (nodeIt != queryParams.end())
-                {
-                    result.configurationNode = nodeIt->second;
-                }
-            }
-            
-            // If we get here, parsing was successful
-            result.isValid = true;
-        }
-        catch (const std::exception&)
-        {
-            // Exception during parsing - malformatted but still ZibraVDB
-            return result;
-        }
-
-        return result;
+    bool IsZibraVDBURI(const std::string& assetPath)
+    {
+        const URI assetURI(assetPath);
+        return assetURI.isValid ? IsZibraVDBURI(assetURI) : false;
     }
 
     bool TryParseInt(const std::string& str, int& result)
@@ -286,3 +207,34 @@ namespace Zibra::Helpers
     }
 
 } // namespace Zibra::Helpers
+
+URI::URI(const std::string& URIString)
+{
+    const size_t questionMarkPos = URIString.find('?');
+    if (questionMarkPos != std::string::npos && URIString.find('?', questionMarkPos + 1) != std::string::npos)
+    {
+        // Valid URI can't have more than one '?' character
+        return;
+    }
+
+    const std::string pathPart = questionMarkPos == std::string::npos ? URIString : URIString.substr(0, questionMarkPos);
+    const size_t colonPos = pathPart.find(':');
+    
+    if (colonPos != std::string::npos)
+    {
+        scheme = pathPart.substr(0, colonPos);
+        path = std::filesystem::path(pathPart.substr(colonPos + 1));
+    }
+    else
+    {
+        path = std::filesystem::path(pathPart);
+    }
+
+    if (questionMarkPos != std::string::npos && questionMarkPos + 1 < URIString.length())
+    {
+        std::string queryString = URIString.substr(questionMarkPos + 1);
+        queryParams = Zibra::Helpers::ParseQueryParamsString(queryString);
+    }
+
+    isValid = true;
+}
