@@ -264,7 +264,8 @@ namespace Zibra::ZibraVDBOutputProcessor
         std::string outputRef = entry.compressedFilePath.string() + "?frame=" + std::to_string(compressionFrameIndex);
         newPath = UT_String(outputRef);
 
-        // If we want to bake not from beginning, we want to cook our SOP for every preceding frame
+        // When starting compression from a frame other than 0, cook all preceding frames first
+        // Without this, all compressed frames would contain identical data from the last frame
         const int firstRequestedFrameIndex = *entry.requestedFrames.begin();
         if (compressionFrameIndex == firstRequestedFrameIndex)
         {
@@ -273,7 +274,8 @@ namespace Zibra::ZibraVDBOutputProcessor
                 for (int i = 0; i < compressionFrameIndex; ++i)
                 {
                     fpreal tmpTime = OPgetDirector()->getChannelManager()->getTime(i);
-                    RecookNodeAndCompressVDBGrids(sopNode, tmpTime, entry.compressorManager.get(), false);
+                    OP_Context context(tmpTime);
+                    sopNode->cook(context);
                 }
             }
         }
@@ -303,21 +305,11 @@ namespace Zibra::ZibraVDBOutputProcessor
         return true;
     }
 
-    void ZibraVDBOutputProcessor::RecookNodeAndCompressVDBGrids(SOP_Node* sopNode, fpreal t,
-                                                                CE::Compression::CompressorManager* compressorManager, bool compress)
+    void ZibraVDBOutputProcessor::RecookNodeAndCompressVDBGrids(SOP_Node* sopNode, fpreal t, CE::Compression::CompressorManager* compressorManager)
     {
         assert(sopNode && "SOP node must not be null in RecookNodeAndCompressVDBGrids");
+
         OP_Context context(t);
-        sopNode->flags().setTimeDep(true);
-        sopNode->forceRecook();
-        sopNode->cook(context);
-
-        if (!compress)
-        {
-            // If we are not compressing, we just need to ensure the SOP node is cooked
-            return;
-        }
-
         const GU_DetailHandle gdh = sopNode->getCookedGeoHandle(context);
         const GU_DetailHandleAutoReadLock gdl(gdh);
         const GU_Detail* gdp = gdl.getGdp();
