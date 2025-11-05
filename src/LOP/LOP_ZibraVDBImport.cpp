@@ -432,14 +432,19 @@ namespace Zibra::ZibraVDBImport
         const std::string zibraURL = GetFilePath(0) + "?frame=" + std::to_string(frameIndex);
         const auto timeCode = UsdTimeCode(frameIndex);
 
-        if (const auto filePathAttr = openVDBAsset.GetFilePathAttr())
+        auto filePathAttr = openVDBAsset.GetFilePathAttr();
+        if (!filePathAttr)
         {
-            filePathAttr.Set(SdfAssetPath(zibraURL), timeCode);
+            filePathAttr = openVDBAsset.CreateFilePathAttr();
         }
-        if (const auto fieldNameAttr = openVDBAsset.GetFieldNameAttr())
+        filePathAttr.Set(SdfAssetPath(zibraURL), timeCode);
+
+        auto fieldNameAttr = openVDBAsset.GetFieldNameAttr();
+        if (!fieldNameAttr)
         {
-            fieldNameAttr.Set(TfToken(assetPath.GetName()), timeCode);
+            fieldNameAttr = openVDBAsset.CreateFieldNameAttr();
         }
+        fieldNameAttr.Set(TfToken(assetPath.GetName()), timeCode);
     }
 
     void LOP_ZibraVDBImport::WriteVolumeChannelRelationshipsToStage(const UsdVolVolume& volumePrim, const SdfPath& primPath)

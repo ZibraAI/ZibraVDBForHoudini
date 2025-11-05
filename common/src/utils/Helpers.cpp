@@ -169,16 +169,6 @@ namespace Zibra::Helpers
         return result;
     }
 
-    bool IsZibraVDBURI(const URI& assetURI)
-    {
-        return assetURI.path.has_extension() && assetURI.path.extension() == ZIB_ZIBRAVDB_EXT;
-    }
-
-    bool IsZibraVDBURI(const std::string& assetPath)
-    {
-        const URI assetURI(assetPath);
-        return assetURI.isValid ? IsZibraVDBURI(assetURI) : false;
-    }
 
     bool TryParseInt(const std::string& str, int& result)
     {

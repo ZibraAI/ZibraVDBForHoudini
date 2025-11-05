@@ -19,8 +19,16 @@ namespace Zibra::Helpers
 
     // URI parsing
     std::map<std::string, std::string> ParseQueryParamsString(const std::string& queryString);
-    inline bool IsZibraVDBURI(const URI& assetURI);
-    inline bool IsZibraVDBURI(const std::string& assetPath);
+    inline bool IsZibraVDBURI(const URI& assetURI)
+    {
+        return assetURI.path.has_extension() && assetURI.path.extension() == ZIB_ZIBRAVDB_EXT;
+    }
+    
+    inline bool IsZibraVDBURI(const std::string& assetPath)
+    {
+        const URI assetURI(assetPath);
+        return assetURI.isValid ? IsZibraVDBURI(assetURI) : false;
+    }
 
     // Number parsing
     bool TryParseInt(const std::string& str, int& result);
