@@ -86,7 +86,7 @@ ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
     {
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
             .Msg("ZibraVDBResolver::_Resolve - Asset not handled by ZibraVDB resolver: '%s'\n", assetPath.c_str());
-        return {};
+        return ArDefaultResolver().Resolve(assetPath);
     }
 
     TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::_Resolve - Detected ZibraVDB path: '%s'\n", assetPath.c_str());
@@ -147,7 +147,7 @@ ArResolvedPath ZibraVDBResolver::_ResolveForNewAsset(const std::string& assetPat
         return {};
     }
 
-    return {};
+    return ArDefaultResolver().ResolveForNewAsset(assetPath);
 }
 
 std::shared_ptr<ArAsset> ZibraVDBResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
