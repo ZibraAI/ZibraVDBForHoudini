@@ -18,6 +18,7 @@ namespace Zibra::AssetResolver
         DecompressionSequenceItem& operator=(DecompressionSequenceItem&&) = delete;
 
         std::string DecompressFrame(int frame);
+        const std::string& GetUUID() const { return m_UUIDString; }
 
     private:
         void AddNewFrame(int frame);

@@ -32,16 +32,29 @@ namespace Zibra::AssetResolver
         LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Decompression);
 
         DecompressionSequenceItem* item;
-        const auto it = m_DecompressionFiles.find(zibraVDBPath);
-        if (it != m_DecompressionFiles.end())
+        const auto pathIt = m_PathToUUIDMap.find(zibraVDBPath);
+        if (pathIt != m_PathToUUIDMap.end())
         {
-            item = it->second.get();
+            const std::string& uuid = pathIt->second;
+            item = m_DecompressionFiles[uuid].get();
         }
         else
         {
             auto newDecompressionItem = std::make_unique<DecompressionSequenceItem>(zibraVDBPath);
-            item = newDecompressionItem.get();
-            m_DecompressionFiles.emplace(zibraVDBPath, std::move(newDecompressionItem));
+            const std::string& uuid = newDecompressionItem->GetUUID();
+
+            m_PathToUUIDMap.emplace(zibraVDBPath, uuid);
+
+            const auto uuidIt = m_DecompressionFiles.find(uuid);
+            if (uuidIt != m_DecompressionFiles.end())
+            {
+                item = uuidIt->second.get();
+            }
+            else
+            {
+                item = newDecompressionItem.get();
+                m_DecompressionFiles.emplace(uuid, std::move(newDecompressionItem));
+            }
         }
 
         return item->DecompressFrame(frame);
@@ -56,6 +69,7 @@ namespace Zibra::AssetResolver
                  "entries\n",
                  m_DecompressionFiles.size());
 
+        m_PathToUUIDMap.clear();
         m_DecompressionFiles.clear();
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBDecompressionManager::CleanupAllDecompressedFiles - Cleanup completed\n");
     }

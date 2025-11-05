@@ -25,6 +25,7 @@ namespace Zibra::AssetResolver
         bool LoadSDKLib();
 
     private:
+        std::map<std::string, std::string> m_PathToUUIDMap;
         std::map<std::string, std::unique_ptr<DecompressionSequenceItem>> m_DecompressionFiles;
         std::mutex m_DecompressionFilesMutex;
     };
