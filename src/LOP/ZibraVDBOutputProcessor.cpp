@@ -76,7 +76,7 @@ namespace Zibra::ZibraVDBOutputProcessor
                                                   bool assetIsLayer, UT_String& newPath, UT_String& error)
     {
         const URI assetURI(assetPath.toStdString());
-        if (assetIsLayer || !assetURI.isValid || !Helpers::IsZibraVDBURI(assetURI))
+        if (assetIsLayer || !assetURI.isValid || !Helpers::IsZibraVDBFile(assetURI))
         {
             return false;
         }
@@ -306,6 +306,7 @@ namespace Zibra::ZibraVDBOutputProcessor
     void ZibraVDBOutputProcessor::RecookNodeAndCompressVDBGrids(SOP_Node* sopNode, fpreal t,
                                                                 CE::Compression::CompressorManager* compressorManager, bool compress)
     {
+        assert(sopNode && "SOP node must not be null in RecookNodeAndCompressVDBGrids");
         OP_Context context(t);
         sopNode->flags().setTimeDep(true);
         sopNode->forceRecook();

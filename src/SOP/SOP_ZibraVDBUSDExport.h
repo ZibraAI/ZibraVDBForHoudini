@@ -31,7 +31,7 @@ namespace Zibra::ZibraVDBUSDExport
 
     private:
 
-        std::unordered_set<std::string> m_AvailableChannels{};
+        std::set<std::string> m_AvailableChannels{};
     };
 
     class SOP_ZibraVDBUSDExport_Operator final : public OP_Operator

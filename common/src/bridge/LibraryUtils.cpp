@@ -63,7 +63,7 @@ namespace Zibra::LibraryUtils
         };
         for (const auto& [envVarEnum, envVarName] : basePathEnvVars)
         {
-            const auto baseDirs = Helpers::GetHoudiniEnvironmentVariable(envVarEnum, envVarName);
+            const std::vector<std::string> baseDirs = Helpers::GetHoudiniEnvironmentVariable(envVarEnum, envVarName);
             for (const std::string& baseDir : baseDirs)
             {
                 result.emplace_back(baseDir);

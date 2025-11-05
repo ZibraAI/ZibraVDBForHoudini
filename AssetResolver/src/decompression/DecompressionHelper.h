@@ -25,7 +25,7 @@ namespace Zibra::AssetResolver
         bool LoadSDKLib();
 
     private:
-        std::unordered_map<std::string, std::unique_ptr<DecompressionSequenceItem>> m_DecompressionFiles;
+        std::map<std::string, std::unique_ptr<DecompressionSequenceItem>> m_DecompressionFiles;
         std::mutex m_DecompressionFilesMutex;
     };
 } // namespace Zibra::AssetResolver

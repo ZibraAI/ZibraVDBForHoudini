@@ -22,14 +22,14 @@ ZibraVDBResolver::ZibraVDBResolver()
 std::string ZibraVDBResolver::_CreateIdentifier(const std::string& assetPath, const ArResolvedPath& anchorAssetPath) const
 {
     auto assetURI = URI(assetPath);
-    if (!assetURI.isValid || !Zibra::Helpers::IsZibraVDBURI(assetURI))
+    if (!assetURI.isValid || !Zibra::Helpers::IsZibraVDBFile(assetURI))
     {
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
             .Msg("ZibraVDBResolver::CreateIdentifier - Asset not handled by ZibraVDB resolver: '%s'\n", assetPath.c_str());
         return assetPath;
     }
 
-    TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::CreateIdentifier - ZibraVDB URI detected: '%s'\n", assetPath.c_str());
+    TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBResolver::CreateIdentifier - ZibraVDB asset detected: '%s'\n", assetPath.c_str());
 
     if (TfIsRelativePath(assetURI.path.string()) && anchorAssetPath)
     {
@@ -58,7 +58,7 @@ std::string ZibraVDBResolver::_CreateIdentifier(const std::string& assetPath, co
 
         resolvedURI += "?frame=" + frameIt->second;
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
-            .Msg("ZibraVDBResolver::CreateIdentifier - Resolved ZibraVDB URI to: '%s'\n", resolvedURI.c_str());
+            .Msg("ZibraVDBResolver::CreateIdentifier - Resolved ZibraVDB asset path to: '%s'\n", resolvedURI.c_str());
         return resolvedURI;
     }
 
@@ -68,7 +68,7 @@ std::string ZibraVDBResolver::_CreateIdentifier(const std::string& assetPath, co
 std::string ZibraVDBResolver::_CreateIdentifierForNewAsset(const std::string& assetPath, const ArResolvedPath& anchorAssetPath) const
 {
     // ZibraVDB asset resolver only handles decompression of existing .zibravdb files.
-    if (Zibra::Helpers::IsZibraVDBURI(assetPath))
+    if (Zibra::Helpers::IsZibraVDBFile(URI(assetPath)))
     {
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
             .Msg("ZibraVDBResolver::CreateIdentifierForNewAsset - ZibraVDB asset resolver only handles existing .zibravdb files, not asset "
@@ -82,7 +82,7 @@ std::string ZibraVDBResolver::_CreateIdentifierForNewAsset(const std::string& as
 ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
 {
     auto assetURI = URI(assetPath);
-    if (!assetURI.isValid || !Zibra::Helpers::IsZibraVDBURI(assetURI))
+    if (!assetURI.isValid || !Zibra::Helpers::IsZibraVDBFile(assetURI))
     {
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
             .Msg("ZibraVDBResolver::_Resolve - Asset not handled by ZibraVDB resolver: '%s'\n", assetPath.c_str());
@@ -139,7 +139,7 @@ ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
 ArResolvedPath ZibraVDBResolver::_ResolveForNewAsset(const std::string& assetPath) const
 {
     // ZibraVDB asset resolver only handles decompression of existing .zibravdb files.
-    if (Zibra::Helpers::IsZibraVDBURI(assetPath))
+    if (Zibra::Helpers::IsZibraVDBFile(URI(assetPath)))
     {
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
             .Msg("ZibraVDBResolver::_ResolveForNewAsset - ZibraVDB asset resolver only handles existing .zibravdb files, not asset "

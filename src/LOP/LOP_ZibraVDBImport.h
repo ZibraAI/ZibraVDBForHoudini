@@ -18,7 +18,7 @@ namespace Zibra::ZibraVDBImport
         {
             std::string filePath;
             std::string uuid;
-            std::unordered_set<std::string> availableGrids;
+            std::set<std::string> availableGrids;
             int frameStart = 0;
             int frameEnd = 0;
             std::string error;
@@ -47,7 +47,7 @@ namespace Zibra::ZibraVDBImport
         std::string GetChannels(fpreal t) const;
 
         inline std::string SanitizeFieldNameForUSD(const std::string& fieldName);
-        std::set<std::string> ParseSelectedChannels(const std::string& fieldsStr, std::unordered_set<std::string>& invalidGridNames);
+        std::set<std::string> ParseSelectedChannels(const std::string& fieldsStr, std::set<std::string>& invalidGridNames);
         FileInfo LoadFileInfo(const std::string& filePath);
 
         void WriteZibraVolumeToStage(const UsdStageRefPtr& stage, const SdfPath& volumePrimPath, const std::set<std::string>& selectedChannels, int frameIndex);

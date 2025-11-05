@@ -53,7 +53,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         static bool CheckLicense(UT_String& error);
 
     private:
-        std::unordered_map<ZibraVDBUSDExport::SOP_ZibraVDBUSDExport*, CompressionEntry> m_CompressionEntries;
+        std::map<ZibraVDBUSDExport::SOP_ZibraVDBUSDExport*, CompressionEntry> m_CompressionEntries;
     };
 
     HUSD_OutputProcessorPtr createZibraVDBOutputProcessor();

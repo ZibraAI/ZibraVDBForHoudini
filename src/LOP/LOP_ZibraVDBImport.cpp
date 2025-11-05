@@ -145,7 +145,7 @@ namespace Zibra::ZibraVDBImport
             return error(context);
         }
 
-        std::unordered_set<std::string> invalidChannelNames;
+        std::set<std::string> invalidChannelNames;
         const std::set<std::string> selectedChannels = ParseSelectedChannels(channels, invalidChannelNames);
         if (selectedChannels.empty())
         {
@@ -241,7 +241,7 @@ namespace Zibra::ZibraVDBImport
     // Parses channel selection string. Expected formats:
     // "*" - selects all available channels
     // "channel1 channel2 channel3" - space-separated channel names (no support for channels with spaces in names)
-    std::set<std::string> LOP_ZibraVDBImport::ParseSelectedChannels(const std::string& channelsStr, std::unordered_set<std::string>& invalidChannelNames)
+    std::set<std::string> LOP_ZibraVDBImport::ParseSelectedChannels(const std::string& channelsStr, std::set<std::string>& invalidChannelNames)
     {
         std::set<std::string> selectedChannels;
         
@@ -290,7 +290,7 @@ namespace Zibra::ZibraVDBImport
             return info;
         }
 
-        if (!Helpers::IsZibraVDBURI(filePath) || !std::filesystem::exists(filePath))
+        if (!Helpers::IsZibraVDBFile(URI(filePath)) || !std::filesystem::exists(filePath))
         {
             info.error = "No valid .zibravdb file found";
             return info;
