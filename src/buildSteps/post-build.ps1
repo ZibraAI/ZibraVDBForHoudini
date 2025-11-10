@@ -1,9 +1,9 @@
 #!/usr/bin/env pwsh
 param (
     [Parameter(Mandatory=$true)][string]$HFS,
-    [Parameter(Mandatory=$true)][string]$pluginVersion,
-    [Parameter(Mandatory=$true)][string]$dsoFile,
-    [Parameter(Mandatory=$true)][string]$outputDir
+    [Parameter(Mandatory=$true)][string]$PluginVersion,
+    [Parameter(Mandatory=$true)][string]$DSOFile,
+    [Parameter(Mandatory=$true)][string]$DestFolder
 )
 
 $RepositeryRoot = "$PSScriptRoot/../.."
@@ -56,8 +56,8 @@ Write-Output "Houdini OS: $($HoudiniOS)"
 Write-Output "Houdini Python: $($HoudiniPython)"
 Write-Output "Houdini platform: $($HoudiniPlatform)"
 
-$PackageJSON = "$outputDir/ZibraVDB.json"
-$PackageFolder = "$outputDir/ZibraVDB"
+$PackageJSON = "$DestFolder/ZibraVDB.json"
+$PackageFolder = "$DestFolder/ZibraVDB"
 $PlatformSpecificFolder = "$PackageFolder/$($HoudiniOS)_$($HoudiniVersionFull)_$($HoudiniPython)_$($HoudiniPlatform)"
 $DSOFolder = "$PlatformSpecificFolder/dso"
 $OTLSFolder = "$PackageFolder/otls"
@@ -79,27 +79,13 @@ $JSONContent = @"
 {
     "show" : true,
     "enable" : "houdini_os == '$($HoudiniOS)' and houdini_version == '$($HoudiniVersionFull)' and houdini_python == '$($HoudiniPython)' and houdini_platform_build == '$($HoudiniPlatform)'",
-    "version": "$pluginVersion",
+    "version": "$PluginVersion",
     "env": [
         {
             "ZIBRAVDB_PLUGIN_PATH": "`$HOUDINI_PACKAGE_PATH/ZibraVDB"
         },
         {
-            "ZIBRAVDB_VERSION": "$pluginVersion"
-        },
-        {
-            "ZIBRAVDB_ENABLED": [
-                {
-                    "method": "replace",
-                    "process_order": 1,
-                    "value": "FALSE"
-                },
-                {
-                    "method": "replace",
-                    "process_order": 1,
-                    "houdini_os == '$($HoudiniOS)' and houdini_version == '$($HoudiniVersionFull)' and houdini_python == '$($HoudiniPython)' and houdini_platform_build == '$($HoudiniPlatform)'": "TRUE"
-                }
-            ]
+            "ZIBRAVDB_VERSION": "$PluginVersion"
         },
         {
             "HOUDINI_PATH": [
@@ -145,6 +131,6 @@ Get-ChildItem ./HDA/ | ForEach-Object {
     & $HOTLPath -l $SourceHDA $DestHDA
 }
 
-Copy-Item -Path $dsoFile -Destination $DSOFolder
+Copy-Item -Path $DSOFile -Destination $DSOFolder
 
 Pop-Location

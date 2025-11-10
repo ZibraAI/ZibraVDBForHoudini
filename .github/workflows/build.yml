@@ -316,19 +316,11 @@ jobs:
           retention-days: 7
 
 
-  merge-artifacts:
+  merge-packages:
     runs-on: macos-14
     needs: [select-houdini-build, build-plugin]
     if: ${{ (needs.select-houdini-build.outputs.need-complete-build == 'true') }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - houdini-version: "20.5"
-            houdini-build: ${{ needs.select-houdini-build.outputs.houdini-build-20-5 }}
-          - houdini-version: "21.0"
-            houdini-build: ${{ needs.select-houdini-build.outputs.houdini-build-21-0 }}
-    name: Merge artifacts ${{ matrix.houdini-version }}
+    name: Merge packages
 
     steps:
       - name: Sync
@@ -337,19 +329,18 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v5
         with:
-          pattern: ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-*
+          pattern: ZibraVDBForHoudini-*
 
-      - name: Merge artifacts
+      - name: Merge macOS architectures, sign and notarize apple binaries
         shell: bash
         run: |
-          mkdir merged
-          mv ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-win64-vc143/* merged/
-          mv ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-linux_x86_64_gcc11.2/dso/ZibraVDBForHoudini.so merged/dso/ZibraVDBForHoudini.so
-          lipo -create -output merged/dso/ZibraVDBForHoudini.dylib ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-macosx_arm64_clang15.0_14/dso/ZibraVDBForHoudini.dylib ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-macosx_x86_64_clang15.0_14/dso/ZibraVDBForHoudini.dylib
+          pwsh ${{ github.workspace }}/actions/houdini/merge_macos_packages_and_notarize.ps1 "ZibraVDBForHoudini-20.5.${{ needs.select-houdini-build.outputs.houdini-build-20-5 }}-macosx_arm64_clang15.0_14" "ZibraVDBForHoudini-20.5.${{ needs.select-houdini-build.outputs.houdini-build-20-5 }}-macosx_x86_64_clang15.0_14" "macos-20.5-universal"
+          pwsh ${{ github.workspace }}/actions/houdini/merge_macos_packages_and_notarize.ps1 "ZibraVDBForHoudini-21.0.${{ needs.select-houdini-build.outputs.houdini-build-21-0 }}-macosx_arm64_clang15.0_14" "ZibraVDBForHoudini-21.0.${{ needs.select-houdini-build.outputs.houdini-build-21-0 }}-macosx_x86_64_clang15.0_14" "macos-21.0-universal"
 
-      - name: Apple sign and notarize
+      - name: Merge packages
         shell: bash
-        run: ${{ github.workspace }}/actions/apple/sign_and_notarize_dylib.sh ${{ github.workspace }}/merged/dso/ZibraVDBForHoudini.dylib
+        run: |
+          pwsh ${{ github.workspace }}/actions/houdini/merge_packages.ps1 -SourcePackages "ZibraVDBForHoudini-20.5.${{ needs.select-houdini-build.outputs.houdini-build-20-5 }}-win64-vc143","ZibraVDBForHoudini-21.0.${{ needs.select-houdini-build.outputs.houdini-build-21-0 }}-win64-vc143","ZibraVDBForHoudini-20.5.${{ needs.select-houdini-build.outputs.houdini-build-20-5 }}-linux_x86_64_gcc11.2","ZibraVDBForHoudini-21.0.${{ needs.select-houdini-build.outputs.houdini-build-21-0 }}-linux_x86_64_gcc11.2","macos-20.5-universal","macos-21.0-universal" -DestFolder "merged"
         env:
           DEVELOPER_ID_APPLICATION_CERT: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_CERT }}
           DEVELOPER_ID_APPLICATION_PASS: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_PASS }}
@@ -358,10 +349,10 @@ jobs:
           NOTARIZATION_USER: ${{ secrets.NOTARIZATION_ZIBRA_AI_USER }}
           NOTARIZATION_PASS: ${{ secrets.NOTARIZATION_ZIBRA_AI_PASS }}
 
-      - name: Save merged artifacts
+      - name: Save merged packages
         uses: actions/upload-artifact@v4
         with:
-          name: ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}
+          name: ZibraVDBForHoudini
           path: merged
           if-no-files-found: error
           retention-days: 28
@@ -369,4 +360,4 @@ jobs:
       - name: Delete partial artifacts
         uses: geekyeggo/delete-artifact@f275313e70c08f6120db482d7a6b98377786765b # v5.1.0
         with:
-          name: ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-*
+          name: ZibraVDBForHoudini-*
