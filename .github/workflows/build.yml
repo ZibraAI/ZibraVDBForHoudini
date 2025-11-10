@@ -10,7 +10,7 @@ jobs:
       houdini-build-20-5: ${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}
       houdini-build-21-0: ${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}
       need-run: ${{ steps.open_pr_check.outputs.has_open_pr != 'true' }}
-      need-complete-build: ${{ (steps.open_pr_check.outputs.has_open_pr != 'true') && (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') }}
+      need-complete-build: true # ${{ (steps.open_pr_check.outputs.has_open_pr != 'true') && (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') }}
       # Legend
       # name - Human readable OS/Arch name. Version is appended separately.
       # run-on-all-branches - Whether to run this target on all branches. If false, will only run on main
@@ -298,14 +298,6 @@ jobs:
         working-directory: ${{ github.workspace }}
         shell: pwsh
         run: cmake --build build --config Release
-
-      - name: Repack HDA into Binary format
-        working-directory: ${{ github.workspace }}
-        shell: pwsh
-        run: |
-          ${{ matrix.hfs-path }}/bin/hotl${{ matrix.executable-extension }} -l ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda.2
-          Remove-Item -Recurse -Force ${{ github.workspace }}/package/otls\zibravdb_filecache.1.0.hda
-          Move-Item -Path ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda.2 -Destination ${{ github.workspace }}/package/otls/zibravdb_filecache.1.0.hda
 
       - name: Save artifacts
         uses: actions/upload-artifact@v4
