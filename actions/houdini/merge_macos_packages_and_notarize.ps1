@@ -27,12 +27,29 @@ foreach ($ARM64Package in $ARM64Packages) {
 
     $PackageConfig = Get-Content -Raw "$ARM64Package/ZibraVDB.json" | ConvertFrom-Json
 
-    $Prefix = $PackageConfig.env[2].HOUDINI_PATH[1].PSObject.Properties | Where-Object -Property Name -CNE -Value "method"
-    $Prefix = $Prefix.Value.Replace('$ZIBRAVDB_PLUGIN_PATH/', '')
+    # WIP
+    Write-Output "PackageConfig: $($PackageConfig | ConvertTo-Json -Depth 10)"
+    Write-Output "PackageConfig.env[2] $($PackageConfig.env[2] | ConvertTo-Json -Depth 10)"
+    Write-Output "PackageConfig.env[2].HOUDINI_PATH[1].PSObject.Properties $($PackageConfig.env[2].HOUDINI_PATH[1].PSObject.Properties | ConvertTo-Json -Depth 10)"
 
-    $ARM64DSOPath = "$ARM64Package/ZibraVDB/$Prefix/dso/ZibraVDBForHoudini.dylib"
-    $X64DSOPath = "$X64Package/ZibraVDB/$Prefix/dso/ZibraVDBForHoudini.dylib"
-    $DestDSOPath = "$DestFolder/ZibraVDB/$Prefix/dso/ZibraVDBForHoudini.dylib"
+    $Target = $PackageConfig.env[2].HOUDINI_PATH[1].PSObject.Properties | Where-Object -Property Name -CNE -Value "method"
+
+    Write-Output "Target 1: $($Target | ConvertTo-Json -Depth 10)"
+    Write-Output "Target.Value: $($Target.Value | ConvertTo-Json -Depth 10)"
+
+    $Target = $Target.Value.Replace('$ZIBRAVDB_PLUGIN_PATH/', '')
+    Write-Output "Target 2: $($Target | ConvertTo-Json -Depth 10)"
+
+    $ARM64DSOPath = "$ARM64Package/ZibraVDB/$Target/dso/ZibraVDBForHoudini.dylib"
+    $X64DSOPath = "$X64Package/ZibraVDB/$Target/dso/ZibraVDBForHoudini.dylib"
+    $DestDSOPath = "$DestFolder/ZibraVDB/$Target/dso/ZibraVDBForHoudini.dylib"
+
+    if (-not (Test-Path $ARM64DSOPath)) {
+        throw "ARM64 DSO not found at path: $ARM64DSOPath"
+    }
+    if (-not (Test-Path $X64DSOPath)) {
+        throw "X64 DSO not found at path: $X64DSOPath"
+    }
 
     if (Test-Path $DestFolder) {
         Remove-Item $DestFolder -Recurse -Force

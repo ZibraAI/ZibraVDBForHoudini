@@ -7,7 +7,6 @@ jobs:
     name: Select houdini build
     runs-on: [self-hosted, Linux, X64, houdini]
     outputs:
-      houdini-builds: ${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_0 }}
       need-run: ${{ steps.pr_check.outputs.has_open_pr != 'true' }}
       need-complete-build: ${{ (steps.pr_check.outputs.has_open_pr != 'true') && (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') }}
       # Legend
@@ -51,7 +50,7 @@ jobs:
           python3 -m venv actions/houdini/venv
           ./actions/houdini/venv/bin/Activate.ps1
           pip3 install -r actions/houdini/requirements.txt
-          python3 actions/houdini/build_matrix.py ${{ (steps.pr_check.outputs.has_open_pr != 'true') && (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') && '--full-build' || '' }}
+          python3 actions/houdini/build_matrix.py ${{ (steps.pr_check.outputs.has_open_pr != 'true') && (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') && '--all-platforms --all-builds' || '' }}
         env:
           HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
           HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
@@ -65,7 +64,7 @@ jobs:
             
     runs-on: ${{ matrix.runner }}
     concurrency:
-      group: ${{ matrix.houdini-platform }}-${{ matrix.houdini-version }}-${{ github.workflow }}-${{ github.ref }}
+      group: ${{ matrix.houdini-platform }}-${{ matrix.houdini-version }}-${{ matrix.houdini-build }}-${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     name: Build ${{ matrix.name }}
 
@@ -121,7 +120,6 @@ jobs:
           path: package
           if-no-files-found: error
           retention-days: 7
-
 
   merge-packages:
     runs-on: macos-14

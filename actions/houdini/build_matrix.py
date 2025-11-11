@@ -10,7 +10,9 @@ def get_secret(secret_name):
         raise Exception(f"Missing secret: {secret_name}")
     
 HOUDINI_PRODUCT = "houdini"
-HOUDINI_VERSIONS = ["20.0", "20.5", "21.0"]
+# WIP
+#HOUDINI_VERSIONS = ["20.0", "20.5", "21.0"]
+HOUDINI_VERSIONS = ["20.5"]
 HOUDINI_PLATFORMS = ["win64-vc143", "macosx_arm64", "macosx_x86_64", "linux_x86_64_gcc11.2"]
     
 def windows_x64_entry(version, build):
@@ -81,37 +83,50 @@ def macos_arm64_entry(version, build):
                "python-venv-activate-path": "bin/Activate.ps1",
                "additional-config-args": "-DCMAKE_OSX_ARCHITECTURES=arm64"
            }
-    
-def append_builds_to_matrix(matrix, version, builds, full_build):
-    for build in builds:
-        matrix["include"].append(linux_x64_entry(version, build))
-        if full_build:
-            matrix["include"].append(windows_x64_entry(version, build))
-            matrix["include"].append(macos_x64_entry(version, build))
-            matrix["include"].append(macos_arm64_entry(version, build))
 
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser(description="Houdini build selector")
-    arg_parser.add_argument("--full-build", action='store_true')
+    arg_parser.add_argument("--all-platforms", action='store_true')
+    arg_parser.add_argument("--all-builds", action='store_true')
+    arg_parser.add_argument("--specific-version", type=str, help="Select specific build for all versions", default=None)
+    arg_parser.add_argument("--specific-build", type=str, help="Select specific build for all versions", default=None)
     args = arg_parser.parse_args()
+    
+    if args.specific_build and not args.specific_version:
+        raise Exception("When specifying specific build, specific version must be also specified")
+    if args.specific_version and not args.specific_build:
+        raise Exception("When specifying specific version, specific build must be also specified")
 
     matrix = {"include": []}
-    for version in HOUDINI_VERSIONS:
+    
+    versions_to_process = HOUDINI_VERSIONS
+    if args.specific_version:
+        versions_to_process = [args.specific_version]
+    
+    for version in versions_to_process:
         valid_builds = houdini_version_query.query_houdini_builds(
             product=HOUDINI_PRODUCT,
             version=version,
             platforms=HOUDINI_PLATFORMS,
-            allow_daily=False,
+            allow_daily=args.specific_version is not None,
             verbose=False
         )
         if not valid_builds:
             raise Exception(f"No common builds found for {HOUDINI_PRODUCT} {version} on platforms {HOUDINI_PLATFORMS}")
-        if not args.full_build:
+        if args.specific_build:
+            if args.specific_build not in valid_builds:
+                raise Exception(f"Requested build {args.specific_build} is not available for {HOUDINI_PRODUCT} {version} on all platforms")
+            valid_builds = [args.specific_build]
+        # WIP
+        #if not args.all_builds:
+        if True:
             valid_builds = valid_builds[:1]
         for build in valid_builds:
-            matrix["include"].append(linux_x64_entry(version, build))
-            if args.full_build:
-                matrix["include"].append(windows_x64_entry(version, build))
+            # WIP
+            #matrix["include"].append(linux_x64_entry(version, build))
+            if args.all_platforms:
+                # WIP
+                #matrix["include"].append(windows_x64_entry(version, build))
                 matrix["include"].append(macos_x64_entry(version, build))
                 matrix["include"].append(macos_arm64_entry(version, build))
 
