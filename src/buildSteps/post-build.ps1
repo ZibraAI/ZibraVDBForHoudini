@@ -9,6 +9,12 @@ param (
 $RepositeryRoot = "$PSScriptRoot/../.."
 Push-Location $RepositeryRoot
 
+Write-Output "Running post-build step"
+Write-Output "HFS: $HFS"
+Write-Output "Plugin Version: $PluginVersion"
+Write-Output "DSO File: $DSOFile"
+Write-Output "Destination Folder: $DestFolder"
+
 # We need to parse houdini_setup_bash to get few required parameters
 # Input we parse has following format:
 #    export HHP="${HH}/python3.11libs"
@@ -63,17 +69,15 @@ $DSOFolder = "$PlatformSpecificFolder/dso"
 $OTLSFolder = "$PackageFolder/otls"
 
 if (Test-Path $PackageJSON) {
-    Write-Output Removing old $PackageJSON
     Remove-Item $PackageJSON
 }
 if (Test-Path $PackageFolder) {
-    Write-Output Removing old $PackageFolder
     Remove-Item -Recurse -Force $PackageFolder
 }
-New-Item -ItemType Directory -Path $PackageFolder
-New-Item -ItemType Directory -Path $PlatformSpecificFolder
-New-Item -ItemType Directory -Path $DSOFolder
-New-Item -ItemType Directory -Path $OTLSFolder
+New-Item -ItemType Directory -Path $PackageFolder | Out-Null
+New-Item -ItemType Directory -Path $PlatformSpecificFolder | Out-Null
+New-Item -ItemType Directory -Path $DSOFolder | Out-Null
+New-Item -ItemType Directory -Path $OTLSFolder | Out-Null
 
 $JSONContent = @"
 {
@@ -103,12 +107,26 @@ $JSONContent = @"
 }
 "@
 
-Write-Output "Writing package config to $PackageJSON"
-Write-Output "Config: $JSONContent"
 $JSONContent | Out-File -FilePath $PackageJSON
 
-Copy-Item -Path ./assets/* -Destination $PackageFolder -Recurse
-Copy-Item -Path ./assetsPlatformSpecific/* -Destination $PlatformSpecificFolder -Recurse
+function Copy-MergeFolders($SourceRoot, $DestRoot)
+{
+    $SourceRoot = (Resolve-Path $SourceRoot).Path
+    $DestRoot = (Resolve-Path $DestRoot).Path
+    if (-not (Test-Path $SourceRoot)) { throw "$SourceRoot does not exist" }
+    if (-not (Test-Path $DestRoot)) { throw "$DestRoot does not exist" }
+
+    Get-ChildItem -Path $SourceRoot -Recurse -File -Force | ForEach-Object {
+        $RelativePath = $_.FullName.Substring($SourceRoot.Length).TrimStart('\','/')
+        $DestPath = Join-Path $DestRoot $RelativePath
+        $DestDir = Split-Path $DestPath -Parent
+        if (-not (Test-Path $DestDir)) { New-Item -ItemType Directory -Path $DestDir -Force | Out-Null}
+        Copy-Item -Path $_.FullName -Destination $DestPath -Force
+    }
+}
+
+Copy-MergeFolders -SourceRoot "./assets" -DestRoot $PackageFolder
+Copy-MergeFolders -SourceRoot "./assetsPlatformSpecific" -DestRoot $PlatformSpecificFolder
 
 if ($IsWindows)
 {
@@ -127,10 +145,10 @@ Get-ChildItem ./HDA/ | ForEach-Object {
     $SourceHDA = $_.FullName
     $DestHDA = "$($OTLSFolder)/$($_.Name)"
 
-    Write-Output "Packing $($_.Name) into binary form and copying to $($OTLSFolder)"
     & $HOTLPath -l $SourceHDA $DestHDA
 }
 
+Write-Output "Successfully created package at $PackageJSON"
 Copy-Item -Path $DSOFile -Destination $DSOFolder
 
 Pop-Location

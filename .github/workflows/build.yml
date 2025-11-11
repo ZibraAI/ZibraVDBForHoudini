@@ -7,10 +7,9 @@ jobs:
     name: Select houdini build
     runs-on: [self-hosted, Linux, X64, houdini]
     outputs:
-      houdini-build-20-5: ${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}
-      houdini-build-21-0: ${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}
-      need-run: ${{ steps.open_pr_check.outputs.has_open_pr != 'true' }}
-      need-complete-build: true # ${{ (steps.open_pr_check.outputs.has_open_pr != 'true') && (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') }}
+      houdini-builds: ${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_0 }}
+      need-run: ${{ steps.pr_check.outputs.has_open_pr != 'true' }}
+      need-complete-build: ${{ (steps.pr_check.outputs.has_open_pr != 'true') && (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') }}
       # Legend
       # name - Human readable OS/Arch name. Version is appended separately.
       # run-on-all-branches - Whether to run this target on all branches. If false, will only run on main
@@ -23,181 +22,12 @@ jobs:
       # python-command - Python command to use for running scripts (e.g. "python"/"python3")
       # python-venv-activate-path - Path to powershell python venv activation script within venv folder
       # additional-config-args - Additional commad line args to pass to cmake configuration. Required on macOS to specify architectrue (arm64/x64)
-      complete-build-matrix-json: |
-        {
-          "include": [
-            {
-              "name": "Windows x64",
-              "runner": "windows-latest",
-              "generator": "Visual Studio 17 2022",
-              "executable-extension": ".exe",
-              "houdini-version": "20.5",
-              "houdini-build": "${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
-              "houdini-platform": "win64-vc143",
-              "houdini-install-path": "C:\\Houdini\\20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
-              "hfs-path": "C:\\Houdini\\20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
-              "python-command": "python",
-              "python-venv-activate-path": "Scripts/Activate.ps1",
-              "additional-config-args": null
-            },
-            {
-              "name": "Windows x64",
-              "runner": "windows-latest",
-              "generator": "Visual Studio 17 2022",
-              "executable-extension": ".exe",
-              "houdini-version": "21.0",
-              "houdini-build": "${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
-              "houdini-platform": "win64-vc143",
-              "houdini-install-path": "C:\\Houdini\\21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
-              "hfs-path": "C:\\Houdini\\21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
-              "python-command": "python",
-              "python-venv-activate-path": "Scripts/Activate.ps1",
-              "additional-config-args": null
-            },
-            {
-              "name": "Linux x64",
-              "runner": [
-                "self-hosted",
-                "Linux",
-                "X64",
-                "houdini"
-              ],
-              "generator": "Ninja Multi-Config",
-              "executable-extension": null,
-              "houdini-version": "20.5",
-              "houdini-build": "${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
-              "houdini-platform": "linux_x86_64_gcc11.2",
-              "houdini-install-path": "/opt/hfs20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
-              "hfs-path": "/opt/hfs20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
-              "python-command": "python3",
-              "python-venv-activate-path": "bin/Activate.ps1",
-              "additional-config-args": null
-            },
-            {
-              "name": "Linux x64",
-              "runner": [
-                "self-hosted",
-                "Linux",
-                "X64",
-                "houdini"
-              ],
-              "generator": "Ninja Multi-Config",
-              "executable-extension": null,
-              "houdini-version": "21.0",
-              "houdini-build": "${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
-              "houdini-platform": "linux_x86_64_gcc11.2",
-              "houdini-install-path": "/opt/hfs21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
-              "hfs-path": "/opt/hfs21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
-              "python-command": "python3",
-              "python-venv-activate-path": "bin/Activate.ps1",
-              "additional-config-args": null
-            },
-            {
-              "name": "macOS arm64",
-              "runner": "macos-14",
-              "generator": "Xcode",
-              "executable-extension": null,
-              "houdini-version": "20.5",
-              "houdini-build": "${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
-              "houdini-platform": "macosx_arm64_clang15.0_14",
-              "houdini-install-path": "/Applications/Houdini/Houdini20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
-              "hfs-path": "/Applications/Houdini/Houdini20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}/Frameworks/Houdini.framework/Versions/Current/Resources",
-              "python-command": "python3",
-              "python-venv-activate-path": "bin/Activate.ps1",
-              "additional-config-args": "-DCMAKE_OSX_ARCHITECTURES=arm64"
-            },
-            {
-              "name": "macOS arm64",
-              "runner": "macos-14",
-              "generator": "Xcode",
-              "executable-extension": null,
-              "houdini-version": "21.0",
-              "houdini-build": "${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
-              "houdini-platform": "macosx_arm64_clang15.0_14",
-              "houdini-install-path": "/Applications/Houdini/Houdini21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
-              "hfs-path": "/Applications/Houdini/Houdini21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}/Frameworks/Houdini.framework/Versions/Current/Resources",
-              "python-command": "python3",
-              "python-venv-activate-path": "bin/Activate.ps1",
-              "additional-config-args": "-DCMAKE_OSX_ARCHITECTURES=arm64"
-            },
-            {
-              "name": "macOS x64",
-              "runner": "macos-14",
-              "generator": "Xcode",
-              "executable-extension": null,
-              "houdini-version": "20.5",
-              "houdini-build": "${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
-              "houdini-platform": "macosx_x86_64_clang15.0_14",
-              "houdini-install-path": "/Applications/Houdini/Houdini20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
-              "hfs-path": "/Applications/Houdini/Houdini20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}/Frameworks/Houdini.framework/Versions/Current/Resources",
-              "python-command": "python3",
-              "python-venv-activate-path": "bin/Activate.ps1",
-              "additional-config-args": "-DCMAKE_OSX_ARCHITECTURES=x86_64"
-            },
-            {
-              "name": "macOS x64",
-              "runner": "macos-14",
-              "generator": "Xcode",
-              "executable-extension": null,
-              "houdini-version": "21.0",
-              "houdini-build": "${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
-              "houdini-platform": "macosx_x86_64_clang15.0_14",
-              "houdini-install-path": "/Applications/Houdini/Houdini21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
-              "hfs-path": "/Applications/Houdini/Houdini21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}/Frameworks/Houdini.framework/Versions/Current/Resources",
-              "python-command": "python3",
-              "python-venv-activate-path": "bin/Activate.ps1",
-              "additional-config-args": "-DCMAKE_OSX_ARCHITECTURES=x86_64"
-            }
-          ]
-        }
-      quick-build-matrix-json: |
-        {
-          "include": [
-            {
-              "name": "Linux x64",
-              "runner": [
-                "self-hosted",
-                "Linux",
-                "X64",
-                "houdini"
-              ],
-              "generator": "Ninja Multi-Config",
-              "executable-extension": null,
-              "houdini-version": "20.5",
-              "houdini-build": "${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
-              "houdini-platform": "linux_x86_64_gcc11.2",
-              "houdini-install-path": "/opt/hfs20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
-              "hfs-path": "/opt/hfs20.5.${{ steps.select_houdini_20_5_build.outputs.houdini_build_20_5 }}",
-              "python-command": "python3",
-              "python-venv-activate-path": "bin/Activate.ps1",
-              "additional-config-args": null
-            },
-            {
-              "name": "Linux x64",
-              "runner": [
-                "self-hosted",
-                "Linux",
-                "X64",
-                "houdini"
-              ],
-              "generator": "Ninja Multi-Config",
-              "executable-extension": null,
-              "houdini-version": "21.0",
-              "houdini-build": "${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
-              "houdini-platform": "linux_x86_64_gcc11.2",
-              "houdini-install-path": "/opt/hfs21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
-              "hfs-path": "/opt/hfs21.0.${{ steps.select_houdini_21_0_build.outputs.houdini_build_21_0 }}",
-              "python-command": "python3",
-              "python-venv-activate-path": "bin/Activate.ps1",
-              "additional-config-args": null
-            }
-          ]
-        }
+      build-matrix-json: ${{ steps.build_matrix.outputs.build_matrix }}
 
     steps:
       - name: Check for open PRs
         if: ${{ github.event_name == 'push' }}
-        id: open_pr_check
+        id: pr_check
         uses: actions/github-script@v7
         with:
           script: |
@@ -209,50 +39,35 @@ jobs:
             core.setOutput('has_open_pr', String(prs.data.length > 0));
 
       - name: Sync
-        if: ${{ steps.open_pr_check.outputs.has_open_pr != 'true' }}
+        if: ${{ steps.pr_check.outputs.has_open_pr != 'true' }}
         uses: actions/checkout@v4
 
-      - name: Select Houdini 20.5 build
-        if: ${{ steps.open_pr_check.outputs.has_open_pr != 'true' }}
-        id: select_houdini_20_5_build
+      - name: Build matrix
+        if: ${{ steps.pr_check.outputs.has_open_pr != 'true' }}
+        id: build_matrix
         working-directory: ${{ github.workspace }}
         shell: pwsh
         run: |
           python3 -m venv actions/houdini/venv
           ./actions/houdini/venv/bin/Activate.ps1
           pip3 install -r actions/houdini/requirements.txt
-          python3 actions/houdini/select_build.py --product houdini --version 20.5 --platforms win64-vc143 macosx_arm64_clang15.0_14 macosx_x86_64_clang15.0_14 linux_x86_64_gcc11.2
+          python3 actions/houdini/build_matrix.py ${{ (steps.pr_check.outputs.has_open_pr != 'true') && (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') && '--full-build' || '' }}
         env:
           HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
           HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
-
-      - name: Select Houdini 21.0 build
-        if: ${{ steps.open_pr_check.outputs.has_open_pr != 'true' }}
-        id: select_houdini_21_0_build
-        working-directory: ${{ github.workspace }}
-        shell: pwsh
-        run: |
-          python3 -m venv actions/houdini/venv
-          ./actions/houdini/venv/bin/Activate.ps1
-          pip3 install -r actions/houdini/requirements.txt
-          python3 actions/houdini/select_build.py --product houdini --version 21.0 --platforms win64-vc143 macosx_arm64_clang15.0_14 macosx_x86_64_clang15.0_14 linux_x86_64_gcc11.2
-        env:
-          HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
-          HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
-
 
   build-plugin:
     needs: select-houdini-build
     if: ${{ (needs.select-houdini-build.outputs.need-run == 'true') }}
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson( (needs.select-houdini-build.outputs.need-complete-build == 'true') && needs.select-houdini-build.outputs.complete-build-matrix-json || needs.select-houdini-build.outputs.quick-build-matrix-json ) }}
+      matrix: ${{ fromJson(needs.select-houdini-build.outputs.build-matrix-json) }}
             
     runs-on: ${{ matrix.runner }}
     concurrency:
       group: ${{ matrix.houdini-platform }}-${{ matrix.houdini-version }}-${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
-    name: Build ${{ matrix.name }} Houdini ${{ matrix.houdini-version }}
+    name: Build ${{ matrix.name }}
 
     steps:
       - name: Sync
@@ -311,7 +126,6 @@ jobs:
   merge-packages:
     runs-on: macos-14
     needs: [select-houdini-build, build-plugin]
-    if: ${{ (needs.select-houdini-build.outputs.need-complete-build == 'true') }}
     name: Merge packages
 
     steps:
@@ -325,14 +139,9 @@ jobs:
 
       - name: Merge macOS architectures, sign and notarize apple binaries
         shell: bash
+        if: ${{ needs.select-houdini-build.outputs.need-complete-build == 'true' }}
         run: |
-          pwsh ${{ github.workspace }}/actions/houdini/merge_macos_packages_and_notarize.ps1 "ZibraVDBForHoudini-20.5.${{ needs.select-houdini-build.outputs.houdini-build-20-5 }}-macosx_arm64_clang15.0_14" "ZibraVDBForHoudini-20.5.${{ needs.select-houdini-build.outputs.houdini-build-20-5 }}-macosx_x86_64_clang15.0_14" "macos-20.5-universal"
-          pwsh ${{ github.workspace }}/actions/houdini/merge_macos_packages_and_notarize.ps1 "ZibraVDBForHoudini-21.0.${{ needs.select-houdini-build.outputs.houdini-build-21-0 }}-macosx_arm64_clang15.0_14" "ZibraVDBForHoudini-21.0.${{ needs.select-houdini-build.outputs.houdini-build-21-0 }}-macosx_x86_64_clang15.0_14" "macos-21.0-universal"
-
-      - name: Merge packages
-        shell: bash
-        run: |
-          pwsh ${{ github.workspace }}/actions/houdini/merge_packages.ps1 -SourcePackages "ZibraVDBForHoudini-20.5.${{ needs.select-houdini-build.outputs.houdini-build-20-5 }}-win64-vc143","ZibraVDBForHoudini-21.0.${{ needs.select-houdini-build.outputs.houdini-build-21-0 }}-win64-vc143","ZibraVDBForHoudini-20.5.${{ needs.select-houdini-build.outputs.houdini-build-20-5 }}-linux_x86_64_gcc11.2","ZibraVDBForHoudini-21.0.${{ needs.select-houdini-build.outputs.houdini-build-21-0 }}-linux_x86_64_gcc11.2","macos-20.5-universal","macos-21.0-universal" -DestFolder "merged"
+          pwsh ${{ github.workspace }}/actions/houdini/merge_macos_packages_and_notarize.ps1 "ZibraVDBForHoudini-"
         env:
           DEVELOPER_ID_APPLICATION_CERT: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_CERT }}
           DEVELOPER_ID_APPLICATION_PASS: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_PASS }}
@@ -340,6 +149,11 @@ jobs:
           APPLE_DEVELOPER_TEAM: ${{ secrets.APPLE_DEVELOPER_ZIBRA_AI_TEAM }}
           NOTARIZATION_USER: ${{ secrets.NOTARIZATION_ZIBRA_AI_USER }}
           NOTARIZATION_PASS: ${{ secrets.NOTARIZATION_ZIBRA_AI_PASS }}
+
+      - name: Merge packages
+        shell: bash
+        run: |
+          pwsh ${{ github.workspace }}/actions/houdini/merge_packages.ps1 -Prefix "ZibraVDBForHoudini-" -DestFolder "merged"
 
       - name: Save merged packages
         uses: actions/upload-artifact@v4
