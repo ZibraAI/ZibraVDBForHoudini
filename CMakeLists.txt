@@ -165,11 +165,9 @@ else()
         )
     endif()
     string(REGEX MATCH "HOUDINI_USER_PREF_DIR := '([^\n]*)'" _ ${HOUDINI_ENV_VARS})
-    set(OUTPUT_PATH ${CMAKE_MATCH_1})
+    set(OUTPUT_PATH "${CMAKE_MATCH_1}/packages")
 endif()
 cmake_print_variables(OUTPUT_PATH)
-set(HOUDINI_INSTDIR "${OUTPUT_PATH}/dso")
-cmake_print_variables(HOUDINI_INSTDIR)
 
 if(${LABS_BUILD})
     # In Labs build we use simple post-build flow
@@ -182,7 +180,7 @@ if(${LABS_BUILD})
     )
 else()
     add_custom_target(ZibraVDBForHoudiniPostBuild ALL
-        COMMAND ${CMAKE_COMMAND} -E env NO_COLOR=1 pwsh ${CMAKE_CURRENT_SOURCE_DIR}/src/buildSteps/post-build.ps1 ${HOUDINI_PATH} ${CMAKE_PROJECT_VERSION} $<TARGET_FILE:ZibraVDBForHoudini> ${OUTPUT_PATH}/packages
+        COMMAND ${CMAKE_COMMAND} -E env NO_COLOR=1 pwsh "${CMAKE_CURRENT_SOURCE_DIR}/src/buildSteps/post-build.ps1" "${HOUDINI_PATH}" "${CMAKE_PROJECT_VERSION}" "$<TARGET_FILE:ZibraVDBForHoudini>" "${OUTPUT_PATH}"
         
     )
 endif()
@@ -201,9 +199,9 @@ endif()
 
 if(${LABS_BUILD})
     set_target_properties(ZibraVDBForHoudini PROPERTIES PREFIX "")
-    install(TARGETS ZibraVDBForHoudini DESTINATION ${HOUDINI_INSTDIR})
+    install(TARGETS ZibraVDBForHoudini DESTINATION "${OUTPUT_PATH}/dso")
 else()
-    houdini_configure_target(ZibraVDBForHoudini INSTDIR ${HOUDINI_INSTDIR})
+    houdini_configure_target(ZibraVDBForHoudini INSTDIR "${CMAKE_CURRENT_BINARY_DIR}/HOUDINI_INSTDIR")
 endif()
 
 if(MSVC)

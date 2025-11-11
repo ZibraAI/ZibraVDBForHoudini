@@ -7,6 +7,14 @@ param (
     [Parameter(Mandatory=$true)][string]$DestFolder
 )
 
+if (-not (Test-Path "$ARM64Package/ZibraVDB.json")) {
+    throw "ARM64 package config not found"
+}
+
+if (-not (Test-Path "$X64Package/ZibraVDB.json")) {
+    throw "X64 package config not found"
+}
+
 $PackageConfig = Get-Content -Raw "$ARM64Package/ZibraVDB.json" | ConvertFrom-Json
 
 $Prefix = $PackageConfig.env[2].HOUDINI_PATH[1].PSObject.Properties | Where-Object -Property Name -CNE -Value "method"

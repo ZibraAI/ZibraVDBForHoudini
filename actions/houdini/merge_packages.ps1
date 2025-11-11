@@ -6,8 +6,14 @@ param (
 
 if ($SourcePackages.Count -eq 0)
 {
-    Write-Error "Source Packages can't be empty"
-    exit 1
+    throw "Source Packages can't be empty"
+}
+
+foreach ($Package in $SourcePackages)
+{
+    if (-not (Test-Path "$Package/ZibraVDB.json")) {
+        throw "Package config not found in $Package"
+    }
 }
 
 $PackageConfigs = $SourcePackages | ForEach-Object { Get-Content -Raw "$_/ZibraVDB.json" | ConvertFrom-Json }
