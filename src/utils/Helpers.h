@@ -5,8 +5,14 @@
 
 namespace Zibra::Helpers
 {
-    // Querying environment variables
-    std::vector<std::string> GetHoudiniEnvironmentVariable(UT_StrControl envVarEnum, const char* envVarName);    
+    // Depending on houdini version and specific env var
+    // Either way of querying environmnt variables can return incorrect value
+    // But not both at the same time
+    // So we return up to 2 values, so user can try both values
+    std::vector<std::string> GetHoudiniEnvironmentVariable(UT_StrControl envVarEnum, const char* envVarName);
+    // This method can be used for env vars that don't have corresponding UT_StrControl value
+    std::optional<std::string> GetNormalEnvironmentVariable(const char* envVarName);
+
     void AppendToPath(std::vector<std::string>& pathsToModify, const std::string& relativePath);
 
     // Actions to perform

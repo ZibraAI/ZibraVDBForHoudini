@@ -10,9 +10,7 @@ def get_secret(secret_name):
         raise Exception(f"Missing secret: {secret_name}")
     
 HOUDINI_PRODUCT = "houdini"
-# WIP
-#HOUDINI_VERSIONS = ["20.0", "20.5", "21.0"]
-HOUDINI_VERSIONS = ["20.5"]
+HOUDINI_VERSIONS = ["20.0", "20.5", "21.0"]
 HOUDINI_PLATFORMS = ["win64-vc143", "macosx_arm64", "macosx_x86_64", "linux_x86_64_gcc11.2"]
     
 def windows_x64_entry(version, build):
@@ -117,16 +115,12 @@ if __name__ == "__main__":
             if args.specific_build not in valid_builds:
                 raise Exception(f"Requested build {args.specific_build} is not available for {HOUDINI_PRODUCT} {version} on all platforms")
             valid_builds = [args.specific_build]
-        # WIP
-        #if not args.all_builds:
-        if True:
+        if not args.all_builds:
             valid_builds = valid_builds[:1]
         for build in valid_builds:
-            # WIP
-            #matrix["include"].append(linux_x64_entry(version, build))
+            matrix["include"].append(linux_x64_entry(version, build))
             if args.all_platforms:
-                # WIP
-                #matrix["include"].append(windows_x64_entry(version, build))
+                matrix["include"].append(windows_x64_entry(version, build))
                 matrix["include"].append(macos_x64_entry(version, build))
                 matrix["include"].append(macos_arm64_entry(version, build))
 

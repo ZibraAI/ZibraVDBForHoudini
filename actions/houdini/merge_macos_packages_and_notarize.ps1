@@ -27,18 +27,8 @@ foreach ($ARM64Package in $ARM64Packages) {
 
     $PackageConfig = Get-Content -Raw "$ARM64Package/ZibraVDB.json" | ConvertFrom-Json
 
-    # WIP
-    Write-Output "PackageConfig: $($PackageConfig | ConvertTo-Json -Depth 10)"
-    Write-Output "PackageConfig.env[2] $($PackageConfig.env[2] | ConvertTo-Json -Depth 10)"
-    Write-Output "PackageConfig.env[2].HOUDINI_PATH[1].PSObject.Properties $($PackageConfig.env[2].HOUDINI_PATH[1].PSObject.Properties | ConvertTo-Json -Depth 10)"
-
     $Target = $PackageConfig.env[2].HOUDINI_PATH[1].PSObject.Properties | Where-Object -Property Name -CNE -Value "method"
-
-    Write-Output "Target 1: $($Target | ConvertTo-Json -Depth 10)"
-    Write-Output "Target.Value: $($Target.Value | ConvertTo-Json -Depth 10)"
-
     $Target = $Target.Value.Replace('$ZIBRAVDB_PLUGIN_PATH/', '')
-    Write-Output "Target 2: $($Target | ConvertTo-Json -Depth 10)"
 
     $ARM64DSOPath = "$ARM64Package/ZibraVDB/$Target/dso/ZibraVDBForHoudini.dylib"
     $X64DSOPath = "$X64Package/ZibraVDB/$Target/dso/ZibraVDBForHoudini.dylib"

@@ -88,9 +88,11 @@ else()
 endif()
 cmake_print_variables(ZIB_NETWORK_REQUEST_BACKEND)
 
+configure_file(src/Globals.h.in src/Globals.h @ONLY)
+
 set(HeaderFiles
     src/PrecompiledHeader.h
-    src/Globals.h
+    src/Globals.h.in
     src/bridge/networking/NetworkRequest.h
     src/bridge/LibraryUtils.h
     src/bridge/UpdateCheck.h
@@ -103,6 +105,8 @@ set(HeaderFiles
     src/ui/PluginManagementWindow.h
     src/utils/Helpers.h
     src/utils/GAAttributesDump.h
+    
+    ${CMAKE_CURRENT_BINARY_DIR}/src/Globals.h
 )
 
 set(SourceFiles
@@ -124,6 +128,7 @@ set(SourceFiles
 add_library(ZibraVDBForHoudini SHARED ${HeaderFiles} ${SourceFiles})
 target_include_directories(ZibraVDBForHoudini
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
+    PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/src
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/Include)
 target_precompile_headers(ZibraVDBForHoudini PRIVATE src/PrecompiledHeader.h)
 target_compile_definitions(ZibraVDBForHoudini PRIVATE 
@@ -205,11 +210,11 @@ else()
 endif()
 
 if(MSVC)
-    set_target_properties(ZibraVDBForHoudini PROPERTIES
+    set_target_properties(ZibraVDBForHoudiniPostBuild PROPERTIES
         VS_DEBUGGER_COMMAND "${HOUDINI_PATH}/bin/houdini${CMAKE_EXECUTABLE_SUFFIX}"
         VS_DEBUGGER_COMMAND_ARGUMENTS "${CMAKE_CURRENT_SOURCE_DIR}/HIP/HDAs.hip"
         VS_DEBUGGER_ENVIRONMENT "HOUDINI_TEXT_CONSOLE=1"
     )
     set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        PROPERTY VS_STARTUP_PROJECT ZibraVDBForHoudini)
+        PROPERTY VS_STARTUP_PROJECT ZibraVDBForHoudiniPostBuild)
 endif()
