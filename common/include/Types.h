@@ -9,7 +9,7 @@ enum class MetaAttributesLoadStatus
 
 struct URI {
     std::string scheme;
-    std::filesystem::path path;
+    std::string path;
     std::map<std::string, std::string> queryParams;
     bool isValid = false;
 

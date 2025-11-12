@@ -169,6 +169,26 @@ namespace Zibra::Helpers
         return result;
     }
 
+    std::string GetExtension(const URI& uri)
+    {
+        if (!uri.isValid)
+        {
+            return {};
+        }
+
+        if (!uri.scheme.empty() && uri.scheme.find("file") != 0)
+        {
+            return {};
+        }
+
+        size_t dotPos = uri.path.rfind('.');
+        if (dotPos == std::string::npos)
+        {
+            return {};
+        }
+
+        return uri.path.substr(dotPos);
+    }
 
     bool TryParseInt(const std::string& str, int& result)
     {
@@ -208,16 +228,21 @@ URI::URI(const std::string& URIString)
     }
 
     const std::string pathPart = questionMarkPos == std::string::npos ? URIString : URIString.substr(0, questionMarkPos);
-    const size_t colonPos = pathPart.find(':');
-    
-    if (colonPos != std::string::npos)
+    const size_t schemePos = pathPart.find("://");
+
+    if (schemePos != std::string::npos)
     {
-        scheme = pathPart.substr(0, colonPos);
-        path = std::filesystem::path(pathPart.substr(colonPos + 1));
+        scheme = pathPart.substr(0, schemePos);
+        path = pathPart.substr(schemePos + 3);
     }
     else
     {
-        path = std::filesystem::path(pathPart);
+        path = pathPart;
+    }
+
+    if (path.empty())
+    {
+        return;
     }
 
     if (questionMarkPos != std::string::npos && questionMarkPos + 1 < URIString.length())

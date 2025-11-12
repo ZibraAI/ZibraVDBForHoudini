@@ -36,7 +36,19 @@ namespace Zibra::AssetResolver
         if (pathIt != m_PathToUUIDMap.end())
         {
             const std::string& uuid = pathIt->second;
-            item = m_DecompressionFiles[uuid].get();
+            const auto fileIt = m_DecompressionFiles.find(uuid);
+            if (fileIt != m_DecompressionFiles.end())
+            {
+                item = fileIt->second.get();
+            }
+            else
+            {
+                // UUID exists in m_PathToUUIDMap but not in m_DecompressionFiles - this should never happen
+                TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
+                    .Msg("ZibraVDBDecompressionManager::DecompressZibraVDBFile - Inconsistent state: UUID found in path map but not in files map for path '%s'\n",
+                         zibraVDBPath.c_str());
+                return {};
+            }
         }
         else
         {

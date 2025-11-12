@@ -222,7 +222,7 @@ namespace Zibra::Utils
     }
 
     void AttributeStoragePolicy<openvdb::GridBase::Ptr>::StoreFloatArray(TargetType& target, const std::string& attribName,
-                                                                         const std::vector<float>& values, const std::string& typeStr)
+                                                                         const std::vector<float>& values, GA_Storage /*storage*/)
     {
         switch (values.size())
         {
@@ -273,7 +273,7 @@ namespace Zibra::Utils
     }
 
     void AttributeStoragePolicy<openvdb::MetaMap>::StoreFloatArray(TargetType& target, const std::string& attribName,
-                                                                   const std::vector<float>& values, const std::string& typeStr)
+                                                                   const std::vector<float>& values, GA_Storage /*storage*/)
     {
         switch (values.size())
         {
@@ -332,76 +332,39 @@ namespace Zibra::Utils
             auto valContainer = attrContainer["v"];
             ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE(!typeContainer.is_string() || valContainer.is_object() || valContainer.is_null());
 
-            std::string typeStr = typeContainer;
+            GA_Storage storage = StrTypeToGAStorage(typeContainer);
 
-            if (typeStr == "bool")
+            ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE(storage == GA_STORE_INVALID);
+
+            switch (storage)
             {
-                if (valContainer.is_boolean())
-                {
-                    PolicyType::StoreBool(target, attribName, valContainer.template get<bool>());
-                }
-                else
-                {
-                    status = MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA;
-                }
+            case GA_STORE_BOOL:
+                // TODO: finish
+                break;
+            case GA_STORE_UINT8:
+                // TODO: finish
+                break;
+            case GA_STORE_INT8:
+            case GA_STORE_INT16:
+            case GA_STORE_INT32:
+            case GA_STORE_INT64: {
+                PolicyType::StoreBool(target, attribName, valContainer.template get<bool>());
+                break;
             }
-            else if (typeStr == "int8" || typeStr == "int16" || typeStr == "int32" || typeStr == "int64")
-            {
-                if (valContainer.is_array())
-                {
-                    std::vector<int32> values = valContainer;
-                    if constexpr (std::is_same_v<TargetType, std::tuple<GU_Detail*, GA_AttributeOwner, GA_Offset>>)
-                    {
-                        GA_Storage storage = StrTypeToGAStorage(typeStr);
-                        PolicyType::StoreIntArray(target, attribName, values, storage);
-                    }
-                    else
-                    {
-                        PolicyType::StoreIntArray(target, attribName, values, typeStr);
-                    }
-                }
-                else
-                {
-                    status = MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA;
-                }
+            case GA_STORE_REAL16:
+            case GA_STORE_REAL32:
+            case GA_STORE_REAL64: {
+                PolicyType::StoreFloatArray(target, attribName, valContainer, storage);
+                break;
             }
-            else if (typeStr == "float16" || typeStr == "float32" || typeStr == "float64")
-            {
-                if (valContainer.is_array())
-                {
-                    std::vector<float> values = valContainer;
-                    if constexpr (std::is_same_v<TargetType, std::tuple<GU_Detail*, GA_AttributeOwner, GA_Offset>>)
-                    {
-                        GA_Storage storage = StrTypeToGAStorage(typeStr);
-                        PolicyType::StoreFloatArray(target, attribName, values, storage);
-                    }
-                    else
-                    {
-                        PolicyType::StoreFloatArray(target, attribName, values, typeStr);
-                    }
-                }
-                else
-                {
-                    status = MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA;
-                }
+            case GA_STORE_STRING: {
+                PolicyType::StoreString(target, attribName, valContainer.template get<std::string>());
+                break;
             }
-            else if (typeStr == "string")
-            {
-                if (valContainer.is_string())
-                {
-                    PolicyType::StoreString(target, attribName, valContainer.template get<std::string>());
-                }
-                else
-                {
-                    status = MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA;
-                }
-            }
-            else
-            {
-                status = MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA;
+            default:
+                continue;
             }
         }
-
         return status;
 
 #undef ZIB_LOCAL_HELPER_WARNING_AND_RETURN

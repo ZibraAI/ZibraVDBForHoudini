@@ -38,7 +38,14 @@ namespace Zibra::ZibraVDBOutputProcessor
         }
         if (!LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Compression))
         {
-            error = ERROR_PREFIX + ZIBRAVDB_ERROR_MESSAGE_LICENSE_NO_COMPRESSION;
+            if (LicenseManager::GetInstance().IsAnyLicenseValid())
+            {
+                error = ERROR_PREFIX + ZIBRAVDB_ERROR_MESSAGE_LICENSE_NO_COMPRESSION;
+            }
+            else
+            {
+                error = ERROR_PREFIX + ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR;
+            }
             UTaddError(error.buffer(), UT_ERROR_MESSAGE, error.buffer());
             return false;
         }
@@ -76,7 +83,7 @@ namespace Zibra::ZibraVDBOutputProcessor
                                                   bool assetIsLayer, UT_String& newPath, UT_String& error)
     {
         const URI assetURI(assetPath.toStdString());
-        if (assetIsLayer || !assetURI.isValid || !Helpers::IsZibraVDBFile(assetURI))
+        if (assetIsLayer || Helpers::GetExtension(assetURI) != ZIB_ZIBRAVDB_EXT)
         {
             return false;
         }
@@ -115,7 +122,7 @@ namespace Zibra::ZibraVDBOutputProcessor
 
         std::string decodedNodeName = nodeIt->second;
         std::string frameStr = frameIt->second;
-        std::string filePath = assetURI.path.string();
+        std::string filePath = assetURI.path;
 
         OP_Node* opNode = OPgetDirector()->findNode(decodedNodeName.c_str());
         if (!opNode)

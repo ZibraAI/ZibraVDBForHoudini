@@ -290,7 +290,7 @@ namespace Zibra::ZibraVDBImport
             return info;
         }
 
-        if (!Helpers::IsZibraVDBFile(URI(filePath)) || !std::filesystem::exists(filePath))
+        if (Helpers::GetExtension(URI(filePath)) != ZIB_ZIBRAVDB_EXT || !std::filesystem::exists(filePath))
         {
             info.error = "No valid .zibravdb file found";
             return info;
