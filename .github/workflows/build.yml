@@ -8,7 +8,7 @@ jobs:
     runs-on: [self-hosted, Linux, X64, houdini]
     outputs:
       need-run: ${{ steps.pr_check.outputs.has_open_pr != 'true' }}
-      need-complete-build: ${{ (steps.pr_check.outputs.has_open_pr != 'true') && (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') }}
+      need-build-macos: ${{ (steps.pr_check.outputs.has_open_pr != 'true') && (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') }}
       # Legend
       # name - Human readable OS/Arch name. Version is appended separately.
       # run-on-all-branches - Whether to run this target on all branches. If false, will only run on main
@@ -50,7 +50,7 @@ jobs:
           python3 -m venv actions/houdini/venv
           ./actions/houdini/venv/bin/Activate.ps1
           pip3 install -r actions/houdini/requirements.txt
-          python3 actions/houdini/build_matrix.py ${{ (steps.pr_check.outputs.has_open_pr != 'true') && (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') && '--all-platforms --all-builds' || '' }}
+          python3 actions/houdini/build_matrix.py ${{ github.ref == 'refs/heads/main' && '--all-versions --all-builds' || '' }} ${{ (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') && '--all-platforms' || '' }}
         env:
           HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
           HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
@@ -137,7 +137,7 @@ jobs:
 
       - name: Merge macOS architectures, sign and notarize apple binaries
         shell: bash
-        if: ${{ needs.select-houdini-build.outputs.need-complete-build == 'true' }}
+        if: ${{ needs.select-houdini-build.outputs.need-build-macos == 'true' }}
         run: |
           pwsh ${{ github.workspace }}/actions/houdini/merge_macos_packages_and_notarize.ps1 "ZibraVDBForHoudini-"
         env:

@@ -10,7 +10,8 @@ def get_secret(secret_name):
         raise Exception(f"Missing secret: {secret_name}")
     
 HOUDINI_PRODUCT = "houdini"
-HOUDINI_VERSIONS = ["20.0", "20.5", "21.0"]
+HOUDINI_VERSIONS = ["21.0"]
+HOUDINI_VERSIONS_ALL = ["20.0", "20.5", "21.0"]
 HOUDINI_PLATFORMS = ["win64-vc143", "macosx_arm64", "macosx_x86_64", "linux_x86_64_gcc11.2"]
     
 def windows_x64_entry(version, build):
@@ -84,6 +85,7 @@ def macos_arm64_entry(version, build):
 
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser(description="Houdini build selector")
+    arg_parser.add_argument("--all-versions", action='store_true')
     arg_parser.add_argument("--all-platforms", action='store_true')
     arg_parser.add_argument("--all-builds", action='store_true')
     arg_parser.add_argument("--specific-version", type=str, help="Select specific build for all versions", default=None)
@@ -94,10 +96,14 @@ if __name__ == "__main__":
         raise Exception("When specifying specific build, specific version must be also specified")
     if args.specific_version and not args.specific_build:
         raise Exception("When specifying specific version, specific build must be also specified")
+    if args.specific_version and args.all_versions:
+        raise Exception("Cannot specify both specific version and all versions")
 
     matrix = {"include": []}
     
     versions_to_process = HOUDINI_VERSIONS
+    if args.all_versions:
+        versions_to_process = HOUDINI_VERSIONS_ALL
     if args.specific_version:
         versions_to_process = [args.specific_version]
     

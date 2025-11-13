@@ -42,7 +42,7 @@ jobs:
           python3 -m venv actions/houdini/venv
           ./actions/houdini/venv/bin/Activate.ps1
           pip3 install -r actions/houdini/requirements.txt
-          python3 actions/houdini/build_matrix.py --specific-version ${{ github.event.inputs.houdini-version }} --specific-build ${{ github.event.inputs.houdini-build }}
+          python3 actions/houdini/build_matrix.py --all-platforms --specific-version ${{ github.event.inputs.houdini-version }} --specific-build ${{ github.event.inputs.houdini-build }}
         env:
           HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
           HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
