@@ -26,6 +26,7 @@ namespace Zibra::ZibraVDBImport
 
     private:
         static constexpr const char* FILE_PARAM_NAME = "file";
+        static constexpr const char* FRAME_INDEX_PARAM_NAME = "frame";
         static constexpr const char* PRIMPATH_PARAM_NAME = "primpath";
         static constexpr const char* PARENTPRIMTYPE_PARAM_NAME = "parentprimtype";
         static constexpr const char* CHANNELS_PARAM_NAME = "channels";
@@ -42,6 +43,7 @@ namespace Zibra::ZibraVDBImport
         
     private:
         std::string GetFilePath(fpreal t) const;
+        int GetFrameIndex(fpreal t) const;
         std::string GetPrimitivePath(fpreal t) const;
         std::string GetParentPrimType(fpreal t) const;
         std::string GetChannels(fpreal t) const;

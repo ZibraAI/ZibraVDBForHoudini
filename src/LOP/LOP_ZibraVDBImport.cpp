@@ -24,6 +24,10 @@ namespace Zibra::ZibraVDBImport
         static PRM_Name fileName(FILE_PARAM_NAME, "ZibraVDB File");
         static PRM_Default fileDefault(0.0f, "");
 
+        static PRM_Name frameIndexName(FRAME_INDEX_PARAM_NAME, "Frame Index");
+        static PRM_Default frameIndexDefault(0.0f, "$F");
+        static PRM_Range frameIndexRange(PRM_RANGE_UI, 0, PRM_RANGE_UI, 100);
+
         static PRM_Name primitivePath(PRIMPATH_PARAM_NAME, "Primitive Path");
         static PRM_Default primitivePathDefault(0.0f, "/$OS");
 
@@ -46,6 +50,7 @@ namespace Zibra::ZibraVDBImport
 
         static PRM_Template templateList[] = {
             PRM_Template(PRM_FILE, 1, &fileName, &fileDefault),
+            PRM_Template(PRM_INT, 1, &frameIndexName, &frameIndexDefault, 0, &frameIndexRange),
             PRM_Template(PRM_STRING, 1, &primitivePath, &primitivePathDefault),
             PRM_Template(PRM_ORD, 1, &parentPrimType, &parentPrimTypeDefault, &PRMparentPrimTypeChoiceList),
             PRM_Template(PRM_STRING, 1, &channels, &channelsDefault, &channelsChoiceList),
@@ -110,10 +115,9 @@ namespace Zibra::ZibraVDBImport
             return error(context);
 
         updateParmsFlags();
-        flags().setTimeDep(true);
 
         const fpreal t = context.getTime();
-        const int currentFrame = static_cast<int>(context.getFrame());
+        const int currentFrameIndex = GetFrameIndex(t);
         const std::string channels = GetChannels(t);
 
         if (GetFilePath(t).empty())
@@ -138,9 +142,9 @@ namespace Zibra::ZibraVDBImport
             SHOW_ERROR_AND_RETURN("No valid ZibraVDB file loaded")
         }
 
-        if (currentFrame < m_CachedFileInfo.frameStart || currentFrame > m_CachedFileInfo.frameEnd)
+        if (currentFrameIndex < m_CachedFileInfo.frameStart || currentFrameIndex > m_CachedFileInfo.frameEnd)
         {
-            addWarning(LOP_MESSAGE, ("No volume data available for frame " + std::to_string(currentFrame) +
+            addWarning(LOP_MESSAGE, ("No volume data available for frame " + std::to_string(currentFrameIndex) +
                       " (ZibraVDB range: " + std::to_string(m_CachedFileInfo.frameStart) + "-" + std::to_string(m_CachedFileInfo.frameEnd) + ")").c_str());
             return error(context);
         }
@@ -172,7 +176,7 @@ namespace Zibra::ZibraVDBImport
 
         const std::string sanitizedName = SanitizeFieldNameForUSD(volumePrimPath.GetName());
         volumePrimPath = volumePrimPath.GetParentPath().AppendChild(TfToken(sanitizedName));
-        WriteZibraVolumeToStage(stage, volumePrimPath, selectedChannels, currentFrame);
+        WriteZibraVolumeToStage(stage, volumePrimPath, selectedChannels, currentFrameIndex);
         return error(context);
 #undef SHOW_ERROR_AND_RETURN
     }
@@ -211,7 +215,12 @@ namespace Zibra::ZibraVDBImport
         evalString(filePath, FILE_PARAM_NAME, 0, t);
         return filePath.toStdString();
     }
-    
+
+    int LOP_ZibraVDBImport::GetFrameIndex(fpreal t) const
+    {
+        return evalInt(FRAME_INDEX_PARAM_NAME, 0, t);
+    }
+
     std::string LOP_ZibraVDBImport::GetPrimitivePath(fpreal t) const
     {
         UT_String primPath;
