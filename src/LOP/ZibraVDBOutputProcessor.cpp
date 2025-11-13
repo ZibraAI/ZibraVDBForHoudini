@@ -286,7 +286,7 @@ namespace Zibra::ZibraVDBOutputProcessor
                 }
             }
         }
-        RecookNodeAndCompressVDBGrids(sopNode, time, entry.compressorManager.get());
+        CompressVDBGrids(sopNode, time, entry.compressorManager.get());
 
         return true;
     }
@@ -312,9 +312,9 @@ namespace Zibra::ZibraVDBOutputProcessor
         return true;
     }
 
-    void ZibraVDBOutputProcessor::RecookNodeAndCompressVDBGrids(SOP_Node* sopNode, fpreal t, CE::Compression::CompressorManager* compressorManager)
+    void ZibraVDBOutputProcessor::CompressVDBGrids(SOP_Node* sopNode, fpreal t, CE::Compression::CompressorManager* compressorManager)
     {
-        assert(sopNode && "SOP node must not be null in RecookNodeAndCompressVDBGrids");
+        assert(sopNode && "SOP node must not be null in CompressVDBGrids");
 
         OP_Context context(t);
         const GU_DetailHandle gdh = sopNode->getCookedGeoHandle(context);

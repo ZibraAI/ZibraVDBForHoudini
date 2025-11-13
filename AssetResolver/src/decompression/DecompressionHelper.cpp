@@ -10,10 +10,20 @@
 
 namespace Zibra::AssetResolver
 {
+    std::unique_ptr<DecompressionHelper> DecompressionHelper::ms_Instance = nullptr;
+
     DecompressionHelper& DecompressionHelper::GetInstance()
     {
-        static DecompressionHelper instance;
-        return instance;
+        if (!ms_Instance)
+        {
+            ms_Instance = std::unique_ptr<DecompressionHelper>(new DecompressionHelper());
+        }
+        return *ms_Instance;
+    }
+
+    bool DecompressionHelper::HasInstance()
+    {
+        return ms_Instance != nullptr;
     }
 
     std::string DecompressionHelper::DecompressZibraVDBFile(const std::string& zibraVDBPath, int frame)

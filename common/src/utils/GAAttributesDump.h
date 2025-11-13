@@ -27,7 +27,7 @@ namespace Zibra::Utils
         using TargetType = openvdb::GridBase::Ptr;
 
         static void StoreBool(TargetType& target, const std::string& attribName, bool value);
-        static void StoreIntArray(TargetType& target, const std::string& attribName, const std::vector<int32>& values, const std::string& typeStr);
+        static void StoreIntArray(TargetType& target, const std::string& attribName, const std::vector<int32>& values, GA_Storage storage);
         static void StoreFloatArray(TargetType& target, const std::string& attribName, const std::vector<float>& values, GA_Storage storage);
         static void StoreString(TargetType& target, const std::string& attribName, const std::string& value);
     };
@@ -38,7 +38,7 @@ namespace Zibra::Utils
         using TargetType = openvdb::MetaMap;
 
         static void StoreBool(TargetType& target, const std::string& attribName, bool value);
-        static void StoreIntArray(TargetType& target, const std::string& attribName, const std::vector<int32>& values, const std::string& typeStr);
+        static void StoreIntArray(TargetType& target, const std::string& attribName, const std::vector<int32>& values, GA_Storage storage);
         static void StoreFloatArray(TargetType& target, const std::string& attribName, const std::vector<float>& values, GA_Storage storage);
         static void StoreString(TargetType& target, const std::string& attribName, const std::string& value);
     };

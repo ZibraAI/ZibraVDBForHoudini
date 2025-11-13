@@ -44,7 +44,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         const PI_EditScriptedParms* parameters() const final;
 
     private:
-        static void RecookNodeAndCompressVDBGrids(SOP_Node* sopNode, fpreal t, CE::Compression::CompressorManager* compressorManager);
+        static void CompressVDBGrids(SOP_Node* sopNode, fpreal t, CE::Compression::CompressorManager* compressorManager);
         static void CompressGrids(std::vector<openvdb::GridBase::ConstPtr>& grids, const std::vector<std::string>& gridNames,
                                   CE::Compression::CompressorManager* compressorManager, const GU_Detail* gdp);
 

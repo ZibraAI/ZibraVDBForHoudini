@@ -16,7 +16,12 @@ AR_DEFINE_RESOLVER(ZibraVDBResolver, ArResolver);
 
 ZibraVDBResolver::ZibraVDBResolver()
 {
-    UT_Exit::addExitCallback([](void*) { Zibra::AssetResolver::DecompressionHelper::GetInstance().Cleanup(); }, nullptr);
+    UT_Exit::addExitCallback([](void*) {
+        if (Zibra::AssetResolver::DecompressionHelper::HasInstance())
+        {
+            Zibra::AssetResolver::DecompressionHelper::GetInstance().Cleanup();
+        }
+    }, nullptr);
 }
 
 std::string ZibraVDBResolver::_CreateIdentifier(const std::string& assetPath, const ArResolvedPath& anchorAssetPath) const

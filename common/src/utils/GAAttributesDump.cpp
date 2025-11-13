@@ -202,7 +202,7 @@ namespace Zibra::Utils
     }
 
     void AttributeStoragePolicy<openvdb::GridBase::Ptr>::StoreIntArray(TargetType& target, const std::string& attribName,
-                                                                       const std::vector<int32>& values, const std::string& typeStr)
+                                                                       const std::vector<int32>& values, GA_Storage /*storage*/)
     {
         switch (values.size())
         {
@@ -253,7 +253,7 @@ namespace Zibra::Utils
     }
 
     void AttributeStoragePolicy<openvdb::MetaMap>::StoreIntArray(TargetType& target, const std::string& attribName,
-                                                                 const std::vector<int32>& values, const std::string& typeStr)
+                                                                 const std::vector<int32>& values, GA_Storage /*storage*/)
     {
         switch (values.size())
         {
@@ -339,7 +339,7 @@ namespace Zibra::Utils
             switch (storage)
             {
             case GA_STORE_BOOL:
-                // TODO: finish
+                PolicyType::StoreBool(target, attribName, valContainer.template get<bool>());
                 break;
             case GA_STORE_UINT8:
                 // TODO: finish
@@ -348,13 +348,13 @@ namespace Zibra::Utils
             case GA_STORE_INT16:
             case GA_STORE_INT32:
             case GA_STORE_INT64: {
-                PolicyType::StoreBool(target, attribName, valContainer.template get<bool>());
+                PolicyType::StoreIntArray(target, attribName, valContainer.template get<std::vector<int>>(), storage);
                 break;
             }
             case GA_STORE_REAL16:
             case GA_STORE_REAL32:
             case GA_STORE_REAL64: {
-                PolicyType::StoreFloatArray(target, attribName, valContainer, storage);
+                PolicyType::StoreFloatArray(target, attribName, valContainer.template get<std::vector<float>>(), storage);
                 break;
             }
             case GA_STORE_STRING: {

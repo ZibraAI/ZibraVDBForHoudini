@@ -57,7 +57,6 @@ namespace Zibra::ZibraVDBUSDExport
     SOP_ZibraVDBUSDExport::SOP_ZibraVDBUSDExport(OP_Network* net, const char* name, OP_Operator* entry) noexcept
         : SOP_Node(net, name, entry)
     {
-        flags().setTimeDep(true);
     }
 
     OP_ERROR SOP_ZibraVDBUSDExport::cookMySop(OP_Context& context)
