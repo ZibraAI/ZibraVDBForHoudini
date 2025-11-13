@@ -1,7 +1,6 @@
-#include "LicenseManager.h"
+#include "PrecompiledHeader.h"
 
-#include <filesystem>
-#include <regex>
+#include "licensing/LicenseManager.h"
 
 #include "bridge/LibraryUtils.h"
 #include "ui/MessageBox.h"
@@ -124,8 +123,8 @@ namespace Zibra
         m_LicenseKey = "";
         m_OfflineLicense = "";
 
-        Zibra::LibraryUtils::LoadLibrary();
-        if (!Zibra::LibraryUtils::IsLibraryLoaded())
+        Zibra::LibraryUtils::LoadSDKLibrary();
+        if (!Zibra::LibraryUtils::IsSDKLibraryLoaded())
         {
             return;
         }
@@ -571,8 +570,8 @@ namespace Zibra
 
     LicenseManager::Status LicenseManager::TryCheckoutLicense(ActivationType type, LicensePathType pathType)
     {
-        Zibra::LibraryUtils::LoadLibrary();
-        if (!Zibra::LibraryUtils::IsLibraryLoaded())
+        Zibra::LibraryUtils::LoadSDKLibrary();
+        if (!Zibra::LibraryUtils::IsSDKLibraryLoaded())
         {
             return Status::LibraryError;
         }
@@ -682,9 +681,9 @@ namespace Zibra
 
     void LicenseManager::SetStatusFromZibraVDBRuntime()
     {
-        assert(Zibra::LibraryUtils::IsLibraryLoaded());
-        if (!Zibra::LibraryUtils::IsLibraryLoaded())
+        if (!Zibra::LibraryUtils::IsSDKLibraryLoaded())
         {
+            assert(0);
             return;
         }
 

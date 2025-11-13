@@ -2,9 +2,6 @@
 
 #include "MessageBox.h"
 
-#include <SI/AP_Interface.h>
-#include <UI/UI_Value.h>
-
 namespace Zibra::UI
 {
 

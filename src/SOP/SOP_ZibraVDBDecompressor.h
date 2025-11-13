@@ -1,6 +1,6 @@
 #pragma once
-#include "Globals.h"
-#include "SOP/DecompressorManager/DecompressorManager.h"
+
+#include "utils/DecompressorManager.h"
 
 namespace Zibra::ZibraVDBDecompressor
 {
@@ -27,15 +27,7 @@ namespace Zibra::ZibraVDBDecompressor
     public:
         OP_ERROR cookMySop(OP_Context& context) final;
 
-    private:
         static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate);
-
-        void ApplyGridMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::CompressedFrameContainer* frameContainer);
-        void ApplyGridAttributeMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::CompressedFrameContainer* frameContainer);
-        void ApplyGridVisualizationMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::CompressedFrameContainer* frameContainer);
-        void ApplyDetailMetadata(GU_Detail* gdp, CE::Decompression::CompressedFrameContainer* frameContainer);
-        std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> DeserializeGridShuffleInfo(CE::Decompression::CompressedFrameContainer* frameContainer) noexcept;
-        void ReleaseGridShuffleInfo(std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc>& gridDescs) noexcept;
 
     private:
         Helpers::DecompressorManager m_DecompressorManager;

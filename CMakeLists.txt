@@ -15,8 +15,8 @@ set(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ Standard")
 # Force it to be as close to C++ standard as possible
 set(CMAKE_CXX_STANDARD_REQUIRED ON CACHE BOOL "C++ Standard Required")
 set(CMAKE_CXX_EXTENSIONS OFF CACHE BOOL "C++ Standard Extensions")
-if (MSVC)
-   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive- /Zc:__cplusplus" CACHE STRING "C++ Compiler Flags")
+if(MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive- /Zc:__cplusplus" CACHE STRING "C++ Compiler Flags")
 endif()
 
 # Houdini specific settings
@@ -30,19 +30,19 @@ cmake_print_variables(LABS_BUILD)
 project(ZibraVDBForHoudini)
 
 # Target OS detection
-if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     set(ZIB_TARGET_OS_NAME "WIN" CACHE STRING "Target OS Name")
-elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
     set(ZIB_TARGET_OS_NAME "LINUX" CACHE STRING "Target OS Name")
-elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
     set(ZIB_TARGET_OS_NAME "MAC" CACHE STRING "Target OS Name")
 else()
     message(FATAL_ERROR "Unknown target OS: ${CMAKE_SYSTEM}.")
 endif()
 cmake_print_variables(ZIB_TARGET_OS_NAME)
 
-if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
-    
+if("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
+
     if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
         message(STATUS "MSVC platform toolset version: ${CMAKE_VS_PLATFORM_TOOLSET_VERSION}")
         message(STATUS "MSVC version: ${CMAKE_CXX_COMPILER_VERSION}")
@@ -50,7 +50,7 @@ if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
         message(FATAL_ERROR "Unsupported compiler for Windows: ${CMAKE_CXX_COMPILER_ID}.")
     endif()
 
-elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "LINUX")
+elseif("${ZIB_TARGET_OS_NAME}" STREQUAL "LINUX")
 
     set(CMAKE_INSTALL_RPATH "${INSTALL_RPATH}")
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -59,10 +59,10 @@ elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "LINUX")
         message(FATAL_ERROR "Unsupported compiler for Linux: ${CMAKE_CXX_COMPILER_ID}.")
     endif()
 
-elseif ("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
+elseif("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
 
     set(CMAKE_INSTALL_RPATH "${INSTALL_RPATH}")
-    if (NOT {$LABS_BUILD})
+    if(NOT {$LABS_BUILD})
         # Do not bake in absolute path in labs build
         set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
     endif()
@@ -77,7 +77,7 @@ else()
     message(FATAL_ERROR "Unknown target OS: ${ZIB_TARGET_OS_NAME}.")
 endif()
 
-if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
+if("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
     set(ZIB_NETWORK_REQUEST_BACKEND "WINHTTP")
 elseif("${ZIB_TARGET_OS_NAME}" STREQUAL "LINUX")
     set(ZIB_NETWORK_REQUEST_BACKEND "CURL")
@@ -90,52 +90,34 @@ cmake_print_variables(ZIB_NETWORK_REQUEST_BACKEND)
 
 set(HeaderFiles
     src/PrecompiledHeader.h
-    src/Globals.h
-    src/bridge/networking/NetworkRequest.h
-    src/bridge/LibraryUtils.h
-    src/bridge/UpdateCheck.h
     src/ROP/CompressorManager/CompressorManager.h
-    src/SOP/DecompressorManager/DecompressorManager.h
-    src/licensing/LicenseManager.h
     src/ROP/ROP_ZibraVDBCompressor.h
     src/SOP/SOP_ZibraVDBDecompressor.h
-    src/ui/MessageBox.h
-    src/ui/PluginManagementWindow.h
-    src/utils/Helpers.h
-    src/utils/GAAttributesDump.h
+    src/SOP/SOP_ZibraVDBUSDExport.h
+    src/LOP/LOP_ZibraVDBImport.h
+    src/LOP/ZibraVDBOutputProcessor.h
 )
 
 set(SourceFiles
     src/main.cpp
-    src/bridge/networking/NetworkRequest.cpp
-    src/bridge/LibraryUtils.cpp
-    src/bridge/UpdateCheck.cpp
     src/ROP/CompressorManager/CompressorManager.cpp
-    src/SOP/DecompressorManager/DecompressorManager.cpp
-    src/licensing/LicenseManager.cpp
     src/ROP/ROP_ZibraVDBCompressor.cpp
     src/SOP/SOP_ZibraVDBDecompressor.cpp
-    src/ui/MessageBox.cpp
-    src/ui/PluginManagementWindow.cpp
-    src/utils/Helpers.cpp
-    src/utils/GAAttributesDump.cpp
+    src/SOP/SOP_ZibraVDBUSDExport.cpp
+    src/LOP/LOP_ZibraVDBImport.cpp
+    src/LOP/ZibraVDBOutputProcessor.cpp
 )
 
 add_library(ZibraVDBForHoudini SHARED ${HeaderFiles} ${SourceFiles})
-target_include_directories(ZibraVDBForHoudini
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/Include)
+target_include_directories(ZibraVDBForHoudini PRIVATE src)
 target_precompile_headers(ZibraVDBForHoudini PRIVATE src/PrecompiledHeader.h)
-target_compile_definitions(ZibraVDBForHoudini PRIVATE 
+target_compile_definitions(ZibraVDBForHoudini PRIVATE
     ZIB_NETWORK_REQUEST_BACKEND_${ZIB_NETWORK_REQUEST_BACKEND}=1
     ZIB_TARGET_OS_${ZIB_TARGET_OS_NAME}=1)
 
 if(${LABS_BUILD})
     target_compile_definitions(ZibraVDBForHoudini PRIVATE LABS_BUILD)
 endif()
-
-target_include_directories(ZibraVDBForHoudini PRIVATE SDK/include)
-target_include_directories(ZibraVDBForHoudini PRIVATE "${HOUDINI_INCLUDE_DIR}")
 
 if(DEFINED ENV{ZIBRA_HOUDINI_PATH})
     message(STATUS "ENV{ZIBRA_HOUDINI_PATH}: $ENV{ZIBRA_HOUDINI_PATH}")
@@ -197,14 +179,24 @@ endif()
 
 list(APPEND CMAKE_PREFIX_PATH "${HOUDINI_PATH}/toolkit/cmake")
 find_package(Houdini REQUIRED)
-target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini)
 
 set(DETECTED_HOUDINI_VERSION "${Houdini_VERSION_MAJOR}.${Houdini_VERSION_MINOR}")
 cmake_print_variables(DETECTED_HOUDINI_VERSION)
 
-if (NOT "${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
-    target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::openvdb_sesi)
+add_subdirectory(common)
+setup_common_houdini_dependencies(ZibraVDBForHoudini)
+
+if("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
+    target_link_libraries(ZibraVDBForHoudini PRIVATE
+        Houdini::Dep::pxr_tf
+        Houdini::Dep::pxr_sdf
+        Houdini::Dep::pxr_usd
+        Houdini::Dep::pxr_usdVol
+    )
 endif()
+
+# Add USD Asset Resolver subdirectory
+add_subdirectory(AssetResolver)
 
 if(${LABS_BUILD})
     set_target_properties(ZibraVDBForHoudini PROPERTIES PREFIX "")

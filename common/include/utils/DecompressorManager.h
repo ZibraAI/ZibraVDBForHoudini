@@ -17,6 +17,7 @@ namespace Zibra::Helpers
         };
 
     public:
+        ~DecompressorManager() noexcept;
         CE::ReturnCode Initialize() noexcept;
         CE::ReturnCode RegisterDecompressor(const UT_String& filename) noexcept;
         CE::ReturnCode DecompressFrame(CE::Decompression::CompressedFrameContainer* frameContainer,
@@ -25,6 +26,11 @@ namespace Zibra::Helpers
         CE::Decompression::CompressedFrameContainer* FetchFrame(const exint& frameIndex) const noexcept;
         CE::Decompression::FrameRange GetFrameRange() const noexcept;
         void Release() noexcept;
+        
+        std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> DeserializeGridShuffleInfo(CE::Decompression::CompressedFrameContainer* frameContainer) noexcept;
+        void ReleaseGridShuffleInfo(std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc>& gridDescs) noexcept;
+        
+        CE::Decompression::SequenceInfo GetSequenceInfo() const noexcept;
 
     private:
         CE::ReturnCode GetDecompressedFrameData(uint16_t* perChannelBlockData, size_t channelBlocksCount,
