@@ -1,6 +1,7 @@
 {
 	"hdaroot/groupdelete1.def":1726217517,
 	"hdaroot/attribcast1.def":1726217548,
+	"hdaroot/python1.def":1763543858,
 	"hdaroot/rop_zibravdb_compress.def":1743415544,
 	"hdaroot/detect_unsupported_vdbs.def":1737114157,
 	"hdaroot/OUT_CACHE.def":1726217642,
@@ -11,7 +12,7 @@
 	"hdaroot/IN.def":1726217455,
 	"hdaroot/zibravdb_decompress.def":1743416591,
 	"hdaroot/attribdelete1.def":1726217481,
-	"hdaroot.def":1745940967,
+	"hdaroot.def":1763543751,
 	"hdaroot/switch_has_unsupported.def":1737115423,
 	"hdaroot/switchif1.def":1726217305
 }

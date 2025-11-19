@@ -32,19 +32,17 @@ Content-Type: text/plain
 
 sopflags sopflags = 
 comment ""
-position -13.5775 -9.16442
-connectornextid 1
+position -0.592937 0.100929
+connectornextid 0
 flags =  lock off model off template off footprint off xray off bypass off display on render on highlight off unload off savedata off compress on colordefault off exposed on
 outputsNamed3
 {
 }
 inputsNamed3
 {
-0 	TestVDB 1 1 "input1"
 }
 inputs
 {
-0 	TestVDB 0 1
 }
 stat
 {
@@ -78,7 +76,7 @@ Content-Disposition: attachment; filename="hdaroot.inp"
 Content-Type: text/plain
 
 1
-0 -0.49999998743435842 12.480513523495816 2 0 __NO_OWNER_NETWORK_BOX__ "FROMOUTPUT"
+0 -0.49999999375343318 13.64795255193139 2 0 __NO_OWNER_NETWORK_BOX__ "FROMOUTPUT"
 
 --HOUDINIMIMEBOUNDARY0xD3ADD339-0x00000F49-0x56B122C9-0x00000001HOUDINIMIMEBOUNDARY
 Content-Disposition: attachment; filename="hdaroot/output0.init"
@@ -245,7 +243,7 @@ Content-Type: text/plain
 
 sopflags sopflags = 
 comment ""
-position -0.5 11.5481
+position -0.5 12.7155
 connectornextid 2
 flags =  lock off model off template off footprint off xray off bypass off display off render off highlight off unload on savedata off compress on colordefault on exposed on
 outputsNamed3
@@ -315,11 +313,11 @@ outputsNamed3
 }
 inputsNamed3
 {
-0 	IN 1 1 "input1"
+0 	python1 1 1 "input1"
 }
 inputs
 {
-0 	IN 0 1
+0 	python1 0 1
 }
 stat
 {
@@ -1337,10 +1335,85 @@ Content-Type: text/plain
 }
 
 --HOUDINIMIMEBOUNDARY0xD3ADD339-0x00000F49-0x56B122C9-0x00000001HOUDINIMIMEBOUNDARY
+Content-Disposition: attachment; filename="hdaroot/python1.init"
+Content-Type: text/plain
+
+type = python
+matchesdef = 1
+
+--HOUDINIMIMEBOUNDARY0xD3ADD339-0x00000F49-0x56B122C9-0x00000001HOUDINIMIMEBOUNDARY
+Content-Disposition: attachment; filename="hdaroot/python1.def"
+Content-Type: text/plain
+
+sopflags sopflags = 
+comment ""
+position -0.5 11.7234
+connectornextid 2
+flags =  lock off model off template off footprint off xray off bypass off display off render off highlight off unload off savedata off compress on colordefault on exposed on
+outputsNamed3
+{
+1 "output1"
+}
+inputsNamed3
+{
+0 	IN 1 1 "input1"
+}
+inputs
+{
+0 	IN 0 1
+}
+stat
+{
+  create -1
+  modify -1
+  author sskaplun@sskaplun-zenbook
+  access 0777
+}
+color UT_Color RGB 0.8 0.8 0.8 
+delscript ""
+exprlanguage hscript
+end
+
+--HOUDINIMIMEBOUNDARY0xD3ADD339-0x00000F49-0x56B122C9-0x00000001HOUDINIMIMEBOUNDARY
+Content-Disposition: attachment; filename="hdaroot/python1.parm"
+Content-Type: text/plain
+
+{
+version 0.8
+python	[ 0	locks=0 ]	(	"import hou
+import os
+
+hda_node = hou.pwd().parent()
+has_input = len(hda_node.inputs()) > 0 and hda_node.input(0) is not None
+
+if has_input:
+    pass
+else:
+    file_path = hda_node.parm(\"file\").eval()
+    file_exists = os.path.exists(file_path)
+    if not file_exists:
+        raise hou.NodeError(\"No input geometry provided and no valid cache file specified\")
+    else:
+        hou.pwd().geometry().clear()"	)
+maintainstate	[ 0	locks=0 ]	(	"off"	)
+}
+
+--HOUDINIMIMEBOUNDARY0xD3ADD339-0x00000F49-0x56B122C9-0x00000001HOUDINIMIMEBOUNDARY
+Content-Disposition: attachment; filename="hdaroot/python1.userdata"
+Content-Type: text/plain
+
+{
+	"___Version___":{
+		"type":"string",
+		"value":"___EXTERNAL___"
+	}
+}
+
+--HOUDINIMIMEBOUNDARY0xD3ADD339-0x00000F49-0x56B122C9-0x00000001HOUDINIMIMEBOUNDARY
 Content-Disposition: attachment; filename="hdaroot.order"
 Content-Type: text/plain
 
-14
+15
 output0
 switchif1
 IN
@@ -1355,6 +1428,7 @@ input_error
 switch_has_unsupported
 rop_zibravdb_compress
 zibravdb_decompress
+python1
 
 --HOUDINIMIMEBOUNDARY0xD3ADD339-0x00000F49-0x56B122C9-0x00000001HOUDINIMIMEBOUNDARY
 Content-Disposition: attachment; filename="hdaroot.net"
