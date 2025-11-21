@@ -60,7 +60,6 @@
     group {
         name    "tabs"
         label   "Caching"
-        disablewhentab "{ loadfromdisk == 1 }"
 
         groupcollapsible {
             name    "cache"
