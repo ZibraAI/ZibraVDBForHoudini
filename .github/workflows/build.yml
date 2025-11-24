@@ -124,6 +124,8 @@ jobs:
   merge-packages:
     runs-on: macos-14
     needs: [select-houdini-build, build-plugin]
+    # Only run merge if there is more than one build in matrix
+    if: ${{ fromJson(needs.select-houdini-build.outputs.build-matrix-json).include[1] != null }}
     name: Merge packages ${{ github.event_name == 'pull_request' && '(PR)' || ' (Push)' }}
 
     steps:

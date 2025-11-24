@@ -104,6 +104,7 @@ jobs:
   merge-packages:
     runs-on: macos-14
     needs: [select-houdini-build, build-plugin]
+    if: ${{ fromJson(needs.select-houdini-build.outputs.build-matrix-json).include.length > 1 }}
     name: Merge packages
 
     steps:
