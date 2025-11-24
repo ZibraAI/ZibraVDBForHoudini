@@ -10,7 +10,7 @@ namespace Zibra::Helpers
     {
         std::vector<std::string> result;
         const char* envVarHoudini = nullptr;
-        if (envVarEnum != ENV_MAX_STR_CONTROLS)
+        if (envVarEnum < ENV_MAX_STR_CONTROLS)
         {
             envVarHoudini = UT_EnvControl::getString(envVarEnum);
             if (envVarHoudini != nullptr)
@@ -26,6 +26,16 @@ namespace Zibra::Helpers
             {
                 result.push_back(envVarSTL);
             }
+        }
+        return result;
+    }
+
+    std::optional<std::string> GetNormalEnvironmentVariable(const char* envVarName)
+    {
+        const char* result = std::getenv(envVarName);
+        if (result == nullptr)
+        {
+            return std::nullopt;
         }
         return result;
     }
@@ -80,15 +90,15 @@ namespace Zibra::Helpers
         // Vulkan +       +     -
         // Metal  -       -     +
 
-        std::vector<std::string> envVar = GetHoudiniEnvironmentVariable(ENV_MAX_STR_CONTROLS, "ZIBRAVDB_FOR_HOUDINI_FORCE_GRAPHICS_API");
-        if (envVar.empty())
+        std::optional<std::string> envVar = GetNormalEnvironmentVariable("ZIBRAVDB_FOR_HOUDINI_FORCE_GRAPHICS_API");
+        if (!envVar.has_value())
         {
             // Auto means automatic selection for the OS
             // Windows = DX12, Linux = Vulkan, Mac = Metal
             return Zibra::RHI::GFXAPI::Auto;
         }
 
-        std::string envVarValueUpper = envVar[0];
+        std::string envVarValueUpper = envVar.value();
         std::transform(envVarValueUpper.begin(), envVarValueUpper.end(), envVarValueUpper.begin(), ::toupper);
 
         Zibra::RHI::GFXAPI result = Zibra::RHI::GFXAPI::Auto;
@@ -129,13 +139,13 @@ namespace Zibra::Helpers
 
     bool NeedForceSoftwareDevice()
     {
-        std::vector<std::string> envVar = GetHoudiniEnvironmentVariable(ENV_MAX_STR_CONTROLS, "ZIBRAVDB_FOR_HOUDINI_FORCE_SOFTWARE_DEVICE");
-        if (envVar.empty())
+        std::optional<std::string> envVar = GetNormalEnvironmentVariable("ZIBRAVDB_FOR_HOUDINI_FORCE_SOFTWARE_DEVICE");
+        if (!envVar.has_value())
         {
             return false;
         }
         
-        std::string envVarValueUpper = envVar[0];
+        std::string envVarValueUpper = envVar.value();
         std::transform(envVarValueUpper.begin(), envVarValueUpper.end(), envVarValueUpper.begin(), ::toupper);
         if (envVarValueUpper == "ON" || envVarValueUpper == "TRUE" || envVarValueUpper == "1")
         {

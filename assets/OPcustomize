@@ -1,0 +1,4 @@
+// Unhide nodes that are hidden by default by Houdini
+opunhide Sop labs::rop_zibravdb_compress::1.0
+opunhide Sop labs::zibravdb_decompress::1.0
+opunhide Driver labs::zibravdb_compress::1.0

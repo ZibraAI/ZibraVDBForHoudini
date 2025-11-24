@@ -305,9 +305,7 @@ namespace Zibra::ZibraVDBCompressor
             return ROP_ABORT_RENDER;
         }
 
-        LibraryUtils::LoadLibrary();
-
-        if (!LibraryUtils::IsLibraryLoaded())
+        if (!LibraryUtils::TryLoadLibrary())
         {
             addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_COMPRESSION_ENGINE_MISSING);
             return ROP_ABORT_RENDER;

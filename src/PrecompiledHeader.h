@@ -54,8 +54,10 @@
 #include <ROP/ROP_Error.h>
 #include <ROP/ROP_Node.h>
 #include <ROP/ROP_Templates.h>
+#include <SI/AP_Interface.h>
 #include <SOP/SOP_Node.h>
 #include <SYS/SYS_Math.h>
+#include <UI/UI_Value.h>
 #include <UT/UT_Assert.h>
 #include <UT/UT_Exit.h>
 #include <UT/UT_IOTable.h>
@@ -97,11 +99,11 @@
 #undef ERROR
 #undef OUT
 #elif ZIB_TARGET_OS_LINUX
-#include <dlfcn.h>
 #include <curl/curl.h>
+#include <dlfcn.h>
 #elif ZIB_TARGET_OS_MAC
-#include <dlfcn.h>
 #include <curl/curl.h>
+#include <dlfcn.h>
 #include <sys/xattr.h>
 #else
 #error Unexpected OS
