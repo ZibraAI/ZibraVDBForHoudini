@@ -17,8 +17,7 @@ namespace Zibra::ZibraVDBOutputProcessor
             return false;
         }
 
-        LibraryUtils::LoadSDKLibrary();
-        if (!LibraryUtils::IsSDKLibraryLoaded())
+        if (!LibraryUtils::TryLoadLibrary())
         {
             error = ERROR_PREFIX + ZIBRAVDB_ERROR_MESSAGE_COMPRESSION_ENGINE_MISSING;
             UTaddError(error.buffer(), UT_ERROR_MESSAGE, error.buffer());
@@ -30,7 +29,7 @@ namespace Zibra::ZibraVDBOutputProcessor
 
     bool ZibraVDBOutputProcessor::CheckLicense(UT_String& error)
     {
-        if (!LibraryUtils::IsSDKLibraryLoaded())
+        if (!LibraryUtils::TryLoadLibrary())
         {
             error = ERROR_PREFIX + ZIBRAVDB_ERROR_MESSAGE_COMPRESSION_ENGINE_MISSING;
             UTaddError(error.buffer(), UT_ERROR_MESSAGE, error.buffer());

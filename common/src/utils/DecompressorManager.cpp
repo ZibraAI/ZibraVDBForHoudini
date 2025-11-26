@@ -19,7 +19,7 @@ namespace Zibra::Helpers
             return CE::ZCE_SUCCESS;
         }
 
-        if (!Zibra::LibraryUtils::IsSDKLibraryLoaded())
+        if (!Zibra::LibraryUtils::TryLoadLibrary())
         {
             return CE::ZCE_ERROR;
         }

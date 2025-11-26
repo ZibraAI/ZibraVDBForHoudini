@@ -80,6 +80,7 @@ namespace Zibra::ZibraVDBCompressor
         SOP_Node* m_InputSOP = nullptr;
 
         std::vector<std::string> m_OrderedChannelNames{};
+        int m_CurrentChannelCount = 0;
 
         ContextType m_ContextType;
 

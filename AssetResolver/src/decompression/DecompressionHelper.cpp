@@ -30,7 +30,7 @@ namespace Zibra::AssetResolver
     {
         std::lock_guard lock(m_DecompressionFilesMutex);
 
-        if (!LoadSDKLib())
+        if (!LibraryUtils::TryLoadLibrary())
         {
             TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
                 .Msg("ZibraVDBDecompressionManager::DecompressZibraVDBFile - Failed to initialize ZibraVDB SDK\n");
@@ -94,24 +94,6 @@ namespace Zibra::AssetResolver
         m_PathToUUIDMap.clear();
         m_DecompressionFiles.clear();
         TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBDecompressionManager::CleanupAllDecompressedFiles - Cleanup completed\n");
-    }
-
-    bool DecompressionHelper::LoadSDKLib()
-    {
-        if (LibraryUtils::IsSDKLibraryLoaded())
-        {
-            return true;
-        }
-
-        LibraryUtils::LoadSDKLibrary();
-        if (!LibraryUtils::IsSDKLibraryLoaded())
-        {
-            TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
-                .Msg("ZibraVDBDecompressionManager::LoadSDKLib - Library not loaded, cannot initialize resolver\n");
-            return false;
-        }
-
-        return true;
     }
 
 } // namespace Zibra::AssetResolver

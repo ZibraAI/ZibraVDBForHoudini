@@ -63,7 +63,6 @@ namespace Zibra::ZibraVDBImport
     LOP_ZibraVDBImport::LOP_ZibraVDBImport(OP_Network* net, const char* name, OP_Operator* entry) noexcept
         : LOP_Node(net, name, entry)
     {
-        LibraryUtils::LoadSDKLibrary();
     }
 
     void LOP_ZibraVDBImport::BuildChannelsChoiceList(void* data, PRM_Name* choiceNames, int maxListSize, const PRM_SpareData*, const PRM_Parm*)
@@ -287,7 +286,7 @@ namespace Zibra::ZibraVDBImport
         FileInfo info;
         info.filePath = filePath;
         
-        if (!LibraryUtils::IsSDKLibraryLoaded())
+        if (!LibraryUtils::TryLoadLibrary())
         {
             info.error = "ZibraVDB library not loaded";
             return info;

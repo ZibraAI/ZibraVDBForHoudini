@@ -2,13 +2,15 @@ cmake_minimum_required(VERSION 3.25)
 
 project(ZibraVDBCommon)
 
+configure_file(include/Globals.h.in include/Globals.h @ONLY)
+
 add_library(ZibraVDBCommon STATIC)
 target_sources(ZibraVDBCommon
     PUBLIC
     FILE_SET public_interface TYPE HEADERS
-        BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include
+        BASE_DIRS include
         FILES
-            include/Globals.h
+            include/Globals.h.in
             include/Types.h
             include/utils/Helpers.h
             include/utils/MetadataHelper.h
@@ -16,6 +18,13 @@ target_sources(ZibraVDBCommon
             include/licensing/LicenseManager.h
             include/bridge/LibraryUtils.h
             include/ui/PluginManagementWindow.h
+
+    PUBLIC
+    FILE_SET generated_interface TYPE HEADERS
+        BASE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/include
+        FILES
+            ${CMAKE_CURRENT_BINARY_DIR}/include/Globals.h
+
     PRIVATE
     FILE_SET private_headers TYPE HEADERS
         BASE_DIRS src

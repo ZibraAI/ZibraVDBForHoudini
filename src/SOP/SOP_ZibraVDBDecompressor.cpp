@@ -42,12 +42,11 @@ namespace Zibra::ZibraVDBDecompressor
     SOP_ZibraVDBDecompressor::SOP_ZibraVDBDecompressor(OP_Network* net, const char* name, OP_Operator* entry) noexcept
         : SOP_Node(net, name, entry)
     {
-        LibraryUtils::LoadSDKLibrary();
     }
 
     SOP_ZibraVDBDecompressor::~SOP_ZibraVDBDecompressor() noexcept
     {
-        if (!LibraryUtils::IsSDKLibraryLoaded())
+        if (!LibraryUtils::IsLibraryLoaded())
         {
             return;
         }
@@ -64,8 +63,7 @@ namespace Zibra::ZibraVDBDecompressor
             return error(context);
         }
 
-        LibraryUtils::LoadSDKLibrary();
-        if (!LibraryUtils::IsSDKLibraryLoaded())
+        if (!LibraryUtils::TryLoadLibrary())
         {
             addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_COMPRESSION_ENGINE_MISSING);
             return error(context);
