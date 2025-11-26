@@ -43,11 +43,20 @@ foreach ($ARM64Package in $ARM64Packages) {
     $ARM64DSOPath = "$ARM64Package/ZibraVDB/$ARM64Target/dso/ZibraVDBForHoudini.dylib"
     $X64DSOPath = "$X64Package/ZibraVDB/$X64Target/dso/ZibraVDBForHoudini.dylib"
 
+    $ARM64AssetResolverPath = "$ARM64Package/ZibraVDB/$ARM64Target/usd/libZibraVDBResolver.dylib"
+    $X64AssetResolverPath = "$X64Package/ZibraVDB/$X64Target/usd/libZibraVDBResolver.dylib"
+
     if (-not (Test-Path $ARM64DSOPath)) {
         throw "ARM64 DSO not found at path: $ARM64DSOPath"
     }
+    if (-not (Test-Path $ARM64AssetResolverPath)) {
+        throw "ARM64 Asset Resolver not found at path: $ARM64AssetResolverPath"
+    }
     if (-not (Test-Path $X64DSOPath)) {
         throw "X64 DSO not found at path: $X64DSOPath"
+    }
+    if (-not (Test-Path $X64AssetResolverPath)) {
+        throw "X64 Asset Resolver not found at path: $X64AssetResolverPath"
     }
 
     if ($ARM64Target -ne $X64Target) {
@@ -55,8 +64,12 @@ foreach ($ARM64Package in $ARM64Packages) {
         Write-Output "Notarizing separately"
         & bash "$NotarizationScriptPath" "$ARM64DSOPath"
         Write-Output "Notarized $ARM64DSOPath - ARM64 binary"
+        & bash "$NotarizationScriptPath" "$ARM64AssetResolverPath"
+        Write-Output "Notarized $ARM64AssetResolverPath - ARM64 binary"
         & bash "$NotarizationScriptPath" "$X64DSOPath"
         Write-Output "Notarized $X64DSOPath - X64 binary"
+        & bash "$NotarizationScriptPath" "$X64AssetResolverPath"
+        Write-Output "Notarized $X64AssetResolverPath - X64 binary"
         # Not deleting original packages in this case
         continue
     }
@@ -64,6 +77,7 @@ foreach ($ARM64Package in $ARM64Packages) {
     Write-Output "Target platform for both packages: $ARM64Target"
 
     $DestDSOPath = "$DestFolder/ZibraVDB/$ARM64Target/dso/ZibraVDBForHoudini.dylib"
+    $DestAssetResolverPath = "$DestFolder/ZibraVDB/$ARM64Target/usd/libZibraVDBResolver.dylib"
 
     if (Test-Path $DestFolder) {
         Remove-Item $DestFolder -Recurse -Force
@@ -71,12 +85,16 @@ foreach ($ARM64Package in $ARM64Packages) {
     New-Item -ItemType Directory -Path $DestFolder -Force | Out-Null
 
     Copy-Item -Path "$ARM64Package/*" -Destination $DestFolder -Recurse
+    
     Remove-Item $DestDSOPath
-
     & lipo -create -output "$DestDSOPath" "$ARM64DSOPath" "$X64DSOPath"
-
     & bash "$NotarizationScriptPath" "$DestDSOPath"
     Write-Output "Notarized $DestDSOPath - Universal binary"
+
+    Remove-Item $DestAssetResolverPath
+    & lipo -create -output "$DestAssetResolverPath" "$ARM64AssetResolverPath" "$X64AssetResolverPath"
+    & bash "$NotarizationScriptPath" "$DestAssetResolverPath"
+    Write-Output "Notarized $DestAssetResolverPath - Universal binary"
 
     Remove-Item $ARM64Package -Recurse -Force
     Remove-Item $X64Package -Recurse -Force
