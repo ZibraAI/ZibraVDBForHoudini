@@ -64,7 +64,7 @@ namespace Zibra
 
 namespace Zibra::RHI
 {
-    constexpr Version ZRHI_VERSION = {5, 0, 0, 0};
+    constexpr Version ZRHI_VERSION = {5, 0, 1, 0};
 
     enum class GFXAPI : int8_t
     {
@@ -457,6 +457,16 @@ namespace Zibra::RHI
     };
     ZRHI_DEFINE_BITMASK_ENUM(ResourceUsage)
 
+    enum class MapMode : uint8_t
+    {
+        /// Mapping buffer only for reading
+        ReadOnly,
+        /// Mapping buffer only for writing
+        WriteOnly,
+        
+        Count
+    };
+
     enum class DescriptorHeapType : uint8_t
     {
         /// Descriptor Heap for Shader Resources, Constant Buffers & Unordered Access descriptors.
@@ -741,6 +751,19 @@ namespace Zibra::RHI
     };
     ZRHI_DEFINE_BITMASK_ENUM(ColorWriteMask);
 
+    struct MemoryRange
+    {
+        uint32_t start;
+        uint32_t size;
+    };
+
+    struct MapDesc
+    {
+        Buffer* buffer;
+        MapMode mapMode;
+        MemoryRange accessRange;
+    };
+
     /// DESC for depth stencil state of GraphicsPSO.
     struct DepthStencilDesc
     {
@@ -985,12 +1008,6 @@ namespace Zibra::RHI
          * WorkGroupSize is declared in shader code.
          */
         uint32_t groupCountZ;
-    };
-
-    struct MemoryRange
-    {
-        size_t start;
-        size_t size;
     };
 
     struct QueryDesc
@@ -1564,21 +1581,29 @@ namespace Zibra::RHI
         virtual Result StopRecording() noexcept = 0;
         /**
          * Maps buffer memory to RAM.
-         * @note Resource must be created either with ResourceHeapType::Upload or ResourceHeapType::Readback heap type.
-         * @param buffer [in] Target RHI Buffer instance.
-         * @param readRange [in] Memory read range if mapped memory going to be read, NULL otherwise.
-         * @param outMem [out] Output mapped memory pointer.
+         * @note Buffer must be created either with ResourceHeapType::Upload or ResourceHeapType::Readback heap type.
+         * @param mapDesc [in] Description of map operation.
+         * @param mappedPointer [out] Mapped buffer pointer.
          * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual Result MapBufferMemory(Buffer* buffer, const MemoryRange* readRange, void** outMem) noexcept = 0;
+        virtual Result MapBuffer(MapDesc& mapDesc, void** mappedPointer) noexcept = 0;
         /**
          * Unmaps mapped buffer memory.
-         * @note Resource must be created either with ResourceHeapType::Upload or ResourceHeapType::Readback heap type.
-         * @param buffer [in] Target RHI Buffer instance.
-         * @param writtenRange [in] Memory written range if mapped memory was modified, NULL otherwise.
+         * @note Buffer must be created either with ResourceHeapType::Upload or ResourceHeapType::Readback heap type.
+         * @param mapDesc [in] Description of map operation.
+         * @param mappedPointer [in] Mapped buffer pointer previously received via MapBuffer call.
          * @return RESULT_SUCCESS in case of success or other code in case of error.
          */
-        virtual Result UnmapBufferMemory(Buffer* buffer, const MemoryRange* writtenRange) noexcept = 0;
+        virtual Result UnmapBuffer(MapDesc& mapDesc, void* mappedPointer) noexcept = 0;
+        /**
+         * Uploads data into constant buffer.
+         * @note Buffer must be created with ResourceUsage::ConstantBuffer.
+         * @param buffer [in] Buffer to upload into.
+         * @param data [in] Pointer to buffer containing data to upload.
+         * @param size [in] Size of data pointer by data. Must be less than or equal to size of buffer.
+         * @return RESULT_SUCCESS in case of success or other code in case of error.
+         */
+        virtual Result UploadConstantBufferData(Buffer* buffer, void* data, uint32_t size) noexcept = 0;
         /**
          * Waits for GPU work finish and gets data from Buffer. Buffer must have ResourceUsage::CopySource.
          * @attention Stalls CPU till GPU work related to target buffer finished.
@@ -1783,7 +1808,7 @@ namespace Zibra::RHI
     typedef Result (ZRHI_CALL_CONV *PFN_CreateRHIFactory)(RHIFactory** outFactory);
 #ifdef ZRHI_STATIC_LINKING
     Result CreateRHIFactory(RHIFactory** outFactory) noexcept;
-#elif ZRHI_DYNAMIC_IMPLICIT_LINKING
+#elif defined(ZRHI_DYNAMIC_IMPLICIT_LINKING)
     ZRHI_API_IMPORT Result ZRHI_CALL_CONV CreateRHIFactory(RHIFactory** outFactory) noexcept;
 #else
     constexpr const char* CreateRHIFactoryExportName = "Zibra_RHI_CreateRHIFactory";
@@ -1792,7 +1817,7 @@ namespace Zibra::RHI
     typedef Version (ZRHI_CALL_CONV *PFN_GetVersion)();
 #ifdef ZRHI_STATIC_LINKING
     Version GetVersion() noexcept;
-#elif ZRHI_DYNAMIC_IMPLICIT_LINKING
+#elif defined(ZRHI_DYNAMIC_IMPLICIT_LINKING)
     ZRHI_API_IMPORT Version ZRHI_CALL_CONV GetVersion() noexcept;
 #else
     constexpr const char* GetVersionExportName = "Zibra_RHI_GetVersion";
@@ -1811,7 +1836,7 @@ namespace Zibra::RHI
         UploadRingBuffer& operator=(UploadRingBuffer&&) = default;
 
     public:
-        virtual Result Initialize(RHIRuntime* rhi, size_t bufferSize = 1 * 1024 * 1024) noexcept
+        virtual Result Initialize(RHIRuntime* rhi, uint32_t bufferSize = 1 * 1024 * 1024) noexcept
         {
             if (m_RingBuffer)
                 return RESULT_ALREADY_INITIALIZED;
@@ -1827,15 +1852,16 @@ namespace Zibra::RHI
                 m_CurrentOffset = 0;
 
             Result status;
-            void* mappedMemory;
-            status = m_RHI->MapBufferMemory(m_RingBuffer, nullptr, &mappedMemory);
+            MapDesc mapDesc;
+            mapDesc.buffer = m_RingBuffer;
+            mapDesc.mapMode = MapMode::WriteOnly;
+            mapDesc.accessRange = {m_CurrentOffset, size};
+            void* mappedPointer;
+            status = m_RHI->MapBuffer(mapDesc, &mappedPointer);
             if (ZIB_FAILED(status))
                 return status;
-            memcpy(static_cast<char*>(mappedMemory) + m_CurrentOffset, data, size);
-            MemoryRange writtenRange{};
-            writtenRange.start = m_CurrentOffset;
-            writtenRange.size = size;
-            status = m_RHI->UnmapBufferMemory(m_RingBuffer, &writtenRange);
+            memcpy(static_cast<char*>(mappedPointer) + m_CurrentOffset, data, size);
+            status = m_RHI->UnmapBuffer(mapDesc, mappedPointer);
             if (ZIB_FAILED(status))
                 return status;
             status = m_RHI->CopyBufferRegion(dstBuffer, dstOffset, m_RingBuffer, m_CurrentOffset, size);
@@ -1853,8 +1879,8 @@ namespace Zibra::RHI
     protected:
         RHIRuntime* m_RHI = nullptr;
         Buffer* m_RingBuffer = nullptr;
-        size_t m_BufferSize = 0;
-        size_t m_CurrentOffset = 0;
+        uint32_t m_BufferSize = 0;
+        uint32_t m_CurrentOffset = 0;
     };
 }
 

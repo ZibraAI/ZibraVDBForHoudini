@@ -135,7 +135,7 @@ namespace Zibra::CE
          * Spatial info count
          * @range [1; INF]
          */
-        uint32_t spatialInfoCount = 0;
+        uint32_t spatialBlockCount = 0;
         /**
          * Channel blocks count
          * @range [1; INF]

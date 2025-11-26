@@ -36,7 +36,7 @@ namespace Zibra::CE::Licensing
     typedef LicenseManager*(ZCE_CALL_CONV* PFN_GetLicenseManager)();
 #ifdef ZCE_STATIC_LINKING
     LicenseManager* GetLicenseManager() noexcept;
-#elif ZCE_DYNAMIC_IMPLICIT_LINKING
+#elif defined(ZCE_DYNAMIC_IMPLICIT_LINKING)
     ZCE_API_IMPORT LicenseManager* ZCE_CALL_CONV Zibra_CE_Licensing_GetLicenseManager() noexcept;
 #else
     constexpr const char* GetLicenseManagerExportName = "Zibra_CE_Licensing_GetLicenseManager";

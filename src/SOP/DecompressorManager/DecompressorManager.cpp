@@ -132,7 +132,12 @@ namespace Zibra::Helpers
             m_Decompressor->Release();
             m_Decompressor = nullptr;
         }
-        CE::Decompression::DecompressorFactory* factory = m_FormatMapper->CreateDecompressorFactory();
+        CE::Decompression::DecompressorFactory* factory;
+        status = m_FormatMapper->CreateDecompressorFactory(&factory);
+        if (status != RESULT_SUCCESS)
+        {
+            return status;
+        }
         factory->UseRHI(m_RHIRuntime);
         using namespace Zibra::CE::Literals::Memory;
         factory->SetMemoryLimitPerResource(128_MiB);

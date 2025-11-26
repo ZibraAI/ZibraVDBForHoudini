@@ -140,7 +140,7 @@ namespace Zibra::ZibraVDBDecompressor
         }
         ZIB_ON_SCOPE_EXIT([&]() { frameContainer->Release(); });
 
-        if (frameContainer->GetInfo().spatialInfoCount == 0)
+        if (frameContainer->GetInfo().spatialBlockCount == 0)
         {
             return error(context);
         }

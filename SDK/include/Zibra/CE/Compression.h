@@ -152,7 +152,7 @@ namespace Zibra::CE::Compression
     typedef Result(ZCE_CALL_CONV* PFN_CreateCompressorFactory)(CompressorFactory** outInstance);
 #ifdef ZCE_STATIC_LINKING
     Result CreateCompressorFactory(CompressorFactory** outInstance) noexcept;
-#elif ZCE_DYNAMIC_IMPLICIT_LINKING
+#elif defined(ZCE_DYNAMIC_IMPLICIT_LINKING)
     ZCE_API_IMPORT Result ZCE_CALL_CONV Zibra_CE_Compression_CreateCompressorFactory(CompressorFactory** outInstance) noexcept;
 #else
     constexpr const char* CreateCompressorFactoryExportName = "Zibra_CE_Compression_CreateCompressorFactory";
@@ -161,7 +161,7 @@ namespace Zibra::CE::Compression
     typedef Result(ZCE_CALL_CONV* PFN_CreateSequenceMerger)(SequenceMerger** outInstance);
 #ifdef ZCE_STATIC_LINKING
     Result CreateSequenceMerger(SequenceMerger** outInstance) noexcept;
-#elif ZCE_DYNAMIC_IMPLICIT_LINKING
+#elif defined(ZCE_DYNAMIC_IMPLICIT_LINKING)
     ZCE_API_IMPORT Result ZCE_CALL_CONV Zibra_CE_Compression_CreateSequenceMerger(SequenceMerger** outInstance) noexcept;
 #else
     constexpr const char* CreateSequenceMergerExportName = "Zibra_CE_Compression_CreateSequenceMerger";
@@ -170,7 +170,7 @@ namespace Zibra::CE::Compression
     typedef Version(ZCE_CALL_CONV* PFN_GetVersion)();
 #ifdef ZCE_STATIC_LINKING
     Version GetVersion() noexcept;
-#elif ZCE_DYNAMIC_IMPLICIT_LINKING
+#elif defined(ZCE_DYNAMIC_IMPLICIT_LINKING)
     ZCE_API_IMPORT Version ZCE_CALL_CONV Zibra_CE_Compression_GetVersion() noexcept;
 #else
     constexpr const char* GetVersionExportName = "Zibra_CE_Compression_GetVersion";
