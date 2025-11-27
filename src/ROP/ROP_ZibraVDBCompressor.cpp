@@ -300,9 +300,7 @@ namespace Zibra::ZibraVDBCompressor
             return ROP_ABORT_RENDER;
         }
 
-        LibraryUtils::LoadSDKLibrary();
-
-        if (!LibraryUtils::IsSDKLibraryLoaded())
+        if (!LibraryUtils::TryLoadLibrary())
         {
             addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_COMPRESSION_ENGINE_MISSING);
             return ROP_ABORT_RENDER;
@@ -372,22 +370,42 @@ namespace Zibra::ZibraVDBCompressor
         }
 
         m_OrderedChannelNames.clear();
+        m_CurrentChannelCount = 0;
         m_OrderedChannelNames.reserve(8);
         const GEO_Primitive* prim;
         GA_FOR_ALL_PRIMITIVES(gdp, prim)
         {
             if (prim->getTypeId() == GEO_PRIMVDB)
             {
-                auto vdbPrim = dynamic_cast<const GEO_PrimVDB*>(prim);
-                auto gridName = vdbPrim->getGridName();
-                if (m_OrderedChannelNames.size() >= 8)
+                const GEO_PrimVDB* vdbPrim = dynamic_cast<const GEO_PrimVDB*>(prim);
+                const char* gridName = vdbPrim->getGridName();
+                const openvdb::GridBase& baseGrid = vdbPrim->getConstGrid();
+
+                int underlyingChannels = 0;
+
+                if (baseGrid.baseTree().isType<openvdb::Vec3STree>())
                 {
-                    std::string m = "Input has quantity of VDB primitives greater than 8 supported. Skipping '"s + gridName + "'.";
+                    underlyingChannels = 3;
+                }
+                else if (baseGrid.baseTree().isType<openvdb::FloatTree>())
+                {
+                    underlyingChannels = 1;
+                }
+                else
+                {
+                    std::string m = "Grid "s + gridName + " has unsupported grid type.";
                     addError(ROP_MESSAGE, m.c_str());
-                    break;
+                    return ROP_ABORT_RENDER;
                 }
 
-                const auto voxelSize = openvdb::Vec3f(vdbPrim->getGrid().voxelSize());
+                if (m_CurrentChannelCount + underlyingChannels > CE::MAX_CHANNEL_COUNT)
+                {
+                    std::string m = "Can not compress more than " + std::to_string(CE::MAX_CHANNEL_COUNT) + " channels.";
+                    addError(ROP_MESSAGE, m.c_str());
+                    return ROP_ABORT_RENDER;
+                }
+
+                const auto voxelSize = openvdb::Vec3f(baseGrid.voxelSize());
                 const auto hasUniformVoxelSize = (std::abs(voxelSize[0] - voxelSize[1]) < std::numeric_limits<float>::epsilon()) &&
                                                  (std::abs(voxelSize[1] - voxelSize[2]) < std::numeric_limits<float>::epsilon());
                 if (!hasUniformVoxelSize)
@@ -397,6 +415,7 @@ namespace Zibra::ZibraVDBCompressor
                     return ROP_ABORT_RENDER;
                 }
                 m_OrderedChannelNames.emplace_back(gridName);
+                m_CurrentChannelCount += underlyingChannels;
             }
         }
 
@@ -426,7 +445,7 @@ namespace Zibra::ZibraVDBCompressor
     {
         using namespace std::literals;
 
-        if (!LibraryUtils::IsSDKLibraryLoaded())
+        if (!LibraryUtils::TryLoadLibrary())
         {
             assert(0);
             addError(ROP_MESSAGE, "Unexpected error, ZibraVDB SDK is not loaded.");
@@ -458,22 +477,35 @@ namespace Zibra::ZibraVDBCompressor
         {
             if (prim->getTypeId() == GEO_PRIMVDB)
             {
-                auto vdbPrim = dynamic_cast<const GEO_PrimVDB*>(prim);
+                const GEO_PrimVDB* vdbPrim = dynamic_cast<const GEO_PrimVDB*>(prim);
                 const char* gridName = vdbPrim->getGridName();
+                const openvdb::GridBase::ConstPtr baseGrid = vdbPrim->getConstGridPtr();
+
+                int underlyingChannels = 0;
+
+                if (baseGrid->baseTree().isType<openvdb::Vec3STree>())
+                {
+                    underlyingChannels = 3;
+                }
+                else if (baseGrid->baseTree().isType<openvdb::FloatTree>())
+                {
+                    underlyingChannels = 1;
+                }
+                else
+                {
+                    std::string m = "Grid "s + gridName + " has unsupported grid type.";
+                    addError(ROP_MESSAGE, m.c_str());
+                    return ROP_ABORT_RENDER;
+                }
+
                 if (channelNamesUniqueStorage.find(gridName) != channelNamesUniqueStorage.cend())
                 {
                     std::string m = "ZibraVDB uses grid name as unique key. Node input contains duplicate of '"s + gridName + "' VDB prim.";
                     addError(ROP_MESSAGE, m.c_str());
                     return ROP_ABORT_RENDER;
                 }
-                if (vdbPrim->getStorageType() != UT_VDB_FLOAT && vdbPrim->getStorageType() != UT_VDB_VEC3F)
-                {
-                    std::string m = "Unsupported value type for '"s + gridName + "' prim. Only float grids supported.";
-                    addError(ROP_MESSAGE, m.c_str());
-                    return ROP_ABORT_RENDER;
-                }
 
-                const auto gridDimensions = vdbPrim->getGrid().evalActiveVoxelBoundingBox().dim();
+                const auto gridDimensions = baseGrid->evalActiveVoxelBoundingBox().dim();
                 constexpr size_t MAX_GRID_DIMENSION = 4096;
                 if (gridDimensions.x() > MAX_GRID_DIMENSION || gridDimensions.y() > MAX_GRID_DIMENSION ||
                     gridDimensions.z() > MAX_GRID_DIMENSION)
@@ -482,9 +514,23 @@ namespace Zibra::ZibraVDBCompressor
                     return ROP_ABORT_RENDER;
                 }
 
-                volumes.emplace_back(vdbPrim->getGridPtr());
+                volumes.emplace_back(std::move(baseGrid));
                 orderedChannelNames.push_back(gridName);
                 channelNamesUniqueStorage.insert(gridName);
+
+                auto iter = std::find(m_OrderedChannelNames.begin(), m_OrderedChannelNames.end(), gridName);
+                if (iter != m_OrderedChannelNames.end())
+                {
+                    if (m_CurrentChannelCount + underlyingChannels > CE::MAX_CHANNEL_COUNT)
+                    {
+                        std::string m = "Can not compress more than " + std::to_string(CE::MAX_CHANNEL_COUNT) + " channels.";
+                        addError(ROP_MESSAGE, m.c_str());
+                        return ROP_ABORT_RENDER;
+                    }
+
+                    m_OrderedChannelNames.emplace_back(gridName);
+                    m_CurrentChannelCount += underlyingChannels;
+                }
             }
         }
 
@@ -531,7 +577,7 @@ namespace Zibra::ZibraVDBCompressor
 
     ROP_RENDER_CODE ROP_ZibraVDBCompressor::endRender()
     {
-        if (!LibraryUtils::IsSDKLibraryLoaded())
+        if (!LibraryUtils::IsLibraryLoaded())
         {
             return ROP_ABORT_RENDER;
         }

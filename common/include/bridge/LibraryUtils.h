@@ -11,12 +11,8 @@ namespace Zibra::LibraryUtils {
         uint32_t build;
     };
 
-    void LoadSDKLibrary() noexcept;
-    bool IsSDKLibraryLoaded() noexcept;
-
-#if !LABS_BUILD
-    void RegisterAssetResolver() noexcept;
-#endif
+    [[nodiscard]] bool TryLoadLibrary() noexcept;
+    [[nodiscard]] bool IsLibraryLoaded() noexcept;
 
     constexpr bool IsPlatformSupported() noexcept
     {
@@ -32,7 +28,4 @@ namespace Zibra::LibraryUtils {
     std::string GetSDKLibraryVersionString() noexcept;
 
     std::string ErrorCodeToString(CE::ReturnCode errorCode);
-
-    std::vector<std::filesystem::path> GetLibrariesBasePaths() noexcept;
-    std::vector<std::string> GetSDKLibraryPaths() noexcept;
 } // namespace Zibra::LibraryUtils

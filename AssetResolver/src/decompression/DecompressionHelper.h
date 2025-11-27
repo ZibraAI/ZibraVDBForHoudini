@@ -23,8 +23,6 @@ namespace Zibra::AssetResolver
     private:
         DecompressionHelper() = default;
 
-        bool LoadSDKLib();
-
     private:
         static std::unique_ptr<DecompressionHelper> ms_Instance;
 

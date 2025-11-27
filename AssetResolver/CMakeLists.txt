@@ -40,21 +40,25 @@ else()
     set(ASSET_RESOLVER_OUTPUT_PATH "${OUTPUT_PATH}/dso/usd")
 endif()
 
-# If RUNTIME_OUTPUT_DIRECTORY/LIBRARY_OUTPUT_DIRECTORY does not have generator expressions
-# Configuration name will get automatically appended to it
-# "$<0:>" at the end is empty generator expression
-# Hence it will not append configuration name to the path
-set_target_properties(ZibraVDBResolver PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY ${ASSET_RESOLVER_OUTPUT_PATH}$<0:>
-    RUNTIME_OUTPUT_DIRECTORY ${ASSET_RESOLVER_OUTPUT_PATH}$<0:>
-    PREFIX ""
-)
+if (${LABS_BUILD})
+    # If RUNTIME_OUTPUT_DIRECTORY/LIBRARY_OUTPUT_DIRECTORY does not have generator expressions
+    # Configuration name will get automatically appended to it
+    # "$<0:>" at the end is empty generator expression
+    # Hence it will not append configuration name to the path
+    set_target_properties(ZibraVDBResolver PROPERTIES
+        LIBRARY_OUTPUT_DIRECTORY ${ASSET_RESOLVER_OUTPUT_PATH}$<0:>
+        RUNTIME_OUTPUT_DIRECTORY ${ASSET_RESOLVER_OUTPUT_PATH}$<0:>
+        PREFIX ""
+    )
+endif()
 
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/plugInfo.json.in
     ${CMAKE_CURRENT_BINARY_DIR}/plugInfo.json
     @ONLY
 )
+
+set(ZIBRAVDB_ASSET_RESOLVER_PLUGIN_CONFIG ${CMAKE_CURRENT_BINARY_DIR}/plugInfo.json PARENT_SCOPE)
 
 if (${LABS_BUILD})
     add_custom_target(ZibraVDBCopyAssetResolverPluginConfig
@@ -65,11 +69,5 @@ if (${LABS_BUILD})
         ${CMAKE_CURRENT_BINARY_DIR}/plugInfo.json
         ${ASSET_RESOLVER_OUTPUT_PATH}/../usd_plugins/ZibraVDBResolver/resources/plugInfo.json
     )
-else ()
-    add_custom_target(ZibraVDBCopyAssetResolverPluginConfig
-        COMMAND ${CMAKE_COMMAND} -E copy
-        ${CMAKE_CURRENT_BINARY_DIR}/plugInfo.json
-        ${ASSET_RESOLVER_OUTPUT_PATH}/../usd_plugins/ZibraVDBResolver_${ZIB_TARGET_OS_NAME}/resources/plugInfo.json
-    )
+    add_dependencies(ZibraVDBResolver ZibraVDBCopyAssetResolverPluginConfig)
 endif ()
-add_dependencies(ZibraVDBResolver ZibraVDBCopyAssetResolverPluginConfig)

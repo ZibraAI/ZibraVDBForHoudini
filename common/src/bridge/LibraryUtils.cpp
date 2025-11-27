@@ -2,11 +2,6 @@
 
 #include "bridge/LibraryUtils.h"
 
-#if !LABS_BUILD
-#include <pxr/base/plug/registry.h>
-#include <pxr/base/tf/type.h>
-#endif
-
 #include "licensing/LicenseManager.h"
 #include "utils/Helpers.h"
 
@@ -44,54 +39,8 @@ namespace Zibra::LibraryUtils
 #error Unsupported platform
 #endif
 
-#define ZIB_ASSET_RESOLVER_RESOURCES_FOLDER "dso/usd_plugins/ZibraVDBResolver_" ZIB_TARGET_OS_NAME "/resources"
-
     bool g_IsLibraryLoaded = false;
-    bool g_IsLibraryInitialized = false;
     Zibra::Version g_CompressionEngineVersion = {};
-
-    std::vector<std::filesystem::path> GetLibrariesBasePaths() noexcept
-    {
-        std::vector<std::filesystem::path> result{};
-        const std::pair<UT_StrControl, const char*> basePathEnvVars[] = {
-            // HSite and HQRoot have priority over HOUDINI_USER_PREF_DIR
-            // So that same version of library shared between multiple computers
-            {ENV_MAX_STR_CONTROLS, "HOUDINI_ZIBRAVDB_LIBRARY_DIR"},
-            {ENV_HSITE, "HSITE"},
-            {ENV_MAX_STR_CONTROLS, "HQROOT"},
-            {ENV_HOUDINI_USER_PREF_DIR, "HOUDINI_USER_PREF_DIR"},
-        };
-        for (const auto& [envVarEnum, envVarName] : basePathEnvVars)
-        {
-            const std::vector<std::string> baseDirs = Helpers::GetHoudiniEnvironmentVariable(envVarEnum, envVarName);
-            for (const std::string& baseDir : baseDirs)
-            {
-                result.emplace_back(baseDir);
-            }
-        }
-        return result;
-    }
-
-    // Returns vector of paths that can be used to search for the library
-    // First element is the path used for downloading the library
-    // Other elements are alternative load paths for manual library installation
-    std::vector<std::string> GetSDKLibraryPaths() noexcept
-    {
-        std::vector<std::string> result;
-        for (const auto path : GetLibrariesBasePaths()) {
-            auto newPath = path / ZIB_LIBRARY_FOLDER / ZIB_DYNAMIC_LIB_NAME;
-            result.emplace_back(newPath.string());
-        }
-
-        assert(!result.empty());
-
-        if (result.empty())
-        {
-            result.push_back("");
-        }
-
-        return result;
-    }
 
     bool ValidateLoadedVersion()
     {
@@ -232,80 +181,31 @@ namespace Zibra::LibraryUtils
 #endif
     }
 
-    void LoadSDKLibrary() noexcept
+    bool TryLoadLibrary() noexcept
     {
         assert(g_IsLibraryLoaded == (g_LibraryHandle != NULL));
 
         if (g_IsLibraryLoaded)
         {
-            return;
+            return true;
         }
 
-        const std::vector<std::string> libraryPaths = GetSDKLibraryPaths();
-
-        bool isLoaded = false;
-        for (const std::string& libraryPath : libraryPaths)
+        std::optional<std::string> libraryDirectory = Helpers::GetNormalEnvironmentVariable("ZIBRAVDB_LIBRARY_VER_0_PATH");
+        if (!libraryDirectory.has_value())
         {
-            if (LoadLibraryByPath(libraryPath))
-            {
-                isLoaded = true;
-                break;
-            }
-        }
-        if (!isLoaded)
-        {
-            return;
+            return false;
         }
 
-        g_IsLibraryLoaded = true;
-    }
+        std::string libraryPath = libraryDirectory.value() + "/" ZIB_DYNAMIC_LIB_NAME;
 
-    bool IsSDKLibraryLoaded() noexcept
-    {
+        g_IsLibraryLoaded = LoadLibraryByPath(libraryPath);
         return g_IsLibraryLoaded;
     }
 
-#if !LABS_BUILD
-    bool IsAssetResolverRegistered()
+    bool IsLibraryLoaded() noexcept
     {
-        PXR_NS::TfType resolverType = PXR_NS::TfType::FindByName("ZibraVDBResolver");
-        return !resolverType.IsUnknown();
+        return g_IsLibraryLoaded;
     }
-
-    void RegisterAssetResolver() noexcept
-    {
-        if (IsAssetResolverRegistered())
-        {
-            return;
-        }
-
-        auto baseLibPaths = GetLibrariesBasePaths();
-        for (const auto& baseLibPath : baseLibPaths)
-        {
-            if (baseLibPath.empty() || !std::filesystem::exists(baseLibPath))
-            {
-                continue;
-            }
-
-            std::filesystem::path resourcesPath = baseLibPath / ZIB_ASSET_RESOLVER_RESOURCES_FOLDER;
-            if (!std::filesystem::exists(resourcesPath) || !std::filesystem::is_directory(resourcesPath))
-            {
-                continue;
-            }
-
-            PXR_NS::PlugRegistry::GetInstance().RegisterPlugins(resourcesPath.string());
-            if (IsAssetResolverRegistered())
-            {
-                break;
-            }
-        }
-
-        if (!IsAssetResolverRegistered())
-        {
-            assert(false && "Failed to register ZibraVDBResolver. Make sure the library file is present.");
-        }
-    }
-#endif
 
     std::string GetSDKLibraryVersionString() noexcept
     {

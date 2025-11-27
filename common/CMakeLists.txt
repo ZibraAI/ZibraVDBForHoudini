@@ -2,13 +2,15 @@ cmake_minimum_required(VERSION 3.25)
 
 project(ZibraVDBCommon)
 
+configure_file(include/Globals.h.in include/Globals.h @ONLY)
+
 add_library(ZibraVDBCommon STATIC)
 target_sources(ZibraVDBCommon
     PUBLIC
     FILE_SET public_interface TYPE HEADERS
-        BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include
+        BASE_DIRS include
         FILES
-            include/Globals.h
+            include/Globals.h.in
             include/Types.h
             include/utils/Helpers.h
             include/utils/MetadataHelper.h
@@ -16,6 +18,13 @@ target_sources(ZibraVDBCommon
             include/licensing/LicenseManager.h
             include/bridge/LibraryUtils.h
             include/ui/PluginManagementWindow.h
+
+    PUBLIC
+    FILE_SET generated_interface TYPE HEADERS
+        BASE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/include
+        FILES
+            ${CMAKE_CURRENT_BINARY_DIR}/include/Globals.h
+
     PRIVATE
     FILE_SET private_headers TYPE HEADERS
         BASE_DIRS src
@@ -43,26 +52,12 @@ target_include_directories(ZibraVDBCommon
     PUBLIC ${CMAKE_SOURCE_DIR}/external/Include
     PUBLIC ${CMAKE_SOURCE_DIR}/SDK/include)
 
-if(LABS_BUILD)
-    set(LABS_BUILD_VAL 1)
-else()
-    set(LABS_BUILD_VAL 0)
-endif()
-
 target_compile_definitions(ZibraVDBCommon PUBLIC
     ZIB_NETWORK_REQUEST_BACKEND_${ZIB_NETWORK_REQUEST_BACKEND}=1
-    ZIB_TARGET_OS_${ZIB_TARGET_OS_NAME}=1
-    LABS_BUILD=${LABS_BUILD_VAL})
+    ZIB_TARGET_OS_${ZIB_TARGET_OS_NAME}=1)
 
 target_precompile_headers(ZibraVDBCommon PRIVATE src/PrecompiledHeader.h)
 target_link_libraries(ZibraVDBCommon PUBLIC Houdini)
-
-if(NOT LABS_BUILD AND "${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
-    target_link_libraries(ZibraVDBCommon PUBLIC
-        Houdini::Dep::pxr_plug
-        Houdini::Dep::pxr_tf
-    )
-endif()
 
 function(setup_common_houdini_dependencies target)
     message(STATUS "Setting up dependencies for ${target}")
