@@ -1,0 +1,18 @@
+{
+    "Plugins": [
+        {
+            "Info": {
+                "Types": {
+                    "ZibraVDBResolver": {
+                        "bases": ["ArResolver"]
+                    }
+                }
+            },
+            "LibraryPath": "../../usd/ZibraVDBResolver@CMAKE_SHARED_LIBRARY_SUFFIX@",
+            "Name": "ZibraVDBResolver",
+            "ResourcePath": "resources",
+            "Root": "..",
+            "Type": "library"
+        }
+    ]
+}

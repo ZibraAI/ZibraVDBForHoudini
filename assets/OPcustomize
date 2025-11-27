@@ -2,3 +2,7 @@
 opunhide Sop labs::rop_zibravdb_compress::1.0
 opunhide Sop labs::zibravdb_decompress::1.0
 opunhide Driver labs::zibravdb_compress::1.0
+
+// Unhide nodes that may be hidden by Houdini in the future
+opunhide Lop labs::zibravdb_import::1.0
+opunhide Sop labs::zibravdb_configure_usd::1.0
