@@ -2,11 +2,6 @@
 
 #include "bridge/LibraryUtils.h"
 
-#if !LABS_BUILD
-#include <pxr/base/plug/registry.h>
-#include <pxr/base/tf/type.h>
-#endif
-
 #include "licensing/LicenseManager.h"
 #include "utils/Helpers.h"
 
