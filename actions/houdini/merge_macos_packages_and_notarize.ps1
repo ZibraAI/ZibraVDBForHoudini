@@ -43,8 +43,8 @@ foreach ($ARM64Package in $ARM64Packages) {
     $ARM64DSOPath = "$ARM64Package/ZibraVDB/$ARM64Target/dso/ZibraVDBForHoudini.dylib"
     $X64DSOPath = "$X64Package/ZibraVDB/$X64Target/dso/ZibraVDBForHoudini.dylib"
 
-    $ARM64AssetResolverPath = "$ARM64Package/ZibraVDB/$ARM64Target/usd/libZibraVDBResolver.dylib"
-    $X64AssetResolverPath = "$X64Package/ZibraVDB/$X64Target/usd/libZibraVDBResolver.dylib"
+    $ARM64AssetResolverPath = "$ARM64Package/ZibraVDB/$ARM64Target/dso/usd/libZibraVDBResolver.dylib"
+    $X64AssetResolverPath = "$X64Package/ZibraVDB/$X64Target/dso/usd/libZibraVDBResolver.dylib"
 
     if (-not (Test-Path $ARM64DSOPath)) {
         throw "ARM64 DSO not found at path: $ARM64DSOPath"
@@ -77,7 +77,7 @@ foreach ($ARM64Package in $ARM64Packages) {
     Write-Output "Target platform for both packages: $ARM64Target"
 
     $DestDSOPath = "$DestFolder/ZibraVDB/$ARM64Target/dso/ZibraVDBForHoudini.dylib"
-    $DestAssetResolverPath = "$DestFolder/ZibraVDB/$ARM64Target/usd/libZibraVDBResolver.dylib"
+    $DestAssetResolverPath = "$DestFolder/ZibraVDB/$ARM64Target/dso/usd/libZibraVDBResolver.dylib"
 
     if (Test-Path $DestFolder) {
         Remove-Item $DestFolder -Recurse -Force
