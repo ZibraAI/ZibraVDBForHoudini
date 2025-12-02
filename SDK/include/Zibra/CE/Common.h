@@ -1,8 +1,11 @@
 #pragma once
 
+#include <mutex>
+
 #include <Zibra/Math.h>
 #include <Zibra/Result.h>
 #include <Zibra/Version.h>
+#include <Zibra/Stream.h>
 
 namespace Zibra
 {
@@ -153,6 +156,34 @@ namespace Zibra::CE
         uint32_t framerateNumerator = 30;
         uint32_t framerateDenominator = 1;
         uint32_t sequenceIndexIncrement = 1;
+    };
+
+    class IMemoryMapper
+    {
+    public:
+        virtual ~IMemoryMapper() noexcept = default;
+    public:
+        virtual Result Fetch(size_t pos, void* dst, size_t size) noexcept = 0;
+    };
+
+    class StreamMemoryMapperAdapter : public IMemoryMapper
+    {
+    public:
+        explicit StreamMemoryMapperAdapter(IStream* stream) noexcept : m_Stream(stream), m_AccessMutex() {}
+
+    public:
+        Result Fetch(size_t pos, void* dst, size_t size) noexcept override
+        {
+            std::lock_guard guard{m_AccessMutex};
+            m_Stream->seekg(pos);
+            auto charDst = static_cast<char*>(dst);
+            m_Stream->read({charDst, size});
+            return m_Stream->bad() || m_Stream->fail() || m_Stream->gcount() != size ? RESULT_IO_ERROR : RESULT_SUCCESS;
+        }
+
+    protected:
+        std::mutex m_AccessMutex;
+        IStream* m_Stream;
     };
 
     /**

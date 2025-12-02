@@ -102,8 +102,9 @@ namespace Zibra::Helpers
     {
         if (m_FileStream.has_value())
         {
-            delete m_FileStream->first;
-            delete m_FileStream->second;
+            delete std::get<2>(*m_FileStream);
+            delete std::get<1>(*m_FileStream);
+            delete std::get<0>(*m_FileStream);
             m_FileStream = std::nullopt;
         }
 
@@ -113,15 +114,17 @@ namespace Zibra::Helpers
             delete stream;
             return RESULT_FILE_NOT_FOUND;
         }
-        m_FileStream = {stream, new STDIStreamWrapper{*stream}};
+        STDIStreamWrapper* streamWrapper = new STDIStreamWrapper{*stream};
+        CE::StreamMemoryMapperAdapter* memoryAdapter = new CE::StreamMemoryMapperAdapter{streamWrapper};
 
+        m_FileStream = {stream, streamWrapper, memoryAdapter};
         if (m_FormatMapper)
         {
             m_FormatMapper->Release();
             m_FormatMapper = nullptr;
         }
 
-        auto status = CE::Decompression::CreateFormatMapper(m_FileStream->second, &m_FormatMapper);
+        auto status = CE::Decompression::CreateFormatMapper(std::get<2>(*m_FileStream), &m_FormatMapper);
         if (status != RESULT_SUCCESS)
         {
             return status;
@@ -381,6 +384,14 @@ namespace Zibra::Helpers
         {
             m_RHIRuntime->Release();
             m_RHIRuntime = nullptr;
+        }
+
+        if (m_FileStream.has_value())
+        {
+            delete std::get<2>(*m_FileStream);
+            delete std::get<1>(*m_FileStream);
+            delete std::get<0>(*m_FileStream);
+            m_FileStream = std::nullopt;
         }
 
         m_IsInitialized = false;

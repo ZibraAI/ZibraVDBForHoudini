@@ -33,7 +33,7 @@ namespace Zibra::Helpers
         Result FreeExternalBuffers() noexcept;
 
     private:
-        std::optional<std::pair<std::ifstream*, IStream*>> m_FileStream = std::nullopt;
+        std::optional<std::tuple<std::ifstream*, IStream*, CE::StreamMemoryMapperAdapter*>> m_FileStream = std::nullopt;
         CE::Decompression::Decompressor* m_Decompressor = nullptr;
         CE::Decompression::FormatMapper* m_FormatMapper = nullptr;
         RHI::RHIRuntime* m_RHIRuntime = nullptr;

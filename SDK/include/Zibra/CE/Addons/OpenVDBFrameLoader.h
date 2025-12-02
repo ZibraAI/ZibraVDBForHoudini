@@ -64,7 +64,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         static uint32_t FirstChannelIndexFromMask(ChannelMask mask) noexcept;
         static std::vector<ChannelDescriptor> ChannelsFromGrid(openvdb::GridBase::Ptr grid, uint32_t voxelComponentCount,
                                                                uint32_t voxelComponentSize, ChannelMask firstChMask) noexcept;
-        static Math::AABB CalculateAABB(const openvdb::CoordBBox bbox);
+        static Math::AABB CalculateAABB(const openvdb::CoordBBox& bbox);
         static void PackFromStride(void* dst, const void* src, size_t stride, size_t offset, size_t size, size_t count) noexcept;
         static std::string ValueComponentIndexToLetter(uint32_t valueComponentIdx) noexcept;
         static std::string SplitGridNameFromValueComponentIdx(const std::string gridName, uint32_t valueComponentIdx);
@@ -90,8 +90,8 @@ namespace Zibra::CE::Addons::OpenVDBUtils
     };
 
     template <typename T>
-    Math::AABB Zibra::CE::Addons::OpenVDBUtils::FrameLoader::ResolveBlocks(
-        const ChannelDescriptor& ch, std::map<openvdb::Coord, SpatialBlockIntermediate>& spatialMap) const noexcept
+    Math::AABB FrameLoader::ResolveBlocks(const ChannelDescriptor& ch, std::map<openvdb::Coord,
+                                          SpatialBlockIntermediate>& spatialMap) const noexcept
     {
         auto grid = openvdb::gridPtrCast<T>(ch.grid);
 
@@ -119,30 +119,28 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         return totalAABB;
     }
 
-    inline openvdb::math::Transform Zibra::CE::Addons::OpenVDBUtils::FrameLoader::GetIndexSpaceRelativeTransform(
-        const openvdb::GridBase::ConstPtr& targetGrid, const openvdb::GridBase::ConstPtr& referenceGrid) noexcept
+    inline openvdb::math::Transform FrameLoader::GetIndexSpaceRelativeTransform(const openvdb::GridBase::ConstPtr& targetGrid,
+                                                                                const openvdb::GridBase::ConstPtr& referenceGrid) noexcept
     {
         openvdb::math::Transform result{targetGrid->transform().baseMap()->copy()};
         result.postMult(referenceGrid->transform().baseMap()->getAffineMap()->getMat4().inverse());
         return result;
     }
 
-    inline float Zibra::CE::Addons::OpenVDBUtils::FrameLoader::GetUniformVoxelScale(const openvdb::GridBase::ConstPtr& grid)
+    inline float FrameLoader::GetUniformVoxelScale(const openvdb::GridBase::ConstPtr& grid)
     {
         const openvdb::Vec3f voxelSize{grid->voxelSize()};
         assert(grid->hasUniformVoxels());
         return voxelSize.x();
     }
 
-    inline std::string Zibra::CE::Addons::OpenVDBUtils::FrameLoader::SplitGridNameFromValueComponentIdx(const std::string gridName,
-                                                                                                        uint32_t valueComponentIdx)
+    inline std::string FrameLoader::SplitGridNameFromValueComponentIdx(const std::string gridName, uint32_t valueComponentIdx)
     {
         return gridName + "." + ValueComponentIndexToLetter(valueComponentIdx);
     }
 
-    inline std::string Zibra::CE::Addons::OpenVDBUtils::FrameLoader::ValueComponentIndexToLetter(uint32_t valueComponentIdx) noexcept
+    inline std::string FrameLoader::ValueComponentIndexToLetter(uint32_t valueComponentIdx) noexcept
     {
-        using namespace std::string_literals;
         switch (valueComponentIdx)
         {
         case 0:
@@ -154,12 +152,11 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         case 3:
             return "w";
         default:
-            return "c"s + std::to_string(valueComponentIdx);
+            return "c" + std::to_string(valueComponentIdx);
         }
     }
 
-    inline void Zibra::CE::Addons::OpenVDBUtils::FrameLoader::PackFromStride(void* dst, const void* src, size_t stride, size_t offset,
-                                                                             size_t size, size_t count) noexcept
+    inline void FrameLoader::PackFromStride(void* dst, const void* src, size_t stride, size_t offset, size_t size, size_t count) noexcept
     {
         if (stride == size && offset == 0)
         {
@@ -176,7 +173,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         }
     }
 
-    inline Zibra::Math::AABB Zibra::CE::Addons::OpenVDBUtils::FrameLoader::CalculateAABB(const openvdb::CoordBBox bbox)
+    inline Math::AABB FrameLoader::CalculateAABB(const openvdb::CoordBBox& bbox)
     {
         Math::AABB result{};
 
@@ -194,9 +191,10 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         return result;
     }
 
-    inline std::vector<Zibra::CE::Addons::OpenVDBUtils::FrameLoader::ChannelDescriptor> Zibra::CE::Addons::OpenVDBUtils::FrameLoader::
-        ChannelsFromGrid(openvdb::GridBase::Ptr grid, uint32_t voxelComponentCount, uint32_t voxelComponentSize,
-                         ChannelMask firstChMask) noexcept
+    inline std::vector<FrameLoader::ChannelDescriptor> FrameLoader::ChannelsFromGrid(openvdb::GridBase::Ptr grid,
+                                                                                     uint32_t voxelComponentCount,
+                                                                                     uint32_t voxelComponentSize,
+                                                                                     ChannelMask firstChMask) noexcept
     {
         std::vector<ChannelDescriptor> result{};
         for (size_t chIdx = 0; chIdx < voxelComponentCount; ++chIdx)
@@ -213,11 +211,11 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         return result;
     }
 
-    inline uint32_t Zibra::CE::Addons::OpenVDBUtils::FrameLoader::FirstChannelIndexFromMask(ChannelMask mask) noexcept
+    inline uint32_t FrameLoader::FirstChannelIndexFromMask(ChannelMask mask) noexcept
     {
         for (size_t i = 0; i < sizeof(mask) * 8; ++i)
         {
-            if (mask & 1 << i)
+            if (mask & (1 << i))
             {
                 return i;
             }
@@ -225,7 +223,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         return 0;
     }
 
-    inline Zibra::Math::Transform Zibra::CE::Addons::OpenVDBUtils::FrameLoader::OpenVDBTransformToMathTransform(
+    inline Math::Transform FrameLoader::OpenVDBTransformToMathTransform(
         const openvdb::math::Transform& transform) noexcept
     {
         Math::Transform result{};
@@ -240,7 +238,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         return result;
     }
 
-    inline void Zibra::CE::Addons::OpenVDBUtils::FrameLoader::ReleaseFrame(const Compression::SparseFrame* frame) noexcept
+    inline void FrameLoader::ReleaseFrame(const Compression::SparseFrame* frame) noexcept
     {
         if (frame)
         {
@@ -255,13 +253,12 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         }
     }
 
-    inline const std::vector<Zibra::CE::Addons::OpenVDBUtils::VDBGridDesc>& Zibra::CE::Addons::OpenVDBUtils::FrameLoader::
-        GetGridsShuffleInfo() noexcept
+    inline const std::vector<VDBGridDesc>& FrameLoader::GetGridsShuffleInfo() noexcept
     {
         return m_GridsShuffle;
     }
 
-    inline Zibra::CE::Compression::SparseFrame* Zibra::CE::Addons::OpenVDBUtils::FrameLoader::LoadFrame() const noexcept
+    inline Compression::SparseFrame* FrameLoader::LoadFrame() const noexcept
     {
         auto result = new Compression::SparseFrame{};
         std::map<openvdb::Coord, SpatialBlockIntermediate> spatialBlocks{};
@@ -344,7 +341,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 auto& [coord, spatialIntrm] = item;
                 ChannelMask mask = 0x0;
 
-                // Channels are ordered right way due to map soring and mask bit order.
+                // Iterating channels in order of increasing mask.
                 size_t chIdx = 0;
                 for (auto& [chMask, chBlockIntrm] : spatialIntrm.blocks)
                 {
@@ -412,7 +409,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         return result;
     }
 
-    inline Zibra::CE::Addons::OpenVDBUtils::FrameLoader::~FrameLoader() noexcept
+    inline FrameLoader::~FrameLoader() noexcept
     {
         for (auto& shuffleItem : m_GridsShuffle)
         {
@@ -424,7 +421,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         }
     }
 
-    inline Zibra::CE::Addons::OpenVDBUtils::FrameLoader::FrameLoader(openvdb::GridBase::ConstPtr* grids, size_t gridsCount,
+    inline FrameLoader::FrameLoader(openvdb::GridBase::ConstPtr* grids, size_t gridsCount,
                                                                      bool matchVoxelSize /*= false*/) noexcept
     {
         if (!gridsCount)

@@ -281,7 +281,7 @@ namespace Zibra::CE::Decompression
          * @param frame - frame index in original frame space
          * @return RESULT_SUCCESS in case of success or other code in case of failure.
          */
-        virtual Result FetchFrameInfo(float frame, FrameInfo* outInfo) const noexcept = 0;
+        virtual Result FetchFrameInfo(float frame, FrameInfo* outInfo) noexcept = 0;
         /**
          * Returns valid frame range decompression parametrization.
          * @return pair StartFrame - EndFrame
@@ -302,11 +302,11 @@ namespace Zibra::CE::Decompression
         virtual void Release() noexcept = 0;
     };
 
-    typedef Result(ZCE_CALL_CONV* PFN_CreateFormatMapper)(IStream* stream, FormatMapper** outFormatMapper);
+    typedef Result(ZCE_CALL_CONV* PFN_CreateFormatMapper)(IMemoryMapper* memory, FormatMapper** outFormatMapper);
 #ifdef ZCE_STATIC_LINKING
-    Result CreateFormatMapper(IStream* stream, FormatMapper** outFormatMapper) noexcept;
+    Result CreateFormatMapper(IMemoryMapper* memory, FormatMapper** outFormatMapper) noexcept;
 #elif defined(ZCE_DYNAMIC_IMPLICIT_LINKING)
-    ZCE_API_IMPORT Result ZCE_CALL_CONV Zibra_CE_Decompression_CreateFormatMapper(IStream* stream, FormatMapper** outMapper) noexcept;
+    ZCE_API_IMPORT Result ZCE_CALL_CONV Zibra_CE_Decompression_CreateFormatMapper(IMemoryMapper* memory, FormatMapper** outMapper) noexcept;
 #else
     constexpr const char* CreateFormatMapperExportName = "Zibra_CE_Decompression_CreateFormatMapper";
 #endif
