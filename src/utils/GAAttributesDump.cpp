@@ -4,8 +4,7 @@
 
 namespace Zibra::Utils
 {
-
-    const char* GAStorageToStr(GA_Storage storage) noexcept
+    static const char* GAStorageToStr(GA_Storage storage) noexcept
     {
         switch (storage)
         {
@@ -37,7 +36,7 @@ namespace Zibra::Utils
         }
     }
 
-    GA_Storage StrTypeToGAStorage(const std::string& strType) noexcept
+    static GA_Storage StrTypeToGAStorage(const std::string& strType) noexcept
     {
         if (strType == "bool")
         {
@@ -82,159 +81,510 @@ namespace Zibra::Utils
         return GA_STORE_INVALID;
     }
 
-    nlohmann::json DumpAttributesForSingleEntity(const GU_Detail* gdp, GA_AttributeOwner attrOwner, GA_Offset mapOffset) noexcept
+    // Logic for changing types into something that can be safely stored into JSON
+    // e.g. int64 values we have to store as strings
+    // since JSON numbers are treated as double precision float, and can only precisely store integers up to ~2^53
+    // which is not enough for int64
+    template <typename DataType>
+    struct JSONSafeTypeMapping
+    {
+        using UnderlyingType = DataType;
+    };
+
+    template <>
+    struct JSONSafeTypeMapping<int64>
+    {
+        using UnderlyingType = std::string;
+    };
+
+    template <typename DataType>
+    typename JSONSafeTypeMapping<DataType>::UnderlyingType ToJSONSafeType(DataType value)
+    {
+        return value;
+    }
+
+    template <>
+    typename JSONSafeTypeMapping<int64>::UnderlyingType ToJSONSafeType<int64>(int64 value)
+    {
+        return std::to_string(value);
+    }
+
+    template <typename DataType>
+    DataType FromJSONSafeType(typename JSONSafeTypeMapping<DataType>::UnderlyingType value)
+    {
+        return value;
+    }
+
+    template <>
+    int64 FromJSONSafeType<int64>(typename JSONSafeTypeMapping<int64>::UnderlyingType value)
+    {
+        return std::stoll(value);
+    }
+
+    template <GA_StorageClass StorageClass, typename DataType, GA_Storage StorageType>
+    std::optional<nlohmann::json> SerializeAttributeV2Fundamental(GA_Attribute* attribute, GA_Offset mapOffset)
+    {
+        nlohmann::json result{};
+        const GA_AIFTuple* tuple = attribute->getAIFTuple();
+        if (tuple == nullptr)
+        {
+            return std::nullopt;
+        }
+
+        int arraySize = tuple->getTupleSize(attribute);
+        std::vector<DataType> data;
+        data.resize(arraySize);
+        tuple->get(attribute, mapOffset, data.data(), arraySize);
+        result["t"] = int(StorageType);
+        result["v"] = ToJSONSafeType(data);
+
+        return result;
+    }
+
+    template <GA_StorageClass StorageClass>
+    std::optional<nlohmann::json> SerializeAttributeV2(GA_Attribute* attribute, GA_Offset mapOffset)
+    {
+        const GA_AIFTuple* tuple = attribute->getAIFTuple();
+        if (tuple == nullptr)
+        {
+            return std::nullopt;
+        }
+
+        const GA_Storage storage = tuple->getStorage(attribute);
+        switch (storage)
+        {
+        case GA_STORE_BOOL:
+            return SerializeAttributeV2Fundamental<StorageClass, int32, GA_STORE_BOOL>(attribute, mapOffset);
+        case GA_STORE_UINT8:
+            return SerializeAttributeV2Fundamental<StorageClass, int32, GA_STORE_UINT8>(attribute, mapOffset);
+        case GA_STORE_INT8:
+            return SerializeAttributeV2Fundamental<StorageClass, int32, GA_STORE_INT8>(attribute, mapOffset);
+        case GA_STORE_INT16:
+            return SerializeAttributeV2Fundamental<StorageClass, int32, GA_STORE_INT16>(attribute, mapOffset);
+        case GA_STORE_INT32:
+            return SerializeAttributeV2Fundamental<StorageClass, int32, GA_STORE_INT32>(attribute, mapOffset);
+        case GA_STORE_INT64:
+            return SerializeAttributeV2Fundamental<StorageClass, int64, GA_STORE_INT64>(attribute, mapOffset);
+        case GA_STORE_REAL16:
+            return SerializeAttributeV2Fundamental<StorageClass, fpreal32, GA_STORE_REAL16>(attribute, mapOffset);
+        case GA_STORE_REAL32:
+            return SerializeAttributeV2Fundamental<StorageClass, fpreal32, GA_STORE_REAL32>(attribute, mapOffset);
+        case GA_STORE_REAL64:
+            return SerializeAttributeV2Fundamental<StorageClass, fpreal64, GA_STORE_REAL64>(attribute, mapOffset);
+        default:
+            assert(0);
+            return std::nullopt;
+        }
+    }
+
+    template <>
+    std::optional<nlohmann::json> SerializeAttributeV2<GA_STORECLASS_STRING>(GA_Attribute* attribute, GA_Offset mapOffset)
+    {
+        nlohmann::json result{};
+
+        const GA_AIFStringTuple* tuple = attribute->getAIFStringTuple();
+        if (tuple == nullptr)
+        {
+            return std::nullopt;
+        }
+
+        int arraySize = tuple->getTupleSize(attribute);
+        std::vector<std::string> data;
+        data.resize(arraySize);
+        for (int i = 0; i < arraySize; ++i)
+        {
+            data[i] = tuple->getString(attribute, mapOffset, i);
+        }
+        result["t"] = int(GA_STORE_STRING);
+        result["v"] = data;
+
+        return result;
+    }
+
+    template <>
+    std::optional<nlohmann::json> SerializeAttributeV2<GA_STORECLASS_DICT>(GA_Attribute* attribute, GA_Offset mapOffset)
+    {
+        nlohmann::json result{};
+        const GA_AIFSharedDictTuple* tuple = attribute->getAIFSharedDictTuple();
+        if (tuple == nullptr)
+        {
+            return std::nullopt;
+        }
+
+        int arraySize = tuple->getTupleSize(attribute);
+        std::vector<std::string> data;
+        data.resize(arraySize);
+        for (int i = 0; i < arraySize; ++i)
+        {
+            UT_OptionsHolder dict = tuple->getDict(attribute, mapOffset);
+            std::stringstream jsonDump;
+            dict->dump(jsonDump);
+            data[i] = jsonDump.str();
+        }
+        result["t"] = int(GA_STORE_DICT);
+        result["v"] = data;
+
+        return result;
+    }
+
+    nlohmann::json DumpAttributesV2(const GU_Detail* gdp, GA_AttributeOwner attrOwner, GA_Offset mapOffset) noexcept
     {
         nlohmann::json result = nlohmann::json::value_t::object;
 
         for (auto it = gdp->getAttributeDict(attrOwner).obegin(GA_SCOPE_PUBLIC); !it.atEnd(); it.advance())
         {
-            GA_Attribute* attr = *it;
+            GA_Attribute* attribute = *it;
 
-            nlohmann::json attrDump{};
-
-            switch (attr->getStorageClass())
+            std::optional<nlohmann::json> serializedAttribute;
+            switch (attribute->getStorageClass())
             {
             case GA_STORECLASS_INT:
-            case GA_STORECLASS_FLOAT: {
-                auto tuple = attr->getAIFTuple();
-
-                const GA_Storage storage = tuple->getStorage(attr);
-                switch (storage)
-                {
-                case GA_STORE_BOOL: {
-                    int64 data;
-                    tuple->get(attr, mapOffset, data, 0);
-                    attrDump["t"] = GAStorageToStr(storage);
-                    attrDump["v"] = static_cast<bool>(data);
-                    break;
-                }
-                case GA_STORE_UINT8:
-                    continue;
-                case GA_STORE_INT8:
-                case GA_STORE_INT16:
-                case GA_STORE_INT32:
-                case GA_STORE_INT64: {
-                    std::vector<int64> data{};
-                    data.resize(attr->getTupleSize());
-                    tuple->get(attr, mapOffset, data.data(), static_cast<int>(data.size()));
-                    attrDump["t"] = GAStorageToStr(storage);
-                    attrDump["v"] = data;
-                    break;
-                }
-                case GA_STORE_REAL16:
-                case GA_STORE_REAL32:
-                case GA_STORE_REAL64: {
-                    std::vector<fpreal64> data{};
-                    data.resize(attr->getTupleSize());
-                    tuple->get(attr, mapOffset, data.data(), static_cast<int>(data.size()));
-                    attrDump["t"] = GAStorageToStr(storage);
-                    attrDump["v"] = data;
-                }
-                default:
-                    break;
-                }
-
+                serializedAttribute = SerializeAttributeV2<GA_STORECLASS_INT>(attribute, mapOffset);
                 break;
-            }
-            case GA_STORECLASS_STRING: {
-                auto strTuple = attr->getAIFStringTuple();
-                const char* attrString = (strTuple && attr->getTupleSize()) ? strTuple->getString(attr, mapOffset, 0) : "";
-                attrDump["t"] = "string";
-                attrDump["v"] = attrString ? attrString : "";
+            case GA_STORECLASS_FLOAT:
+                serializedAttribute = SerializeAttributeV2<GA_STORECLASS_FLOAT>(attribute, mapOffset);
                 break;
-            }
+            case GA_STORECLASS_STRING:
+                serializedAttribute = SerializeAttributeV2<GA_STORECLASS_STRING>(attribute, mapOffset);
+                break;
             case GA_STORECLASS_DICT:
-            case GA_STORECLASS_OTHER:
-            case GA_STORECLASS_INVALID:
+                serializedAttribute = SerializeAttributeV2<GA_STORECLASS_DICT>(attribute, mapOffset);
+                break;
             default:
                 continue;
             }
 
-            result[attr->getName().c_str()] = attrDump;
+            if (!serializedAttribute.has_value())
+            {
+                continue;
+            }
+            result[attribute->getName().c_str()] = *serializedAttribute;
         }
         return result;
     }
 
-    MetaAttributesLoadStatus LoadEntityAttributesFromMeta(GU_Detail* gdp, GA_AttributeOwner owner, GA_Offset mapOffset,
-                                                          const nlohmann::json& meta) noexcept
+    template <typename DataType>
+    bool IsCompatibleType(const nlohmann::json& value);
+
+    template <>
+    bool IsCompatibleType<int32>(const nlohmann::json& value)
     {
-#define ZIB_LOCAL_HELPER_WARNING_AND_RETURN(cond)                      \
-    if (cond)                                                          \
-    {                                                                  \
-        return MetaAttributesLoadStatus::FATAL_ERROR_INVALID_METADATA; \
-    }
-#define ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE(cond)                          \
-    if (cond)                                                                \
-    {                                                                        \
-        status = MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA; \
-        continue;                                                            \
+        return value.is_number_integer();
     }
 
-        ZIB_LOCAL_HELPER_WARNING_AND_RETURN(!meta.is_object());
+    template <>
+    bool IsCompatibleType<int64>(const nlohmann::json& value)
+    {
+        return value.is_number_integer();
+    }
 
-        MetaAttributesLoadStatus status = MetaAttributesLoadStatus::SUCCESS;
+    template <>
+    bool IsCompatibleType<fpreal32>(const nlohmann::json& value)
+    {
+        return value.is_number();
+    }
+
+    template <>
+    bool IsCompatibleType<fpreal64>(const nlohmann::json& value)
+    {
+        return value.is_number();
+    }
+
+    template <>
+    bool IsCompatibleType<std::string>(const nlohmann::json& value)
+    {
+        return value.is_string();
+    }
+
+    template <GA_StorageClass StorageClass, typename DataType, GA_Storage StorageType>
+    void LoadAttributeV1(GU_Detail* gdp, GA_AttributeOwner owner, GA_Offset mapOffset, const nlohmann::json& valuesContainer,
+                         const std::string& name)
+    {
+        if (!valuesContainer.is_array())
+        {
+            return;
+        }
+
+        int arraySize = static_cast<int>(valuesContainer.size());
+
+        std::vector<DataType> valuesArray{};
+        valuesArray.reserve(arraySize);
+        for (const nlohmann::json& val : valuesContainer)
+        {
+            if (!IsCompatibleType<DataType>(val))
+            {
+                return;
+            }
+
+            valuesArray.emplace_back(val.get<DataType>());
+        }
+
+        GA_Attribute* attribute = gdp->addTuple(StorageType, owner, name, arraySize);
+        GA_RWHandleT<DataType> attrRWHandle{attribute};
+        attrRWHandle.setV(mapOffset, valuesArray.data(), arraySize);
+    }
+
+    template <>
+    void LoadAttributeV1<GA_STORECLASS_STRING, std::string, GA_STORE_STRING>(GU_Detail* gdp, GA_AttributeOwner owner, GA_Offset mapOffset,
+                                                                             const nlohmann::json& valuesContainer, const std::string& name)
+    {
+        // V1 doesn't serialize strings as arrays
+        if (!valuesContainer.is_string())
+        {
+            return;
+        }
+
+        // V1 doesn't support string arrays, so arraySize is always 1
+        GA_Attribute* attribute = gdp->addTuple(GA_STORE_STRING, owner, name, 1);
+        GA_RWHandleS attrRWHandle{attribute};
+        std::string value = valuesContainer.get<std::string>();
+        attrRWHandle.set(mapOffset, value);
+    }
+
+    void LoadAttributesV1(GU_Detail* gdp, GA_AttributeOwner owner, GA_Offset mapOffset, const nlohmann::json& meta) noexcept
+    {
+        if (!meta.is_object())
+        {
+            return;
+        }
+
         for (const auto& [attribName, attrContainer] : meta.items())
         {
-            ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE(!attrContainer.is_object());
-            ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE(!attrContainer.contains("t") || !attrContainer.contains("v"));
-            auto typeContainer = attrContainer["t"];
-            auto valContainer = attrContainer["v"];
-            ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE(!typeContainer.is_string() || valContainer.is_object() || valContainer.is_null());
+            if (!attrContainer.is_object())
+            {
+                continue;
+            }
 
-            GA_Storage storage = StrTypeToGAStorage(typeContainer);
+            auto typeIter = attrContainer.find("t");
+            auto valueIter = attrContainer.find("v");
 
-            ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE(storage == GA_STORE_INVALID);
-            GA_Attribute* attr = gdp->addTuple(storage, owner, attribName, static_cast<int>(valContainer.size()));
+            if (typeIter == attrContainer.end() || valueIter == attrContainer.end())
+            {
+                continue;
+            }
+            if (!typeIter->is_string())
+            {
+                continue;
+            }
+
+            GA_Storage storage = StrTypeToGAStorage(typeIter->get<std::string>());
 
             switch (storage)
             {
             case GA_STORE_BOOL:
-                // TODO: finish
-                break;
             case GA_STORE_UINT8:
-                // TODO: finish
+                // Unimplemented in V1
                 break;
             case GA_STORE_INT8:
+                LoadAttributeV1<GA_STORECLASS_INT, int32, GA_STORE_INT8>(gdp, owner, mapOffset, *valueIter, attribName);
+                break;
             case GA_STORE_INT16:
+                LoadAttributeV1<GA_STORECLASS_INT, int32, GA_STORE_INT16>(gdp, owner, mapOffset, *valueIter, attribName);
+                break;
             case GA_STORE_INT32:
-            case GA_STORE_INT64: {
-                GA_RWHandleI attrRWHandle{attr};
-                std::vector<int32> values{};
-                values.reserve(valContainer.size());
-                for (int32_t val : valContainer)
-                {
-                    values.emplace_back(val);
-                }
-                attrRWHandle.setV(mapOffset, values.data(), static_cast<int>(values.size()));
+                LoadAttributeV1<GA_STORECLASS_INT, int32, GA_STORE_INT32>(gdp, owner, mapOffset, *valueIter, attribName);
                 break;
-            }
+            case GA_STORE_INT64:
+                LoadAttributeV1<GA_STORECLASS_INT, int32, GA_STORE_INT64>(gdp, owner, mapOffset, *valueIter, attribName);
+                break;
             case GA_STORE_REAL16:
+                LoadAttributeV1<GA_STORECLASS_FLOAT, float, GA_STORE_REAL16>(gdp, owner, mapOffset, *valueIter, attribName);
+                break;
             case GA_STORE_REAL32:
-            case GA_STORE_REAL64: {
-                GA_RWHandleF attrRWHandle{attr};
-                std::vector<float> values{};
-                values.reserve(valContainer.size());
-                for (float val : valContainer)
-                {
-                    values.emplace_back(static_cast<float>(val));
-                }
-                attrRWHandle.setV(mapOffset, values.data(), static_cast<int>(values.size()));
+                LoadAttributeV1<GA_STORECLASS_FLOAT, float, GA_STORE_REAL32>(gdp, owner, mapOffset, *valueIter, attribName);
                 break;
-            }
-            case GA_STORE_STRING: {
-                GA_RWHandleS attrRWHandle{attr};
-                std::string value = valContainer;
-                attrRWHandle.set(mapOffset, value);
+            case GA_STORE_REAL64:
+                LoadAttributeV1<GA_STORECLASS_FLOAT, float, GA_STORE_REAL64>(gdp, owner, mapOffset, *valueIter, attribName);
                 break;
-            }
+            case GA_STORE_STRING:
+                LoadAttributeV1<GA_STORECLASS_STRING, std::string, GA_STORE_STRING>(gdp, owner, mapOffset, *valueIter, attribName);
+                break;
             default:
                 continue;
             }
         }
-        return status;
+    }
 
-#undef ZIB_LOCAL_HELPER_WARNING_AND_RETURN
-#undef ZIB_LOCAL_HELPER_WARNING_AND_CONTINUE
+    template <GA_StorageClass StorageClass, typename DataType, GA_Storage StorageType>
+    void LoadAttributeV2(GU_Detail* gdp, GA_AttributeOwner owner, GA_Offset mapOffset, const nlohmann::json& valuesContainer,
+                         const std::string& name)
+    {
+        if (!valuesContainer.is_array())
+        {
+            return;
+        }
+
+        int arraySize = static_cast<int>(valuesContainer.size());
+
+        using JSONUnderlyingType = typename JSONSafeTypeMapping<DataType>::UnderlyingType;
+
+        std::vector<DataType> valuesArray{};
+        valuesArray.reserve(arraySize);
+        for (const nlohmann::json& val : valuesContainer)
+        {
+            if (!IsCompatibleType<JSONUnderlyingType>(val))
+            {
+                return;
+            }
+
+            valuesArray.emplace_back(FromJSONSafeType<DataType>(val.get<JSONUnderlyingType>()));
+        }
+
+        GA_Attribute* attribute = gdp->addTuple(StorageType, owner, name, arraySize);
+        GA_RWHandleT<DataType> attrRWHandle{attribute};
+        attrRWHandle.setV(mapOffset, valuesArray.data(), arraySize);
+    }
+
+    template <>
+    void LoadAttributeV2<GA_STORECLASS_STRING, std::string, GA_STORE_STRING>(GU_Detail* gdp, GA_AttributeOwner owner, GA_Offset mapOffset,
+                                                                             const nlohmann::json& valuesContainer,
+                         const std::string& name)
+    {
+        if (!valuesContainer.is_array())
+        {
+            return;
+        }
+
+        int arraySize = static_cast<int>(valuesContainer.size());
+
+        std::vector<UT_StringHolder> valuesArray;
+        valuesArray.reserve(arraySize);
+        for (const nlohmann::json& val : valuesContainer)
+        {
+            if (!IsCompatibleType<std::string>(val))
+            {
+                return;
+            }
+
+            valuesArray.emplace_back(val.get<std::string>());
+        }
+
+        GA_Attribute* attribute = gdp->addStringTuple(owner, name, arraySize);
+        GA_RWHandleS attrRWHandle{attribute};
+        for (int i = 0; i < arraySize; ++i)
+        {
+            attrRWHandle.set(mapOffset, i, valuesArray[i]);
+        }
+    }
+
+    template <>
+    void LoadAttributeV2<GA_STORECLASS_DICT, std::string, GA_STORE_DICT>(GU_Detail* gdp, GA_AttributeOwner owner, GA_Offset mapOffset,
+                                                                             const nlohmann::json& valuesContainer, const std::string& name)
+    {
+        if (!valuesContainer.is_array())
+        {
+            return;
+        }
+
+        int arraySize = static_cast<int>(valuesContainer.size());
+
+        std::vector<UT_OptionsHolder> valuesArray;
+        valuesArray.reserve(arraySize);
+        for (const nlohmann::json& val : valuesContainer)
+        {
+            if (!IsCompatibleType<std::string>(val))
+            {
+                return;
+            }
+
+            std::string jsonString = val.get<std::string>(); 
+
+            UT_JSONValue jsonObject;
+            std::istringstream stringStream(jsonString);
+
+            if (!jsonObject.parseValue(stringStream))
+            {
+                return;
+            }
+
+            if (!jsonObject.isMap())
+            {
+                return;
+            }
+
+            const UT_JSONValueMap* jsonMap = jsonObject.getMap();
+
+            UT_Options options;
+            options.load(*jsonMap, false);
+
+            valuesArray.emplace_back(&options);
+        }
+
+        GA_Attribute* attribute = gdp->addDictTuple(owner, name, arraySize);
+        GA_RWHandleDict attrRWHandle{attribute};
+        for (int i = 0; i < arraySize; ++i)
+        {
+            attrRWHandle.set(mapOffset, i, valuesArray[i]);
+        }
+    }
+
+    void LoadAttributesV2(GU_Detail* gdp, GA_AttributeOwner owner, GA_Offset mapOffset, const nlohmann::json& meta) noexcept
+    {
+        if (!meta.is_object())
+        {
+            return;
+        }
+
+        for (const auto& [attribName, attrContainer] : meta.items())
+        {
+            if (!attrContainer.is_object())
+            {
+                continue;
+            }
+
+            auto typeIter = attrContainer.find("t");
+            auto valueIter = attrContainer.find("v");
+
+            if (typeIter == attrContainer.end() || valueIter == attrContainer.end())
+            {
+                continue;
+            }
+            if (!typeIter->is_number_unsigned())
+            {
+                continue;
+            }
+
+            GA_Storage storage = static_cast<GA_Storage>(typeIter->get<int>());
+
+            switch (storage)
+            {
+            case GA_STORE_BOOL:
+                LoadAttributeV2<GA_STORECLASS_INT, int32, GA_STORE_BOOL>(gdp, owner, mapOffset, *valueIter, attribName);
+                break;
+            case GA_STORE_UINT8:
+                LoadAttributeV2<GA_STORECLASS_INT, int32, GA_STORE_UINT8>(gdp, owner, mapOffset, *valueIter, attribName);
+                break;
+            case GA_STORE_INT8:
+                LoadAttributeV2<GA_STORECLASS_INT, int32, GA_STORE_INT8>(gdp, owner, mapOffset, *valueIter, attribName);
+                break;
+            case GA_STORE_INT16:
+                LoadAttributeV2<GA_STORECLASS_INT, int32, GA_STORE_INT16>(gdp, owner, mapOffset, *valueIter, attribName);
+                break;
+            case GA_STORE_INT32:
+                LoadAttributeV2<GA_STORECLASS_INT, int32, GA_STORE_INT32>(gdp, owner, mapOffset, *valueIter, attribName);
+                break;
+            case GA_STORE_INT64:
+                LoadAttributeV2<GA_STORECLASS_INT, int64, GA_STORE_INT64>(gdp, owner, mapOffset, *valueIter, attribName);
+                break;
+            case GA_STORE_REAL16:
+                LoadAttributeV2<GA_STORECLASS_FLOAT, fpreal32, GA_STORE_REAL16>(gdp, owner, mapOffset, *valueIter, attribName);
+                break;
+            case GA_STORE_REAL32:
+                LoadAttributeV2<GA_STORECLASS_FLOAT, fpreal32, GA_STORE_REAL32>(gdp, owner, mapOffset, *valueIter, attribName);
+                break;
+            case GA_STORE_REAL64:
+                LoadAttributeV2<GA_STORECLASS_FLOAT, fpreal64, GA_STORE_REAL64>(gdp, owner, mapOffset, *valueIter, attribName);
+                break;
+            case GA_STORE_STRING:
+                LoadAttributeV2<GA_STORECLASS_STRING, std::string, GA_STORE_STRING>(gdp, owner, mapOffset, *valueIter, attribName);
+                break;
+            case GA_STORE_DICT:
+                LoadAttributeV2<GA_STORECLASS_DICT, std::string, GA_STORE_DICT>(gdp, owner, mapOffset, *valueIter, attribName);
+                break;
+            default:
+                continue;
+            }
+        }
     }
 
 } // namespace Zibra::Utils

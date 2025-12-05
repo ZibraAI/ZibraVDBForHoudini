@@ -455,7 +455,6 @@ namespace Zibra::ZibraVDBCompressor
         std::set<std::string> channelNamesUniqueStorage{};
         std::vector<const char*> orderedChannelNames{};
         std::vector<openvdb::GridBase::ConstPtr> volumes{};
-        std::vector<openvdb::GridBase::Ptr> garbage{};
         std::vector<std::string> originalGridNames{};
         const GEO_Primitive* prim;
         GA_FOR_ALL_PRIMITIVES(gdp, prim)
@@ -857,16 +856,16 @@ namespace Zibra::ZibraVDBCompressor
             {
                 auto vdbPrim = dynamic_cast<const GEO_PrimVDB*>(prim);
 
-                nlohmann::json primAttrDump = Utils::DumpAttributesForSingleEntity(gdp, GA_ATTRIB_PRIMITIVE, prim->getMapOffset());
-                std::string primKeyName = "houdiniPrimitiveAttributes_"s + vdbPrim->getGridName();
+                nlohmann::json primAttrDump = Utils::DumpAttributesV2(gdp, GA_ATTRIB_PRIMITIVE, prim->getMapOffset());
+                std::string primKeyName = "houdiniPrimitiveAttributesV2_"s + vdbPrim->getGridName();
                 result.emplace_back(primKeyName, primAttrDump.dump());
 
                 DumpVisualisationAttributes(result, vdbPrim);
             }
         }
 
-        nlohmann::json detailAttrDump = Utils::DumpAttributesForSingleEntity(gdp, GA_ATTRIB_DETAIL, 0);
-        result.emplace_back("houdiniDetailAttributes", detailAttrDump.dump());
+        nlohmann::json detailAttrDump = Utils::DumpAttributesV2(gdp, GA_ATTRIB_DETAIL, 0);
+        result.emplace_back("houdiniDetailAttributesV2", detailAttrDump.dump());
         return result;
     }
 

@@ -193,23 +193,29 @@ namespace Zibra::ZibraVDBDecompressor
 
     void SOP_ZibraVDBDecompressor::ApplyGridAttributeMetadata(GU_PrimVDB* vdbPrim, FrameHandle* const frameContainer)
     {
-        const std::string attributeMetadataName = "houdiniPrimitiveAttributes_"s + vdbPrim->getGridName();
-
-        const char* metadataEntry = frameContainer->GetMetadataByKey(attributeMetadataName.c_str());
-
-        if (metadataEntry)
         {
-            auto primAttribMeta = nlohmann::json::parse(metadataEntry);
-            switch (Utils::LoadEntityAttributesFromMeta(gdp, GA_ATTRIB_PRIMITIVE, vdbPrim->getMapOffset(), primAttribMeta))
+            const std::string attributeMetadataNameV2 = "houdiniPrimitiveAttributesV2_"s + vdbPrim->getGridName();
+
+            const char* metadataEntryV2 = frameContainer->GetMetadataByKey(attributeMetadataNameV2.c_str());
+
+            if (metadataEntryV2)
             {
-            case Utils::MetaAttributesLoadStatus::SUCCESS:
-                break;
-            case Utils::MetaAttributesLoadStatus::FATAL_ERROR_INVALID_METADATA:
-                addWarning(SOP_MESSAGE, "Corrupted metadata for channel. Canceling attributes transfer.");
-                break;
-            case Utils::MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA:
-                addWarning(SOP_MESSAGE, "Partially corrupted metadata for channel. Skipping invalid attributes.");
-                break;
+                auto primAttribMeta = nlohmann::json::parse(metadataEntryV2);
+                Utils::LoadAttributesV2(gdp, GA_ATTRIB_PRIMITIVE, vdbPrim->getMapOffset(), primAttribMeta);
+                return;
+            }
+        }
+
+        {
+            const std::string attributeMetadataNameV1 = "houdiniPrimitiveAttributes_"s + vdbPrim->getGridName();
+
+            const char* metadataEntryV1 = frameContainer->GetMetadataByKey(attributeMetadataNameV1.c_str());
+
+            if (metadataEntryV1)
+            {
+                auto primAttribMeta = nlohmann::json::parse(metadataEntryV1);
+                Utils::LoadAttributesV1(gdp, GA_ATTRIB_PRIMITIVE, vdbPrim->getMapOffset(), primAttribMeta);
+                return;
             }
         }
     }
@@ -243,24 +249,26 @@ namespace Zibra::ZibraVDBDecompressor
 
     void SOP_ZibraVDBDecompressor::ApplyDetailMetadata(GU_Detail* gdp, FrameHandle* const frameContainer)
     {
-        const char* detailMetadata = frameContainer->GetMetadataByKey("houdiniDetailAttributes");
-
-        if (!detailMetadata)
         {
-            return;
+            const char* detailMetadataV2 = frameContainer->GetMetadataByKey("houdiniDetailAttributesV2");
+
+            if (detailMetadataV2)
+            {
+                auto detailAttribMeta = nlohmann::json::parse(detailMetadataV2);
+                Utils::LoadAttributesV2(gdp, GA_ATTRIB_DETAIL, 0, detailAttribMeta);
+                return;
+            }
         }
 
-        auto detailAttribMeta = nlohmann::json::parse(detailMetadata);
-        switch (Utils::LoadEntityAttributesFromMeta(gdp, GA_ATTRIB_DETAIL, 0, detailAttribMeta))
         {
-        case Utils::MetaAttributesLoadStatus::SUCCESS:
-            break;
-        case Utils::MetaAttributesLoadStatus::FATAL_ERROR_INVALID_METADATA:
-            addWarning(SOP_MESSAGE, "Corrupted metadata for channel. Canceling attributes transfer.");
-            break;
-        case Utils::MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA:
-            addWarning(SOP_MESSAGE, "Partially corrupted metadata for channel. Skipping invalid attributes.");
-            break;
+            const char* detailMetadataV1 = frameContainer->GetMetadataByKey("houdiniDetailAttributes");
+
+            if (detailMetadataV1)
+            {
+                auto detailAttribMeta = nlohmann::json::parse(detailMetadataV1);
+                Utils::LoadAttributesV1(gdp, GA_ATTRIB_DETAIL, 0, detailAttribMeta);
+                return;
+            }
         }
     }
 
