@@ -193,7 +193,12 @@ namespace Zibra::Utils
         data.resize(arraySize);
         for (int i = 0; i < arraySize; ++i)
         {
-            data[i] = tuple->getString(attribute, mapOffset, i);
+            const char* value = tuple->getString(attribute, mapOffset, i);
+            if (value == nullptr)
+            {
+                return std::nullopt;
+            }
+            data[i] = value;
         }
         result["t"] = int(GA_STORE_STRING);
         result["v"] = data;
