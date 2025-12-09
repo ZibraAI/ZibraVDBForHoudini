@@ -18,10 +18,8 @@
 #include <HUSD/HUSD_OutputProcessor.h>
 
 #include "LOP/LOP_ZibraVDBImport.h"
-#include "LOP/ZibraVDBOutputProcessor.h"
 #include "ROP/ROP_ZibraVDBCompressor.h"
 #include "SOP/SOP_ZibraVDBDecompressor.h"
-#include "SOP/SOP_ZibraVDBUSDExport.h"
 
 extern "C"
 {
@@ -31,7 +29,6 @@ extern "C"
 
         table->addOperator(new ZibraVDBCompressor::ROP_ZibraVDBCompressor_Operator(ContextType::SOP));
         table->addOperator(new ZibraVDBDecompressor::SOP_ZibraVDBDecompressor_Operator());
-        table->addOperator(new ZibraVDBUSDExport::SOP_ZibraVDBUSDExport_Operator());
     }
 
     SYS_VISIBILITY_EXPORT void newLopOperator(OP_OperatorTable* table)
@@ -39,9 +36,6 @@ extern "C"
         using namespace Zibra;
 
         table->addOperator(new ZibraVDBImport::LOP_ZibraVDBImport_Operator());
-
-        HUSD_OutputProcessorRegistry::get().registerOutputProcessor(ZibraVDBOutputProcessor::OUTPUT_PROCESSOR_INNER_NAME,
-                                                                    ZibraVDBOutputProcessor::createZibraVDBOutputProcessor);
     }
 
     SYS_VISIBILITY_EXPORT void newDriverOperator(OP_OperatorTable* table)

@@ -93,9 +93,7 @@ set(HeaderFiles
     src/ROP/CompressorManager/CompressorManager.h
     src/ROP/ROP_ZibraVDBCompressor.h
     src/SOP/SOP_ZibraVDBDecompressor.h
-    src/SOP/SOP_ZibraVDBUSDExport.h
     src/LOP/LOP_ZibraVDBImport.h
-    src/LOP/ZibraVDBOutputProcessor.h
 )
 
 set(SourceFiles
@@ -103,9 +101,7 @@ set(SourceFiles
     src/ROP/CompressorManager/CompressorManager.cpp
     src/ROP/ROP_ZibraVDBCompressor.cpp
     src/SOP/SOP_ZibraVDBDecompressor.cpp
-    src/SOP/SOP_ZibraVDBUSDExport.cpp
     src/LOP/LOP_ZibraVDBImport.cpp
-    src/LOP/ZibraVDBOutputProcessor.cpp
 )
 
 add_library(ZibraVDBForHoudini SHARED ${HeaderFiles} ${SourceFiles})
