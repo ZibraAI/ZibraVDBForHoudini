@@ -1,6 +1,19 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(ZibraVDBCommon)
+if(NOT DEFINED ZIBRAVDB_PLUGIN_VERSION_MAJOR)
+    message(FATAL_ERROR "ZIBRAVDB_VERSION_MAJOR must be specified")
+endif()
+if(NOT DEFINED ZIBRAVDB_PLUGIN_VERSION_MINOR)
+    message(FATAL_ERROR "ZIBRAVDB_VERSION_MINOR must be specified")
+endif()
+if(NOT DEFINED ZIBRAVDB_PLUGIN_VERSION_PATCH)
+    message(FATAL_ERROR "ZIBRAVDB_VERSION_PATCH must be specified")
+endif()
+if(NOT DEFINED ZIBRAVDB_PLUGIN_VERSION_TWEAK)
+    message(FATAL_ERROR "ZIBRAVDB_VERSION_TWEAK must be specified")
+endif()
+
+project(ZibraVDBCommon VERSION ${ZIBRAVDB_PLUGIN_VERSION_MAJOR}.${ZIBRAVDB_PLUGIN_VERSION_MINOR}.${ZIBRAVDB_PLUGIN_VERSION_PATCH}.${ZIBRAVDB_PLUGIN_VERSION_TWEAK})
 
 configure_file(include/Globals.h.in include/Globals.h @ONLY)
 
