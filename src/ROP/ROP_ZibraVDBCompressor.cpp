@@ -497,17 +497,14 @@ namespace Zibra::ZibraVDBCompressor
 
         ZIB_ON_SCOPE_EXIT([&]() { RenameGrids(gdp, originalGridNames); });
 
-        CE::Compression::CompressFrameDesc compressFrameDesc{};
-        compressFrameDesc.channelsCount = orderedChannelNames.size();
-        compressFrameDesc.channels = orderedChannelNames.data();
-
         CE::Compression::FrameManager* frameManager = nullptr;
 
         CE::Addons::OpenVDBUtils::FrameLoader vdbFrameLoader{volumes.data(), volumes.size()};
-        compressFrameDesc.frame = vdbFrameLoader.LoadFrame();
+
+        const CE::Compression::SparseFrame* frame = vdbFrameLoader.LoadFrame();
         const auto& gridsShuffleInfo = vdbFrameLoader.GetGridsShuffleInfo();
 
-        Result res = CompressFrame(compressFrameDesc, &frameManager);
+        Result res = CompressFrame(*frame, &frameManager);
         if (ZIB_FAILED(res))
         {
             std::string errorMessage = "Failed to compress frame: " + LibraryUtils::ErrorCodeToString(res);
@@ -515,7 +512,7 @@ namespace Zibra::ZibraVDBCompressor
             return ROP_ABORT_RENDER;
         }
 
-        vdbFrameLoader.ReleaseFrame(compressFrameDesc.frame);
+        vdbFrameLoader.ReleaseFrame(frame);
 
         auto frameMetadata = DumpAttributes(gdp);
         frameMetadata.push_back({"chShuffle", DumpGridsShuffleInfo(gridsShuffleInfo).dump()});
@@ -766,7 +763,7 @@ namespace Zibra::ZibraVDBCompressor
         return m_Compressor->Initialize();
     }
 
-    Result ROP_ZibraVDBCompressor::CompressFrame(const CE::Compression::CompressFrameDesc& desc,
+    Result ROP_ZibraVDBCompressor::CompressFrame(const CE::Compression::SparseFrame& desc,
                                                  CE::Compression::FrameManager** outManager) noexcept
     {
         if (!m_RHIRuntime || !m_Compressor)
