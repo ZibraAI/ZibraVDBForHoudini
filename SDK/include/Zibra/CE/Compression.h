@@ -31,16 +31,6 @@ namespace Zibra::CE::Compression
         const uint32_t* channelIndexPerBlock = nullptr;
     };
 
-    struct CompressFrameDesc
-    {
-        /// Sparse frame representation.
-        SparseFrame* frame = nullptr;
-        /// Channels names to compress count.
-        size_t channelsCount = 0;
-        /// Channels names to compress. Will be selected from all present frame channels. Non-present channel names would be skipped.
-        const char* const* channels = nullptr;
-    };
-
     class FrameManager
     {
     protected:
@@ -79,7 +69,7 @@ namespace Zibra::CE::Compression
          * @warning While FrameManager is not finished it occupies RAM for whole compressed frame memory.
          * @return ZCE_SUCCESS in case of success or error code otherwise.
          */
-        virtual Result CompressFrame(const CompressFrameDesc& desc, FrameManager** outFrame) noexcept = 0;
+        virtual Result CompressFrame(const SparseFrame& desc, FrameManager** outFrame) noexcept = 0;
         /**
          * Destructs Compressor instance and releases it's memory.
          * After release pointer becomes invalid.

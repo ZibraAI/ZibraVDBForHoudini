@@ -75,7 +75,7 @@ namespace Zibra::ZibraVDBCompressor
 
         ROP_RENDER_CODE CreateCompressor(const OP_Context& ctx) noexcept;
         Result InitCompressor(float defaultQuality, const std::vector<std::pair<UT_String, float>>& perChannelSettings) noexcept;
-        Result CompressFrame(const CE::Compression::CompressFrameDesc& desc, CE::Compression::FrameManager** outManager) noexcept;
+        Result CompressFrame(const CE::Compression::SparseFrame& desc, CE::Compression::FrameManager** outManager) noexcept;
         Result MergeSequence(std::filesystem::path outPath) noexcept;
 
     private:

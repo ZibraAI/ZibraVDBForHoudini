@@ -19,10 +19,10 @@
 #include <sstream>
 #include <string>
 #include <thread>
+#include <tuple>
 #include <unordered_set>
 #include <utility>
 #include <vector>
-#include <tuple>
 
 #if __cplusplus >= 202002L
 #include <bit>
@@ -61,6 +61,7 @@
 #include <UT/UT_Exit.h>
 #include <UT/UT_IOTable.h>
 #include <UT/UT_Interrupt.h>
+#include <UT/UT_JSONValueMap.h>
 #include <UT/UT_OFStream.h>
 #include <UT/UT_StringHolder.h>
 

@@ -18,6 +18,7 @@
 
 #include "ROP/ROP_ZibraVDBCompressor.h"
 #include "SOP/SOP_ZibraVDBDecompressor.h"
+#include "ROP/ROP_InspectVolume.h"
 
 extern "C" SYS_VISIBILITY_EXPORT void newSopOperator(OP_OperatorTable* table)
 {
@@ -25,6 +26,10 @@ extern "C" SYS_VISIBILITY_EXPORT void newSopOperator(OP_OperatorTable* table)
 
     table->addOperator(new ZibraVDBCompressor::ROP_ZibraVDBCompressor_Operator(ContextType::SOP));
     table->addOperator(new ZibraVDBDecompressor::SOP_ZibraVDBDecompressor_Operator());
+
+#ifdef ZIB_ENABLE_DEBUG_NODES
+    table->addOperator(new InspectVolume::ROP_InspectVolume_Operator(ContextType::SOP));
+#endif
 }
 
 extern "C" SYS_VISIBILITY_EXPORT void newDriverOperator(OP_OperatorTable* table)
@@ -32,4 +37,8 @@ extern "C" SYS_VISIBILITY_EXPORT void newDriverOperator(OP_OperatorTable* table)
     using namespace Zibra;
 
     table->addOperator(new ZibraVDBCompressor::ROP_ZibraVDBCompressor_Operator(ContextType::OUT));
+
+#ifdef ZIB_ENABLE_DEBUG_NODES
+    table->addOperator(new InspectVolume::ROP_InspectVolume_Operator(ContextType::OUT));
+#endif
 }
