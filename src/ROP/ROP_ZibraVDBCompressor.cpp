@@ -519,7 +519,7 @@ namespace Zibra::ZibraVDBCompressor
                 channelNamesUniqueStorage.insert(gridName);
 
                 auto iter = std::find(m_OrderedChannelNames.begin(), m_OrderedChannelNames.end(), gridName);
-                if (iter != m_OrderedChannelNames.end())
+                if (iter == m_OrderedChannelNames.end())
                 {
                     if (m_CurrentChannelCount + underlyingChannels > CE::MAX_CHANNEL_COUNT)
                     {
