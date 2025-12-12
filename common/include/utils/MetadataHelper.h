@@ -23,15 +23,15 @@ namespace Zibra::Utils
         static void DumpDecodeMetadata(std::vector<std::pair<std::string, std::string>>& result,
                                        const CE::Addons::OpenVDBUtils::EncodingMetadata& encodingMetadata);
 
-        static MetaAttributesLoadStatus ApplyGridMetadata(std::pair<GU_Detail*, GU_PrimVDB*>& grid, CE::Decompression::CompressedFrameContainer* frameContainer);
-        static MetaAttributesLoadStatus ApplyGridMetadata(openvdb::GridBase::Ptr& grid, CE::Decompression::CompressedFrameContainer* frameContainer);
+        static void ApplyGridMetadata(std::pair<GU_Detail*, GU_PrimVDB*>& grid, CE::Decompression::CompressedFrameContainer* frameContainer);
+        static void ApplyGridMetadata(openvdb::GridBase::Ptr& grid, CE::Decompression::CompressedFrameContainer* frameContainer);
 
-        static MetaAttributesLoadStatus ApplyDetailMetadata(GU_Detail* gdp, CE::Decompression::CompressedFrameContainer* frameContainer);
-        static MetaAttributesLoadStatus ApplyDetailMetadata(openvdb::MetaMap& target, CE::Decompression::CompressedFrameContainer* frameContainer);
+        static void ApplyDetailMetadata(GU_Detail* gdp, CE::Decompression::CompressedFrameContainer* frameContainer);
+        static void ApplyDetailMetadata(openvdb::MetaMap& target, CE::Decompression::CompressedFrameContainer* frameContainer);
 
     private:
-        static MetaAttributesLoadStatus ApplyGridAttributeMetadata(std::pair<GU_Detail*, GU_PrimVDB*>& grid, CE::Decompression::CompressedFrameContainer* frameContainer);
-        static MetaAttributesLoadStatus ApplyGridAttributeMetadata(openvdb::GridBase::Ptr& grid, CE::Decompression::CompressedFrameContainer* frameContainer);
+        static void ApplyGridAttributeMetadata(std::pair<GU_Detail*, GU_PrimVDB*>& grid, CE::Decompression::CompressedFrameContainer* frameContainer);
+        static void ApplyGridAttributeMetadata(openvdb::GridBase::Ptr& grid, CE::Decompression::CompressedFrameContainer* frameContainer);
 
         static void ApplyGridVisualizationMetadata(GU_PrimVDB* grid, CE::Decompression::CompressedFrameContainer* frameContainer);
     };

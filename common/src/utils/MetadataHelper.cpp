@@ -8,74 +8,111 @@ namespace Zibra::Utils
 {
     using namespace std::literals;
 
-    MetaAttributesLoadStatus MetadataHelper::ApplyGridMetadata(std::pair<GU_Detail*, GU_PrimVDB*>& grid, CE::Decompression::CompressedFrameContainer* frameContainer)
+    void MetadataHelper::ApplyGridMetadata(std::pair<GU_Detail*, GU_PrimVDB*>& grid, CE::Decompression::CompressedFrameContainer* frameContainer)
     {
-        auto status = ApplyGridAttributeMetadata(grid, frameContainer);
+        ApplyGridAttributeMetadata(grid, frameContainer);
         ApplyGridVisualizationMetadata(grid.second, frameContainer);
-        return status;
     }
 
-    MetaAttributesLoadStatus MetadataHelper::ApplyGridMetadata(openvdb::GridBase::Ptr& grid, CE::Decompression::CompressedFrameContainer* frameContainer)
+    void MetadataHelper::ApplyGridMetadata(openvdb::GridBase::Ptr& grid, CE::Decompression::CompressedFrameContainer* frameContainer)
     {
-        return ApplyGridAttributeMetadata(grid, frameContainer);
+        ApplyGridAttributeMetadata(grid, frameContainer);
     }
 
-    MetaAttributesLoadStatus MetadataHelper::ApplyDetailMetadata(GU_Detail* gdp, CE::Decompression::CompressedFrameContainer* frameContainer)
+    void MetadataHelper::ApplyGridAttributeMetadata(std::pair<GU_Detail*, GU_PrimVDB*>& grid, CE::Decompression::CompressedFrameContainer* frameContainer)
     {
-        const char* detailMetadata = frameContainer->GetMetadataByKey("houdiniDetailAttributes");
-
-        if (!detailMetadata)
         {
-            return MetaAttributesLoadStatus::SUCCESS;
+            const std::string attributeMetadataNameV2 = "houdiniPrimitiveAttributesV2_"s + grid.second->getGridName();
+            const char* metadataEntryV2 = frameContainer->GetMetadataByKey(attributeMetadataNameV2.c_str());
+            if (metadataEntryV2)
+            {
+                auto primAttribMeta = nlohmann::json::parse(metadataEntryV2);
+                LoadAttributesV2(grid.first, GA_ATTRIB_PRIMITIVE, grid.second->getMapOffset(), primAttribMeta);
+                return;
+            }
         }
-
-        auto detailAttribMeta = nlohmann::json::parse(detailMetadata);
-        auto target = std::make_tuple(gdp, GA_ATTRIB_DETAIL, GA_Offset(0));
-        return LoadEntityAttributesFromMeta(target, detailAttribMeta);
+        {
+            const std::string attributeMetadataNameV1 = "houdiniPrimitiveAttributes_"s + grid.second->getGridName();
+            const char* metadataEntryV1 = frameContainer->GetMetadataByKey(attributeMetadataNameV1.c_str());
+            if (metadataEntryV1)
+            {
+                auto primAttribMeta = nlohmann::json::parse(metadataEntryV1);
+                Utils::LoadAttributesV1(grid.first, GA_ATTRIB_PRIMITIVE, grid.second->getMapOffset(), primAttribMeta);
+                return;
+            }
+        }
     }
 
-    MetaAttributesLoadStatus MetadataHelper::ApplyDetailMetadata(openvdb::MetaMap& target, CE::Decompression::CompressedFrameContainer* frameContainer)
+    void MetadataHelper::ApplyGridAttributeMetadata(openvdb::GridBase::Ptr& grid, CE::Decompression::CompressedFrameContainer* frameContainer)
     {
-        const char* detailMetadata = frameContainer->GetMetadataByKey("houdiniDetailAttributes");
-
-        if (!detailMetadata)
         {
-            return MetaAttributesLoadStatus::SUCCESS;
+            const std::string attributeMetadataNameV2 = "houdiniPrimitiveAttributesV2_"s + grid->getName();
+            const char* metadataEntryV2 = frameContainer->GetMetadataByKey(attributeMetadataNameV2.c_str());
+            if (metadataEntryV2)
+            {
+                auto primAttribMeta = nlohmann::json::parse(metadataEntryV2);
+                Utils::LoadAttributesV2(grid, primAttribMeta);
+                return;
+            }
         }
-
-        auto detailAttribMeta = nlohmann::json::parse(detailMetadata);
-        return LoadEntityAttributesFromMeta(target, detailAttribMeta);
+        {
+            const std::string attributeMetadataNameV1 = "houdiniPrimitiveAttributes_"s + grid->getName();
+            const char* metadataEntryV1 = frameContainer->GetMetadataByKey(attributeMetadataNameV1.c_str());
+            if (metadataEntryV1)
+            {
+                auto primAttribMeta = nlohmann::json::parse(metadataEntryV1);
+                Utils::LoadAttributesV1(grid, primAttribMeta);
+                return;
+            }
+        }
     }
 
-    MetaAttributesLoadStatus MetadataHelper::ApplyGridAttributeMetadata(std::pair<GU_Detail*, GU_PrimVDB*>& grid, CE::Decompression::CompressedFrameContainer* frameContainer)
+    void MetadataHelper::ApplyDetailMetadata(GU_Detail* gdp, CE::Decompression::CompressedFrameContainer* frameContainer)
     {
-        const std::string attributeMetadataName = "houdiniPrimitiveAttributes_"s + grid.second->getGridName();
-
-        const char* metadataEntry = frameContainer->GetMetadataByKey(attributeMetadataName.c_str());
-
-        if (metadataEntry)
         {
-            auto primAttribMeta = nlohmann::json::parse(metadataEntry);
-            auto target = std::make_tuple(grid.first, GA_ATTRIB_PRIMITIVE, grid.second->getMapOffset());
-            return LoadEntityAttributesFromMeta(target, primAttribMeta);
+            const char* detailMetadataV2 = frameContainer->GetMetadataByKey("houdiniDetailAttributesV2");
+
+            if (detailMetadataV2)
+            {
+                auto detailAttribMeta = nlohmann::json::parse(detailMetadataV2);
+                Utils::LoadAttributesV2(gdp, GA_ATTRIB_DETAIL, 0, detailAttribMeta);
+                return;
+            }
         }
-        
-        return MetaAttributesLoadStatus::SUCCESS;
+        {
+            const char* detailMetadataV1 = frameContainer->GetMetadataByKey("houdiniDetailAttributes");
+
+            if (detailMetadataV1)
+            {
+                auto detailAttribMeta = nlohmann::json::parse(detailMetadataV1);
+                Utils::LoadAttributesV1(gdp, GA_ATTRIB_DETAIL, 0, detailAttribMeta);
+                return;
+            }
+        }
     }
 
-    MetaAttributesLoadStatus MetadataHelper::ApplyGridAttributeMetadata(openvdb::GridBase::Ptr& grid, CE::Decompression::CompressedFrameContainer* frameContainer)
+    void MetadataHelper::ApplyDetailMetadata(openvdb::MetaMap& target, CE::Decompression::CompressedFrameContainer* frameContainer)
     {
-        const std::string attributeMetadataName = "houdiniPrimitiveAttributes_" + grid->getName();
-
-        const char* metadataEntry = frameContainer->GetMetadataByKey(attributeMetadataName.c_str());
-
-        if (metadataEntry)
         {
-            auto primAttribMeta = nlohmann::json::parse(metadataEntry);
-            return LoadEntityAttributesFromMeta(grid, primAttribMeta);
+            const char* detailMetadataV2 = frameContainer->GetMetadataByKey("houdiniDetailAttributesV2");
+
+            if (detailMetadataV2)
+            {
+                auto detailAttribMeta = nlohmann::json::parse(detailMetadataV2);
+                Utils::LoadAttributesV2(target, detailAttribMeta);
+                return;
+            }
         }
-        
-        return MetaAttributesLoadStatus::SUCCESS;
+        {
+            const char* detailMetadataV1 = frameContainer->GetMetadataByKey("houdiniDetailAttributes");
+
+            if (detailMetadataV1)
+            {
+                auto detailAttribMeta = nlohmann::json::parse(detailMetadataV1);
+                Utils::LoadAttributesV1(target, detailAttribMeta);
+                return;
+            }
+        }
     }
 
     void MetadataHelper::ApplyGridVisualizationMetadata(GU_PrimVDB* grid, CE::Decompression::CompressedFrameContainer* frameContainer)
@@ -117,16 +154,16 @@ namespace Zibra::Utils
             {
                 auto vdbPrim = dynamic_cast<const GEO_PrimVDB*>(prim);
 
-                nlohmann::json primAttrDump = Utils::DumpAttributesForSingleEntity(gdp, GA_ATTRIB_PRIMITIVE, prim->getMapOffset());
-                std::string primKeyName = "houdiniPrimitiveAttributes_"s + vdbPrim->getGridName();
+                nlohmann::json primAttrDump = Utils::DumpAttributesV2(gdp, GA_ATTRIB_PRIMITIVE, prim->getMapOffset());
+                std::string primKeyName = "houdiniPrimitiveAttributesV2_"s + vdbPrim->getGridName();
                 result.emplace_back(primKeyName, primAttrDump.dump());
 
                 DumpVisualisationAttributes(result, vdbPrim);
             }
         }
 
-        nlohmann::json detailAttrDump = Utils::DumpAttributesForSingleEntity(gdp, GA_ATTRIB_DETAIL, 0);
-        result.emplace_back("houdiniDetailAttributes", detailAttrDump.dump());
+        nlohmann::json detailAttrDump = Utils::DumpAttributesV2(gdp, GA_ATTRIB_DETAIL, 0);
+        result.emplace_back("houdiniDetailAttributesV2", detailAttrDump.dump());
 
         DumpDecodeMetadata(result, encodingMetadata);
         return result;

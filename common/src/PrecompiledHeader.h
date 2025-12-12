@@ -42,6 +42,7 @@
 #include <UT/UT_IStream.h>
 #include <UT/UT_JSONHandle.h>
 #include <UT/UT_JSONParser.h>
+#include <UT/UT_JSONValueMap.h>
 #include <UT/UT_StringHolder.h>
 
 // OpenVDB includes

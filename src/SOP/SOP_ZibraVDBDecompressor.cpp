@@ -150,30 +150,10 @@ namespace Zibra::ZibraVDBDecompressor
             vdbPrim->setGrid(*grid);
 
             auto gridContext = std::make_pair(gdp, vdbPrim);
-            switch (Utils::MetadataHelper::ApplyGridMetadata(gridContext, frameContainer))
-            {
-            case MetaAttributesLoadStatus::FATAL_ERROR_INVALID_METADATA:
-                addWarning(SOP_MESSAGE, "Corrupted metadata for channel. Canceling attributes transfer.");
-                break;
-            case MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA:
-                addWarning(SOP_MESSAGE, "Partially corrupted metadata for channel. Skipping invalid attributes.");
-                break;
-            default:
-                break;
-            }
+            Utils::MetadataHelper::ApplyGridMetadata(gridContext, frameContainer);
         }
 
-        switch (Utils::MetadataHelper::ApplyDetailMetadata(gdp, frameContainer))
-        {
-        case MetaAttributesLoadStatus::FATAL_ERROR_INVALID_METADATA:
-            addWarning(SOP_MESSAGE, "Corrupted metadata for channel. Canceling attributes transfer.");
-            break;
-        case MetaAttributesLoadStatus::ERROR_PARTIALLY_INVALID_METADATA:
-            addWarning(SOP_MESSAGE, "Partially corrupted metadata for channel. Skipping invalid attributes.");
-            break;
-        default:
-            break;
-        }
+        Utils::MetadataHelper::ApplyDetailMetadata(gdp, frameContainer);
 
         frameContainer->Release();
 

@@ -1,12 +1,5 @@
 #pragma once
 
-enum class MetaAttributesLoadStatus
-{
-    FATAL_ERROR_INVALID_METADATA,
-    ERROR_PARTIALLY_INVALID_METADATA,
-    SUCCESS,
-};
-
 struct URI {
     std::string scheme;
     std::string path;
