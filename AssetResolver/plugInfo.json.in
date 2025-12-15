@@ -8,7 +8,7 @@
                     }
                 }
             },
-            "LibraryPath": "../../usd/ZibraVDBResolver@CMAKE_SHARED_LIBRARY_SUFFIX@",
+            "LibraryPath": "../../usd/@CMAKE_SHARED_LIBRARY_PREFIX@ZibraVDBResolver@CMAKE_SHARED_LIBRARY_SUFFIX@",
             "Name": "ZibraVDBResolver",
             "ResourcePath": "resources",
             "Root": "..",

@@ -99,7 +99,7 @@ namespace Zibra::Utils
             if (detailMetadataV2)
             {
                 auto detailAttribMeta = nlohmann::json::parse(detailMetadataV2);
-                Utils::LoadAttributesV2(target, detailAttribMeta);
+                Utils::LoadAttributesV2(&target, detailAttribMeta);
                 return;
             }
         }
@@ -109,7 +109,7 @@ namespace Zibra::Utils
             if (detailMetadataV1)
             {
                 auto detailAttribMeta = nlohmann::json::parse(detailMetadataV1);
-                Utils::LoadAttributesV1(target, detailAttribMeta);
+                Utils::LoadAttributesV1(&target, detailAttribMeta);
                 return;
             }
         }

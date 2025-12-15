@@ -410,182 +410,6 @@ namespace Zibra::Utils
         }
     }
 
-    void Utils::LoadAttributesV1(openvdb::GridBase::Ptr& grid, const nlohmann::json& meta) noexcept
-    {
-        if (!meta.is_object())
-        {
-            return;
-        }
-
-        for (const auto& [attribName, attrContainer] : meta.items())
-        {
-            if (!attrContainer.is_object())
-            {
-                continue;
-            }
-
-            auto typeIter = attrContainer.find("t");
-            auto valueIter = attrContainer.find("v");
-
-            if (typeIter == attrContainer.end() || valueIter == attrContainer.end())
-            {
-                continue;
-            }
-            if (!typeIter->is_string())
-            {
-                continue;
-            }
-
-            GA_Storage storage = StrTypeToGAStorage(typeIter->get<std::string>());
-
-            switch (storage)
-            {
-            case GA_STORE_BOOL:
-            case GA_STORE_UINT8:
-                // Unimplemented in V1
-                break;
-            case GA_STORE_INT8:
-            case GA_STORE_INT16:
-            case GA_STORE_INT32:
-            case GA_STORE_INT64:
-                {
-                    auto values = valueIter->get<std::vector<int>>();
-                    switch (values.size())
-                    {
-                    case 1:
-                        grid->insertMeta(attribName, openvdb::Int32Metadata(values[0]));
-                        break;
-                    case 2:
-                        grid->insertMeta(attribName, openvdb::Vec2IMetadata(openvdb::Vec2i(values[0], values[1])));
-                        break;
-                    case 3:
-                        grid->insertMeta(attribName, openvdb::Vec3IMetadata(openvdb::Vec3i(values[0], values[1], values[2])));
-                        break;
-                    default:
-                        assert(false && "Only arrays with 1-3 elements are supported");
-                        break;
-                    }
-                }
-                break;
-            case GA_STORE_REAL16:
-            case GA_STORE_REAL32:
-            case GA_STORE_REAL64:
-                {
-                    auto values = valueIter->get<std::vector<float>>();
-                    switch (values.size())
-                    {
-                    case 1:
-                        grid->insertMeta(attribName, openvdb::FloatMetadata(values[0]));
-                        break;
-                    case 2:
-                        grid->insertMeta(attribName, openvdb::Vec2DMetadata(openvdb::Vec2d(values[0], values[1])));
-                        break;
-                    case 3:
-                        grid->insertMeta(attribName, openvdb::Vec3DMetadata(openvdb::Vec3d(values[0], values[1], values[2])));
-                        break;
-                    default:
-                        assert(false && "Only arrays with 1-3 elements are supported");
-                        break;
-                    }
-                }
-                break;
-            case GA_STORE_STRING:
-                grid->insertMeta(attribName, openvdb::StringMetadata(valueIter->get<std::string>()));
-                break;
-            default:
-                continue;
-            }
-        }
-    }
-
-    void Utils::LoadAttributesV1(openvdb::MetaMap& target, const nlohmann::json& meta) noexcept
-    {
-        if (!meta.is_object())
-        {
-            return;
-        }
-
-        for (const auto& [attribName, attrContainer] : meta.items())
-        {
-            if (!attrContainer.is_object())
-            {
-                continue;
-            }
-
-            auto typeIter = attrContainer.find("t");
-            auto valueIter = attrContainer.find("v");
-
-            if (typeIter == attrContainer.end() || valueIter == attrContainer.end())
-            {
-                continue;
-            }
-            if (!typeIter->is_string())
-            {
-                continue;
-            }
-
-            GA_Storage storage = StrTypeToGAStorage(typeIter->get<std::string>());
-
-            switch (storage)
-            {
-            case GA_STORE_BOOL:
-            case GA_STORE_UINT8:
-                // Unimplemented in V1
-                break;
-            case GA_STORE_INT8:
-            case GA_STORE_INT16:
-            case GA_STORE_INT32:
-            case GA_STORE_INT64:
-            {
-                auto values = valueIter->get<std::vector<int>>();
-                switch (values.size())
-                {
-                case 1:
-                    target.insertMeta(attribName, openvdb::Int32Metadata(values[0]));
-                    break;
-                case 2:
-                    target.insertMeta(attribName, openvdb::Vec2IMetadata(openvdb::Vec2i(values[0], values[1])));
-                    break;
-                case 3:
-                    target.insertMeta(attribName, openvdb::Vec3IMetadata(openvdb::Vec3i(values[0], values[1], values[2])));
-                    break;
-                default:
-                    assert(false && "Only arrays with 1-3 elements are supported");
-                    break;
-                }
-            }
-            break;
-            case GA_STORE_REAL16:
-            case GA_STORE_REAL32:
-            case GA_STORE_REAL64:
-            {
-                auto values = valueIter->get<std::vector<float>>();
-                switch (values.size())
-                {
-                case 1:
-                    target.insertMeta(attribName, openvdb::FloatMetadata(values[0]));
-                    break;
-                case 2:
-                    target.insertMeta(attribName, openvdb::Vec2DMetadata(openvdb::Vec2d(values[0], values[1])));
-                    break;
-                case 3:
-                    target.insertMeta(attribName, openvdb::Vec3DMetadata(openvdb::Vec3d(values[0], values[1], values[2])));
-                    break;
-                default:
-                    assert(false && "Only arrays with 1-3 elements are supported");
-                    break;
-                }
-            }
-            break;
-            case GA_STORE_STRING:
-                target.insertMeta(attribName, openvdb::StringMetadata(valueIter->get<std::string>()));
-                break;
-            default:
-                continue;
-            }
-        }
-    }
-
     template <GA_StorageClass StorageClass, typename DataType, GA_Storage StorageType>
     void LoadAttributeV2(GU_Detail* gdp, GA_AttributeOwner owner, GA_Offset mapOffset, const nlohmann::json& valuesContainer,
                          const std::string& name)
@@ -768,7 +592,103 @@ namespace Zibra::Utils
         }
     }
 
-    void Utils::LoadAttributesV2(openvdb::GridBase::Ptr& grid, const nlohmann::json& meta) noexcept
+    template<typename MetaTarget>
+    void StoreOpenVDBIntMeta(MetaTarget target, const std::string& name, const std::vector<int>& values)
+    {
+        switch (values.size())
+        {
+        case 1:
+            target->insertMeta(name, openvdb::Int32Metadata(values[0]));
+            break;
+        case 2:
+            target->insertMeta(name, openvdb::Vec2IMetadata(openvdb::Vec2i(values[0], values[1])));
+            break;
+        case 3:
+            target->insertMeta(name, openvdb::Vec3IMetadata(openvdb::Vec3i(values[0], values[1], values[2])));
+            break;
+        default:
+            assert(false && "Only arrays with 1-3 elements are supported");
+            break;
+        }
+    }
+
+    template<typename MetaTarget>
+    void StoreOpenVDBFloatMeta(MetaTarget target, const std::string& name, const std::vector<float>& values)
+    {
+        switch (values.size())
+        {
+        case 1:
+            target->insertMeta(name, openvdb::FloatMetadata(values[0]));
+            break;
+        case 2:
+            target->insertMeta(name, openvdb::Vec2DMetadata(openvdb::Vec2d(values[0], values[1])));
+            break;
+        case 3:
+            target->insertMeta(name, openvdb::Vec3DMetadata(openvdb::Vec3d(values[0], values[1], values[2])));
+            break;
+        default:
+            assert(false && "Only arrays with 1-3 elements are supported");
+            break;
+        }
+    }
+
+    template<typename MetaTarget>
+    void LoadAttributesV1(MetaTarget target, const nlohmann::json& meta) noexcept
+    {
+        if (!meta.is_object())
+        {
+            return;
+        }
+
+        for (const auto& [attribName, attrContainer] : meta.items())
+        {
+            if (!attrContainer.is_object())
+            {
+                continue;
+            }
+
+            auto typeIter = attrContainer.find("t");
+            auto valueIter = attrContainer.find("v");
+
+            if (typeIter == attrContainer.end() || valueIter == attrContainer.end())
+            {
+                continue;
+            }
+            if (!typeIter->is_string())
+            {
+                continue;
+            }
+
+            GA_Storage storage = StrTypeToGAStorage(typeIter->get<std::string>());
+
+            switch (storage)
+            {
+            case GA_STORE_BOOL:
+            case GA_STORE_UINT8:
+                // Unimplemented in V1
+                break;
+            case GA_STORE_INT8:
+            case GA_STORE_INT16:
+            case GA_STORE_INT32:
+            case GA_STORE_INT64:
+                StoreOpenVDBIntMeta<MetaTarget>(target, attribName, valueIter->get<std::vector<int>>());
+                break;
+            case GA_STORE_REAL16:
+            case GA_STORE_REAL32:
+            case GA_STORE_REAL64:
+                StoreOpenVDBFloatMeta<MetaTarget>(target, attribName, valueIter->get<std::vector<float>>());
+                break;
+            case GA_STORE_STRING:
+                target->insertMeta(attribName, openvdb::StringMetadata(valueIter->get<std::string>()));
+                break;
+            default:
+                continue;
+            }
+        }
+    }
+
+    template<typename MetaTarget>
+    void LoadAttributesV2(MetaTarget target, const nlohmann::json& meta) noexcept
     {
         if (!meta.is_object())
         {
@@ -799,58 +719,24 @@ namespace Zibra::Utils
             switch (storage)
             {
             case GA_STORE_BOOL:
-                grid->insertMeta(attribName, openvdb::BoolMetadata(valueIter->get<bool>()));
+                target->insertMeta(attribName, openvdb::BoolMetadata(valueIter->get<bool>()));
                 break;
             case GA_STORE_UINT8:
-                // TOODO
+                // TODO
                 break;
             case GA_STORE_INT8:
             case GA_STORE_INT16:
             case GA_STORE_INT32:
             case GA_STORE_INT64:
-            {
-                auto values = valueIter->get<std::vector<int>>();
-                switch (values.size())
-                {
-                case 1:
-                    grid->insertMeta(attribName, openvdb::Int32Metadata(values[0]));
-                    break;
-                case 2:
-                    grid->insertMeta(attribName, openvdb::Vec2IMetadata(openvdb::Vec2i(values[0], values[1])));
-                    break;
-                case 3:
-                    grid->insertMeta(attribName, openvdb::Vec3IMetadata(openvdb::Vec3i(values[0], values[1], values[2])));
-                    break;
-                default:
-                    assert(false && "Only arrays with 1-3 elements are supported");
-                    break;
-                }
-            }
-            break;
+                StoreOpenVDBIntMeta<MetaTarget>(target, attribName, valueIter->get<std::vector<int>>());
+                break;
             case GA_STORE_REAL16:
             case GA_STORE_REAL32:
             case GA_STORE_REAL64:
-            {
-                auto values = valueIter->get<std::vector<float>>();
-                switch (values.size())
-                {
-                case 1:
-                    grid->insertMeta(attribName, openvdb::FloatMetadata(values[0]));
-                    break;
-                case 2:
-                    grid->insertMeta(attribName, openvdb::Vec2DMetadata(openvdb::Vec2d(values[0], values[1])));
-                    break;
-                case 3:
-                    grid->insertMeta(attribName, openvdb::Vec3DMetadata(openvdb::Vec3d(values[0], values[1], values[2])));
-                    break;
-                default:
-                    assert(false && "Only arrays with 1-3 elements are supported");
-                    break;
-                }
-            }
-            break;
+                StoreOpenVDBFloatMeta<MetaTarget>(target, attribName, valueIter->get<std::vector<float>>());
+                break;
             case GA_STORE_STRING:
-                grid->insertMeta(attribName, openvdb::StringMetadata(valueIter->get<std::string>()));
+                target->insertMeta(attribName, openvdb::StringMetadata(valueIter->get<std::string>()));
                 break;
             case GA_STORE_DICT:
                 // TODO
@@ -861,96 +747,28 @@ namespace Zibra::Utils
         }
     }
 
-    void Utils::LoadAttributesV2(openvdb::MetaMap& target, const nlohmann::json& meta) noexcept
+    template void LoadAttributesV1<openvdb::GridBase::Ptr>(openvdb::GridBase::Ptr target, const nlohmann::json& meta) noexcept;
+    template void LoadAttributesV1<openvdb::MetaMap*>(openvdb::MetaMap* target, const nlohmann::json& meta) noexcept;
+    template void LoadAttributesV2<openvdb::GridBase::Ptr>(openvdb::GridBase::Ptr target, const nlohmann::json& meta) noexcept;
+    template void LoadAttributesV2<openvdb::MetaMap*>(openvdb::MetaMap* target, const nlohmann::json& meta) noexcept;
+
+    void LoadAttributesV1(openvdb::GridBase::Ptr target, const nlohmann::json& meta) noexcept
     {
-        if (!meta.is_object())
-        {
-            return;
-        }
+        LoadAttributesV1<openvdb::GridBase::Ptr>(target, meta);
+    }
 
-        for (const auto& [attribName, attrContainer] : meta.items())
-        {
-            if (!attrContainer.is_object())
-            {
-                continue;
-            }
+    void LoadAttributesV1(openvdb::MetaMap* target, const nlohmann::json& meta) noexcept  
+    {
+        LoadAttributesV1<openvdb::MetaMap*>(target, meta);
+    }
 
-            auto typeIter = attrContainer.find("t");
-            auto valueIter = attrContainer.find("v");
+    void LoadAttributesV2(openvdb::GridBase::Ptr target, const nlohmann::json& meta) noexcept
+    {
+        LoadAttributesV2<openvdb::GridBase::Ptr>(target, meta);
+    }
 
-            if (typeIter == attrContainer.end() || valueIter == attrContainer.end())
-            {
-                continue;
-            }
-            if (!typeIter->is_number_unsigned())
-            {
-                continue;
-            }
-
-            GA_Storage storage = static_cast<GA_Storage>(typeIter->get<int>());
-
-            switch (storage)
-            {
-            case GA_STORE_BOOL:
-                target.insertMeta(attribName, openvdb::BoolMetadata(valueIter->get<bool>()));
-                break;
-            case GA_STORE_UINT8:
-                // TOODO
-                break;
-            case GA_STORE_INT8:
-            case GA_STORE_INT16:
-            case GA_STORE_INT32:
-            case GA_STORE_INT64:
-            {
-                auto values = valueIter->get<std::vector<int>>();
-                switch (values.size())
-                {
-                case 1:
-                    target.insertMeta(attribName, openvdb::Int32Metadata(values[0]));
-                    break;
-                case 2:
-                    target.insertMeta(attribName, openvdb::Vec2IMetadata(openvdb::Vec2i(values[0], values[1])));
-                    break;
-                case 3:
-                    target.insertMeta(attribName, openvdb::Vec3IMetadata(openvdb::Vec3i(values[0], values[1], values[2])));
-                    break;
-                default:
-                    assert(false && "Only arrays with 1-3 elements are supported");
-                    break;
-                }
-            }
-            break;
-            case GA_STORE_REAL16:
-            case GA_STORE_REAL32:
-            case GA_STORE_REAL64:
-            {
-                auto values = valueIter->get<std::vector<float>>();
-                switch (values.size())
-                {
-                case 1:
-                    target.insertMeta(attribName, openvdb::FloatMetadata(values[0]));
-                    break;
-                case 2:
-                    target.insertMeta(attribName, openvdb::Vec2DMetadata(openvdb::Vec2d(values[0], values[1])));
-                    break;
-                case 3:
-                    target.insertMeta(attribName, openvdb::Vec3DMetadata(openvdb::Vec3d(values[0], values[1], values[2])));
-                    break;
-                default:
-                    assert(false && "Only arrays with 1-3 elements are supported");
-                    break;
-                }
-            }
-            break;
-            case GA_STORE_STRING:
-                target.insertMeta(attribName, openvdb::StringMetadata(valueIter->get<std::string>()));
-                break;
-            case GA_STORE_DICT:
-                // TODO
-                break;
-            default:
-                continue;
-            }
-        }
+    void LoadAttributesV2(openvdb::MetaMap* target, const nlohmann::json& meta) noexcept
+    {
+        LoadAttributesV2<openvdb::MetaMap*>(target, meta);
     }
 } // namespace Zibra::Utils
