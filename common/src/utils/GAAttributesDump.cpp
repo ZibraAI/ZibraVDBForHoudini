@@ -372,7 +372,7 @@ namespace Zibra::Utils
                 continue;
             }
 
-            GA_Storage storage = StrTypeToGAStorage(typeIter->get<std::string>());
+            GA_Storage storage = StrTypeToGAStorage(typeIter->template get<std::string>());
 
             switch (storage)
             {
@@ -791,7 +791,7 @@ namespace Zibra::Utils
                 continue;
             }
 
-            GA_Storage storage = StrTypeToGAStorage(typeIter->get<std::string>());
+            GA_Storage storage = StrTypeToGAStorage(typeIter->template get<std::string>());
 
             switch (storage)
             {
@@ -850,7 +850,7 @@ namespace Zibra::Utils
                 continue;
             }
 
-            GA_Storage storage = static_cast<GA_Storage>(typeIter->get<int>());
+            GA_Storage storage = static_cast<GA_Storage>(typeIter->template get<int>());
 
             switch (storage)
             {
