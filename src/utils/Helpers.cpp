@@ -1,8 +1,8 @@
 #include "Helpers.h"
 
 #include <PY/PY_Python.h>
-#include <filesystem>
 #include <cstdlib>
+#include <filesystem>
 
 namespace Zibra::Helpers
 {
@@ -50,32 +50,33 @@ namespace Zibra::Helpers
         }
     }
 
-    void OpenInBrowser(std::string url)
+    void OpenInBrowser(const std::string& url)
     {
         // Opens the URL in the browser via Python
-        PYrunPythonStatementsAndExpectNoErrors(("import webbrowser\n"
-                                                "webbrowser.open('" +
-                                                url + "')")
-                                                   .c_str(),
-                                               "Failed to open URL in browser");
+        PYrunPythonStatementsInNewContextAndExpectNoErrors(("import webbrowser\n"
+                                                            "webbrowser.open('" +
+                                                            url + "')")
+                                                               .c_str(),
+                                                           "Failed to open URL in browser");
     }
 
-    void OpenInFileExplorer(std::string path)
+    void OpenInFileExplorer(const std::filesystem::path& path)
     {
 #if ZIB_TARGET_OS_LINUX
         // Have to use xdg-open for Linux
         // Python codepath opens folder in default browser on Linux
-        std::system(("xdg-open \"" + path + "\"").c_str());
+        std::string command = ("xdg-open \"" + path.string() + "\"");
+        std::system(command.c_str());
 #else
         // Opens path in default file explorer via Python
-        PYrunPythonStatementsAndExpectNoErrors(("import pathlib\n"
-                                                "import webbrowser\n"
-                                                "path = pathlib.Path(\"" +
-                                                path +
-                                                "\").resolve()\n"
-                                                "webbrowser.open(path.as_uri())")
-                                                   .c_str(),
-                                               "Failed to open folder in file explorer");
+        PYrunPythonStatementsInNewContextAndExpectNoErrors(("import pathlib\n"
+                                                            "import webbrowser\n"
+                                                            "path = pathlib.Path(\"" +
+                                                            path.string() +
+                                                            "\").resolve()\n"
+                                                            "webbrowser.open(path.as_uri())")
+                                                               .c_str(),
+                                                           "Failed to open folder in file explorer");
 #endif
     }
 
@@ -144,7 +145,7 @@ namespace Zibra::Helpers
         {
             return false;
         }
-        
+
         std::string envVarValueUpper = envVar.value();
         std::transform(envVarValueUpper.begin(), envVarValueUpper.end(), envVarValueUpper.begin(), ::toupper);
         if (envVarValueUpper == "ON" || envVarValueUpper == "TRUE" || envVarValueUpper == "1")

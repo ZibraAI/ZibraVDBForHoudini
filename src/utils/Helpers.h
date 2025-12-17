@@ -16,8 +16,8 @@ namespace Zibra::Helpers
     void AppendToPath(std::vector<std::string>& pathsToModify, const std::string& relativePath);
 
     // Actions to perform
-    void OpenInBrowser(std::string url);
-    void OpenInFileExplorer(std::string path);
+    void OpenInBrowser(const std::string& url);
+    void OpenInFileExplorer(const std::filesystem::path& path);
 
     // Querying options set via environment variables
     Zibra::RHI::GFXAPI SelectGFXAPI();

@@ -170,7 +170,7 @@ else()
         )
     endif()
     string(REGEX MATCH "HOUDINI_USER_PREF_DIR := '([^\n]*)'" _ ${HOUDINI_ENV_VARS})
-    set(OUTPUT_PATH "${CMAKE_MATCH_1}/packages")
+    set(OUTPUT_PATH "${CMAKE_MATCH_1}")
 endif()
 cmake_print_variables(OUTPUT_PATH)
 
@@ -185,8 +185,7 @@ if(${LABS_BUILD})
     )
 else()
     add_custom_target(ZibraVDBForHoudiniPostBuild ALL
-        COMMAND ${CMAKE_COMMAND} -E env NO_COLOR=1 pwsh "${CMAKE_CURRENT_SOURCE_DIR}/src/buildSteps/post-build.ps1" "${HOUDINI_PATH}" "${CMAKE_PROJECT_VERSION}" "$<TARGET_FILE:ZibraVDBForHoudini>" "${OUTPUT_PATH}"
-        
+        COMMAND ${CMAKE_COMMAND} -E env NO_COLOR=1 pwsh "${CMAKE_CURRENT_SOURCE_DIR}/src/buildSteps/post-build.ps1" "${HOUDINI_PATH}" "${CMAKE_PROJECT_VERSION}" "$<TARGET_FILE:ZibraVDBForHoudini>" "${OUTPUT_PATH}/packages"
     )
 endif()
 add_dependencies(ZibraVDBForHoudiniPostBuild ZibraVDBForHoudini)
@@ -212,7 +211,7 @@ endif()
 if(MSVC)
     set_target_properties(ZibraVDBForHoudiniPostBuild PROPERTIES
         VS_DEBUGGER_COMMAND "${HOUDINI_PATH}/bin/houdini${CMAKE_EXECUTABLE_SUFFIX}"
-        VS_DEBUGGER_COMMAND_ARGUMENTS "${CMAKE_CURRENT_SOURCE_DIR}/HIP/HDAs.hip"
+        VS_DEBUGGER_COMMAND_ARGUMENTS "${CMAKE_CURRENT_SOURCE_DIR}/HIP/zibravdb_example.hip"
         VS_DEBUGGER_ENVIRONMENT "HOUDINI_TEXT_CONSOLE=1"
     )
     set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
