@@ -27,7 +27,7 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
 option(LABS_BUILD "Build for Labs. Disables certain build system quirks." OFF)
 cmake_print_variables(LABS_BUILD)
 
-project(ZibraVDBForHoudini VERSION 1.2.0.0)
+project(ZibraVDBForHoudini VERSION 1.2.1.0)
 
 # Target OS detection
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
