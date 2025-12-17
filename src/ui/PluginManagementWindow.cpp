@@ -154,6 +154,8 @@ namespace Zibra
             return;
         }
 
+        std::error_code errorCode;
+
         std::filesystem::path userPrefDirStdPath;
         try
         {
@@ -167,8 +169,10 @@ namespace Zibra
             return;
         }
 
-        std::error_code errorCode;
-        bool isDirectory = std::filesystem::is_directory(userPrefDirStdPath, errorCode);
+        // MSVC seem to not implement std::filesystem::is_directory/status correctly, and sets errorCode when path does not exist
+        // We first need to check whether something exists at packages directory path
+        // And only then we can use std::filesystem::status
+        bool userPrefDirExists = std::filesystem::exists(userPrefDirStdPath, errorCode);
 
         if (errorCode)
         {
@@ -178,9 +182,28 @@ namespace Zibra
             return;
         }
 
-        if (!isDirectory)
+        if (!userPrefDirExists)
         {
-            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Director USER_PREF_DIR_PATH does not exist.");
+            const std::string errorMessage = "Directory pointer to by USER_PREF_DIR_PATH - \"" + userPrefDirPath[0] + "\" does not exist";
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, errorMessage.c_str());
+            return;
+        }
+
+        bool isUserPrefDirPathADirectory = std::filesystem::is_directory(userPrefDirStdPath, errorCode);
+
+        if (errorCode)
+        {
+            const std::string errorMessage =
+                "Failed to access path specified by USER_PREF_DIR_PATH due to error :\"" + errorCode.message() + "\"";
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, errorMessage);
+            return;
+        }
+
+        if (!isUserPrefDirPathADirectory)
+        {
+            const std::string errorMessage =
+                "Directory pointer to by USER_PREF_DIR_PATH - \"" + userPrefDirPath[0] + "\" points to file instead of a directory";
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, errorMessage.c_str());
             return;
         }
 
@@ -195,9 +218,6 @@ namespace Zibra
             return;
         }
 
-        // MSVC seem to not implement std::filesystem::status correctly, and sets errorCode when path does not exist
-        // We first need to check whether something exists at packages directory path
-        // And only then we can use std::filesystem::status
         bool packagesPathExists = std::filesystem::exists(packagesStdPath, errorCode);
 
         if (errorCode)
@@ -209,7 +229,7 @@ namespace Zibra
 
         if (packagesPathExists)
         {
-            std::filesystem::file_status packagesFolderStatus = std::filesystem::status(packagesStdPath, errorCode);
+            bool isPackagePathADirectory = std::filesystem::is_directory(packagesStdPath, errorCode);
 
             if (errorCode)
             {
@@ -218,7 +238,7 @@ namespace Zibra
                 return;
             }
 
-            if (packagesFolderStatus.type() != std::filesystem::file_type::directory)
+            if (!isPackagePathADirectory)
             {
                 UI::MessageBox::Show(UI::MessageBox::Type::OK, "Packages directory path points to a file instead.");
                 return;
@@ -268,7 +288,7 @@ namespace Zibra
         UT_EnvControl::loadPackage(packagePath.c_str(), UT_EnvControl::packageLoader());
 
         bool isLoaded = LibraryUtils::TryLoadLibrary();
-        
+
         if (isLoaded)
         {
             LicenseManager::GetInstance().CheckoutLicense();
