@@ -214,7 +214,8 @@ namespace Zibra
         }
         catch (const std::filesystem::filesystem_error& e)
         {
-            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Unexpected failure when parsing path of packages directory.");
+            const std::string errorMessage = std::string("Failed to parse packages directory path due to error :\"") + e.what() + "\"";
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, errorMessage);
             return;
         }
 
