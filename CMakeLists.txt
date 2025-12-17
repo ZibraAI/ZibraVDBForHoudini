@@ -170,7 +170,12 @@ else()
         )
     endif()
     string(REGEX MATCH "HOUDINI_USER_PREF_DIR := '([^\n]*)'" _ ${HOUDINI_ENV_VARS})
-    set(OUTPUT_PATH "${CMAKE_MATCH_1}")
+    
+    if(${LABS_BUILD})
+        set(OUTPUT_PATH "${CMAKE_MATCH_1}")
+    else()
+        set(OUTPUT_PATH "${CMAKE_MATCH_1}/packages")
+    endif()
 endif()
 cmake_print_variables(OUTPUT_PATH)
 
@@ -185,7 +190,7 @@ if(${LABS_BUILD})
     )
 else()
     add_custom_target(ZibraVDBForHoudiniPostBuild ALL
-        COMMAND ${CMAKE_COMMAND} -E env NO_COLOR=1 pwsh "${CMAKE_CURRENT_SOURCE_DIR}/src/buildSteps/post-build.ps1" "${HOUDINI_PATH}" "${CMAKE_PROJECT_VERSION}" "$<TARGET_FILE:ZibraVDBForHoudini>" "${OUTPUT_PATH}/packages"
+        COMMAND ${CMAKE_COMMAND} -E env NO_COLOR=1 pwsh "${CMAKE_CURRENT_SOURCE_DIR}/src/buildSteps/post-build.ps1" "${HOUDINI_PATH}" "${CMAKE_PROJECT_VERSION}" "$<TARGET_FILE:ZibraVDBForHoudini>" "${OUTPUT_PATH}"
     )
 endif()
 add_dependencies(ZibraVDBForHoudiniPostBuild ZibraVDBForHoudini)
