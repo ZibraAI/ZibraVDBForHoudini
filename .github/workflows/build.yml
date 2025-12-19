@@ -5,7 +5,7 @@ on: [push, pull_request]
 jobs:
   select-houdini-build:
     name: Select houdini build
-    runs-on: [self-hosted, Linux, X64, houdini]
+    runs-on: [self-hosted, Linux, X64]
     outputs:
       need-run: ${{ steps.pr_check.outputs.has_open_pr != 'true' }}
       need-build-macos: ${{ (steps.pr_check.outputs.has_open_pr != 'true') && (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') }}
@@ -50,7 +50,7 @@ jobs:
           python3 -m venv actions/houdini/venv
           ./actions/houdini/venv/bin/Activate.ps1
           pip3 install -r actions/houdini/requirements.txt
-          python3 actions/houdini/build_matrix.py ${{ github.ref == 'refs/heads/main' && '--all-versions --all-builds' || '' }} ${{ (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') && '--all-platforms' || '' }}
+          python3 actions/houdini/build_matrix.py --all-platforms ${{ github.ref == 'refs/heads/main' && '--all-builds' || '' }} ${{ (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') && '--all-versions' || '' }}
         env:
           HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
           HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
@@ -137,11 +137,11 @@ jobs:
         with:
           pattern: ZibraVDBForHoudini-*
 
-      - name: Merge macOS architectures, sign and notarize apple binaries
+      - name: Sign and notarize apple binaries
         shell: bash
         if: ${{ needs.select-houdini-build.outputs.need-build-macos == 'true' }}
         run: |
-          pwsh ${{ github.workspace }}/actions/houdini/merge_macos_packages_and_notarize.ps1 "ZibraVDBForHoudini-"
+          pwsh ${{ github.workspace }}/actions/houdini/notarize_macos_packages.ps1 "ZibraVDBForHoudini-"
         env:
           DEVELOPER_ID_APPLICATION_CERT: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_CERT }}
           DEVELOPER_ID_APPLICATION_PASS: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_PASS }}
