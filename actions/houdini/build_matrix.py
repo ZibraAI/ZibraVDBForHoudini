@@ -12,12 +12,16 @@ def get_secret(secret_name):
 HOUDINI_PRODUCT = "houdini"
 HOUDINI_VERSIONS = ["21.0"]
 HOUDINI_VERSIONS_ALL = ["20.0", "20.5", "21.0"]
-HOUDINI_PLATFORMS = ["win64-vc143", "macosx_arm64", "macosx_x86_64", "linux_x86_64_gcc11.2"]
+HOUDINI_PLATFORMS = ["win64-vc143", "macosx_arm64", "linux_x86_64_gcc11.2"]
     
 def windows_x64_entry(version, build):
     return {
                "name": f"Windows x64 {version}.{build}",
-               "runner": "windows-latest",
+               "runner": [
+               "self-hosted",
+               "Windows",
+               "X64"
+               ],
                "generator": "Visual Studio 17 2022",
                "executable-extension": ".exe",
                "houdini-version": version,
@@ -36,8 +40,7 @@ def linux_x64_entry(version, build):
                "runner": [
                "self-hosted",
                "Linux",
-               "X64",
-               "houdini"
+               "X64"
                ],
                "generator": "Ninja Multi-Config",
                "executable-extension": None,
@@ -51,26 +54,14 @@ def linux_x64_entry(version, build):
                "additional-config-args": None
            }
 
-def macos_x64_entry(version, build):
-    return {
-               "name": f"macOS x64 {version}.{build}",
-               "runner": "macos-14",
-               "generator": "Xcode",
-               "executable-extension": None,
-               "houdini-version": version,
-               "houdini-build": build,
-               "houdini-platform": "macosx_x86_64",
-               "houdini-install-path": f"/Applications/Houdini/Houdini{version}.{build}",
-               "hfs-path": f"/Applications/Houdini/Houdini{version}.{build}/Frameworks/Houdini.framework/Versions/Current/Resources",
-               "python-command": "python3",
-               "python-venv-activate-path": "bin/Activate.ps1",
-               "additional-config-args": "-DCMAKE_OSX_ARCHITECTURES=x86_64"
-           }
-
 def macos_arm64_entry(version, build):
     return {
                "name": f"macOS arm64 {version}.{build}",
-               "runner": "macos-14",
+               "runner": [
+               "self-hosted",
+               "macOS",
+               "ARM64"
+               ],
                "generator": "Xcode",
                "executable-extension": None,
                "houdini-version": version,
@@ -127,7 +118,6 @@ if __name__ == "__main__":
             matrix["include"].append(linux_x64_entry(version, build))
             if args.all_platforms:
                 matrix["include"].append(windows_x64_entry(version, build))
-                matrix["include"].append(macos_x64_entry(version, build))
                 matrix["include"].append(macos_arm64_entry(version, build))
 
     out_file_path = os.getenv('GITHUB_OUTPUT')

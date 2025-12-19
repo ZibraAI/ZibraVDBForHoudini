@@ -8,7 +8,7 @@ on:
 jobs:
   select-houdini-build:
     name: Select houdini build
-    runs-on: [self-hosted, Linux, X64, houdini]
+    runs-on: [self-hosted, Linux, X64]
     outputs:
       # Legend
       # name - Human readable OS/Arch name. Version is appended separately.
