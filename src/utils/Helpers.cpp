@@ -4,6 +4,8 @@
 #include <cstdlib>
 #include <filesystem>
 
+#include "ui/MessageBox.h"
+
 namespace Zibra::Helpers
 {
     std::vector<std::string> GetHoudiniEnvironmentVariable(UT_StrControl envVarEnum, const char* envVarName)
@@ -52,31 +54,39 @@ namespace Zibra::Helpers
 
     void OpenInBrowser(const std::string& url)
     {
-        // Opens the URL in the browser via Python
-        PYrunPythonStatementsInNewContextAndExpectNoErrors(("import webbrowser\n"
-                                                            "webbrowser.open('" +
-                                                            url + "')")
-                                                               .c_str(),
-                                                           "Failed to open URL in browser");
+        std::string pythonCode = "import webbrowser\n"
+                                 "webbrowser.open('" +
+                                 url + "')";
+        PYrunPythonStatementsInNewContextAndExpectNoErrors(pythonCode.c_str());
     }
 
     void OpenInFileExplorer(const std::filesystem::path& path)
     {
+        std::string normalizedPath;
+        try
+        {
+            normalizedPath = path.generic_string();
+        }
+        catch (const std::filesystem::filesystem_error& e)
+        {
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Failed to parse path to open in explorer");
+            return;
+        }
+
 #if ZIB_TARGET_OS_LINUX
         // Have to use xdg-open for Linux
         // Python codepath opens folder in default browser on Linux
-        std::string command = ("xdg-open \"" + path.string() + "\"");
+        std::string command = "xdg-open \"" + normalizedPath + "\"";
         std::system(command.c_str());
 #else
+        std::string pythonCode = "import pathlib\n"
+                                 "import webbrowser\n"
+                                 "path = pathlib.Path(\"" +
+                                 normalizedPath +
+                                 "\").resolve()\n"
+                                 "webbrowser.open(path.as_uri())";
         // Opens path in default file explorer via Python
-        PYrunPythonStatementsInNewContextAndExpectNoErrors(("import pathlib\n"
-                                                            "import webbrowser\n"
-                                                            "path = pathlib.Path(\"" +
-                                                            path.string() +
-                                                            "\").resolve()\n"
-                                                            "webbrowser.open(path.as_uri())")
-                                                               .c_str(),
-                                                           "Failed to open folder in file explorer");
+        PYrunPythonStatementsInNewContextAndExpectNoErrors(pythonCode.c_str());
 #endif
     }
 
