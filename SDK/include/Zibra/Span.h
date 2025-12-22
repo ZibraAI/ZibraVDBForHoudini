@@ -16,6 +16,9 @@ namespace Zibra
     {
     };
 
+    template<typename T>
+    class Span;
+
     template <typename T>
     class BasicSpan : public SpanFlag
     {
@@ -100,6 +103,18 @@ namespace Zibra
             return m_Size;
         }
 
+        Span<T> subset(size_t first, size_t count) const noexcept 
+        {
+            if (first + count > m_Size) return Span<T>{};
+            return {&m_Data[first], count};
+        }
+
+        Span<T> subset(size_t first) const noexcept
+        {
+            if (first > m_Size) return Span<T>{};
+            return {m_Data + first, m_Size - first};
+        }
+
         const T& operator[](size_t index) const
         {
             assert(index < m_Size);
@@ -123,7 +138,7 @@ namespace Zibra
             return memcmp(data(), other.data(), size() * sizeof(T)) == 0;
         }
 
-    private:
+    protected:
         T* m_Data;
         size_t m_Size;
     };
@@ -176,6 +191,14 @@ namespace Zibra
         {
             static_assert(sizeof(T) == 1);
         }
+
+        template <typename T2>
+        const T2& load(size_t offset = 0) const
+        {
+            assert(offset < this->size());
+            assert(sizeof(T2) + offset <= this->size());
+            return *reinterpret_cast<const T2*>(this->data() + offset);
+        }
     };
 
     template <typename T>
@@ -225,6 +248,14 @@ namespace Zibra
             : BasicSpan<T>(reinterpret_cast<T*>(str.data()), str.size())
         {
             static_assert(sizeof(T) == 1);
+        }
+
+        template <typename T2>
+        T2& load(size_t offset = 0)
+        {
+            assert(offset < this->size());
+            assert(sizeof(T2) + offset <= this->size());
+            return *reinterpret_cast<T2*>(this->data() + offset);
         }
     };
 
@@ -277,5 +308,4 @@ namespace Zibra
     public:
         using ReinterpretReadSpan<const std::byte>::ReinterpretReadSpan;
     };
-
 } // namespace Zibra

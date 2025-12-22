@@ -20,7 +20,8 @@ namespace Zibra
     {
         namespace Decompression
         {
-            PFN_CreateFormatMapper CreateFormatMapper = nullptr;
+            PFN_CreateFileDecoder CreateFileDecoder = nullptr;
+            PFN_ReadFileDecoderInitByteRange ReadFileDecoderInitByteRange = nullptr;
             PFN_GetVersion GetVersion = nullptr;
         } // namespace Decompression
         namespace Compression
@@ -152,7 +153,8 @@ namespace Zibra::LibraryUtils
         }
         {
             using namespace Zibra::CE::Decompression;
-            ZIB_LOAD_FUNCTION_POINTER(CreateFormatMapper, CreateFormatMapperExportName);
+            ZIB_LOAD_FUNCTION_POINTER(CreateFileDecoder, CreateFileDecoderExportName);
+            ZIB_LOAD_FUNCTION_POINTER(ReadFileDecoderInitByteRange, ReadFileDecoderInitByteRangeExportName);
             ZIB_LOAD_FUNCTION_POINTER(GetVersion, GetVersionExportName);
         }
         {

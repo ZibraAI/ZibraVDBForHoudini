@@ -102,29 +102,32 @@ namespace Zibra::Helpers
     {
         if (m_FileStream.has_value())
         {
-            delete std::get<2>(*m_FileStream);
-            delete std::get<1>(*m_FileStream);
-            delete std::get<0>(*m_FileStream);
+            m_FileStream->close();
             m_FileStream = std::nullopt;
         }
 
-        auto stream = new std::ifstream{filename.c_str(), std::ios::binary};
-        if (!stream->is_open() || !stream->good())
+        m_FileStream = std::ifstream{filename.c_str(), std::ios::binary};
+        if (!m_FileStream->is_open() || !m_FileStream->good())
         {
-            delete stream;
+            m_FileStream = std::nullopt;
             return RESULT_FILE_NOT_FOUND;
         }
-        STDIStreamWrapper* streamWrapper = new STDIStreamWrapper{*stream};
-        CE::StreamMemoryMapperAdapter* memoryAdapter = new CE::StreamMemoryMapperAdapter{streamWrapper};
 
-        m_FileStream = {stream, streamWrapper, memoryAdapter};
-        if (m_FormatMapper)
+        if (m_FileDecoder)
         {
-            m_FormatMapper->Release();
-            m_FormatMapper = nullptr;
+            m_FileDecoder->Release();
+            m_FileDecoder = nullptr;
         }
+        STDIStreamWrapper stream{m_FileStream.value()};
 
-        auto status = CE::Decompression::CreateFormatMapper(std::get<2>(*m_FileStream), &m_FormatMapper);
+        CE::Decompression::ByteRange range = {};
+        CE::Decompression::ReadFileDecoderInitByteRange(&stream, &range);
+        std::vector<char> initFileMemory{};
+        initFileMemory.resize(range.size);
+        stream.seekg(range.start);
+        stream.read(initFileMemory);
+
+        auto status = CE::Decompression::CreateFileDecoder(initFileMemory, &m_FileDecoder);
         if (status != RESULT_SUCCESS)
         {
             return status;
@@ -136,7 +139,7 @@ namespace Zibra::Helpers
             m_Decompressor = nullptr;
         }
         CE::Decompression::DecompressorFactory* factory;
-        status = m_FormatMapper->CreateDecompressorFactory(&factory);
+        status = m_FileDecoder->CreateDecompressorFactory(&factory);
         if (status != RESULT_SUCCESS)
         {
             return status;
@@ -197,7 +200,7 @@ namespace Zibra::Helpers
 
         return RESULT_SUCCESS;
     }
-    Result DecompressorManager::DecompressFrame(CE::Decompression::FrameHandle* frameContainer,
+    Result DecompressorManager::DecompressFrame(Span<const char> frameMemory, CE::Decompression::FrameProxy* frameDecoder,
                                                 std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridShuffle,
                                                 openvdb::GridPtrVec* vdbGrids) noexcept
     {
@@ -206,13 +209,14 @@ namespace Zibra::Helpers
             assert(0);
             return RESULT_UNEXPECTED_ERROR;
         }
+        // m_RHIRuntime->StartFrameCapture("test");
         auto res = m_RHIRuntime->StartRecording();
         if (ZIB_FAILED(res))
         {
             return res;
         }
 
-        const auto frameInfo = frameContainer->GetInfo();
+        const auto frameInfo = frameDecoder->GetInfo();
 
         // Filling default mapping if metadata is empty/invalid
         if (gridShuffle.empty())
@@ -231,7 +235,7 @@ namespace Zibra::Helpers
 
         const CE::Decompression::MaxDimensionsPerSubmit maxDimensionsPerSubmit = m_Decompressor->GetMaxDimensionsPerSubmit();
         const auto maxChunksPerSubmit = maxDimensionsPerSubmit.maxChunks;
-        const auto chunksCount = m_Decompressor->GetFrameChunkCount(frameContainer);
+        const auto chunksCount = m_Decompressor->GetFrameChunkCount(frameMemory);
         const auto chunkedIterations = Math::CeilToMultipleOf(chunksCount, maxChunksPerSubmit) / maxChunksPerSubmit;
 
         std::vector<CE::Decompression::Shaders::PackedSpatialBlockInfo> readbackDecompressionPerSpatialBlockInfo{};
@@ -243,7 +247,7 @@ namespace Zibra::Helpers
         for (int chunkIter = 0; chunkIter < chunkedIterations; ++chunkIter)
         {
             CE::Decompression::DecompressFrameDesc decompressDesc{};
-            decompressDesc.frameHandle = frameContainer;
+            decompressDesc.frameMemory = frameMemory;
             decompressDesc.firstChunkIndex = chunksCount - chunksToDecompress;
             decompressDesc.chunkCount = std::min(chunksToDecompress, maxChunksPerSubmit);
             decompressDesc.decompressionPerChannelBlockDataOffset = 0;
@@ -274,6 +278,7 @@ namespace Zibra::Helpers
             encoder.EncodeChunk(fData, fFeedback.spatialBlockCount, fFeedback.firstChannelBlockIndex);
         }
         res = m_RHIRuntime->StopRecording();
+        // m_RHIRuntime->StopFrameCapture();
         if (ZIB_FAILED(res))
         {
             return res;
@@ -310,28 +315,41 @@ namespace Zibra::Helpers
         return RESULT_SUCCESS;
     }
 
-    CE::Decompression::FrameHandle* DecompressorManager::FetchFrame(const exint& frameIndex) const noexcept
+    std::pair<Span<char>, CE::Decompression::FrameProxy*> DecompressorManager::FetchFrame(const exint& frameIndex) noexcept
     {
-        if (!m_FormatMapper)
+        if (!m_FileDecoder)
         {
-            return nullptr;
+            return {};
         }
-        CE::Decompression::FrameHandle* frameContainer = nullptr;
-        auto status = m_FormatMapper->FetchFrame(frameIndex, &frameContainer);
-        if (status != RESULT_SUCCESS)
+        CE::Decompression::ByteRange byteRange{};
+
+        Result result = m_FileDecoder->GetFrameByteRange(static_cast<float>(frameIndex), &byteRange);
+        if (ZIB_FAILED(result))
         {
-            return nullptr;
+            return {};
         }
-        return frameContainer;
+        void* frameMemoryBuf = malloc(byteRange.size);
+        auto frameMemory = Span<char>{static_cast<char*>(frameMemoryBuf), byteRange.size};
+        STDIStreamWrapper stream{m_FileStream.value()};
+        stream.seekg(byteRange.start);
+        stream.read(frameMemory);
+        CE::Decompression::FrameProxy* proxy{};
+        result = m_FileDecoder->CreateFrameProxy(frameMemory, &proxy);
+        if (ZIB_FAILED(result))
+        {
+            free(frameMemory.data());
+            return {};
+        }
+        return {frameMemory, proxy};
     }
 
     CE::Decompression::FrameRange DecompressorManager::GetFrameRange() const noexcept
     {
-        if (!m_FormatMapper)
+        if (!m_FileDecoder)
         {
             return {};
         }
-        return m_FormatMapper->GetFrameRange();
+        return m_FileDecoder->GetFrameRange();
     }
 
     Result DecompressorManager::FreeExternalBuffers() noexcept
@@ -384,14 +402,6 @@ namespace Zibra::Helpers
         {
             m_RHIRuntime->Release();
             m_RHIRuntime = nullptr;
-        }
-
-        if (m_FileStream.has_value())
-        {
-            delete std::get<2>(*m_FileStream);
-            delete std::get<1>(*m_FileStream);
-            delete std::get<0>(*m_FileStream);
-            m_FileStream = std::nullopt;
         }
 
         m_IsInitialized = false;

@@ -64,7 +64,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         static uint32_t FirstChannelIndexFromMask(ChannelMask mask) noexcept;
         static std::vector<ChannelDescriptor> ChannelsFromGrid(openvdb::GridBase::Ptr grid, uint32_t voxelComponentCount,
                                                                uint32_t voxelComponentSize, ChannelMask firstChMask) noexcept;
-        static Math::AABB CalculateAABB(const openvdb::CoordBBox& bbox);
+        static Math::AABB CalculateAABB(const openvdb::CoordBBox& bbox) noexcept;
         static void PackFromStride(void* dst, const void* src, size_t stride, size_t offset, size_t size, size_t count) noexcept;
         static std::string ValueComponentIndexToLetter(uint32_t valueComponentIdx) noexcept;
         static std::string SplitGridNameFromValueComponentIdx(const std::string gridName, uint32_t valueComponentIdx);
@@ -173,7 +173,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         }
     }
 
-    inline Math::AABB FrameLoader::CalculateAABB(const openvdb::CoordBBox& bbox)
+    inline Math::AABB FrameLoader::CalculateAABB(const openvdb::CoordBBox& bbox) noexcept
     {
         Math::AABB result{};
 
@@ -223,8 +223,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         return 0;
     }
 
-    inline Math::Transform FrameLoader::OpenVDBTransformToMathTransform(
-        const openvdb::math::Transform& transform) noexcept
+    inline Math::Transform FrameLoader::OpenVDBTransformToMathTransform(const openvdb::math::Transform& transform) noexcept
     {
         Math::Transform result{};
 
@@ -421,8 +420,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         }
     }
 
-    inline FrameLoader::FrameLoader(openvdb::GridBase::ConstPtr* grids, size_t gridsCount,
-                                                                     bool matchVoxelSize /*= false*/) noexcept
+    inline FrameLoader::FrameLoader(openvdb::GridBase::ConstPtr* grids, size_t gridsCount, bool matchVoxelSize /*= false*/) noexcept
     {
         if (!gridsCount)
             return;

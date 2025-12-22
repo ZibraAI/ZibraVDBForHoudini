@@ -19,9 +19,9 @@ namespace Zibra::Helpers
     public:
         Result Initialize() noexcept;
         Result RegisterDecompressor(const UT_String& filename) noexcept;
-        Result DecompressFrame(CE::Decompression::FrameHandle* frameContainer,
+        Result DecompressFrame(Span<const char> frameMemory, CE::Decompression::FrameProxy* frameDecoder,
                                std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridShuffle, openvdb::GridPtrVec* vdbGrids) noexcept;
-        CE::Decompression::FrameHandle* FetchFrame(const exint& frameIndex) const noexcept;
+        std::pair<Span<char>, CE::Decompression::FrameProxy*> FetchFrame(const exint& frameIndex) noexcept;
         CE::Decompression::FrameRange GetFrameRange() const noexcept;
         void Release() noexcept;
 
@@ -33,9 +33,9 @@ namespace Zibra::Helpers
         Result FreeExternalBuffers() noexcept;
 
     private:
-        std::optional<std::tuple<std::ifstream*, IStream*, CE::StreamMemoryMapperAdapter*>> m_FileStream = std::nullopt;
+        std::optional<std::ifstream> m_FileStream = std::nullopt;
         CE::Decompression::Decompressor* m_Decompressor = nullptr;
-        CE::Decompression::FormatMapper* m_FormatMapper = nullptr;
+        CE::Decompression::FileDecoder* m_FileDecoder = nullptr;
         RHI::RHIRuntime* m_RHIRuntime = nullptr;
         bool m_IsInitialized = false;
 

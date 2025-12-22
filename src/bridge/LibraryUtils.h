@@ -13,7 +13,8 @@ namespace Zibra
     {
         namespace Decompression
         {
-            extern PFN_CreateFormatMapper CreateFormatMapper;
+            extern PFN_CreateFileDecoder CreateFileDecoder;
+            extern PFN_ReadFileDecoderInitByteRange ReadFileDecoderInitByteRange;
             extern PFN_GetVersion GetVersion;
         } // namespace Decompression
         namespace Compression

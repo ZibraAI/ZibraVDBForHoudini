@@ -22,23 +22,9 @@ namespace Zibra::CE::Decompression
 {
     constexpr Version DECOMPRESSOR_VERSION = {1, 0, 0, 0};
 
-    class FrameHandle
+    struct DecompressorVRAMRequirements
     {
-    protected:
-        virtual ~FrameHandle() noexcept = default;
-
-    public:
-        virtual FrameInfo GetInfo() const noexcept = 0;
-        /**
-         * Finds metadata entry by key and returns payload.
-         * @param key - Metadata key
-         * @return String payload or nullptr if key is not present.
-         * Memory managed by FrameHandle instance and present while handle exists.
-         */
-        virtual const char* GetMetadataByKey(const char* key) const noexcept = 0;
-        virtual size_t GetMetadataCount() const noexcept = 0;
-        virtual Result GetMetadataByIndex(size_t index, MetadataEntry* outEntry) const noexcept = 0;
-        virtual void Release() noexcept = 0;
+        size_t totalMemorySize;
     };
 
     struct DecompressorResourcesRequirements
@@ -51,11 +37,6 @@ namespace Zibra::CE::Decompression
 
         size_t decompressionPerChannelBlockInfoSizeInBytes;
         size_t decompressionPerChannelBlockInfoStride;
-    };
-
-    struct DecompressorVRAMRequirements
-    {
-        size_t totalMemorySize;
     };
 
     /**
@@ -123,9 +104,7 @@ namespace Zibra::CE::Decompression
 
     struct DecompressFrameDesc
     {
-        /// FrameContainer object allocated by FormatMapper created by this class instance.
-        /// If frameContainer is nullptr Result::ZCE_ERROR_INVALID_ARGUMENTS will be returned.
-        FrameHandle* frameHandle = nullptr;
+        Span<const char> frameMemory = {};
         /// First chunk index to decompress. Must be in range [0; frameTotalChunksCount].
         size_t firstChunkIndex = 0;
         /// Chunks number per batch. Must be less or equal to MaxDimensionsPerSubmit::maxChunks.
@@ -181,7 +160,7 @@ namespace Zibra::CE::Decompression
          * Initializes decompressor instance. Can enqueue RHI commands and submit work.
          * Must be called before any other method.
          */
-        virtual size_t GetFrameChunkCount(FrameHandle* frame) noexcept = 0;
+        virtual size_t GetFrameChunkCount(Span<const char> frameMemory) noexcept = 0;
 
     public:
         virtual Result Initialize() noexcept = 0;
@@ -234,7 +213,7 @@ namespace Zibra::CE::Decompression
     struct ByteRange
     {
         size_t start;
-        size_t end;
+        size_t size;
     };
 
     struct SequenceInfo
@@ -248,40 +227,37 @@ namespace Zibra::CE::Decompression
         const char* channels[MAX_CHANNEL_COUNT];
     };
 
-    /**
-     * General file format -> specific compression implementation frames mapper.
-     * @note All FrameHandle allocated by this class become not valid after its release.
-     */
-    class FormatMapper
+    class FrameProxy
     {
     protected:
-        virtual ~FormatMapper() noexcept = default;
+        virtual ~FrameProxy() noexcept = default;
 
     public:
         /**
-         * Returns byte range needed for compression initialization in source ZibraVDB encoded file.
-         * @return byte range in ZibraVDB file.
-         */
-        virtual ByteRange GetInitializationByteRange() noexcept = 0;
-        /**
-         * Allocates CompressedFrameContainer object from input position params.
-         * @param frame - frame index in original frame space
-         * @return CompressedFrameContainer with data or fails assertion.
-         */
-        virtual Result FetchFrame(float frame, FrameHandle** outFrame) noexcept = 0;
-        /**
-         * Returns frame byte range in source ZibraVDB encoded file.
-         * @param frame - frame index in original frame space
-         * @return byte range in ZibraVDB file.
-         */
-        virtual ByteRange GetFrameFileByteRange(float frame) noexcept = 0;
-        /**
-         * Returns reads frame info from file and returns it.
+         * Decodes frame info and returns it.
          * @deprecated
          * @param frame - frame index in original frame space
          * @return RESULT_SUCCESS in case of success or other code in case of failure.
          */
-        virtual Result FetchFrameInfo(float frame, FrameInfo* outInfo) noexcept = 0;
+        virtual FrameInfo GetInfo() const noexcept = 0;
+        /**
+         * Finds metadata entry by key and returns payload.
+         * @param key - Metadata key
+         * @return String payload or nullptr if key is not present.
+         * Memory managed by FrameHandle instance and present while handle exists.
+         */
+        virtual const char* GetMetadataByKey(const char* key) const noexcept = 0;
+        virtual size_t GetMetadataCount() const noexcept = 0;
+        virtual Result GetMetadataByIndex(size_t index, MetadataEntry* outEntry) const noexcept = 0;
+        virtual void Release() noexcept = 0;
+    };
+
+    class FileDecoder
+    {
+    protected:
+        virtual ~FileDecoder() noexcept = default;
+
+    public:
         /**
          * Returns valid frame range decompression parametrization.
          * @return pair StartFrame - EndFrame
@@ -298,17 +274,35 @@ namespace Zibra::CE::Decompression
         virtual const char* GetMetadataByKey(const char* key) const noexcept = 0;
         virtual size_t GetMetadataCount() const noexcept = 0;
         virtual Result GetMetadataByIndex(size_t index, MetadataEntry* outEntry) const noexcept = 0;
+        /**
+         * Allocates CompressedFrameContainer object from input position params.
+         * @param frame - frame index in original frame space
+         * @return CompressedFrameContainer with data or fails assertion.
+         */
+        virtual Result GetFrameByteRange(float frame, ByteRange* outRange) noexcept = 0;
+        virtual Result CreateFrameProxy(Span<const char> frameMemory, FrameProxy** outProxy) noexcept = 0;
+
         virtual Result CreateDecompressorFactory(DecompressorFactory** outDecompressionFactory) noexcept = 0;
         virtual void Release() noexcept = 0;
     };
 
-    typedef Result(ZCE_CALL_CONV* PFN_CreateFormatMapper)(IMemoryMapper* memory, FormatMapper** outFormatMapper);
+    typedef Result(ZCE_CALL_CONV* PFN_ReadFileDecoderInitByteRange)(IStream* stream, ByteRange* outByteRange);
 #ifdef ZCE_STATIC_LINKING
-    Result CreateFormatMapper(IMemoryMapper* memory, FormatMapper** outFormatMapper) noexcept;
+    Result ReadFileDecoderInitByteRange(IStream* stream, ByteRange* outByteRange) noexcept;
 #elif defined(ZCE_DYNAMIC_IMPLICIT_LINKING)
-    ZCE_API_IMPORT Result ZCE_CALL_CONV Zibra_CE_Decompression_CreateFormatMapper(IMemoryMapper* memory, FormatMapper** outMapper) noexcept;
+    ZCE_API_IMPORT Result ZCE_CALL_CONV Zibra_CE_Decompression_ReadFileDecoderInitByteRange(IStream* stream, ByteRange* outByteRange) noexcept;
 #else
-    constexpr const char* CreateFormatMapperExportName = "Zibra_CE_Decompression_CreateFormatMapper";
+    constexpr const char* ReadFileDecoderInitByteRangeExportName = "Zibra_CE_Decompression_ReadFileDecoderInitByteRange";
+#endif
+
+
+    typedef Result(ZCE_CALL_CONV* PFN_CreateFileDecoder)(Span<const char> memory, FileDecoder** outFormatMapper);
+#ifdef ZCE_STATIC_LINKING
+    Result CreateFileDecoder(Span<const char> memory, FormatMapper** outFormatMapper) noexcept;
+#elif defined(ZCE_DYNAMIC_IMPLICIT_LINKING)
+    ZCE_API_IMPORT Result ZCE_CALL_CONV Zibra_CE_Decompression_CreateFileDecoder(Span<const char> memory, FormatMapper** outMapper) noexcept;
+#else
+    constexpr const char* CreateFileDecoderExportName = "Zibra_CE_Decompression_CreateFileDecoder";
 #endif
 
     typedef Version(ZCE_CALL_CONV* PFN_GetVersion)();
