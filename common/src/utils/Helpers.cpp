@@ -186,7 +186,7 @@ namespace Zibra::Helpers
             return {};
         }
 
-        if (!uri.scheme.empty() && uri.scheme.find("file") != 0)
+        if (!uri.scheme.empty() && uri.scheme != "file")
         {
             return {};
         }

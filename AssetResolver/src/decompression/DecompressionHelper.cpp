@@ -41,43 +41,38 @@ namespace Zibra::AssetResolver
         // So we need to trigger license check, but if it fails we proceed with decompression
         LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Decompression);
 
-        DecompressionSequenceItem* item;
-        const auto pathIt = m_PathToUUIDMap.find(zibraVDBPath);
-        if (pathIt != m_PathToUUIDMap.end())
-        {
-            const std::string& uuid = pathIt->second;
-            const auto fileIt = m_DecompressionFiles.find(uuid);
-            if (fileIt != m_DecompressionFiles.end())
-            {
-                item = fileIt->second.get();
-            }
-            else
-            {
-                // UUID exists in m_PathToUUIDMap but not in m_DecompressionFiles - this should never happen
-                TF_DEBUG(ZIBRAVDB_RESOLVER)
-                    .Msg("ZibraVDBDecompressionManager::DecompressZibraVDBFile - Inconsistent state: UUID found in path map but not in files map for path '%s'\n",
-                         zibraVDBPath.c_str());
-                return {};
-            }
-        }
-        else
+        // Ensure path is in m_PathToUUIDMap
+        auto pathIt = m_PathToUUIDMap.find(zibraVDBPath);
+        if (pathIt == m_PathToUUIDMap.end())
         {
             auto newDecompressionItem = std::make_unique<DecompressionSequenceItem>(zibraVDBPath);
             const std::string& uuid = newDecompressionItem->GetUUID();
-
-            m_PathToUUIDMap.emplace(zibraVDBPath, uuid);
-
-            const auto uuidIt = m_DecompressionFiles.find(uuid);
-            if (uuidIt != m_DecompressionFiles.end())
+            
+            auto [newPathIt, succeed] = m_PathToUUIDMap.emplace(zibraVDBPath, uuid);
+            if (!succeed)
             {
-                item = uuidIt->second.get();
+                TF_DEBUG(ZIBRAVDB_RESOLVER)
+                    .Msg("ZibraVDBDecompressionManager::DecompressZibraVDBFile - Failed to insert path into map: '%s'\n",
+                         zibraVDBPath.c_str());
+                return {};
             }
-            else
-            {
-                item = newDecompressionItem.get();
-                m_DecompressionFiles.emplace(uuid, std::move(newDecompressionItem));
-            }
+            pathIt = newPathIt;
+            
+            m_DecompressionFiles.try_emplace(uuid, std::move(newDecompressionItem));
         }
+        
+        const std::string& uuid = pathIt->second;
+        const auto fileIt = m_DecompressionFiles.find(uuid);
+        if (fileIt == m_DecompressionFiles.end())
+        {
+            // UUID exists in m_PathToUUIDMap but not in m_DecompressionFiles - this should never happen
+            TF_DEBUG(ZIBRAVDB_RESOLVER)
+                .Msg("ZibraVDBDecompressionManager::DecompressZibraVDBFile - Inconsistent state: UUID found in path map but not in files map for path '%s'\n",
+                     zibraVDBPath.c_str());
+            return {};
+        }
+        
+        DecompressionSequenceItem* item = fileIt->second.get();
 
         return item->DecompressFrame(frame);
     }

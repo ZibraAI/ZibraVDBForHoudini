@@ -189,8 +189,7 @@ namespace Zibra::ZibraVDBImport
         {
             if (!currentFilePath.empty())
             {
-                FileInfo newFileInfo = LoadFileInfo(currentFilePath);
-                m_CachedFileInfo = std::move(newFileInfo);
+                m_CachedFileInfo = LoadFileInfo(currentFilePath);
             }
             else
             {
@@ -331,25 +330,23 @@ namespace Zibra::ZibraVDBImport
         info.frameStart = frameRange.start;
         info.frameEnd = frameRange.end;
         
-        if (frameRange.start <= frameRange.end)
+        auto frameContainer = decompressor.FetchFrame(frameRange.start);
+        if (frameContainer)
         {
-            auto frameContainer = decompressor.FetchFrame(frameRange.start);
-            if (frameContainer)
+            // TODO get the channel list from file metadata instead of first frame
+            auto gridShuffle = decompressor.DeserializeGridShuffleInfo(frameContainer);
+            if (!gridShuffle.empty())
             {
-                auto gridShuffle = decompressor.DeserializeGridShuffleInfo(frameContainer);
-                if (!gridShuffle.empty())
+                for (const auto& gridDesc : gridShuffle)
                 {
-                    for (const auto& gridDesc : gridShuffle)
-                    {
-                        info.availableGrids.insert(gridDesc.gridName);
-                    }
+                    info.availableGrids.insert(gridDesc.gridName);
                 }
-                
-                decompressor.ReleaseGridShuffleInfo(gridShuffle);
-                frameContainer->Release();
             }
+
+            decompressor.ReleaseGridShuffleInfo(gridShuffle);
+            frameContainer->Release();
         }
-        
+
         decompressor.Release();
 
         return info;
