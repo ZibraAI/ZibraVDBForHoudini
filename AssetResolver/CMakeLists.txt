@@ -33,21 +33,14 @@ if("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
     )
 endif()
 
-# Use parent project's output directory structure
-if(DEFINED ZIBRAVDB_OUTPUT_PATH)
-    set(ASSET_RESOLVER_OUTPUT_PATH "${ZIBRAVDB_OUTPUT_PATH}/dso/usd")
-else()
-    set(ASSET_RESOLVER_OUTPUT_PATH "${OUTPUT_PATH}/dso/usd")
-endif()
-
 if (${LABS_BUILD})
     # If RUNTIME_OUTPUT_DIRECTORY/LIBRARY_OUTPUT_DIRECTORY does not have generator expressions
     # Configuration name will get automatically appended to it
     # "$<0:>" at the end is empty generator expression
     # Hence it will not append configuration name to the path
     set_target_properties(ZibraVDBResolver PROPERTIES
-        LIBRARY_OUTPUT_DIRECTORY ${ASSET_RESOLVER_OUTPUT_PATH}$<0:>
-        RUNTIME_OUTPUT_DIRECTORY ${ASSET_RESOLVER_OUTPUT_PATH}$<0:>
+        LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_PATH}/dso/usd$<0:>
+        RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_PATH}/dso/usd$<0:>
         PREFIX ""
     )
 endif()
@@ -64,10 +57,10 @@ if (${LABS_BUILD})
     add_custom_target(ZibraVDBCopyAssetResolverPluginConfig
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_CURRENT_SOURCE_DIR}/usd_plugins
-        ${ASSET_RESOLVER_OUTPUT_PATH}/../usd_plugins
+        ${OUTPUT_PATH}/dso/usd_plugins
         COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_CURRENT_BINARY_DIR}/plugInfo.json
-        ${ASSET_RESOLVER_OUTPUT_PATH}/../usd_plugins/ZibraVDBResolver/resources/plugInfo.json
+        ${OUTPUT_PATH}/dso/usd_plugins/ZibraVDBResolver/resources/plugInfo.json
     )
     add_dependencies(ZibraVDBResolver ZibraVDBCopyAssetResolverPluginConfig)
 endif ()

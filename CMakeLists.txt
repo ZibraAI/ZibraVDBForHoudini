@@ -29,6 +29,11 @@ cmake_print_variables(LABS_BUILD)
 
 project(ZibraVDBForHoudini VERSION 1.2.0.0)
 
+set(ZIBRAVDB_PLUGIN_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
+set(ZIBRAVDB_PLUGIN_VERSION_MINOR ${PROJECT_VERSION_MINOR})
+set(ZIBRAVDB_PLUGIN_VERSION_PATCH ${PROJECT_VERSION_PATCH})
+set(ZIBRAVDB_PLUGIN_VERSION_TWEAK ${PROJECT_VERSION_TWEAK})
+
 # Target OS detection
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     set(ZIB_TARGET_OS_NAME "WIN" CACHE STRING "Target OS Name")
@@ -77,17 +82,6 @@ else()
     message(FATAL_ERROR "Unknown target OS: ${ZIB_TARGET_OS_NAME}.")
 endif()
 
-if("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
-    set(ZIB_NETWORK_REQUEST_BACKEND "WINHTTP")
-elseif("${ZIB_TARGET_OS_NAME}" STREQUAL "LINUX")
-    set(ZIB_NETWORK_REQUEST_BACKEND "CURL")
-elseif("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
-    set(ZIB_NETWORK_REQUEST_BACKEND "CURL")
-else()
-    message(FATAL_ERROR "Unsupported target OS: ${ZIB_TARGET_OS_NAME}")
-endif()
-cmake_print_variables(ZIB_NETWORK_REQUEST_BACKEND)
-
 set(HeaderFiles
     src/PrecompiledHeader.h
     src/ROP/CompressorManager/CompressorManager.h
@@ -110,7 +104,6 @@ target_include_directories(ZibraVDBForHoudini
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/Include)
 target_precompile_headers(ZibraVDBForHoudini PRIVATE src/PrecompiledHeader.h)
 target_compile_definitions(ZibraVDBForHoudini PRIVATE
-    ZIB_NETWORK_REQUEST_BACKEND_${ZIB_NETWORK_REQUEST_BACKEND}=1
     ZIB_TARGET_OS_${ZIB_TARGET_OS_NAME}=1)
 
 if(DEFINED ENV{ZIBRA_HOUDINI_PATH})
@@ -150,24 +143,8 @@ find_package(Houdini REQUIRED)
 set(DETECTED_HOUDINI_VERSION "${Houdini_VERSION_MAJOR}.${Houdini_VERSION_MINOR}")
 cmake_print_variables(DETECTED_HOUDINI_VERSION)
 
-set(ZIBRAVDB_PLUGIN_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
-set(ZIBRAVDB_PLUGIN_VERSION_MINOR ${PROJECT_VERSION_MINOR})
-set(ZIBRAVDB_PLUGIN_VERSION_PATCH ${PROJECT_VERSION_PATCH})
-set(ZIBRAVDB_PLUGIN_VERSION_TWEAK ${PROJECT_VERSION_TWEAK})
-
 add_subdirectory(common)
 setup_common_houdini_dependencies(ZibraVDBForHoudini)
-
-if("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
-    target_link_libraries(ZibraVDBForHoudini PRIVATE
-        Houdini::Dep::pxr_tf
-        Houdini::Dep::pxr_sdf
-        Houdini::Dep::pxr_usd
-        Houdini::Dep::pxr_usdVol
-    )
-endif()
-
-# Add USD Asset Resolver subdirectory
 add_subdirectory(AssetResolver)
 
 if(${LABS_BUILD})

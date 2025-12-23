@@ -32,7 +32,7 @@ namespace Zibra::AssetResolver
 
         if (!LibraryUtils::TryLoadLibrary())
         {
-            TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
+            TF_DEBUG(ZIBRAVDB_RESOLVER)
                 .Msg("ZibraVDBDecompressionManager::DecompressZibraVDBFile - Failed to initialize ZibraVDB SDK\n");
             return {};
         }
@@ -54,7 +54,7 @@ namespace Zibra::AssetResolver
             else
             {
                 // UUID exists in m_PathToUUIDMap but not in m_DecompressionFiles - this should never happen
-                TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
+                TF_DEBUG(ZIBRAVDB_RESOLVER)
                     .Msg("ZibraVDBDecompressionManager::DecompressZibraVDBFile - Inconsistent state: UUID found in path map but not in files map for path '%s'\n",
                          zibraVDBPath.c_str());
                 return {};
@@ -86,14 +86,14 @@ namespace Zibra::AssetResolver
     {
         std::lock_guard lock(m_DecompressionFilesMutex);
 
-        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER)
+        TF_DEBUG(ZIBRAVDB_RESOLVER)
             .Msg("ZibraVDBDecompressionManager::CleanupAllDecompressedFiles - Starting cleanup of %zu compressed file "
                  "entries\n",
                  m_DecompressionFiles.size());
 
         m_PathToUUIDMap.clear();
         m_DecompressionFiles.clear();
-        TF_DEBUG(ZIBRAVDBRESOLVER_RESOLVER).Msg("ZibraVDBDecompressionManager::CleanupAllDecompressedFiles - Cleanup completed\n");
+        TF_DEBUG(ZIBRAVDB_RESOLVER).Msg("ZibraVDBDecompressionManager::CleanupAllDecompressedFiles - Cleanup completed\n");
     }
 
 } // namespace Zibra::AssetResolver
