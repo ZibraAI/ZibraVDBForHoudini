@@ -171,7 +171,7 @@ if(${LABS_BUILD})
     add_dependencies(ZibraVDBForHoudiniPostBuild ZibraVDBForHoudini)
 else()
     add_custom_target(ZibraVDBForHoudiniPostBuild ALL
-        COMMAND ${CMAKE_COMMAND} -E env NO_COLOR=1 pwsh "${CMAKE_CURRENT_SOURCE_DIR}/src/buildSteps/post-build.ps1" "${HOUDINI_PATH}" "${CMAKE_PROJECT_VERSION}" "$<TARGET_FILE:ZibraVDBForHoudini>" "${OUTPUT_PATH}"
+        COMMAND ${CMAKE_COMMAND} -E env NO_COLOR=1 pwsh "${CMAKE_CURRENT_SOURCE_DIR}/buildSteps/post-build.ps1" "${HOUDINI_PATH}" "${CMAKE_PROJECT_VERSION}" "$<TARGET_FILE:ZibraVDBForHoudini>" "$<TARGET_FILE:ZibraVDBResolver>" "${ZIBRAVDB_ASSET_RESOLVER_PLUGIN_CONFIG}" "${OUTPUT_PATH}"
     )
     target_sources(ZibraVDBForHoudiniPostBuild PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/buildSteps/post-build.ps1

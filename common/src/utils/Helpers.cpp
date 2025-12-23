@@ -1,9 +1,6 @@
-#include "Helpers.h"
+#include "PrecompiledHeader.h"
 
-#include <PY/PY_Python.h>
-#include <cstdlib>
-#include <filesystem>
-
+#include "utils/Helpers.h"
 #include "ui/MessageBox.h"
 
 namespace Zibra::Helpers
