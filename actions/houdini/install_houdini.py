@@ -142,6 +142,6 @@ if __name__ == "__main__":
     print(f"Install succeeded, cleaning up")
     os.remove(build_dl.filename)
 
-    os.makedirs(os.path.dirname(cache_path), exist_ok=True)
-    open(cache_path, "w").close()
+    with open(cache_path, "w") as f:
+        f.write("1")
     print(f"Installation of {product} {full_version_string} complete")

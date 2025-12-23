@@ -14,7 +14,7 @@ on:
 jobs:
   select-houdini-build:
     name: Select houdini build
-    runs-on: [self-hosted, Linux, X64, houdini]
+    runs-on: [self-hosted, Linux, X64]
     outputs:
       # Legend
       # name - Human readable OS/Arch name. Version is appended separately.
@@ -122,10 +122,10 @@ jobs:
         with:
           pattern: ZibraVDBForHoudini-*
 
-      - name: Merge macOS architectures, sign and notarize apple binaries
+      - name: Sign and notarize apple binaries
         shell: bash
         run: |
-          pwsh ${{ github.workspace }}/actions/houdini/merge_macos_packages_and_notarize.ps1 "ZibraVDBForHoudini-"
+          pwsh ${{ github.workspace }}/actions/houdini/notarize_macos_packages.ps1 "ZibraVDBForHoudini-"
         env:
           DEVELOPER_ID_APPLICATION_CERT: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_CERT }}
           DEVELOPER_ID_APPLICATION_PASS: ${{ secrets.DEVELOPER_ID_APPLICATION_ZIBRA_AI_PASS }}

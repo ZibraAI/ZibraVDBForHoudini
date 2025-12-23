@@ -1,6 +1,10 @@
-#include "PrecompiledHeader.h"
+#include "Helpers.h"
 
-#include "utils/Helpers.h"
+#include <PY/PY_Python.h>
+#include <cstdlib>
+#include <filesystem>
+
+#include "ui/MessageBox.h"
 
 namespace Zibra::Helpers
 {
@@ -48,32 +52,41 @@ namespace Zibra::Helpers
         }
     }
 
-    void OpenInBrowser(std::string url)
+    void OpenInBrowser(const std::string& url)
     {
-        // Opens the URL in the browser via Python
-        PYrunPythonStatementsAndExpectNoErrors(("import webbrowser\n"
-                                                "webbrowser.open('" +
-                                                url + "')")
-                                                   .c_str(),
-                                               "Failed to open URL in browser");
+        std::string pythonCode = "import webbrowser\n"
+                                 "webbrowser.open('" +
+                                 url + "')";
+        PYrunPythonStatementsInNewContextAndExpectNoErrors(pythonCode.c_str());
     }
 
-    void OpenInFileExplorer(std::string path)
+    void OpenInFileExplorer(const std::filesystem::path& path)
     {
+        std::string normalizedPath;
+        try
+        {
+            normalizedPath = path.generic_string();
+        }
+        catch (const std::filesystem::filesystem_error& e)
+        {
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Failed to parse path to open in explorer");
+            return;
+        }
+
 #if ZIB_TARGET_OS_LINUX
         // Have to use xdg-open for Linux
         // Python codepath opens folder in default browser on Linux
-        std::system(("xdg-open \"" + path + "\"").c_str());
+        std::string command = "xdg-open \"" + normalizedPath + "\"";
+        std::system(command.c_str());
 #else
+        std::string pythonCode = "import pathlib\n"
+                                 "import webbrowser\n"
+                                 "path = pathlib.Path(\"" +
+                                 normalizedPath +
+                                 "\").resolve()\n"
+                                 "webbrowser.open(path.as_uri())";
         // Opens path in default file explorer via Python
-        PYrunPythonStatementsAndExpectNoErrors(("import pathlib\n"
-                                                "import webbrowser\n"
-                                                "path = pathlib.Path(\"" +
-                                                path +
-                                                "\").resolve()\n"
-                                                "webbrowser.open(path.as_uri())")
-                                                   .c_str(),
-                                               "Failed to open folder in file explorer");
+        PYrunPythonStatementsInNewContextAndExpectNoErrors(pythonCode.c_str());
 #endif
     }
 
@@ -142,7 +155,7 @@ namespace Zibra::Helpers
         {
             return false;
         }
-        
+
         std::string envVarValueUpper = envVar.value();
         std::transform(envVarValueUpper.begin(), envVarValueUpper.end(), envVarValueUpper.begin(), ::toupper);
         if (envVarValueUpper == "ON" || envVarValueUpper == "TRUE" || envVarValueUpper == "1")
@@ -152,114 +165,4 @@ namespace Zibra::Helpers
         return false;
     }
 
-    std::map<std::string, std::string> ParseQueryParamsString(const std::string& queryString)
-    {
-        std::map<std::string, std::string> result;
-
-        size_t start = 0;
-        size_t ampPos;
-        do
-        {
-            ampPos = queryString.find('&', start);
-            std::string param = (ampPos == std::string::npos) ?
-                queryString.substr(start) :
-                queryString.substr(start, ampPos - start);
-
-            size_t equalPos = param.find('=');
-            if (equalPos != std::string::npos && equalPos > 0 && equalPos + 1 < param.length())
-            {
-                const std::string key = param.substr(0, equalPos);
-                const std::string value = param.substr(equalPos + 1);
-                result.insert({key, value});
-            }
-
-            start = ampPos + 1;
-        } while (ampPos != std::string::npos);
-        
-        return result;
-    }
-
-    std::string GetExtension(const URI& uri)
-    {
-        if (!uri.isValid)
-        {
-            return {};
-        }
-
-        if (!uri.scheme.empty() && uri.scheme != "file")
-        {
-            return {};
-        }
-
-        size_t dotPos = uri.path.rfind('.');
-        if (dotPos == std::string::npos)
-        {
-            return {};
-        }
-
-        return uri.path.substr(dotPos);
-    }
-
-    bool TryParseInt(const std::string& str, int& result)
-    {
-        if (str.empty())
-        {
-            return false;
-        }
-
-        try
-        {
-            size_t pos;
-            result = std::stoi(str, &pos);
-            return pos == str.length();
-        }
-        catch (const std::exception&)
-        {
-            return false;
-        }
-    }
-
-    std::string FormatUUIDString(uint64_t uuid[2])
-    {
-        std::stringstream ss;
-        ss << std::hex << std::setfill('0') << std::setw(16) << uuid[0] << std::setw(16) << uuid[1];
-        return ss.str();
-    }
-
 } // namespace Zibra::Helpers
-
-URI::URI(const std::string& URIString)
-{
-    const size_t questionMarkPos = URIString.find('?');
-    if (questionMarkPos != std::string::npos && URIString.find('?', questionMarkPos + 1) != std::string::npos)
-    {
-        // Valid URI can't have more than one '?' character
-        return;
-    }
-
-    const std::string pathPart = questionMarkPos == std::string::npos ? URIString : URIString.substr(0, questionMarkPos);
-    const size_t schemePos = pathPart.find("://");
-
-    if (schemePos != std::string::npos)
-    {
-        scheme = pathPart.substr(0, schemePos);
-        path = pathPart.substr(schemePos + 3);
-    }
-    else
-    {
-        path = pathPart;
-    }
-
-    if (path.empty())
-    {
-        return;
-    }
-
-    if (questionMarkPos != std::string::npos && questionMarkPos + 1 < URIString.length())
-    {
-        std::string queryString = URIString.substr(questionMarkPos + 1);
-        queryParams = Zibra::Helpers::ParseQueryParamsString(queryString);
-    }
-
-    isValid = true;
-}

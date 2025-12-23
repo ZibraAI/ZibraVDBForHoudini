@@ -155,7 +155,116 @@ namespace Zibra
             return;
         }
 
-        Helpers::OpenInFileExplorer(userPrefDirPath[0] + "/packages");
+        std::error_code errorCode;
+
+        std::filesystem::path userPrefDirStdPath;
+        try
+        {
+            userPrefDirStdPath = std::filesystem::path(userPrefDirPath[0]);
+        }
+        catch (const std::filesystem::filesystem_error& e)
+        {
+            const std::string errorMessage =
+                std::string("Failed to parse path specified by USER_PREF_DIR_PATH due to error :\"") + e.what() + "\"";
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, errorMessage);
+            return;
+        }
+
+        // MSVC seem to not implement std::filesystem::is_directory/status correctly, and sets errorCode when path does not exist
+        // We first need to check whether something exists at packages directory path
+        // And only then we can use std::filesystem::status
+        bool userPrefDirExists = std::filesystem::exists(userPrefDirStdPath, errorCode);
+
+        if (errorCode)
+        {
+            const std::string errorMessage =
+                "Failed to access path specified by USER_PREF_DIR_PATH due to error :\"" + errorCode.message() + "\"";
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, errorMessage);
+            return;
+        }
+
+        if (!userPrefDirExists)
+        {
+            const std::string errorMessage = "Directory pointer to by USER_PREF_DIR_PATH - \"" + userPrefDirPath[0] + "\" does not exist";
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, errorMessage.c_str());
+            return;
+        }
+
+        bool isUserPrefDirPathADirectory = std::filesystem::is_directory(userPrefDirStdPath, errorCode);
+
+        if (errorCode)
+        {
+            const std::string errorMessage =
+                "Failed to access path specified by USER_PREF_DIR_PATH due to error :\"" + errorCode.message() + "\"";
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, errorMessage);
+            return;
+        }
+
+        if (!isUserPrefDirPathADirectory)
+        {
+            const std::string errorMessage =
+                "Directory pointer to by USER_PREF_DIR_PATH - \"" + userPrefDirPath[0] + "\" points to file instead of a directory";
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, errorMessage.c_str());
+            return;
+        }
+
+        std::filesystem::path packagesStdPath;
+        try
+        {
+            packagesStdPath = userPrefDirStdPath / "packages";
+        }
+        catch (const std::filesystem::filesystem_error& e)
+        {
+            const std::string errorMessage = std::string("Failed to parse packages directory path due to error :\"") + e.what() + "\"";
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, errorMessage);
+            return;
+        }
+
+        bool packagesPathExists = std::filesystem::exists(packagesStdPath, errorCode);
+
+        if (errorCode)
+        {
+            const std::string errorMessage = "Failed to access packages directory path due to error :\"" + errorCode.message() + "\"";
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, errorMessage);
+            return;
+        }
+
+        if (packagesPathExists)
+        {
+            bool isPackagePathADirectory = std::filesystem::is_directory(packagesStdPath, errorCode);
+
+            if (errorCode)
+            {
+                const std::string errorMessage = "Failed to access packages directory path due to error :\"" + errorCode.message() + "\"";
+                UI::MessageBox::Show(UI::MessageBox::Type::OK, errorMessage);
+                return;
+            }
+
+            if (!isPackagePathADirectory)
+            {
+                UI::MessageBox::Show(UI::MessageBox::Type::OK, "Packages directory path points to a file instead.");
+                return;
+            }
+        }
+        else
+        {
+            bool isCreated = std::filesystem::create_directory(packagesStdPath, errorCode);
+            if (errorCode)
+            {
+                const std::string errorMessage =
+                    "Packages directory does not exist, and creating one failed with an error :\"" + errorCode.message() + "\"";
+                UI::MessageBox::Show(UI::MessageBox::Type::OK, errorMessage);
+                return;
+            }
+
+            if (!isCreated)
+            {
+                UI::MessageBox::Show(UI::MessageBox::Type::OK, "Packages directory does not exist, and creating one failed");
+                return;
+            }
+        }
+
+        Helpers::OpenInFileExplorer(packagesStdPath);
         UpdateUI();
     }
 
@@ -181,6 +290,12 @@ namespace Zibra
         UT_EnvControl::loadPackage(packagePath.c_str(), UT_EnvControl::packageLoader());
 
         bool isLoaded = LibraryUtils::TryLoadLibrary();
+
+        if (isLoaded)
+        {
+            LicenseManager::GetInstance().CheckoutLicense();
+        }
+
         UpdateUI();
 
         if (!isLoaded)
@@ -287,11 +402,12 @@ namespace Zibra
             return;
         }
 
-        UI::MessageBox::Show(UI::MessageBox::Type::YesNo,
-                             "This will copy your license key, offline license or license server address to HSITE. This is intended for site-wide "
-                             "installation of the license. Note that \"Remove License\" button can not remove license from HSITE. In case "
-                             "you'll want to remove it, please manually remove the file. Do you wish to proceed?",
-                             &PluginManagementWindowImpl::HandleCopyLicenseToHSITECalback);
+        UI::MessageBox::Show(
+            UI::MessageBox::Type::YesNo,
+            "This will copy your license key, offline license or license server address to HSITE. This is intended for site-wide "
+            "installation of the license. Note that \"Remove License\" button can not remove license from HSITE. In case "
+            "you'll want to remove it, please manually remove the file. Do you wish to proceed?",
+            &PluginManagementWindowImpl::HandleCopyLicenseToHSITECalback);
     }
 
     void PluginManagementWindowImpl::HandleCopyLicenseToHSITECalback(UI::MessageBox::Result result)
