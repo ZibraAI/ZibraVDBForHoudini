@@ -133,7 +133,7 @@ namespace Zibra::AssetResolver
 
         // Restore file-level and grid-level metadata using unified MetadataHelper
         openvdb::MetaMap fileMetadata;
-        Utils::MetadataHelper::ApplyDetailMetadata(fileMetadata, frameContainer);
+        Utils::MetadataHelper::ApplyDetailMetadata(&fileMetadata, frameContainer);
 
         // Apply grid metadata to each grid individually
         for (auto& grid : vdbGrids)

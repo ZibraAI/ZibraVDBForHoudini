@@ -149,8 +149,7 @@ namespace Zibra::ZibraVDBDecompressor
             nameAttr.set(vdbPrim->getMapOffset(), grid->getName());
             vdbPrim->setGrid(*grid);
 
-            auto gridContext = std::make_pair(gdp, vdbPrim);
-            Utils::MetadataHelper::ApplyGridMetadata(gridContext, frameContainer);
+            Utils::MetadataHelper::ApplyGridMetadata(gdp, vdbPrim, frameContainer);
         }
 
         Utils::MetadataHelper::ApplyDetailMetadata(gdp, frameContainer);

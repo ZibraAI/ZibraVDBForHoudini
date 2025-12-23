@@ -8,62 +8,45 @@ namespace Zibra::Utils
 {
     using namespace std::literals;
 
-    void MetadataHelper::ApplyGridMetadata(std::pair<GU_Detail*, GU_PrimVDB*>& grid, CE::Decompression::CompressedFrameContainer* frameContainer)
+    void MetadataHelper::ApplyGridMetadata(GU_Detail* gdp, GU_PrimVDB* grid, CE::Decompression::CompressedFrameContainer* frameContainer)
     {
-        ApplyGridAttributeMetadata(grid, frameContainer);
-        ApplyGridVisualizationMetadata(grid.second, frameContainer);
+        ApplyGridAttributeMetadata(gdp, grid, frameContainer);
+        ApplyGridVisualizationMetadata(grid, frameContainer);
     }
 
-    void MetadataHelper::ApplyGridMetadata(openvdb::GridBase::Ptr& grid, CE::Decompression::CompressedFrameContainer* frameContainer)
-    {
-        ApplyGridAttributeMetadata(grid, frameContainer);
-    }
 
-    void MetadataHelper::ApplyGridAttributeMetadata(std::pair<GU_Detail*, GU_PrimVDB*>& grid, CE::Decompression::CompressedFrameContainer* frameContainer)
+    void MetadataHelper::ApplyGridAttributeMetadata(GU_Detail* gdp, GU_PrimVDB* grid, CE::Decompression::CompressedFrameContainer* frameContainer)
     {
         {
-            const std::string attributeMetadataNameV2 = "houdiniPrimitiveAttributesV2_"s + grid.second->getGridName();
+            const std::string attributeMetadataNameV2 = "houdiniPrimitiveAttributesV2_"s + grid->getGridName();
             const char* metadataEntryV2 = frameContainer->GetMetadataByKey(attributeMetadataNameV2.c_str());
             if (metadataEntryV2)
             {
                 auto primAttribMeta = nlohmann::json::parse(metadataEntryV2);
-                LoadAttributesV2(grid.first, GA_ATTRIB_PRIMITIVE, grid.second->getMapOffset(), primAttribMeta);
+                LoadAttributesV2(gdp, GA_ATTRIB_PRIMITIVE, grid->getMapOffset(), primAttribMeta);
                 return;
             }
         }
         {
-            const std::string attributeMetadataNameV1 = "houdiniPrimitiveAttributes_"s + grid.second->getGridName();
+            const std::string attributeMetadataNameV1 = "houdiniPrimitiveAttributes_"s + grid->getGridName();
             const char* metadataEntryV1 = frameContainer->GetMetadataByKey(attributeMetadataNameV1.c_str());
             if (metadataEntryV1)
             {
                 auto primAttribMeta = nlohmann::json::parse(metadataEntryV1);
-                Utils::LoadAttributesV1(grid.first, GA_ATTRIB_PRIMITIVE, grid.second->getMapOffset(), primAttribMeta);
+                Utils::LoadAttributesV1(gdp, GA_ATTRIB_PRIMITIVE, grid->getMapOffset(), primAttribMeta);
                 return;
             }
         }
     }
 
-    void MetadataHelper::ApplyGridAttributeMetadata(openvdb::GridBase::Ptr& grid, CE::Decompression::CompressedFrameContainer* frameContainer)
+    void MetadataHelper::ApplyGridMetadata(openvdb::GridBase::Ptr grid, CE::Decompression::CompressedFrameContainer* frameContainer)
     {
+        const std::string attributeMetadataNameV2 = "houdiniPrimitiveAttributesV2_"s + grid->getName();
+        const char* metadataEntryV2 = frameContainer->GetMetadataByKey(attributeMetadataNameV2.c_str());
+        if (metadataEntryV2)
         {
-            const std::string attributeMetadataNameV2 = "houdiniPrimitiveAttributesV2_"s + grid->getName();
-            const char* metadataEntryV2 = frameContainer->GetMetadataByKey(attributeMetadataNameV2.c_str());
-            if (metadataEntryV2)
-            {
-                auto primAttribMeta = nlohmann::json::parse(metadataEntryV2);
-                Utils::LoadAttributesV2(grid, primAttribMeta);
-                return;
-            }
-        }
-        {
-            const std::string attributeMetadataNameV1 = "houdiniPrimitiveAttributes_"s + grid->getName();
-            const char* metadataEntryV1 = frameContainer->GetMetadataByKey(attributeMetadataNameV1.c_str());
-            if (metadataEntryV1)
-            {
-                auto primAttribMeta = nlohmann::json::parse(metadataEntryV1);
-                Utils::LoadAttributesV1(grid, primAttribMeta);
-                return;
-            }
+            auto primAttribMeta = nlohmann::json::parse(metadataEntryV2);
+            LoadAttributesV2(grid.get(), primAttribMeta);
         }
     }
 
@@ -91,27 +74,14 @@ namespace Zibra::Utils
         }
     }
 
-    void MetadataHelper::ApplyDetailMetadata(openvdb::MetaMap& target, CE::Decompression::CompressedFrameContainer* frameContainer)
+    void MetadataHelper::ApplyDetailMetadata(openvdb::MetaMap* target, CE::Decompression::CompressedFrameContainer* frameContainer)
     {
-        {
-            const char* detailMetadataV2 = frameContainer->GetMetadataByKey("houdiniDetailAttributesV2");
+        const char* detailMetadataV2 = frameContainer->GetMetadataByKey("houdiniDetailAttributesV2");
 
-            if (detailMetadataV2)
-            {
-                auto detailAttribMeta = nlohmann::json::parse(detailMetadataV2);
-                Utils::LoadAttributesV2(&target, detailAttribMeta);
-                return;
-            }
-        }
+        if (detailMetadataV2)
         {
-            const char* detailMetadataV1 = frameContainer->GetMetadataByKey("houdiniDetailAttributes");
-
-            if (detailMetadataV1)
-            {
-                auto detailAttribMeta = nlohmann::json::parse(detailMetadataV1);
-                Utils::LoadAttributesV1(&target, detailAttribMeta);
-                return;
-            }
+            auto detailAttribMeta = nlohmann::json::parse(detailMetadataV2);
+            LoadAttributesV2(target, detailAttribMeta);
         }
     }
 

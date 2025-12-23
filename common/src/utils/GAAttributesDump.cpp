@@ -372,7 +372,7 @@ namespace Zibra::Utils
                 continue;
             }
 
-            GA_Storage storage = StrTypeToGAStorage(typeIter->template get<std::string>());
+            GA_Storage storage = StrTypeToGAStorage(typeIter->get<std::string>());
 
             switch (storage)
             {
@@ -592,239 +592,195 @@ namespace Zibra::Utils
         }
     }
 
-    template<typename MetaTarget>
-    void StoreOpenVDBIntMeta(MetaTarget target, const std::string& name, const nlohmann::json::const_iterator& valueIter)
+    void StoreOpenVDBIntMeta(openvdb::MetaMap* target, const std::string& name, const nlohmann::json& value)
     {
-        if (valueIter->is_number_integer())
-        {
-            int value = valueIter->template get<int>();
-            target->insertMeta(name, openvdb::Int32Metadata(value));
-        }
-        else if (valueIter->is_array())
-        {
-            size_t arraySize = valueIter->size();
-            
-            std::vector<int> values;
-            values.reserve(arraySize);
-            for (const auto& val : *valueIter)
-            {
-                if (!val.is_number_integer())
-                {
-                    return;
-                }
-                values.push_back(val.template get<int>());
-            }
-            
-            switch (arraySize)
-            {
-            case 1:
-                target->insertMeta(name, openvdb::Int32Metadata(values[0]));
-                break;
-            case 2:
-                target->insertMeta(name, openvdb::Vec2IMetadata(openvdb::Vec2i(values.data())));
-                break;
-            case 3:
-                target->insertMeta(name, openvdb::Vec3IMetadata(openvdb::Vec3i(values.data())));
-                break;
-            default:
-                return;
-            }
-        }
-    }
-
-    template<typename MetaTarget>
-    void StoreOpenVDBInt64Meta(MetaTarget target, const std::string& name, const nlohmann::json::const_iterator& valueIter)
-    {
-        if (valueIter->is_string())
-        {
-            int64 value = std::stoll(valueIter->template get<std::string>());
-            target->insertMeta(name, openvdb::Int64Metadata(value));
-        }
-        else if (valueIter->is_number_integer())
-        {
-            int64 value = valueIter->template get<int64>();
-            target->insertMeta(name, openvdb::Int64Metadata(value));
-        }
-        else if (valueIter->is_array())
-        {
-            size_t arraySize = valueIter->size();
-            
-            std::vector<int64> values;
-            values.reserve(arraySize);
-            for (const auto& val : *valueIter)
-            {
-                if (val.is_string())
-                {
-                    values.push_back(std::stoll(val.template get<std::string>()));
-                }
-                else if (val.is_number_integer())
-                {
-                    values.push_back(val.template get<int64>());
-                }
-                else
-                {
-                    return;
-                }
-            }
-            
-            switch (arraySize)
-            {
-            case 1:
-                target->insertMeta(name, openvdb::Int64Metadata(values[0]));
-                break;
-            case 2:
-                target->insertMeta(name, openvdb::Vec2IMetadata(openvdb::Vec2i(static_cast<int>(values[0]), static_cast<int>(values[1]))));
-                break;
-            case 3:
-                target->insertMeta(name, openvdb::Vec3IMetadata(openvdb::Vec3i(static_cast<int>(values[0]), static_cast<int>(values[1]), static_cast<int>(values[2]))));
-                break;
-            default:
-                return;
-            }
-        }
-    }
-
-    template<typename MetaTarget>
-    void StoreOpenVDBFloatMeta(MetaTarget target, const std::string& name, const nlohmann::json::const_iterator& valueIter)
-    {
-        if (valueIter->is_number())
-        {
-            float value = valueIter->template get<float>();
-            target->insertMeta(name, openvdb::FloatMetadata(value));
-        }
-        else if (valueIter->is_array())
-        {
-            size_t arraySize = valueIter->size();
-            
-            std::vector<float> values;
-            values.reserve(arraySize);
-            for (const auto& val : *valueIter)
-            {
-                if (!val.is_number())
-                {
-                    return;
-                }
-                values.push_back(val.template get<float>());
-            }
-            
-            switch (arraySize)
-            {
-            case 1:
-                target->insertMeta(name, openvdb::FloatMetadata(values[0]));
-                break;
-            case 2:
-                target->insertMeta(name, openvdb::Vec2DMetadata(openvdb::Vec2d(values[0], values[1])));
-                break;
-            case 3:
-                target->insertMeta(name, openvdb::Vec3DMetadata(openvdb::Vec3d(values[0], values[1], values[2])));
-                break;
-            default:
-                return;
-            }
-        }
-    }
-
-    template<typename MetaTarget>
-    void StoreOpenVDBDoubleMeta(MetaTarget target, const std::string& name, const nlohmann::json::const_iterator& valueIter)
-    {
-        if (valueIter->is_number())
-        {
-            double value = valueIter->template get<double>();
-            target->insertMeta(name, openvdb::DoubleMetadata(value));
-        }
-        else if (valueIter->is_array())
-        {
-            size_t arraySize = valueIter->size();
-            
-            std::vector<double> values;
-            values.reserve(arraySize);
-            for (const auto& val : *valueIter)
-            {
-                if (!val.is_number())
-                {
-                    return;
-                }
-                values.push_back(val.template get<double>());
-            }
-            
-            switch (arraySize)
-            {
-            case 1:
-                target->insertMeta(name, openvdb::DoubleMetadata(values[0]));
-                break;
-            case 2:
-                target->insertMeta(name, openvdb::Vec2DMetadata(openvdb::Vec2d(values.data())));
-                break;
-            case 3:
-                target->insertMeta(name, openvdb::Vec3DMetadata(openvdb::Vec3d(values.data())));
-                break;
-            default:
-                return;
-            }
-        }
-    }
-
-    template<typename MetaTarget>
-    void LoadAttributesV1(MetaTarget target, const nlohmann::json& meta) noexcept
-    {
-        if (!meta.is_object())
+        if (!value.is_array())
         {
             return;
         }
 
-        for (const auto& [attribName, attrContainer] : meta.items())
+        size_t arraySize = value.size();
+        
+        std::vector<int> values;
+        values.reserve(arraySize);
+        for (const auto& val : value)
         {
-            if (!attrContainer.is_object())
+            if (!val.is_number_integer())
             {
-                continue;
+                return;
             }
-
-            auto typeIter = attrContainer.find("t");
-            auto valueIter = attrContainer.find("v");
-
-            if (typeIter == attrContainer.end() || valueIter == attrContainer.end())
-            {
-                continue;
-            }
-            if (!typeIter->is_string())
-            {
-                continue;
-            }
-
-            GA_Storage storage = StrTypeToGAStorage(typeIter->template get<std::string>());
-
-            switch (storage)
-            {
-            case GA_STORE_BOOL:
-            case GA_STORE_UINT8:
-                // Unimplemented in V1
-                break;
-            case GA_STORE_INT8:
-            case GA_STORE_INT16:
-            case GA_STORE_INT32:
-                StoreOpenVDBIntMeta(target, attribName, valueIter);
-                break;
-            case GA_STORE_INT64:
-                StoreOpenVDBInt64Meta(target, attribName, valueIter);
-                break;
-            case GA_STORE_REAL16:
-            case GA_STORE_REAL32:
-                StoreOpenVDBFloatMeta(target, attribName, valueIter);
-                break;
-            case GA_STORE_REAL64:
-                StoreOpenVDBDoubleMeta(target, attribName, valueIter);
-                break;
-            case GA_STORE_STRING:
-                target->insertMeta(attribName, openvdb::StringMetadata(valueIter->template get<std::string>()));
-                break;
-            default:
-                continue;
-            }
+            values.push_back(val.get<int>());
+        }
+        
+        switch (arraySize)
+        {
+        case 1:
+            target->insertMeta(name, openvdb::Int32Metadata(values[0]));
+            break;
+        case 2:
+            target->insertMeta(name, openvdb::Vec2IMetadata(openvdb::Vec2i(values.data())));
+            break;
+        case 3:
+            target->insertMeta(name, openvdb::Vec3IMetadata(openvdb::Vec3i(values.data())));
+            break;
+        default:
+            return;
         }
     }
 
-    template<typename MetaTarget>
-    void LoadAttributesV2(MetaTarget target, const nlohmann::json& meta) noexcept
+    void StoreOpenVDBInt64Meta(openvdb::MetaMap* target, const std::string& name, const nlohmann::json& value)
+    {
+        if (!value.is_array())
+        {
+            return;
+        }
+
+        size_t arraySize = value.size();
+        
+        std::vector<int64> values;
+        values.reserve(arraySize);
+        for (const auto& val : value)
+        {
+            if (!val.is_string())
+            {
+                return;
+            }
+            values.push_back(std::stoll(val.get<std::string>()));
+        }
+        
+        switch (arraySize)
+        {
+        case 1:
+            target->insertMeta(name, openvdb::Int64Metadata(values[0]));
+            break;
+        case 2:
+            target->insertMeta(name, openvdb::Vec2IMetadata(openvdb::Vec2i(static_cast<int>(values[0]), static_cast<int>(values[1]))));
+            break;
+        case 3:
+            target->insertMeta(name, openvdb::Vec3IMetadata(openvdb::Vec3i(static_cast<int>(values[0]), static_cast<int>(values[1]), static_cast<int>(values[2]))));
+            break;
+        default:
+            return;
+        }
+    }
+
+    void StoreOpenVDBFloatMeta(openvdb::MetaMap* target, const std::string& name, const nlohmann::json& value)
+    {
+        if (!value.is_array())
+        {
+            return;
+        }
+
+        size_t arraySize = value.size();
+        
+        std::vector<float> values;
+        values.reserve(arraySize);
+        for (const auto& val : value)
+        {
+            if (!val.is_number())
+            {
+                return;
+            }
+            values.push_back(val.get<float>());
+        }
+        
+        switch (arraySize)
+        {
+        case 1:
+            target->insertMeta(name, openvdb::FloatMetadata(values[0]));
+            break;
+        case 2:
+            target->insertMeta(name, openvdb::Vec2DMetadata(openvdb::Vec2d(values[0], values[1])));
+            break;
+        case 3:
+            target->insertMeta(name, openvdb::Vec3DMetadata(openvdb::Vec3d(values[0], values[1], values[2])));
+            break;
+        default:
+            return;
+        }
+    }
+
+    void StoreOpenVDBDoubleMeta(openvdb::MetaMap* target, const std::string& name, const nlohmann::json& value)
+    {
+        if (!value.is_array())
+        {
+            return;
+        }
+
+        size_t arraySize = value.size();
+        
+        std::vector<double> values;
+        values.reserve(arraySize);
+        for (const auto& val : value)
+        {
+            if (!val.is_number())
+            {
+                return;
+            }
+            values.push_back(val.get<double>());
+        }
+        
+        switch (arraySize)
+        {
+        case 1:
+            target->insertMeta(name, openvdb::DoubleMetadata(values[0]));
+            break;
+        case 2:
+            target->insertMeta(name, openvdb::Vec2DMetadata(openvdb::Vec2d(values.data())));
+            break;
+        case 3:
+            target->insertMeta(name, openvdb::Vec3DMetadata(openvdb::Vec3d(values.data())));
+            break;
+        default:
+            return;
+        }
+    }
+
+    void StoreOpenVDBBoolMeta(openvdb::MetaMap* target, const std::string& name, const nlohmann::json& value)
+    {
+        if (!value.is_array())
+        {
+            return;
+        }
+
+        size_t arraySize = value.size();
+        if (arraySize != 1)
+        {
+            return;
+        }
+
+        const auto& val = value[0];
+        if (!val.is_boolean())
+        {
+            return;
+        }
+
+        target->insertMeta(name, openvdb::BoolMetadata(val.get<bool>()));
+    }
+
+    void StoreOpenVDBStringMeta(openvdb::MetaMap* target, const std::string& name, const nlohmann::json& value)
+    {
+        if (!value.is_array())
+        {
+            return;
+        }
+
+        size_t arraySize = value.size();
+        if (arraySize != 1)
+        {
+            return;
+        }
+
+        const auto& val = value[0];
+        if (!val.is_string())
+        {
+            return;
+        }
+
+        target->insertMeta(name, openvdb::StringMetadata(val.get<std::string>()));
+    }
+
+    void LoadAttributesV2(openvdb::MetaMap* target, const nlohmann::json& meta) noexcept
     {
         if (!meta.is_object())
         {
@@ -850,69 +806,36 @@ namespace Zibra::Utils
                 continue;
             }
 
-            GA_Storage storage = static_cast<GA_Storage>(typeIter->template get<int>());
+            GA_Storage storage = static_cast<GA_Storage>(typeIter->get<int>());
 
             switch (storage)
             {
             case GA_STORE_BOOL:
-                if (valueIter->is_boolean())
-                {
-                    target->insertMeta(attribName, openvdb::BoolMetadata(valueIter->template get<bool>()));
-                }
+                StoreOpenVDBBoolMeta(target, attribName, *valueIter);
                 break;
             case GA_STORE_UINT8:
-                if (valueIter->is_number_unsigned())
-                {
-                    target->insertMeta(attribName, openvdb::Int32Metadata(valueIter->template get<int>()));
-                }
-                break;
             case GA_STORE_INT8:
             case GA_STORE_INT16:
             case GA_STORE_INT32:
-                StoreOpenVDBIntMeta(target, attribName, valueIter);
+                StoreOpenVDBIntMeta(target, attribName, *valueIter);
                 break;
             case GA_STORE_INT64:
-                StoreOpenVDBInt64Meta(target, attribName, valueIter);
+                StoreOpenVDBInt64Meta(target, attribName, *valueIter);
                 break;
             case GA_STORE_REAL16:
             case GA_STORE_REAL32:
-                StoreOpenVDBFloatMeta(target, attribName, valueIter);
+                StoreOpenVDBFloatMeta(target, attribName, *valueIter);
                 break;
             case GA_STORE_REAL64:
-                StoreOpenVDBDoubleMeta(target, attribName, valueIter);
+                StoreOpenVDBDoubleMeta(target, attribName, *valueIter);
                 break;
             case GA_STORE_STRING:
             case GA_STORE_DICT:
-                target->insertMeta(attribName, openvdb::StringMetadata(valueIter->template get<std::string>()));
+                StoreOpenVDBStringMeta(target, attribName, *valueIter);
                 break;
             default:
                 continue;
             }
         }
-    }
-
-    template void LoadAttributesV1<openvdb::GridBase::Ptr>(openvdb::GridBase::Ptr target, const nlohmann::json& meta) noexcept;
-    template void LoadAttributesV1<openvdb::MetaMap*>(openvdb::MetaMap* target, const nlohmann::json& meta) noexcept;
-    template void LoadAttributesV2<openvdb::GridBase::Ptr>(openvdb::GridBase::Ptr target, const nlohmann::json& meta) noexcept;
-    template void LoadAttributesV2<openvdb::MetaMap*>(openvdb::MetaMap* target, const nlohmann::json& meta) noexcept;
-
-    void LoadAttributesV1(openvdb::GridBase::Ptr target, const nlohmann::json& meta) noexcept
-    {
-        LoadAttributesV1<openvdb::GridBase::Ptr>(target, meta);
-    }
-
-    void LoadAttributesV1(openvdb::MetaMap* target, const nlohmann::json& meta) noexcept  
-    {
-        LoadAttributesV1<openvdb::MetaMap*>(target, meta);
-    }
-
-    void LoadAttributesV2(openvdb::GridBase::Ptr target, const nlohmann::json& meta) noexcept
-    {
-        LoadAttributesV2<openvdb::GridBase::Ptr>(target, meta);
-    }
-
-    void LoadAttributesV2(openvdb::MetaMap* target, const nlohmann::json& meta) noexcept
-    {
-        LoadAttributesV2<openvdb::MetaMap*>(target, meta);
     }
 } // namespace Zibra::Utils
