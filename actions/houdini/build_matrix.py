@@ -17,6 +17,7 @@ HOUDINI_PLATFORMS = ["win64-vc143", "macosx_arm64", "linux_x86_64_gcc11.2"]
 def windows_x64_entry(version, build):
     return {
                "name": f"Windows x64 {version}.{build}",
+               "os": "windows",
                "runner": [
                "self-hosted",
                "Windows",
