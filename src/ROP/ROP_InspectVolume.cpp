@@ -388,17 +388,14 @@ namespace Zibra::InspectVolume
 
                 {
                     const GEO_VolumeOptions& visOptions = vdbPrim->getVisOptions();
-                    GEO_VolumeVis myMode;
-                    fpreal myIso;
-                    fpreal myDensity;
-                    GEO_VolumeVisLod myLod;
-                    GEO_VolumeTypeInfo myTypeInfo;
-                    fpreal myTiles;
                     std::string message = "Visualisation options: visMode - "s + GEOgetVolumeVisToken(visOptions.myMode) + ", ISO - "s +
                                           std::to_string(visOptions.myIso) + ", Density - "s + std::to_string(visOptions.myDensity) +
-                                          ", LOD - " + GEOgetVolumeVisLodToken(visOptions.myLod) + ", Type Info - "s +
-                                          GEOgetVolumeTypeInfoToken(visOptions.myTypeInfo) + ", Tiles - " +
-                                          std::to_string(visOptions.myTiles);
+                                          ", LOD - " + GEOgetVolumeVisLodToken(visOptions.myLod)
+#if (SYS_VERSION_MAJOR_INT * 10 + SYS_VERSION_MINOR_INT) > 200
+                                          + ", Type Info - "s + GEOgetVolumeTypeInfoToken(visOptions.myTypeInfo) + ", Tiles - " +
+                                          std::to_string(visOptions.myTiles)
+#endif
+                        ;
                     constructedMessage += message + "\n";
                 }
 

@@ -4,13 +4,15 @@
 #include <cstdlib>
 #include <filesystem>
 
+#include "ui/MessageBox.h"
+
 namespace Zibra::Helpers
 {
     std::vector<std::string> GetHoudiniEnvironmentVariable(UT_StrControl envVarEnum, const char* envVarName)
     {
         std::vector<std::string> result;
         const char* envVarHoudini = nullptr;
-        if (envVarEnum != ENV_MAX_STR_CONTROLS)
+        if (envVarEnum < ENV_MAX_STR_CONTROLS)
         {
             envVarHoudini = UT_EnvControl::getString(envVarEnum);
             if (envVarHoudini != nullptr)
@@ -30,6 +32,16 @@ namespace Zibra::Helpers
         return result;
     }
 
+    std::optional<std::string> GetNormalEnvironmentVariable(const char* envVarName)
+    {
+        const char* result = std::getenv(envVarName);
+        if (result == nullptr)
+        {
+            return std::nullopt;
+        }
+        return result;
+    }
+
     void AppendToPath(std::vector<std::string>& pathsToModify, const std::string& relativePath)
     {
         for (std::string& path : pathsToModify)
@@ -40,32 +52,41 @@ namespace Zibra::Helpers
         }
     }
 
-    void OpenInBrowser(std::string url)
+    void OpenInBrowser(const std::string& url)
     {
-        // Opens the URL in the browser via Python
-        PYrunPythonStatementsAndExpectNoErrors(("import webbrowser\n"
-                                                "webbrowser.open('" +
-                                                url + "')")
-                                                   .c_str(),
-                                               "Failed to open URL in browser");
+        std::string pythonCode = "import webbrowser\n"
+                                 "webbrowser.open('" +
+                                 url + "')";
+        PYrunPythonStatementsInNewContextAndExpectNoErrors(pythonCode.c_str());
     }
 
-    void OpenInFileExplorer(std::string path)
+    void OpenInFileExplorer(const std::filesystem::path& path)
     {
+        std::string normalizedPath;
+        try
+        {
+            normalizedPath = path.generic_string();
+        }
+        catch (const std::filesystem::filesystem_error& e)
+        {
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Failed to parse path to open in explorer");
+            return;
+        }
+
 #if ZIB_TARGET_OS_LINUX
         // Have to use xdg-open for Linux
         // Python codepath opens folder in default browser on Linux
-        std::system(("xdg-open \"" + path + "\"").c_str());
+        std::string command = "xdg-open \"" + normalizedPath + "\"";
+        std::system(command.c_str());
 #else
+        std::string pythonCode = "import pathlib\n"
+                                 "import webbrowser\n"
+                                 "path = pathlib.Path(\"" +
+                                 normalizedPath +
+                                 "\").resolve()\n"
+                                 "webbrowser.open(path.as_uri())";
         // Opens path in default file explorer via Python
-        PYrunPythonStatementsAndExpectNoErrors(("import pathlib\n"
-                                                "import webbrowser\n"
-                                                "path = pathlib.Path(\"" +
-                                                path +
-                                                "\").resolve()\n"
-                                                "webbrowser.open(path.as_uri())")
-                                                   .c_str(),
-                                               "Failed to open folder in file explorer");
+        PYrunPythonStatementsInNewContextAndExpectNoErrors(pythonCode.c_str());
 #endif
     }
 
@@ -80,15 +101,15 @@ namespace Zibra::Helpers
         // Vulkan +       +     -
         // Metal  -       -     +
 
-        std::vector<std::string> envVar = GetHoudiniEnvironmentVariable(ENV_MAX_STR_CONTROLS, "ZIBRAVDB_FOR_HOUDINI_FORCE_GRAPHICS_API");
-        if (envVar.empty())
+        std::optional<std::string> envVar = GetNormalEnvironmentVariable("ZIBRAVDB_FOR_HOUDINI_FORCE_GRAPHICS_API");
+        if (!envVar.has_value())
         {
             // Auto means automatic selection for the OS
             // Windows = DX12, Linux = Vulkan, Mac = Metal
             return Zibra::RHI::GFXAPI::Auto;
         }
 
-        std::string envVarValueUpper = envVar[0];
+        std::string envVarValueUpper = envVar.value();
         std::transform(envVarValueUpper.begin(), envVarValueUpper.end(), envVarValueUpper.begin(), ::toupper);
 
         Zibra::RHI::GFXAPI result = Zibra::RHI::GFXAPI::Auto;
@@ -129,13 +150,13 @@ namespace Zibra::Helpers
 
     bool NeedForceSoftwareDevice()
     {
-        std::vector<std::string> envVar = GetHoudiniEnvironmentVariable(ENV_MAX_STR_CONTROLS, "ZIBRAVDB_FOR_HOUDINI_FORCE_SOFTWARE_DEVICE");
-        if (envVar.empty())
+        std::optional<std::string> envVar = GetNormalEnvironmentVariable("ZIBRAVDB_FOR_HOUDINI_FORCE_SOFTWARE_DEVICE");
+        if (!envVar.has_value())
         {
             return false;
         }
 
-        std::string envVarValueUpper = envVar[0];
+        std::string envVarValueUpper = envVar.value();
         std::transform(envVarValueUpper.begin(), envVarValueUpper.end(), envVarValueUpper.begin(), ::toupper);
         if (envVarValueUpper == "ON" || envVarValueUpper == "TRUE" || envVarValueUpper == "1")
         {

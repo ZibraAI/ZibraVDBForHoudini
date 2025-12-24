@@ -126,8 +126,7 @@ namespace Zibra::UpdateCheck
         static Status cachedStatus = Status::Count;
         static time_point_t lastCheckTime;
 
-        LibraryUtils::LoadLibrary();
-        if (!LibraryUtils::IsLibraryLoaded())
+        if (!LibraryUtils::TryLoadLibrary())
         {
             return Status::NotInstalled;
         }

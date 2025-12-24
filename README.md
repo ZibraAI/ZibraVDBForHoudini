@@ -21,6 +21,8 @@ macOS support will be added later
 Before you can build ZibraVDBForHoudini, you need to set up following in your build environment:
 * Software
     * CMake 3.25 or newer
+    * PowerShell 7 (`pwsh` command needs to be available)
+        * Not required if you build with `LABS_BUILD` flag
     * Windows
         * Visual Studio 2022
             * C++ support

@@ -507,7 +507,7 @@ namespace Zibra::Utils
                 return;
             }
 
-            const UT_JSONValueMap* jsonMap = jsonObject.getMap();
+            UT_JSONValueMap* jsonMap = jsonObject.getMap();
 
             UT_Options options;
             options.load(*jsonMap, false);

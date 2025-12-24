@@ -18,7 +18,7 @@ if ($TargetFolder -eq "") {
     }
     elseif ($IsMacOS) 
     {
-        $TargetFolder += "-macos-universal"
+        $TargetFolder += "-macos-arm64"
     }
     else 
     {

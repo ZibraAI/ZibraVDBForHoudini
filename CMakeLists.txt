@@ -27,7 +27,7 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
 option(LABS_BUILD "Build for Labs. Disables certain build system quirks." OFF)
 cmake_print_variables(LABS_BUILD)
 
-project(ZibraVDBForHoudini)
+project(ZibraVDBForHoudini VERSION 1.2.2.0)
 
 # Target OS detection
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
@@ -88,9 +88,11 @@ else()
 endif()
 cmake_print_variables(ZIB_NETWORK_REQUEST_BACKEND)
 
+configure_file(src/Globals.h.in src/Globals.h @ONLY)
+
 set(HeaderFiles
     src/PrecompiledHeader.h
-    src/Globals.h
+    src/Globals.h.in
     src/bridge/networking/NetworkRequest.h
     src/bridge/LibraryUtils.h
     src/bridge/UpdateCheck.h
@@ -103,6 +105,8 @@ set(HeaderFiles
     src/ui/PluginManagementWindow.h
     src/utils/Helpers.h
     src/utils/GAAttributesDump.h
+    
+    ${CMAKE_CURRENT_BINARY_DIR}/src/Globals.h
 )
 
 set(SourceFiles
@@ -124,12 +128,17 @@ set(SourceFiles
 add_library(ZibraVDBForHoudini SHARED ${HeaderFiles} ${SourceFiles})
 target_include_directories(ZibraVDBForHoudini
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
+    PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/src
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/Include)
 target_precompile_headers(ZibraVDBForHoudini PRIVATE src/PrecompiledHeader.h)
 target_compile_definitions(ZibraVDBForHoudini PRIVATE 
     ZIB_NETWORK_REQUEST_BACKEND_${ZIB_NETWORK_REQUEST_BACKEND}=1
     ZIB_TARGET_OS_${ZIB_TARGET_OS_NAME}=1
     $<$<CONFIG:Debug>:ZIB_ENABLE_DEBUG_NODES>)
+
+if(${LABS_BUILD})
+    target_compile_definitions(ZibraVDBForHoudini PRIVATE LABS_BUILD)
+endif()
 
 if(${LABS_BUILD})
     target_compile_definitions(ZibraVDBForHoudini PRIVATE LABS_BUILD)
@@ -166,35 +175,30 @@ else()
         )
     endif()
     string(REGEX MATCH "HOUDINI_USER_PREF_DIR := '([^\n]*)'" _ ${HOUDINI_ENV_VARS})
-    set(OUTPUT_PATH ${CMAKE_MATCH_1})
+    
+    if(${LABS_BUILD})
+        set(OUTPUT_PATH "${CMAKE_MATCH_1}")
+    else()
+        set(OUTPUT_PATH "${CMAKE_MATCH_1}/packages")
+    endif()
 endif()
 cmake_print_variables(OUTPUT_PATH)
-set(HOUDINI_INSTDIR "${OUTPUT_PATH}/dso")
-cmake_print_variables(HOUDINI_INSTDIR)
 
 if(${LABS_BUILD})
-    # Icons and HDA are handled separaetely in Labs
-    add_custom_target(ZibraVDBForHoudiniUIFilesCopy
+    # In Labs build we use simple post-build flow
+    # Only copy files that are not handled in special way by Labs
+    # Like Icons, HDAs and copyright notices
+    add_custom_target(ZibraVDBForHoudiniPostBuild ALL
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/config/Applications/
         ${OUTPUT_PATH}/config/Applications/
     )
-    # Labs uses separate file for copyright notices, skip copying 
-    add_dependencies(ZibraVDBForHoudini ZibraVDBForHoudiniUIFilesCopy)
 else()
-    add_custom_target(ZibraVDBForHoudiniAssetsCopy
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets
-        ${OUTPUT_PATH}
+    add_custom_target(ZibraVDBForHoudiniPostBuild ALL
+        COMMAND ${CMAKE_COMMAND} -E env NO_COLOR=1 pwsh "${CMAKE_CURRENT_SOURCE_DIR}/src/buildSteps/post-build.ps1" "${HOUDINI_PATH}" "${CMAKE_PROJECT_VERSION}" "$<TARGET_FILE:ZibraVDBForHoudini>" "${OUTPUT_PATH}"
     )
-
-    add_custom_target(ZibraVDBForHoudiniCopyrightCopy
-        COMMAND ${CMAKE_COMMAND} -E copy
-        ${CMAKE_CURRENT_SOURCE_DIR}/external/ThirdPartyCopyrightNotices.txt
-        ${OUTPUT_PATH}/dso/ZibraVDBForHoudiniThirdPartyCopyrightNotices.txt
-    )
-    add_dependencies(ZibraVDBForHoudini ZibraVDBForHoudiniAssetsCopy ZibraVDBForHoudiniCopyrightCopy)
 endif()
+add_dependencies(ZibraVDBForHoudiniPostBuild ZibraVDBForHoudini)
 
 list(APPEND CMAKE_PREFIX_PATH "${HOUDINI_PATH}/toolkit/cmake")
 find_package(Houdini REQUIRED)
@@ -209,17 +213,17 @@ endif()
 
 if(${LABS_BUILD})
     set_target_properties(ZibraVDBForHoudini PROPERTIES PREFIX "")
-    install(TARGETS ZibraVDBForHoudini DESTINATION ${HOUDINI_INSTDIR})
+    install(TARGETS ZibraVDBForHoudini DESTINATION "${OUTPUT_PATH}/dso")
 else()
-    houdini_configure_target(ZibraVDBForHoudini INSTDIR ${HOUDINI_INSTDIR})
+    houdini_configure_target(ZibraVDBForHoudini INSTDIR "${CMAKE_CURRENT_BINARY_DIR}/HOUDINI_INSTDIR")
 endif()
 
 if(MSVC)
-    set_target_properties(ZibraVDBForHoudini PROPERTIES
+    set_target_properties(ZibraVDBForHoudiniPostBuild PROPERTIES
         VS_DEBUGGER_COMMAND "${HOUDINI_PATH}/bin/houdini${CMAKE_EXECUTABLE_SUFFIX}"
-        VS_DEBUGGER_COMMAND_ARGUMENTS "${CMAKE_CURRENT_SOURCE_DIR}/HIP/HDAs.hip"
+        VS_DEBUGGER_COMMAND_ARGUMENTS "${CMAKE_CURRENT_SOURCE_DIR}/HIP/zibravdb_example.hip"
         VS_DEBUGGER_ENVIRONMENT "HOUDINI_TEXT_CONSOLE=1"
     )
     set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        PROPERTY VS_STARTUP_PROJECT ZibraVDBForHoudini)
+        PROPERTY VS_STARTUP_PROJECT ZibraVDBForHoudiniPostBuild)
 endif()

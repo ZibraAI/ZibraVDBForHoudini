@@ -308,9 +308,7 @@ namespace Zibra::ZibraVDBCompressor
             return ROP_ABORT_RENDER;
         }
 
-        LibraryUtils::LoadLibrary();
-
-        if (!LibraryUtils::IsLibraryLoaded())
+        if (!LibraryUtils::TryLoadLibrary())
         {
             addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_COMPRESSION_ENGINE_MISSING);
             return ROP_ABORT_RENDER;
@@ -382,23 +380,42 @@ namespace Zibra::ZibraVDBCompressor
         }
 
         m_OrderedChannelNames.clear();
+        m_CurrentChannelCount = 0;
         m_OrderedChannelNames.reserve(CE::MAX_CHANNEL_COUNT);
         const GEO_Primitive* prim;
         GA_FOR_ALL_PRIMITIVES(gdp, prim)
         {
             if (prim->getTypeId() == GEO_PRIMVDB)
             {
-                auto vdbPrim = dynamic_cast<const GEO_PrimVDB*>(prim);
-                auto gridName = vdbPrim->getGridName();
-                if (m_OrderedChannelNames.size() >= CE::MAX_CHANNEL_COUNT)
+                const GEO_PrimVDB* vdbPrim = dynamic_cast<const GEO_PrimVDB*>(prim);
+                const char* gridName = vdbPrim->getGridName();
+                const openvdb::GridBase& baseGrid = vdbPrim->getConstGrid();
+
+                int underlyingChannels = 0;
+
+                if (baseGrid.baseTree().isType<openvdb::Vec3STree>())
                 {
-                    std::string m = "Input has quantity of VDB primitives greater than "s + std::to_string(CE::MAX_CHANNEL_COUNT) +
-                                    " supported. Skipping '"s + gridName + "'.";
+                    underlyingChannels = 3;
+                }
+                else if (baseGrid.baseTree().isType<openvdb::FloatTree>())
+                {
+                    underlyingChannels = 1;
+                }
+                else
+                {
+                    std::string m = "Grid "s + gridName + " has unsupported grid type.";
                     addError(ROP_MESSAGE, m.c_str());
-                    break;
+                    return ROP_ABORT_RENDER;
                 }
 
-                const auto voxelSize = openvdb::Vec3f(vdbPrim->getGrid().voxelSize());
+                if (m_CurrentChannelCount + underlyingChannels > CE::MAX_CHANNEL_COUNT)
+                {
+                    std::string m = "Can not compress more than " + std::to_string(CE::MAX_CHANNEL_COUNT) + " channels.";
+                    addError(ROP_MESSAGE, m.c_str());
+                    return ROP_ABORT_RENDER;
+                }
+
+                const auto voxelSize = openvdb::Vec3f(baseGrid.voxelSize());
                 const auto hasUniformVoxelSize = (std::abs(voxelSize[0] - voxelSize[1]) < std::numeric_limits<float>::epsilon()) &&
                                                  (std::abs(voxelSize[1] - voxelSize[2]) < std::numeric_limits<float>::epsilon());
                 if (!hasUniformVoxelSize)
@@ -408,6 +425,7 @@ namespace Zibra::ZibraVDBCompressor
                     return ROP_ABORT_RENDER;
                 }
                 m_OrderedChannelNames.emplace_back(gridName);
+                m_CurrentChannelCount += underlyingChannels;
             }
         }
 
@@ -455,28 +473,40 @@ namespace Zibra::ZibraVDBCompressor
         std::set<std::string> channelNamesUniqueStorage{};
         std::vector<const char*> orderedChannelNames{};
         std::vector<openvdb::GridBase::ConstPtr> volumes{};
-        std::vector<std::string> originalGridNames{};
         const GEO_Primitive* prim;
         GA_FOR_ALL_PRIMITIVES(gdp, prim)
         {
             if (prim->getTypeId() == GEO_PRIMVDB)
             {
-                auto vdbPrim = const_cast<GEO_PrimVDB*>(dynamic_cast<const GEO_PrimVDB*>(prim));
+                const GEO_PrimVDB* vdbPrim = dynamic_cast<const GEO_PrimVDB*>(prim);
                 const char* gridName = vdbPrim->getGridName();
+                const openvdb::GridBase::ConstPtr baseGrid = vdbPrim->getConstGridPtr();
+
+                int underlyingChannels = 0;
+
+                if (baseGrid->baseTree().isType<openvdb::Vec3STree>())
+                {
+                    underlyingChannels = 3;
+                }
+                else if (baseGrid->baseTree().isType<openvdb::FloatTree>())
+                {
+                    underlyingChannels = 1;
+                }
+                else
+                {
+                    std::string m = "Grid "s + gridName + " has unsupported grid type.";
+                    addError(ROP_MESSAGE, m.c_str());
+                    return ROP_ABORT_RENDER;
+                }
+
                 if (channelNamesUniqueStorage.find(gridName) != channelNamesUniqueStorage.cend())
                 {
                     std::string m = "ZibraVDB uses grid name as unique key. Node input contains duplicate of '"s + gridName + "' VDB prim.";
                     addError(ROP_MESSAGE, m.c_str());
                     return ROP_ABORT_RENDER;
                 }
-                if (vdbPrim->getStorageType() != UT_VDB_FLOAT && vdbPrim->getStorageType() != UT_VDB_VEC3F)
-                {
-                    std::string m = "Unsupported value type for '"s + gridName + "' prim. Only float grids supported.";
-                    addError(ROP_MESSAGE, m.c_str());
-                    return ROP_ABORT_RENDER;
-                }
 
-                const auto gridDimensions = vdbPrim->getGrid().evalActiveVoxelBoundingBox().dim();
+                const auto gridDimensions = baseGrid->evalActiveVoxelBoundingBox().dim();
                 constexpr size_t MAX_GRID_DIMENSION = 4096;
                 if (gridDimensions.x() > MAX_GRID_DIMENSION || gridDimensions.y() > MAX_GRID_DIMENSION ||
                     gridDimensions.z() > MAX_GRID_DIMENSION)
@@ -485,17 +515,25 @@ namespace Zibra::ZibraVDBCompressor
                     return ROP_ABORT_RENDER;
                 }
 
-                openvdb::GridBase::Ptr grid = vdbPrim->getGridPtr();
-                originalGridNames.push_back(grid->getName());
-                grid->setName(gridName);
-
-                volumes.emplace_back(grid);
+                volumes.emplace_back(std::move(baseGrid));
                 orderedChannelNames.push_back(gridName);
                 channelNamesUniqueStorage.insert(gridName);
+
+                auto iter = std::find(m_OrderedChannelNames.begin(), m_OrderedChannelNames.end(), gridName);
+                if (iter == m_OrderedChannelNames.end())
+                {
+                    if (m_CurrentChannelCount + underlyingChannels > CE::MAX_CHANNEL_COUNT)
+                    {
+                        std::string m = "Can not compress more than " + std::to_string(CE::MAX_CHANNEL_COUNT) + " channels.";
+                        addError(ROP_MESSAGE, m.c_str());
+                        return ROP_ABORT_RENDER;
+                    }
+
+                    m_OrderedChannelNames.emplace_back(gridName);
+                    m_CurrentChannelCount += underlyingChannels;
+                }
             }
         }
-
-        ZIB_ON_SCOPE_EXIT([&]() { RenameGrids(gdp, originalGridNames); });
 
         CE::Compression::FrameManager* frameManager = nullptr;
 
@@ -553,20 +591,6 @@ namespace Zibra::ZibraVDBCompressor
         return ROP_CONTINUE_RENDER;
     }
 
-    void ROP_ZibraVDBCompressor::RenameGrids(const GU_Detail* gdp, const std::vector<std::string>& newGridNames) noexcept
-    {
-        const GEO_Primitive* prim;
-        size_t gridIndex = 0;
-        GA_FOR_ALL_PRIMITIVES(gdp, prim)
-        {
-            if (prim->getTypeId() == GEO_PRIMVDB)
-            {
-                auto vdbPrim = const_cast<GEO_PrimVDB*>(dynamic_cast<const GEO_PrimVDB*>(prim));
-                vdbPrim->getGrid().setName(newGridNames[gridIndex++].c_str());
-            }
-        }
-    }
-
     ROP_RENDER_CODE ROP_ZibraVDBCompressor::endRender()
     {
         if (!LibraryUtils::IsLibraryLoaded())
@@ -622,6 +646,15 @@ namespace Zibra::ZibraVDBCompressor
 
     ROP_RENDER_CODE ROP_ZibraVDBCompressor::CreateCompressor(const OP_Context& ctx) noexcept
     {
+        UT_String filename = "";
+        evalString(filename, FILENAME_PARAM_NAME, nullptr, 0, ctx.getTime());
+
+        std::error_code ec;
+        // Intentionally ignoring errors
+        // This is needed for relative paths to work properly
+        // If path is invalid, we'll error out later on
+        std::filesystem::create_directories(std::filesystem::path{filename.c_str()}.parent_path(), ec);
+
         const int renderMode = static_cast<int>(evalInt("trange", 0, ctx.getTime()));
         const float frameInc = renderMode == 0 ? 1 : evalFloat("f", 2, ctx.getTime());
         CE::PlaybackInfo playbackInfo{};
@@ -863,6 +896,7 @@ namespace Zibra::ZibraVDBCompressor
 
         nlohmann::json detailAttrDump = Utils::DumpAttributesV2(gdp, GA_ATTRIB_DETAIL, 0);
         result.emplace_back("houdiniDetailAttributesV2", detailAttrDump.dump());
+
         return result;
     }
 
