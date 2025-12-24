@@ -2,37 +2,10 @@
 
 #include "SOP_ZibraVDBDecompressor.h"
 
-#include "bridge/LibraryUtils.h"
-#include "licensing/LicenseManager.h"
-#include "ui/PluginManagementWindow.h"
-#include "utils/GAAttributesDump.h"
-
-#ifdef _DEBUG
-#define DBG_NAME(expression) expression
-#else
-#define DBG_NAME(expression) ""
-#endif
-
 namespace Zibra::ZibraVDBDecompressor
 {
     using namespace std::literals;
     using namespace CE::Decompression;
-
-    class StreamAutorelease
-    {
-    public:
-        explicit StreamAutorelease(std::ifstream& stream) noexcept
-            : m_ManagedStream(stream)
-        {
-        }
-        ~StreamAutorelease() noexcept
-        {
-            m_ManagedStream.close();
-        }
-
-    private:
-        std::ifstream& m_ManagedStream;
-    };
 
     OP_Node* SOP_ZibraVDBDecompressor::Constructor(OP_Network* net, const char* name, OP_Operator* op) noexcept
     {
@@ -148,11 +121,11 @@ namespace Zibra::ZibraVDBDecompressor
             return error(context);
         }
 
-        auto gridShuffle = DeserializeGridShuffleInfo(frameContainer);
+        auto gridShuffle = m_DecompressorManager.DeserializeGridShuffleInfo(frameContainer);
 
         openvdb::GridPtrVec vdbGrids = {};
         status = m_DecompressorManager.DecompressFrame(frameContainer, gridShuffle, &vdbGrids);
-        ReleaseGridShuffleInfo(gridShuffle);
+        m_DecompressorManager.ReleaseGridShuffleInfo(gridShuffle);
         if (status != CE::ZCE_SUCCESS)
         {
             frameContainer->Release();
@@ -176,10 +149,10 @@ namespace Zibra::ZibraVDBDecompressor
             nameAttr.set(vdbPrim->getMapOffset(), grid->getName());
             vdbPrim->setGrid(*grid);
 
-            ApplyGridMetadata(vdbPrim, frameContainer);
+            Utils::MetadataHelper::ApplyGridMetadata(gdp, vdbPrim, frameContainer);
         }
 
-        ApplyDetailMetadata(gdp, frameContainer);
+        Utils::MetadataHelper::ApplyDetailMetadata(gdp, frameContainer);
 
         frameContainer->Release();
 
@@ -190,155 +163,6 @@ namespace Zibra::ZibraVDBDecompressor
     {
         PluginManagementWindow::ShowWindow();
         return 0;
-    }
-
-    void SOP_ZibraVDBDecompressor::ApplyGridMetadata(GU_PrimVDB* vdbPrim, CompressedFrameContainer* const frameContainer)
-    {
-        ApplyGridAttributeMetadata(vdbPrim, frameContainer);
-        ApplyGridVisualizationMetadata(vdbPrim, frameContainer);
-    }
-
-    void SOP_ZibraVDBDecompressor::ApplyGridAttributeMetadata(GU_PrimVDB* vdbPrim, CompressedFrameContainer* const frameContainer)
-    {
-        {
-            const std::string attributeMetadataNameV2 = "houdiniPrimitiveAttributesV2_"s + vdbPrim->getGridName();
-
-            const char* metadataEntryV2 = frameContainer->GetMetadataByKey(attributeMetadataNameV2.c_str());
-
-            if (metadataEntryV2)
-            {
-                auto primAttribMeta = nlohmann::json::parse(metadataEntryV2);
-                Utils::LoadAttributesV2(gdp, GA_ATTRIB_PRIMITIVE, vdbPrim->getMapOffset(), primAttribMeta);
-                return;
-            }
-        }
-
-        {
-            const std::string attributeMetadataNameV1 = "houdiniPrimitiveAttributes_"s + vdbPrim->getGridName();
-
-            const char* metadataEntryV1 = frameContainer->GetMetadataByKey(attributeMetadataNameV1.c_str());
-
-            if (metadataEntryV1)
-            {
-                auto primAttribMeta = nlohmann::json::parse(metadataEntryV1);
-                Utils::LoadAttributesV1(gdp, GA_ATTRIB_PRIMITIVE, vdbPrim->getMapOffset(), primAttribMeta);
-                return;
-            }
-        }
-    }
-
-    void SOP_ZibraVDBDecompressor::ApplyGridVisualizationMetadata(GU_PrimVDB* vdbPrim, CompressedFrameContainer* const frameContainer)
-    {
-        const std::string keyPrefix = "houdiniVisualizationAttributes_"s + vdbPrim->getGridName();
-
-        const std::string keyVisMode = keyPrefix + "_mode";
-        const char* visModeMetadata = frameContainer->GetMetadataByKey(keyVisMode.c_str());
-
-        const std::string keyVisIso = keyPrefix + "_iso";
-        const char* visIsoMetadata = frameContainer->GetMetadataByKey(keyVisIso.c_str());
-
-        const std::string keyVisDensity = keyPrefix + "_density";
-        const char* visDensityMetadata = frameContainer->GetMetadataByKey(keyVisDensity.c_str());
-
-        const std::string keyVisLod = keyPrefix + "_lod";
-        const char* visLodMetadata = frameContainer->GetMetadataByKey(keyVisLod.c_str());
-
-        if (visModeMetadata && visIsoMetadata && visDensityMetadata && visLodMetadata)
-        {
-            GEO_VolumeOptions visOptions{};
-            visOptions.myMode = static_cast<GEO_VolumeVis>(std::stoi(visModeMetadata));
-            visOptions.myIso = std::stof(visIsoMetadata);
-            visOptions.myDensity = std::stof(visDensityMetadata);
-            visOptions.myLod = static_cast<GEO_VolumeVisLod>(std::stoi(visLodMetadata));
-            vdbPrim->setVisOptions(visOptions);
-        }
-    }
-
-    void SOP_ZibraVDBDecompressor::ApplyDetailMetadata(GU_Detail* gdp, CompressedFrameContainer* const frameContainer)
-    {
-        {
-            const char* detailMetadataV2 = frameContainer->GetMetadataByKey("houdiniDetailAttributesV2");
-
-            if (detailMetadataV2)
-            {
-                auto detailAttribMeta = nlohmann::json::parse(detailMetadataV2);
-                Utils::LoadAttributesV2(gdp, GA_ATTRIB_DETAIL, 0, detailAttribMeta);
-                return;
-            }
-        }
-
-        {
-            const char* detailMetadataV1 = frameContainer->GetMetadataByKey("houdiniDetailAttributes");
-
-            if (detailMetadataV1)
-            {
-                auto detailAttribMeta = nlohmann::json::parse(detailMetadataV1);
-                Utils::LoadAttributesV1(gdp, GA_ATTRIB_DETAIL, 0, detailAttribMeta);
-                return;
-            }
-        }
-    }
-
-    inline char* TransferStr(const std::string& src) noexcept
-    {
-        char* dst = new char[src.length() + 1];
-        strcpy(dst, src.c_str());
-        return dst;
-    }
-
-    std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> SOP_ZibraVDBDecompressor::DeserializeGridShuffleInfo(
-        CompressedFrameContainer* frameContainer) noexcept
-    {
-        static std::map<std::string, CE::Addons::OpenVDBUtils::GridVoxelType> strToVoxelType = {
-            {"Float1", CE::Addons::OpenVDBUtils::GridVoxelType::Float1},
-            {"Float3", CE::Addons::OpenVDBUtils::GridVoxelType::Float3}
-        };
-
-        const char* meta = frameContainer->GetMetadataByKey("chShuffle");
-        if (!meta) return {};
-
-        auto serialized = nlohmann::json::parse(meta);
-        if (!serialized.is_array())
-        {
-            addWarning(SOP_MESSAGE, "Corrupted metadata for grid reconstruction. Applying direct mapping.");
-            return {};
-        }
-        std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> result{};
-        for (const auto& serializedDesc : serialized)
-        {
-            CE::Addons::OpenVDBUtils::VDBGridDesc gridDesc{};
-            if (!serializedDesc.is_object())
-            {
-                addWarning(SOP_MESSAGE, "Partially corrupted metadata for grid reconstruction. Skipping corrupted grids.");
-                continue;
-            }
-            gridDesc.gridName = TransferStr(serializedDesc["gridName"]);
-            gridDesc.voxelType = strToVoxelType.at(serializedDesc["voxelType"]);
-
-            for (size_t i = 0; i < std::size(gridDesc.chSource); ++i)
-            {
-                auto key = std::string{"chSource"} + std::to_string(i);
-                if (serializedDesc.contains(key) && serializedDesc[key].is_string())
-                {
-                    gridDesc.chSource[i] = TransferStr(serializedDesc[key]);
-                }
-            }
-            result.emplace_back(gridDesc);
-        }
-        return result;
-    }
-
-    void SOP_ZibraVDBDecompressor::ReleaseGridShuffleInfo(std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc>& gridDescs) noexcept
-    {
-        for (const CE::Addons::OpenVDBUtils::VDBGridDesc& desc : gridDescs)
-        {
-            delete desc.gridName;
-            for (size_t i = 0; i < std::size(desc.chSource); ++i)
-            {
-                delete desc.chSource[i];
-            }
-        }
-        gridDescs.clear();
     }
 
 } // namespace Zibra::ZibraVDBDecompressor
