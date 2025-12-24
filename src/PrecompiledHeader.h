@@ -58,6 +58,7 @@
 #include <SI/AP_Interface.h>
 #include <SOP/SOP_Node.h>
 #include <SYS/SYS_Math.h>
+#include <SYS/SYS_Version.h>
 #include <UI/UI_Value.h>
 #include <UT/UT_Assert.h>
 #include <UT/UT_Exit.h>
