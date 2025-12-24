@@ -17,6 +17,7 @@ HOUDINI_PLATFORMS = ["win64-vc143", "macosx_arm64", "linux_x86_64_gcc11.2"]
 def windows_x64_entry(version, build):
     return {
                "name": f"Windows x64 {version}.{build}",
+               "os": "windows",
                "runner": [
                "self-hosted",
                "Windows",
@@ -30,6 +31,7 @@ def windows_x64_entry(version, build):
                "houdini-install-path": f"C:\\Houdini\\{version}.{build}",
                "hfs-path": f"C:\\Houdini\\{version}.{build}",
                "python-command": "python",
+               "python-version": "3.11",
                "python-venv-activate-path": "Scripts/Activate.ps1",
                "additional-config-args": None
            }
