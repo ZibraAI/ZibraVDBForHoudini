@@ -55,8 +55,10 @@
 #include <ROP/ROP_Error.h>
 #include <ROP/ROP_Node.h>
 #include <ROP/ROP_Templates.h>
+#include <SI/AP_Interface.h>
 #include <SOP/SOP_Node.h>
 #include <SYS/SYS_Math.h>
+#include <UI/UI_Value.h>
 #include <UT/UT_Assert.h>
 #include <UT/UT_Exit.h>
 #include <UT/UT_IOTable.h>

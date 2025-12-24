@@ -53,46 +53,8 @@ namespace Zibra::LibraryUtils
 #error Unsupported platform
 #endif
 
-#define ZIB_LIBRARY_PATH ZIB_LIBRARY_FOLDER "/" ZIB_DYNAMIC_LIB_NAME
-
     bool g_IsLibraryLoaded = false;
-    bool g_IsLibraryInitialized = false;
     Zibra::Version g_CompressionEngineVersion = {};
-
-    // Returns vector of paths that can be used to search for the library
-    // First element is the path used for downloading the library
-    // Other elements are alternative load paths for manual library installation
-    std::vector<std::string> GetLibraryPaths()
-    {
-        std::vector<std::string> result;
-
-        const std::pair<UT_StrControl, const char*> basePathEnvVars[] = {
-            // HSite and HQRoot have priority over HOUDINI_USER_PREF_DIR
-            // So that same version of library shared between multiple computers
-            {ENV_HSITE, "HSITE"},
-            {ENV_MAX_STR_CONTROLS, "HQROOT"},
-            {ENV_HOUDINI_USER_PREF_DIR, "HOUDINI_USER_PREF_DIR"},
-        };
-
-        for (const auto& [envVarEnum, envVarName] : basePathEnvVars)
-        {
-            const std::vector<std::string> baseDirs = Helpers::GetHoudiniEnvironmentVariable(envVarEnum, envVarName);
-            for (const std::string& baseDir : baseDirs)
-            {
-                std::filesystem::path libraryPath = std::filesystem::path(baseDir) / ZIB_LIBRARY_PATH;
-                result.push_back(libraryPath.string());
-            }
-        }
-
-        assert(!result.empty());
-
-        if (result.empty())
-        {
-            result.push_back("");
-        }
-
-        return result;
-    }
 
     bool ValidateLoadedVersion()
     {
@@ -254,32 +216,25 @@ namespace Zibra::LibraryUtils
 #endif
     }
 
-    void LoadLibrary() noexcept
+    bool TryLoadLibrary() noexcept
     {
         assert(g_IsLibraryLoaded == (g_LibraryHandle != NULL));
 
         if (g_IsLibraryLoaded)
         {
-            return;
+            return true;
         }
 
-        const std::vector<std::string> libraryPaths = GetLibraryPaths();
-
-        bool isLoaded = false;
-        for (const std::string& libraryPath : libraryPaths)
+        std::optional<std::string> libraryDirectory = Helpers::GetNormalEnvironmentVariable("ZIBRAVDB_LIBRARY_VER_1_PATH");
+        if (!libraryDirectory.has_value())
         {
-            if (LoadLibraryByPath(libraryPath))
-            {
-                isLoaded = true;
-                break;
-            }
-        }
-        if (!isLoaded)
-        {
-            return;
+            return false;
         }
 
-        g_IsLibraryLoaded = true;
+        std::string libraryPath = libraryDirectory.value() + "/" ZIB_DYNAMIC_LIB_NAME;
+
+        g_IsLibraryLoaded = LoadLibraryByPath(libraryPath);
+        return g_IsLibraryLoaded;
     }
 
     bool IsLibraryLoaded() noexcept

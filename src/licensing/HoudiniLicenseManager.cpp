@@ -182,11 +182,10 @@ namespace Zibra
 
         std::string targetFile;
 
-        std::vector<std::string> envPath = Helpers::GetHoudiniEnvironmentVariable(ENV_MAX_STR_CONTROLS, "ZIBRAVDB_LICENSE_KEY");
-        assert(envPath.size() <= 1);
-        if (!envPath.empty() && std::filesystem::is_regular_file(envPath[0]))
+        std::optional<std::string> envPath = Helpers::GetNormalEnvironmentVariable("ZIBRAVDB_LICENSE_KEY");
+        if (envPath.has_value() && std::filesystem::is_regular_file(envPath.value()))
         {
-            targetFile = envPath[0];
+            targetFile = envPath.value();
         }
         else
         {
@@ -232,11 +231,10 @@ namespace Zibra
 
         std::string targetFile;
 
-        std::vector<std::string> envPath = Helpers::GetHoudiniEnvironmentVariable(ENV_MAX_STR_CONTROLS, "ZIBRAVDB_OFFLINE_LICENSE");
-        assert(envPath.size() <= 1);
-        if (!envPath.empty() && std::filesystem::is_regular_file(envPath[0]))
+        std::optional<std::string> envPath = Helpers::GetNormalEnvironmentVariable("ZIBRAVDB_OFFLINE_LICENSE");
+        if (envPath.has_value() && std::filesystem::is_regular_file(envPath.value()))
         {
-            targetFile = envPath[0];
+            targetFile = envPath.value();
         }
         else
         {
@@ -280,11 +278,10 @@ namespace Zibra
 
         std::string targetFile;
 
-        std::vector<std::string> envPath = Helpers::GetHoudiniEnvironmentVariable(ENV_MAX_STR_CONTROLS, "ZIBRAVDB_LICENSE_SERVER");
-        assert(envPath.size() <= 1);
-        if (!envPath.empty() && std::filesystem::is_regular_file(envPath[0]))
+        std::optional<std::string> envPath = Helpers::GetNormalEnvironmentVariable("ZIBRAVDB_LICENSE_SERVER");
+        if (envPath.has_value() && std::filesystem::is_regular_file(envPath.value()))
         {
-            targetFile = envPath[0];
+            targetFile = envPath.value();
         }
         else
         {
@@ -366,8 +363,7 @@ namespace Zibra
             return true;
         }
 
-        Zibra::LibraryUtils::LoadLibrary();
-        if (!Zibra::LibraryUtils::IsLibraryLoaded())
+        if (!LibraryUtils::TryLoadLibrary())
         {
             return false;
         }

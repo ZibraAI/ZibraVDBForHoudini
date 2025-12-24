@@ -22,8 +22,8 @@ if ($TargetFolder -eq "") {
     }
     elseif ($IsMacOS) 
     {
-        $TargetFolder += "-macos-universal"
-        $PlatformOptions = '-G "Xcode" -DCMAKE_OSX_ARCHITECTURES="arm64"'
+        $TargetFolder += "-macos-arm64"
+        $PlatformOptions = '-G "Xcode" -DCMAKE_OSX_ARCHITECTURES=arm64'
     }
     else 
     {

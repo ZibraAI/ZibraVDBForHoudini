@@ -46,8 +46,8 @@ namespace Zibra::LibraryUtils
         uint32_t build;
     };
 
-    void LoadLibrary() noexcept;
-    bool IsLibraryLoaded() noexcept;
+    [[nodiscard]] bool TryLoadLibrary() noexcept;
+    [[nodiscard]] bool IsLibraryLoaded() noexcept;
 
     constexpr bool IsPlatformSupported() noexcept
     {

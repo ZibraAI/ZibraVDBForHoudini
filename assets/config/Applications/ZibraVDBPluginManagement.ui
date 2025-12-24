@@ -1,3 +1,5 @@
+plugin_version.val := "You should never see this";
+
 library_status.val := "You should never see this";
 library_version.val := "You should never see this";
 
@@ -11,6 +13,16 @@ window.gad = NORMAL_WINDOW "ZibraVDB"
 {
     LAYOUT(vertical) WIDTH(6) MARGIN(0.2) SPACING(0.1) LOOK(plain)
     VALUE(window.val)
+   
+    ROW
+    {
+        JUSTIFY(left, center)
+
+        LABEL "Plugin version: " WIDTH(0.95);
+        LABEL VALUE(plugin_version.val);
+    }
+
+    SEPARATOR;
    
     ROW
     {
@@ -39,7 +51,7 @@ window.gad = NORMAL_WINDOW "ZibraVDB"
     ROW
     {
         ACTION_BUTTON "Download Library" VALUE(download_library.val) WIDTH(2.9);
-        ACTION_BUTTON "Open User Pref Directory" VALUE(open_user_pref_directory.val) WIDTH(2.9);
+        ACTION_BUTTON "Open Packages Directory" VALUE(open_packages_directory.val) WIDTH(2.9);
     }
 
     ROW
@@ -140,12 +152,6 @@ window.gad = NORMAL_WINDOW "ZibraVDB"
         {
             ACTION_BUTTON "Copy license to HSITE" VALUE(copy_license_to_hsite.val) WIDTH(2.9);
             ACTION_BUTTON "Copy license to HQROOT" VALUE(copy_license_to_hqroot.val) WIDTH(2.9);
-        }
-
-        ROW
-        {
-            ACTION_BUTTON "Copy library to HSITE" VALUE(copy_library_to_hsite.val) WIDTH(2.9);
-            ACTION_BUTTON "Copy library to HQROOT" VALUE(copy_library_to_hqroot.val) WIDTH(2.9);
         }
     }
 }
