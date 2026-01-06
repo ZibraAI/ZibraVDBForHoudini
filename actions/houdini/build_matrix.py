@@ -31,7 +31,7 @@ def windows_x64_entry(version, build):
                "houdini-install-path": f"C:\\Houdini\\{version}.{build}",
                "hfs-path": f"C:\\Houdini\\{version}.{build}",
                "python-command": "python",
-               "python-version": "3.11",
+               "python-version": "3.10",
                "python-venv-activate-path": "Scripts/Activate.ps1",
                "additional-config-args": None
            }
