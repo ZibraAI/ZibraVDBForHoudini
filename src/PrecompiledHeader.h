@@ -110,6 +110,7 @@
 #include <curl/curl.h>
 #include <dlfcn.h>
 #include <sys/xattr.h>
+#include <sys/sysctl.h>
 #else
 #error Unexpected OS
 #endif
