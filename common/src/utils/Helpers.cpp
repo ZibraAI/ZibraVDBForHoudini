@@ -162,4 +162,113 @@ namespace Zibra::Helpers
         return false;
     }
 
+    std::map<std::string, std::string> ParseQueryParamsString(const std::string& queryString)
+    {
+        std::map<std::string, std::string> result;
+
+        size_t start = 0;
+        size_t ampPos;
+        do
+        {
+            ampPos = queryString.find('&', start);
+            std::string param = (ampPos == std::string::npos) ?
+                                                              queryString.substr(start) :
+                                                              queryString.substr(start, ampPos - start);
+
+            size_t equalPos = param.find('=');
+            if (equalPos != std::string::npos && equalPos > 0 && equalPos + 1 < param.length())
+            {
+                const std::string key = param.substr(0, equalPos);
+                const std::string value = param.substr(equalPos + 1);
+                result.insert({key, value});
+            }
+
+            start = ampPos + 1;
+        } while (ampPos != std::string::npos);
+
+        return result;
+    }
+
+    std::string GetExtension(const URI& uri)
+    {
+        if (!uri.isValid)
+        {
+            return {};
+        }
+
+        if (!uri.scheme.empty() && uri.scheme != "file")
+        {
+            return {};
+        }
+
+        size_t dotPos = uri.path.rfind('.');
+        if (dotPos == std::string::npos)
+        {
+            return {};
+        }
+
+        return uri.path.substr(dotPos);
+    }
+
+    bool TryParseInt(const std::string& str, int& result)
+    {
+        if (str.empty())
+        {
+            return false;
+        }
+
+        try
+        {
+            size_t pos;
+            result = std::stoi(str, &pos);
+            return pos == str.length();
+        }
+        catch (const std::exception&)
+        {
+            return false;
+        }
+    }
+
+    std::string FormatUUIDString(uint64_t uuid[2])
+    {
+        std::stringstream ss;
+        ss << std::hex << std::setfill('0') << std::setw(16) << uuid[0] << std::setw(16) << uuid[1];
+        return ss.str();
+    }
 } // namespace Zibra::Helpers
+
+URI::URI(const std::string& URIString)
+{
+    const size_t questionMarkPos = URIString.find('?');
+    if (questionMarkPos != std::string::npos && URIString.find('?', questionMarkPos + 1) != std::string::npos)
+    {
+        // Valid URI can't have more than one '?' character
+        return;
+    }
+
+    const std::string pathPart = questionMarkPos == std::string::npos ? URIString : URIString.substr(0, questionMarkPos);
+    const size_t schemePos = pathPart.find("://");
+
+    if (schemePos != std::string::npos)
+    {
+        scheme = pathPart.substr(0, schemePos);
+        path = pathPart.substr(schemePos + 3);
+    }
+    else
+    {
+        path = pathPart;
+    }
+
+    if (path.empty())
+    {
+        return;
+    }
+
+    if (questionMarkPos != std::string::npos && questionMarkPos + 1 < URIString.length())
+    {
+        std::string queryString = URIString.substr(questionMarkPos + 1);
+        queryParams = Zibra::Helpers::ParseQueryParamsString(queryString);
+    }
+
+    isValid = true;
+}

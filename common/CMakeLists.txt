@@ -97,6 +97,10 @@ function(setup_common_houdini_dependencies target)
         target_link_libraries(${target} PRIVATE
             Houdini::Dep::openvdb_sesi
             Houdini::Dep::${HOUDINI_BOOST_PYTHON_TARGET}
+            Houdini::Dep::pxr_tf
+            Houdini::Dep::pxr_sdf
+            Houdini::Dep::pxr_usd
+            Houdini::Dep::pxr_usdVol
         )
         if(NOT DEFINED _houdini_python_version)
             message(FATAL_ERROR "Houdini Python version not detected")
