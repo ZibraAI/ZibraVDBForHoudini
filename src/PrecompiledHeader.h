@@ -5,6 +5,7 @@
 #include <chrono>
 #include <climits>
 #include <cmath>
+#include <condition_variable>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -14,6 +15,7 @@
 #include <map>
 #include <mutex>
 #include <optional>
+#include <queue>
 #include <regex>
 #include <set>
 #include <sstream>
@@ -109,8 +111,8 @@
 #elif ZIB_TARGET_OS_MAC
 #include <curl/curl.h>
 #include <dlfcn.h>
-#include <sys/xattr.h>
 #include <sys/sysctl.h>
+#include <sys/xattr.h>
 #else
 #error Unexpected OS
 #endif
