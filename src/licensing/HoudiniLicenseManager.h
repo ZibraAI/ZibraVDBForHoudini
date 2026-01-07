@@ -55,7 +55,9 @@ namespace Zibra
 
         bool IsAnyLicenseValid() const;
         Status GetLicenseStatus(Product product) const;
+        int GetLicenseTier() const;
         int GetLicenseTier(Product product) const;
+        const char* GetLicenseType() const;
         const char* GetLicenseType(Product product) const;
         ActivationType GetActivationType() const;
         LicensePathType GetLicensePathType() const;
@@ -78,6 +80,8 @@ namespace Zibra
         bool CheckLicense(Product product);
         const std::string& GetActivationError() const;
 
+        std::string GetHardwareID();
+
     private:
         static const char* const ms_DefaultLicenseKeyFileName;
         static const char* const ms_DefaultOfflineLicenseFileName;
@@ -95,6 +99,8 @@ namespace Zibra
 
         bool LoadLicenseManager();
         bool IsLicenseManagerLoaded() const;
+
+        void LicenseActivationCallback() const;
 
         static std::string SanitizePath(const std::string& path);
         static std::string SanitizeKey(const std::string& key);
