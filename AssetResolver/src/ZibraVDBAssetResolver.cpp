@@ -118,14 +118,6 @@ ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
         return {};
     }
 
-    if (frameIndex <= 0)
-    {
-        TF_DEBUG(ZIBRAVDB_RESOLVER)
-            .Msg("ZibraVDBResolver::_Resolve - Invalid frame parameter for ZibraVDB file: '%s', frame: %d\n", assetPath.c_str(),
-                 frameIndex);
-        return {};
-    }
-
     auto& decompressionHelper = Zibra::AssetResolver::DecompressionHelper::GetInstance();
     std::string decompressedPath = decompressionHelper.DecompressZibraVDBFile(assetURI.path, frameIndex);
     if (decompressedPath.empty())

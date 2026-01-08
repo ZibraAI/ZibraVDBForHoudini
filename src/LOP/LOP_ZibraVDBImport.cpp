@@ -325,26 +325,17 @@ namespace Zibra::ZibraVDBImport
 
         auto sequenceInfo = decompressor.GetSequenceInfo();
         info.uuid = Helpers::FormatUUIDString(sequenceInfo.fileUUID);
-        
+
         auto frameRange = decompressor.GetFrameRange();
         info.frameStart = frameRange.start;
         info.frameEnd = frameRange.end;
-        
-        auto frameContainer = decompressor.FetchFrame(frameRange.start);
-        if (frameContainer)
-        {
-            // TODO get the channel list from file metadata instead of first frame
-            auto gridShuffle = decompressor.DeserializeGridShuffleInfo(frameContainer);
-            if (!gridShuffle.empty())
-            {
-                for (const auto& gridDesc : gridShuffle)
-                {
-                    info.availableGrids.insert(gridDesc.gridName);
-                }
-            }
 
-            decompressor.ReleaseGridShuffleInfo(gridShuffle);
-            frameContainer->Release();
+        for (uint8_t i = 0; i < sequenceInfo.channelCount; ++i)
+        {
+            if (sequenceInfo.channels[i] != nullptr)
+            {
+                info.availableGrids.insert(sequenceInfo.channels[i]);
+            }
         }
 
         decompressor.Release();

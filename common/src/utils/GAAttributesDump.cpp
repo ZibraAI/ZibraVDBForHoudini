@@ -645,7 +645,7 @@ namespace Zibra::Utils
             {
                 return;
             }
-            values.push_back(std::stoll(val.get<std::string>()));
+            values.push_back(FromJSONSafeType<int64>(val.get<JSONSafeTypeMapping<int64>::UnderlyingType>()));
         }
         
         switch (arraySize)
