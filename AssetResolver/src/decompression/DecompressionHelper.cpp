@@ -41,7 +41,6 @@ namespace Zibra::AssetResolver
         // So we need to trigger license check, but if it fails we proceed with decompression
         LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Decompression);
 
-        // Ensure path is in m_PathToUUIDMap
         auto pathIt = m_PathToUUIDMap.find(zibraVDBPath);
         if (pathIt == m_PathToUUIDMap.end())
         {
