@@ -7,6 +7,7 @@
 #include "bridge/UpdateCheck.h"
 #include "licensing/HoudiniLicenseManager.h"
 #include "utils/Helpers.h"
+#include "analytics/Analytics.h"
 
 namespace Zibra
 {
@@ -35,6 +36,7 @@ namespace Zibra
         void HandleSetLicenseKey(UI_Event* event);
         void HandleSetOfflineLicense(UI_Event* event);
         void HandleSetLicenseServer(UI_Event* event);
+        void HandleOpenAnalyticsSettings(UI_Event* event);
         void HandleRetryLicenseCheck(UI_Event* event);
         void HandleRemoveLicense(UI_Event* event);
         void HandleCopyLicenseToHSITE(UI_Event* event);
@@ -111,6 +113,8 @@ namespace Zibra
             ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleSetOfflineLicense));
         getValueSymbol("set_license_server.val")
             ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleSetLicenseServer));
+        getValueSymbol("open_analytics_settings.val")
+            ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleOpenAnalyticsSettings));
         getValueSymbol("retry_license_check.val")
             ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleRetryLicenseCheck));
         getValueSymbol("remove_license.val")
@@ -361,6 +365,33 @@ namespace Zibra
         HoudiniLicenseManager::GetInstance().SetLicenseServer(offlineLicense);
         HoudiniLicenseManager::GetInstance().CheckoutLicense();
         UpdateUI();
+    }
+
+    void PluginManagementWindowImpl::HandleOpenAnalyticsSettings(UI_Event* event)
+    {
+        auto& analyticsManager = Analytics::AnalyticsManager::GetInstance();
+
+        if (!HoudiniLicenseManager::GetInstance().IsAnyLicenseValid())
+        {
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Analytics can not be enabled without active license.");
+            return;
+        }
+
+        if (!analyticsManager.IsLicenseKeyAvailable())
+        {
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Analytics can not be enabled if activation method other than License Key was used.");
+            return;
+        }
+
+        if (!analyticsManager.IsAnalyticsAllowedByLicense())
+        {
+            std::string errorMessage = std::string("Analytics can only be enabled when using Free license. Current license type is: ") +
+                                       HoudiniLicenseManager::GetInstance().GetLicenseType() + ".";
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, errorMessage.c_str());
+            return;
+        }
+
+        analyticsManager.ShowAnalyticsPrompt();
     }
 
     void PluginManagementWindowImpl::HandleRetryLicenseCheck(UI_Event* event)

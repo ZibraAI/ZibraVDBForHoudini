@@ -4,6 +4,7 @@
 
 #include <Zibra/CE/Literals.h>
 
+#include "analytics/Analytics.h"
 #include "bridge/LibraryUtils.h"
 #include "utils/Helpers.h"
 
@@ -204,12 +205,14 @@ namespace Zibra::Helpers
                                                 std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridShuffle,
                                                 openvdb::GridPtrVec* vdbGrids) noexcept
     {
+        Analytics::AnalyticsManager::GetInstance().SendEventUsage();
+
         if (!m_RHIRuntime || !m_Decompressor)
         {
             assert(0);
             return RESULT_UNEXPECTED_ERROR;
         }
-        // m_RHIRuntime->StartFrameCapture("test");
+
         auto res = m_RHIRuntime->StartRecording();
         if (ZIB_FAILED(res))
         {
@@ -278,7 +281,6 @@ namespace Zibra::Helpers
             encoder.EncodeChunk(fData, fFeedback.spatialBlockCount, fFeedback.firstChannelBlockIndex);
         }
         res = m_RHIRuntime->StopRecording();
-        // m_RHIRuntime->StopFrameCapture();
         if (ZIB_FAILED(res))
         {
             return res;

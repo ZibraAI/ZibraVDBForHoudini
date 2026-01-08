@@ -5,6 +5,7 @@
 #include <chrono>
 #include <climits>
 #include <cmath>
+#include <condition_variable>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -14,6 +15,7 @@
 #include <map>
 #include <mutex>
 #include <optional>
+#include <queue>
 #include <regex>
 #include <set>
 #include <sstream>
@@ -42,6 +44,7 @@
 #include <GEO/GEO_PrimPoly.h>
 #include <GU/GU_Detail.h>
 #include <GU/GU_PrimVDB.h>
+#include <HAPI/HAPI.h>
 #include <OP/OP_AutoLockInputs.h>
 #include <OP/OP_Director.h>
 #include <OP/OP_Operator.h>
@@ -67,6 +70,7 @@
 #include <UT/UT_JSONValueMap.h>
 #include <UT/UT_OFStream.h>
 #include <UT/UT_StringHolder.h>
+#include <UT/UT_Version.h>
 
 // OpenVDB includes
 #include <openvdb/io/Stream.h>
@@ -107,6 +111,7 @@
 #elif ZIB_TARGET_OS_MAC
 #include <curl/curl.h>
 #include <dlfcn.h>
+#include <sys/sysctl.h>
 #include <sys/xattr.h>
 #else
 #error Unexpected OS

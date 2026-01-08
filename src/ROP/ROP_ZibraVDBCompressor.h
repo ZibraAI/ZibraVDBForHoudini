@@ -3,6 +3,7 @@
 #include <Zibra/CE/Addons/OpenVDBCommon.h>
 
 #include "OStreamRAMWrapper.h"
+#include "analytics/Analytics.h"
 
 namespace Zibra::ZibraVDBCompressor
 {
@@ -73,7 +74,7 @@ namespace Zibra::ZibraVDBCompressor
         static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate) noexcept;
 
         ROP_RENDER_CODE CreateCompressor(const OP_Context& ctx) noexcept;
-        Result InitCompressor(float defaultQuality, const std::vector<std::pair<UT_String, float>>& perChannelSettings) noexcept;
+        Result InitCompressor() noexcept;
         Result CompressFrame(const CE::Compression::SparseFrame& desc, CE::Compression::FrameManager** outManager) noexcept;
         Result MergeSequence(std::filesystem::path outPath) noexcept;
 
@@ -90,7 +91,13 @@ namespace Zibra::ZibraVDBCompressor
 
         std::map<int32_t, OStreamRAMWrapper*> m_BakedFrames{};
 
+        float m_Quality = 0.0f;
+        std::vector<std::pair<UT_String, float>> m_PerChannelCompressionSettings;
         CE::Compression::Compressor* m_Compressor = nullptr;
         RHI::RHIRuntime* m_RHIRuntime = nullptr;
+
+        int m_FrameCount = 0;
+        std::chrono::system_clock::time_point m_CompressionStartTime;
+        std::array<uint32_t, 3> m_Resolution;
     };
 } // namespace Zibra::ZibraVDBCompressor

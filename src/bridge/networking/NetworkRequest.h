@@ -1,13 +1,38 @@
 #pragma once
 
+#include <string>
+#include <utility>
+#include <vector>
+
 namespace Zibra::NetworkRequest
 {
-    // Performs GET request
-    // Returns response as string
-    std::string Get(const std::string& url);
+    enum class Method
+    {
+        GET,
+        POST
+    };
 
-    // Performs GET request
-    // Saves response to file
-    // creating folder structure if necessary
-    bool DownloadFile(const std::string& url, const std::string& filepath);
+    struct Request
+    {
+        Method method;
+        std::string URL;
+        std::string userAgent;
+        std::string acceptTypes;
+        // Only used for POST/PUT requests
+        std::string contentType;
+        std::vector<std::pair<std::string, std::string>> additionalHeaders;
+        // Only used for POST/PUT requests
+        std::vector<char> data;
+    };
+
+    struct Response
+    {
+        bool success = false;
+        std::string errorMessage;
+        int statusCode = 0;
+        std::vector<std::pair<std::string, std::string>> headers;
+        std::vector<char> data;
+    };
+
+    Response Perform(const Request& request);
 } // namespace Zibra::NetworkRequest

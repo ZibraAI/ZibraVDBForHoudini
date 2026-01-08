@@ -93,7 +93,11 @@ configure_file(src/Globals.h.in src/Globals.h @ONLY)
 set(HeaderFiles
     src/PrecompiledHeader.h
     src/Globals.h.in
+    src/analytics/Analytics.h
+    src/analytics/OSInfo.h
     src/bridge/networking/NetworkRequest.h
+    src/bridge/networking/CURLBackend.h
+    src/bridge/networking/WinHTTPBackend.h
     src/bridge/LibraryUtils.h
     src/bridge/UpdateCheck.h
     src/SOP/DecompressorManager/DecompressorManager.h
@@ -111,7 +115,11 @@ set(HeaderFiles
 
 set(SourceFiles
     src/main.cpp
+    src/analytics/Analytics.cpp
+    src/analytics/OSInfo.cpp
     src/bridge/networking/NetworkRequest.cpp
+    src/bridge/networking/CURLBackend.cpp
+    src/bridge/networking/WinHTTPBackend.cpp
     src/bridge/LibraryUtils.cpp
     src/bridge/UpdateCheck.cpp
     src/SOP/DecompressorManager/DecompressorManager.cpp

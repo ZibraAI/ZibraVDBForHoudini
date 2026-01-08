@@ -6,6 +6,7 @@
 #include "bridge/LibraryUtils.h"
 #include "ui/MessageBox.h"
 #include "utils/Helpers.h"
+#include "analytics/Analytics.h"
 
 namespace Zibra
 {
@@ -36,6 +37,23 @@ namespace Zibra
         return m_Status[size_t(product)];
     }
 
+    int HoudiniLicenseManager::GetLicenseTier() const
+    {
+        if (!IsLicenseManagerLoaded())
+        {
+            return -1;
+        }
+
+        for (size_t i = 0; i < size_t(Product::Count); ++i)
+        {
+            if (m_Status[i] == Status::OK)
+            {
+                return GetLicenseTier(Product(i));
+            }
+        }
+        return -1;
+    }
+
     int HoudiniLicenseManager::GetLicenseTier(Product product) const
     {
         if (!IsLicenseManagerLoaded())
@@ -49,6 +67,24 @@ namespace Zibra
         }
 
         return -1;
+    }
+
+    const char* HoudiniLicenseManager::GetLicenseType() const
+    {
+        if (!IsLicenseManagerLoaded())
+        {
+            return "None";
+        }
+
+        for (size_t i = 0; i < size_t(Product::Count); ++i)
+        {
+            if (m_Status[i] == Status::OK)
+            {
+                return GetLicenseType(Product(i));
+            }
+        }
+
+        return "None";
     }
 
     const char* HoudiniLicenseManager::GetLicenseType(Product product) const
@@ -96,6 +132,7 @@ namespace Zibra
                 Status newStatus = TryCheckoutLicense(i, j);
                 if (newStatus == Status::OK)
                 {
+                    LicenseActivationCallback();
                     return;
                 }
 
@@ -356,6 +393,16 @@ namespace Zibra
         return m_ActivationError;
     }
 
+    std::string HoudiniLicenseManager::GetHardwareID()
+    {
+        if (!IsLicenseManagerLoaded())
+        {
+            return {};
+        }
+
+        return m_Manager->GetHardwareID();
+    }
+
     bool HoudiniLicenseManager::LoadLicenseManager()
     {
         if (m_Manager != nullptr)
@@ -376,6 +423,15 @@ namespace Zibra
     bool HoudiniLicenseManager::IsLicenseManagerLoaded() const
     {
         return m_Manager != nullptr;
+    }
+
+    void HoudiniLicenseManager::LicenseActivationCallback() const
+    {
+        auto& analyticsManager = Analytics::AnalyticsManager::GetInstance();
+        if (analyticsManager.IsNeedShowPrompt())
+        {
+            analyticsManager.ShowAnalyticsPrompt();
+        }
     }
 
     std::string HoudiniLicenseManager::SanitizePath(const std::string& path)
