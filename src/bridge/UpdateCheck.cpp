@@ -90,18 +90,24 @@ namespace Zibra::UpdateCheck
     {
         // Get the current version of the application
         LibraryUtils::Version currentVersion = LibraryUtils::GetLibraryVersion();
-        // Get the latest version via web request
-        std::string latestVersionJson = NetworkRequest::Get(
-            "https://generation.zibra.ai/api/pluginVersion?effect=zibravdb_" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING
-            "&engine=houdini&sku=pro");
 
-        if (latestVersionJson.empty())
+        // Get the latest version via web request
+        NetworkRequest::Request request = {};
+        request.method = NetworkRequest::Method::GET;
+        request.URL = "https://generation.zibra.ai/api/pluginVersion?effect=zibravdb_" ZIB_COMPRESSION_ENGINE_BRIDGE_VERSION_STRING
+                      "&engine=houdini&sku=pro";
+        request.userAgent = std::string("ZibraVDBForHoudini/") + ZIBRAVDB_VERSION;
+        request.acceptTypes = "application/json";
+
+        NetworkRequest::Response response = NetworkRequest::Perform(request);
+
+        if (!response.success || response.data.empty())
         {
             return Status::UpdateCheckFailed;
         }
 
-        // Parse latestVersion as JSON
-        UT_IStream jsonStream(latestVersionJson.data(), latestVersionJson.size(), UT_ISTREAM_ASCII);
+        // Parse response as JSON
+        UT_IStream jsonStream(response.data.data(), response.data.size(), UT_ISTREAM_ASCII);
         ZibraJsonVersionHandle latestVersionJsonHandler;
 
         UT_JSONParser parser;

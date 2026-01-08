@@ -1,9 +1,10 @@
 #pragma once
 
+#include <Zibra/CE/Decompression.h>
 #include <algorithm>
 #include <cstdint>
 #include <execution>
-#include <Zibra/CE/Decompression.h>
+#include <map>
 #include <openvdb/tools/Dense.h>
 
 #include "OpenVDBCommon.h"
@@ -30,7 +31,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         struct GridIntermediate
         {
             GridVoxelType voxelType;
-            Math3D::Transform transform;
+            Math::Transform transform;
             std::map<openvdb::Coord, LeafIntermediate> leafs;
         };
         struct VDBGridDescRef
@@ -40,8 +41,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         };
 
     public:
-        explicit FrameEncoder(const VDBGridDesc* gridsDescs, size_t gridsCount, const Decompression::FrameInfo& fInfo,
-                              const EncodingMetadata* encodingMetadata = nullptr) noexcept
+        explicit FrameEncoder(const VDBGridDesc* gridsDescs, size_t gridsCount, const FrameInfo& fInfo) noexcept
             : m_FrameInfo(fInfo)
         {
             m_GridDescs.insert(m_GridDescs.begin(), gridsDescs, gridsDescs + gridsCount);
@@ -66,21 +66,11 @@ namespace Zibra::CE::Addons::OpenVDBUtils
 
             for (size_t i = 0; i < m_FrameInfo.channelsCount; ++i)
             {
-                auto& frameInfo = m_FrameInfo.channels[i];
                 m_ChNameToChInfo[m_FrameInfo.channels[i].name] = &m_FrameInfo.channels[i];
-                if (encodingMetadata != nullptr)
-                {
-                    int offsetX = encodingMetadata->offsetX;
-                    int offsetY = encodingMetadata->offsetY;
-                    int offsetZ = encodingMetadata->offsetZ;
-                    frameInfo.gridTransform =
-                        Math3D::Transform::Translation(Math3D::float3(-offsetX, -offsetY, -offsetZ)) * frameInfo.gridTransform;
-                }
             }
         }
 
-        void EncodeChunk(const FrameData& fData, size_t spatialBlocksCount, size_t chunkChBlocksFirstIndex,
-                         const EncodingMetadata* encodingMetadata = nullptr) noexcept
+        void EncodeChunk(const FrameData& fData, size_t spatialBlocksCount, size_t chunkChBlocksFirstIndex) noexcept
         {
             using PackedSpatialBlockInfo = Decompression::Shaders::PackedSpatialBlockInfo;
 
@@ -88,24 +78,15 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             const auto* packedSpatialInfo = static_cast<const PackedSpatialBlockInfo*>(fData.decompressionPerSpatialBlockInfo);
             const auto* channelBlocksSrc = static_cast<const ChannelBlockF16Mem*>(fData.decompressionPerChannelBlockData);
 
-            int offsetX = 0;
-            int offsetY = 0;
-            int offsetZ = 0;
-            if (encodingMetadata != nullptr)
-            {
-                offsetX = encodingMetadata->offsetX / SPARSE_BLOCK_SIZE;
-                offsetY = encodingMetadata->offsetY / SPARSE_BLOCK_SIZE;
-                offsetZ = encodingMetadata->offsetZ / SPARSE_BLOCK_SIZE;
-            }
-
             for (size_t spatialIdx = 0; spatialIdx < spatialBlocksCount; ++spatialIdx)
             {
                 size_t localChannelBlockIdx = 0;
                 for (size_t i = 0; i < MAX_CHANNEL_COUNT; ++i)
                 {
                     const auto& curSpatialInfo = Decompression::UnpackPackedSpatialBlockInfo(packedSpatialInfo[spatialIdx]);
-                    openvdb::Coord blockCoord{curSpatialInfo.coords[0] + offsetX, curSpatialInfo.coords[1] + offsetY,
-                                              curSpatialInfo.coords[2] + offsetZ};
+                    openvdb::Coord blockCoord{curSpatialInfo.coords[0] + m_FrameInfo.aabb.minX,
+                                              curSpatialInfo.coords[1] + m_FrameInfo.aabb.minY,
+                                              curSpatialInfo.coords[2] + m_FrameInfo.aabb.minZ};
                     if (curSpatialInfo.channelMask & (1 << i))
                     {
                         const char* chName = m_FrameInfo.channels[i].name;
@@ -113,13 +94,14 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                         auto gridRefIt = m_ChNameToGridDescs.find(chName);
                         if (gridRefIt != m_ChNameToGridDescs.end())
                         {
-                            const Decompression::ChannelInfo& chInfo = *m_ChNameToChInfo[chName];
+                            const ChannelInfo& channelInfo = *m_ChNameToChInfo[chName];
                             for (const VDBGridDescRef& gridRef : gridRefIt->second)
                             {
                                 const char* targetGridName = gridRef.desc->gridName;
 
                                 // Find grid intermediate by name or create empty if it is absent
-                                const auto gridIntermediateToCreate = GridIntermediate{gridRef.desc->voxelType, chInfo.gridTransform, {}};
+                                const auto gridIntermediateToCreate =
+                                    GridIntermediate{gridRef.desc->voxelType, channelInfo.gridTransform, {}};
                                 auto gridIntermediateIt = gridsIntermediate.find(targetGridName);
                                 if (gridIntermediateIt == gridsIntermediate.end())
                                     gridIntermediateIt = gridsIntermediate.insert({targetGridName, gridIntermediateToCreate}).first;
@@ -139,28 +121,28 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             }
 
             std::for_each(
-                #if !ZIB_TARGET_OS_MAC
-                std::execution::par_unseq, 
-                #endif
+#if !ZIB_TARGET_OS_MAC
+                std::execution::par_unseq,
+#endif
                 gridsIntermediate.begin(), gridsIntermediate.end(), [&](auto& gridIt) {
-                auto outGridIt = m_Grids.find(gridIt.first);
-                if (outGridIt == m_Grids.end())
-                    outGridIt = m_Grids.insert({gridIt.first, nullptr}).first;
+                    auto outGridIt = m_Grids.find(gridIt.first);
+                    if (outGridIt == m_Grids.end())
+                        outGridIt = m_Grids.insert({gridIt.first, nullptr}).first;
 
-                switch (gridIt.second.voxelType)
-                {
-                case GridVoxelType::Float1: {
-                    ConstructGrid<openvdb::FloatGrid>(gridIt.second, &outGridIt->second);
-                    break;
-                }
-                case GridVoxelType::Float3: {
-                    ConstructGrid<openvdb::Vec3fGrid>(gridIt.second, &outGridIt->second);
-                    break;
-                }
-                default:
-                    assert(0 && "Unsupported grid voxel type");
-                }
-            });
+                    switch (gridIt.second.voxelType)
+                    {
+                    case GridVoxelType::Float1: {
+                        ConstructGrid<openvdb::FloatGrid>(gridIt.second, &outGridIt->second);
+                        break;
+                    }
+                    case GridVoxelType::Float3: {
+                        ConstructGrid<openvdb::Vec3fGrid>(gridIt.second, &outGridIt->second);
+                        break;
+                    }
+                    default:
+                        assert(0 && "Unsupported grid voxel type");
+                    }
+                });
         }
 
         openvdb::GridPtrVec GetGrids() noexcept
@@ -174,8 +156,9 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             }
             return result;
         }
+
     private:
-        template<typename GridT>
+        template <typename GridT>
         void ConstructGrid(const GridIntermediate& gridIntermediate, openvdb::GridBase::Ptr* inoutGrid) noexcept
         {
             auto inoutGridTyped = *inoutGrid ? openvdb::gridPtrCast<GridT>(*inoutGrid) : GridT::create();
@@ -187,21 +170,21 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             std::mutex gridAccessMutex{};
             const auto& leafIntermediates = gridIntermediate.leafs;
             std::for_each(
-                #if !ZIB_TARGET_OS_MAC
-                std::execution::par_unseq, 
-                #endif
+#if !ZIB_TARGET_OS_MAC
+                std::execution::par_unseq,
+#endif
                 leafIntermediates.begin(), leafIntermediates.end(), [&](auto leafIt) {
-                using TreeT = typename GridT::TreeType;
-                using LeafT = typename TreeT::LeafNodeType;
-                LeafT* leaf = ConstructLeaf<LeafT>(leafIt.first, leafIt.second, gridIntermediate.voxelType);
+                    using TreeT = typename GridT::TreeType;
+                    using LeafT = typename TreeT::LeafNodeType;
+                    LeafT* leaf = ConstructLeaf<LeafT>(leafIt.first, leafIt.second, gridIntermediate.voxelType);
 
-                std::lock_guard guard{gridAccessMutex};
-                inoutGridTyped->tree().addLeaf(leaf);
-            });
+                    std::lock_guard guard{gridAccessMutex};
+                    inoutGridTyped->tree().addLeaf(leaf);
+                });
             *inoutGrid = inoutGridTyped;
         }
 
-        template<typename LeafT>
+        template <typename LeafT>
         LeafT* ConstructLeaf(const openvdb::Coord& leafCoord, const LeafIntermediate& leafIntermediate, GridVoxelType voxelType) noexcept
         {
             const openvdb::Coord blockMin = {leafCoord.x() * SPARSE_BLOCK_SIZE, leafCoord.y() * SPARSE_BLOCK_SIZE,
@@ -248,12 +231,12 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 chIt = chNameToGridDescs.insert({gridDesc.chSource[chSrcIdx], {}}).first;
             chIt->second.push_back(VDBGridDescRef{&gridDesc, chSrcIdx});
         }
-        static openvdb::math::Transform::Ptr SanitizeTransform(const Math3D::Transform& inTransform) noexcept
+        static openvdb::math::Transform::Ptr SanitizeTransform(const Math::Transform& inTransform) noexcept
         {
             bool isEmpty = true;
             for (float value : inTransform.raw)
             {
-                if (!Math3D::IsNearlyEqual(value, 0.0f))
+                if (!Math::IsNearlyEqual(value, 0.0f))
                 {
                     isEmpty = false;
                     break;
@@ -265,11 +248,12 @@ namespace Zibra::CE::Addons::OpenVDBUtils
 
             return openvdb::math::Transform::createLinearTransform(openvdb::Mat4d{inTransform.raw});
         }
+
     private:
         std::vector<VDBGridDesc> m_GridDescs{};
-        Decompression::FrameInfo m_FrameInfo{};
+        FrameInfo m_FrameInfo{};
         std::map<std::string, std::vector<VDBGridDescRef>> m_ChNameToGridDescs{};
-        std::map<std::string, const Decompression::ChannelInfo*> m_ChNameToChInfo{};
+        std::map<std::string, const ChannelInfo*> m_ChNameToChInfo{};
 
         std::map<std::string, openvdb::GridBase::Ptr> m_Grids{};
     };

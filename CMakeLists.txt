@@ -93,13 +93,17 @@ configure_file(src/Globals.h.in src/Globals.h @ONLY)
 set(HeaderFiles
     src/PrecompiledHeader.h
     src/Globals.h.in
+    src/analytics/Analytics.h
+    src/analytics/OSInfo.h
     src/bridge/networking/NetworkRequest.h
+    src/bridge/networking/CURLBackend.h
+    src/bridge/networking/WinHTTPBackend.h
     src/bridge/LibraryUtils.h
     src/bridge/UpdateCheck.h
-    src/ROP/CompressorManager/CompressorManager.h
     src/SOP/DecompressorManager/DecompressorManager.h
-    src/licensing/LicenseManager.h
+    src/licensing/HoudiniLicenseManager.h
     src/ROP/ROP_ZibraVDBCompressor.h
+    src/ROP/ROP_InspectVolume.h
     src/SOP/SOP_ZibraVDBDecompressor.h
     src/ui/MessageBox.h
     src/ui/PluginManagementWindow.h
@@ -111,13 +115,17 @@ set(HeaderFiles
 
 set(SourceFiles
     src/main.cpp
+    src/analytics/Analytics.cpp
+    src/analytics/OSInfo.cpp
     src/bridge/networking/NetworkRequest.cpp
+    src/bridge/networking/CURLBackend.cpp
+    src/bridge/networking/WinHTTPBackend.cpp
     src/bridge/LibraryUtils.cpp
     src/bridge/UpdateCheck.cpp
-    src/ROP/CompressorManager/CompressorManager.cpp
     src/SOP/DecompressorManager/DecompressorManager.cpp
-    src/licensing/LicenseManager.cpp
+    src/licensing/HoudiniLicenseManager.cpp
     src/ROP/ROP_ZibraVDBCompressor.cpp
+    src/ROP/ROP_InspectVolume.cpp
     src/SOP/SOP_ZibraVDBDecompressor.cpp
     src/ui/MessageBox.cpp
     src/ui/PluginManagementWindow.cpp
@@ -133,7 +141,12 @@ target_include_directories(ZibraVDBForHoudini
 target_precompile_headers(ZibraVDBForHoudini PRIVATE src/PrecompiledHeader.h)
 target_compile_definitions(ZibraVDBForHoudini PRIVATE 
     ZIB_NETWORK_REQUEST_BACKEND_${ZIB_NETWORK_REQUEST_BACKEND}=1
-    ZIB_TARGET_OS_${ZIB_TARGET_OS_NAME}=1)
+    ZIB_TARGET_OS_${ZIB_TARGET_OS_NAME}=1
+    $<$<CONFIG:Debug>:ZIB_ENABLE_DEBUG_NODES>)
+
+if(${LABS_BUILD})
+    target_compile_definitions(ZibraVDBForHoudini PRIVATE LABS_BUILD)
+endif()
 
 if(${LABS_BUILD})
     target_compile_definitions(ZibraVDBForHoudini PRIVATE LABS_BUILD)

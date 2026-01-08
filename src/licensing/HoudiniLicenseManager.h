@@ -4,7 +4,7 @@
 
 namespace Zibra
 {
-    class LicenseManager
+    class HoudiniLicenseManager
     {
     public:
         // Must match list of products in ZibraVDB SDK
@@ -51,11 +51,13 @@ namespace Zibra
         };
 
         // Singleton
-        static LicenseManager& GetInstance();
+        static HoudiniLicenseManager& GetInstance();
 
         bool IsAnyLicenseValid() const;
         Status GetLicenseStatus(Product product) const;
+        int GetLicenseTier() const;
         int GetLicenseTier(Product product) const;
+        const char* GetLicenseType() const;
         const char* GetLicenseType(Product product) const;
         ActivationType GetActivationType() const;
         LicensePathType GetLicensePathType() const;
@@ -78,11 +80,14 @@ namespace Zibra
         bool CheckLicense(Product product);
         const std::string& GetActivationError() const;
 
+        std::string GetHardwareID();
+
     private:
         static const char* const ms_DefaultLicenseKeyFileName;
         static const char* const ms_DefaultOfflineLicenseFileName;
         static const char* const ms_DefaultLicenseServerFileName;
 
+        CE::Licensing::LicenseManager* m_Manager = nullptr;
         Status m_Status[size_t(Product::Count)] = {Status::Uninitialized, Status::Uninitialized};
         std::string m_ActivationError;
         ActivationType m_Type = ActivationType::None;
@@ -91,6 +96,11 @@ namespace Zibra
         std::string m_LicenseKey;
         std::string m_OfflineLicense;
         std::string m_LicenseServerAddress;
+
+        bool LoadLicenseManager();
+        bool IsLicenseManagerLoaded() const;
+
+        void LicenseActivationCallback() const;
 
         static std::string SanitizePath(const std::string& path);
         static std::string SanitizeKey(const std::string& key);
