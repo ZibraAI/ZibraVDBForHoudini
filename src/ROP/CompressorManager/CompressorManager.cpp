@@ -2,15 +2,12 @@
 
 #include "CompressorManager.h"
 
-#include "bridge/LibraryUtils.h"
-#include "utils/Helpers.h"
-
 namespace Zibra::CE::Compression
 {
     ReturnCode CompressorManager::Initialize(FrameMappingDecs frameMappingDesc, float defaultQuality,
                                              const std::vector<std::pair<UT_String, float>>& perChannelCompressionSettings) noexcept
     {
-        if (!Zibra::LibraryUtils::IsLibraryLoaded())
+        if (!Zibra::LibraryUtils::TryLoadLibrary())
         {
             return CE::ZCE_ERROR;
         }

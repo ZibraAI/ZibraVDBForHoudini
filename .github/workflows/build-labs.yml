@@ -12,13 +12,14 @@ jobs:
     outputs:
       # Legend
       # name - Human readable OS/Arch name. Version is appended separately.
-      # run-on-all-branches - Whether to run this target on all branches. If false, will only run on main
+      # os - Runner OS. Used for workflow logic.
       # runner - Github actions runner that should run the job
       # generator - Generator used for cmake configuration
       # houdini-version - Version of houdini to build against (e.g. "20.5"/"21.0")
       # houdini-build - Specific build of houdini to build against (e.g. "440")
       # houdini-install-path - Path into which houdini gets installed. This needs to be consistent with houdini install script, as it calculates path for previous version when removing it. On Windows it MUST USE BACKSLASHES.
       # hfs-path - Path to use HFS env var to. This is same as houdini-install-path on most platforms, but macOS is special and required additional suffix after houdini-install-path.
+      # python-version - Python version to install (e.g. "3.11"). Only used on Windows right now.
       # python-command - Python command to use for running scripts (e.g. "python"/"python3")
       # python-venv-activate-path - Path to powershell python venv activation script within venv folder
       # additional-config-args - Additional commad line args to pass to cmake configuration. Required on macOS to specify architectrue (arm64/x64)
@@ -53,6 +54,17 @@ jobs:
     steps:
       - name: Sync
         uses: actions/checkout@v4
+
+      - name: Install python
+        if: ${{ matrix.os == 'windows' }}
+        shell: pwsh
+        run: |
+          winget install Python.Python.${{ matrix.python-version }} -e -s winget --custom Include_debug=1
+          if ($LASTEXITCODE -eq -1978335189) # APPINSTALLER_CLI_ERROR_UPDATE_NOT_APPLICABLE
+          {
+            # If Python is already installed, report success
+            exit 0
+          }
 
       - name: Check if Houdini is installed
         id: install-check
