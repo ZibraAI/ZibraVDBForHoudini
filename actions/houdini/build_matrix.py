@@ -30,8 +30,8 @@ def windows_x64_entry(version, build):
                "houdini-platform": "win64-vc143",
                "houdini-install-path": f"C:\\Houdini\\{version}.{build}",
                "hfs-path": f"C:\\Houdini\\{version}.{build}",
+               "python-version": "3.11",
                "python-command": "python",
-               "python-version": "3.10",
                "python-venv-activate-path": "Scripts/Activate.ps1",
                "additional-config-args": None
            }
@@ -51,6 +51,7 @@ def linux_x64_entry(version, build):
                "houdini-platform": "linux_x86_64_gcc11.2",
                "houdini-install-path": f"/opt/hfs{version}.{build}",
                "hfs-path": f"/opt/hfs{version}.{build}",
+               "python-version": "3.11",
                "python-command": "python3",
                "python-venv-activate-path": "bin/Activate.ps1",
                "additional-config-args": None
@@ -71,6 +72,7 @@ def macos_arm64_entry(version, build):
                "houdini-platform": "macosx_arm64",
                "houdini-install-path": f"/Applications/Houdini/Houdini{version}.{build}",
                "hfs-path": f"/Applications/Houdini/Houdini{version}.{build}/Frameworks/Houdini.framework/Versions/Current/Resources",
+               "python-version": "3.11",
                "python-command": "python3",
                "python-venv-activate-path": "bin/Activate.ps1",
                "additional-config-args": "-DCMAKE_OSX_ARCHITECTURES=arm64"
