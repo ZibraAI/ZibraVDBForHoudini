@@ -20,7 +20,7 @@ on:
 jobs:
   check:
     name: Query available Houdini versions
-    runs-on: [self-hosted, Linux, X64, houdini]
+    runs-on: [self-hosted, Linux, X64]
 
     steps:
       - name: Perform query
