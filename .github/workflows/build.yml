@@ -76,7 +76,9 @@ jobs:
       - name: Install python
         if: ${{ matrix.os == 'windows' }}
         shell: pwsh
-        run: winget install Python.Python.${{ matrix.python-version }} -e -s winget --custom Include_debug=1
+        run: |
+          winget install Python.Python.${{ matrix.python-version }} -e -s winget --custom Include_debug=1
+          if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne -1978335189) { exit $LASTEXITCODE }
 
       - name: Check if Houdini is installed
         id: install-check
