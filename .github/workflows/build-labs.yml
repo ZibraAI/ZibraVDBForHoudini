@@ -59,8 +59,17 @@ jobs:
         if: ${{ matrix.os == 'windows' }}
         shell: pwsh
         run: |
-          winget install Python.Python.${{ matrix.python-version }} -e -s winget --custom Include_debug=1
-          if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne -1978335189) { exit $LASTEXITCODE }
+          $installed = winget list --id Python.Python.${{ matrix.python-version }} -e 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Python ${{ matrix.python-version }} is already installed, skipping installation"
+          } else {
+            Write-Host "Installing Python ${{ matrix.python-version }}..."
+            winget install Python.Python.${{ matrix.python-version }} -e -s winget --custom Include_debug=1
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "Failed to install Python ${{ matrix.python-version }}"
+              exit $LASTEXITCODE
+            }
+          }
 
       - name: Check if Houdini is installed
         id: install-check
