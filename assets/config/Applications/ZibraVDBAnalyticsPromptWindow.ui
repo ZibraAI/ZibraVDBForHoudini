@@ -1,0 +1,19 @@
+analytics_enabled.val := 0;
+
+window.gad = NORMAL_WINDOW "ZibraVDB Analytics"
+{
+    LAYOUT(vertical) WIDTH(6) MARGIN(0.2) SPACING(0.1) LOOK(plain)
+    VALUE(window.val)
+
+    LABEL "Allow ZibraVDB to gather usage analytics that will be used to help us improve product."  WIDTH(5.6);
+    LABEL "For more info visit https://www.zibra.ai/privacy-policy"  WIDTH(5.6);
+
+    SEPARATOR;
+
+    RADIO_BUTTON "Enable Analytics" SENDS(0) VALUE(analytics_enabled.val);
+    RADIO_BUTTON "Disable Analytics" SENDS(1) VALUE(analytics_enabled.val);
+
+    SEPARATOR;
+
+    ACTION_BUTTON "OK" VALUE(ok_button.val) WIDTH(1);
+}

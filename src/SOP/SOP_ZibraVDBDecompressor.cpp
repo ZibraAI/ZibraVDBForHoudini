@@ -3,7 +3,7 @@
 #include "SOP_ZibraVDBDecompressor.h"
 
 #include "bridge/LibraryUtils.h"
-#include "licensing/LicenseManager.h"
+#include "licensing/HoudiniLicenseManager.h"
 #include "ui/PluginManagementWindow.h"
 #include "utils/GAAttributesDump.h"
 
@@ -98,7 +98,7 @@ namespace Zibra::ZibraVDBDecompressor
 
         // License may or may not be required depending on .zibravdb file
         // So we need to trigger license check, but if it fails we proceed with decompression
-        LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Decompression);
+        HoudiniLicenseManager::GetInstance().CheckLicense(HoudiniLicenseManager::Product::Decompression);
 
         UT_String filename = "";
         evalString(filename, "filename", nullptr, 0, context.getTime());
@@ -116,47 +116,38 @@ namespace Zibra::ZibraVDBDecompressor
 
         m_DecompressorManager.Initialize();
 
-        auto status = m_DecompressorManager.RegisterDecompressor(filename);
-        if (status != CE::ZCE_SUCCESS)
+        Result res = m_DecompressorManager.RegisterDecompressor(filename);
+        if (ZIB_FAILED(res))
         {
-            std::string errorMessage = "Failed to initialize decompressor: " + LibraryUtils::ErrorCodeToString(status);
+            std::string errorMessage = "Failed to initialize decompressor: " + LibraryUtils::ErrorCodeToString(res);
             addError(SOP_MESSAGE, errorMessage.c_str());
             return error(context);
         }
 
         const exint frameIndex = evalInt(FRAME_PARAM_NAME, 0, context.getTime());
 
-        CompressedFrameContainer* frameContainer = nullptr;
-        FrameRange frameRange = m_DecompressorManager.GetFrameRange();
-
-        if (frameIndex < frameRange.start || frameIndex > frameRange.end)
+        auto [frameMemory, frameProxy] = m_DecompressorManager.FetchFrame(frameIndex);
+        if (frameMemory.size() == 0)
         {
             addWarning(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_FRAME_INDEX_OUT_OF_RANGE);
             return error(context);
         }
+        ZIB_ON_SCOPE_EXIT([&]() { frameProxy->Release(); free(frameMemory.data()); });
 
-        frameContainer = m_DecompressorManager.FetchFrame(frameIndex);
-        if (frameContainer->GetInfo().spatialBlockCount == 0)
+        if (frameProxy->GetInfo().spatialBlockCount == 0)
         {
-            frameContainer->Release();
             return error(context);
         }
 
-        if (frameContainer == nullptr)
-        {
-            addError(SOP_MESSAGE, "Error when trying to fetch frame.");
-            return error(context);
-        }
-
-        auto gridShuffle = DeserializeGridShuffleInfo(frameContainer);
+        auto gridShuffle = DeserializeGridShuffleInfo(frameProxy);
 
         openvdb::GridPtrVec vdbGrids = {};
-        status = m_DecompressorManager.DecompressFrame(frameContainer, gridShuffle, &vdbGrids);
+        res = m_DecompressorManager.DecompressFrame(frameMemory, frameProxy, gridShuffle, &vdbGrids);
         ReleaseGridShuffleInfo(gridShuffle);
-        if (status != CE::ZCE_SUCCESS)
+        if (ZIB_FAILED(res))
         {
-            frameContainer->Release();
-            addError(SOP_MESSAGE, "Error when trying to decompress frame.");
+            std::string errorMessage = "Failed to decompress frame: " + LibraryUtils::ErrorCodeToString(res);
+            addError(SOP_MESSAGE, errorMessage.c_str());
             return error(context);
         }
 
@@ -168,20 +159,16 @@ namespace Zibra::ZibraVDBDecompressor
 
             if (!grid)
             {
-                addError(SOP_MESSAGE, ("Failed to decompress channel: "s + frameContainer->GetInfo().channels[i].name).c_str());
+                addError(SOP_MESSAGE, ("Failed to decompress channel: "s + frameProxy->GetInfo().channels[i].name).c_str());
                 continue;
             }
 
-            GU_PrimVDB* vdbPrim = GU_PrimVDB::build(gdp);
+            GU_PrimVDB* vdbPrim = GU_PrimVDB::buildFromGrid(*gdp, grid);
             nameAttr.set(vdbPrim->getMapOffset(), grid->getName());
-            vdbPrim->setGrid(*grid);
-
-            ApplyGridMetadata(vdbPrim, frameContainer);
+            ApplyGridMetadata(vdbPrim, frameProxy);
         }
 
-        ApplyDetailMetadata(gdp, frameContainer);
-
-        frameContainer->Release();
+        ApplyDetailMetadata(gdp, frameProxy);
 
         return error(context);
     }
@@ -192,18 +179,18 @@ namespace Zibra::ZibraVDBDecompressor
         return 0;
     }
 
-    void SOP_ZibraVDBDecompressor::ApplyGridMetadata(GU_PrimVDB* vdbPrim, CompressedFrameContainer* const frameContainer)
+    void SOP_ZibraVDBDecompressor::ApplyGridMetadata(GU_PrimVDB* vdbPrim, FrameProxy* const frameProxy)
     {
-        ApplyGridAttributeMetadata(vdbPrim, frameContainer);
-        ApplyGridVisualizationMetadata(vdbPrim, frameContainer);
+        ApplyGridAttributeMetadata(vdbPrim, frameProxy);
+        ApplyGridVisualizationMetadata(vdbPrim, frameProxy);
     }
 
-    void SOP_ZibraVDBDecompressor::ApplyGridAttributeMetadata(GU_PrimVDB* vdbPrim, CompressedFrameContainer* const frameContainer)
+    void SOP_ZibraVDBDecompressor::ApplyGridAttributeMetadata(GU_PrimVDB* vdbPrim, FrameProxy* const frameProxy)
     {
         {
             const std::string attributeMetadataNameV2 = "houdiniPrimitiveAttributesV2_"s + vdbPrim->getGridName();
 
-            const char* metadataEntryV2 = frameContainer->GetMetadataByKey(attributeMetadataNameV2.c_str());
+            const char* metadataEntryV2 = frameProxy->GetMetadataByKey(attributeMetadataNameV2.c_str());
 
             if (metadataEntryV2)
             {
@@ -216,7 +203,7 @@ namespace Zibra::ZibraVDBDecompressor
         {
             const std::string attributeMetadataNameV1 = "houdiniPrimitiveAttributes_"s + vdbPrim->getGridName();
 
-            const char* metadataEntryV1 = frameContainer->GetMetadataByKey(attributeMetadataNameV1.c_str());
+            const char* metadataEntryV1 = frameProxy->GetMetadataByKey(attributeMetadataNameV1.c_str());
 
             if (metadataEntryV1)
             {
@@ -227,21 +214,21 @@ namespace Zibra::ZibraVDBDecompressor
         }
     }
 
-    void SOP_ZibraVDBDecompressor::ApplyGridVisualizationMetadata(GU_PrimVDB* vdbPrim, CompressedFrameContainer* const frameContainer)
+    void SOP_ZibraVDBDecompressor::ApplyGridVisualizationMetadata(GU_PrimVDB* vdbPrim, FrameProxy* const frameProxy)
     {
         const std::string keyPrefix = "houdiniVisualizationAttributes_"s + vdbPrim->getGridName();
 
         const std::string keyVisMode = keyPrefix + "_mode";
-        const char* visModeMetadata = frameContainer->GetMetadataByKey(keyVisMode.c_str());
+        const char* visModeMetadata = frameProxy->GetMetadataByKey(keyVisMode.c_str());
 
         const std::string keyVisIso = keyPrefix + "_iso";
-        const char* visIsoMetadata = frameContainer->GetMetadataByKey(keyVisIso.c_str());
+        const char* visIsoMetadata = frameProxy->GetMetadataByKey(keyVisIso.c_str());
 
         const std::string keyVisDensity = keyPrefix + "_density";
-        const char* visDensityMetadata = frameContainer->GetMetadataByKey(keyVisDensity.c_str());
+        const char* visDensityMetadata = frameProxy->GetMetadataByKey(keyVisDensity.c_str());
 
         const std::string keyVisLod = keyPrefix + "_lod";
-        const char* visLodMetadata = frameContainer->GetMetadataByKey(keyVisLod.c_str());
+        const char* visLodMetadata = frameProxy->GetMetadataByKey(keyVisLod.c_str());
 
         if (visModeMetadata && visIsoMetadata && visDensityMetadata && visLodMetadata)
         {
@@ -254,10 +241,10 @@ namespace Zibra::ZibraVDBDecompressor
         }
     }
 
-    void SOP_ZibraVDBDecompressor::ApplyDetailMetadata(GU_Detail* gdp, CompressedFrameContainer* const frameContainer)
+    void SOP_ZibraVDBDecompressor::ApplyDetailMetadata(GU_Detail* gdp, FrameProxy* const frameProxy)
     {
         {
-            const char* detailMetadataV2 = frameContainer->GetMetadataByKey("houdiniDetailAttributesV2");
+            const char* detailMetadataV2 = frameProxy->GetMetadataByKey("houdiniDetailAttributesV2");
 
             if (detailMetadataV2)
             {
@@ -268,7 +255,7 @@ namespace Zibra::ZibraVDBDecompressor
         }
 
         {
-            const char* detailMetadataV1 = frameContainer->GetMetadataByKey("houdiniDetailAttributes");
+            const char* detailMetadataV1 = frameProxy->GetMetadataByKey("houdiniDetailAttributes");
 
             if (detailMetadataV1)
             {
@@ -286,16 +273,14 @@ namespace Zibra::ZibraVDBDecompressor
         return dst;
     }
 
-    std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> SOP_ZibraVDBDecompressor::DeserializeGridShuffleInfo(
-        CompressedFrameContainer* frameContainer) noexcept
+    std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> SOP_ZibraVDBDecompressor::DeserializeGridShuffleInfo(FrameProxy* frameProxy) noexcept
     {
         static std::map<std::string, CE::Addons::OpenVDBUtils::GridVoxelType> strToVoxelType = {
-            {"Float1", CE::Addons::OpenVDBUtils::GridVoxelType::Float1},
-            {"Float3", CE::Addons::OpenVDBUtils::GridVoxelType::Float3}
-        };
+            {"Float1", CE::Addons::OpenVDBUtils::GridVoxelType::Float1}, {"Float3", CE::Addons::OpenVDBUtils::GridVoxelType::Float3}};
 
-        const char* meta = frameContainer->GetMetadataByKey("chShuffle");
-        if (!meta) return {};
+        const char* meta = frameProxy->GetMetadataByKey("chShuffle");
+        if (!meta)
+            return {};
 
         auto serialized = nlohmann::json::parse(meta);
         if (!serialized.is_array())

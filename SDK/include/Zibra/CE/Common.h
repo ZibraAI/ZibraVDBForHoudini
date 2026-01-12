@@ -1,52 +1,39 @@
 #pragma once
 
-#include <Zibra/Foundation.h>
-#include <Zibra/Math3D.h>
+#include <mutex>
 
-#define ZCE_CONCAT_HELPER(A, B) A##B
-#define ZCE_PFN(name) ZCE_CONCAT_HELPER(PFN_, name)
+#include <Zibra/Math.h>
+#include <Zibra/Result.h>
+#include <Zibra/Version.h>
+#include <Zibra/Stream.h>
+
+namespace Zibra
+{
+    ZIB_RESULT_DEFINE_CATEGORY(COMPRESSION_ENGINE, 0x100);
+
+    ZIB_RESULT_DEFINE(INVALID_SOURCE, COMPRESSION_ENGINE, 0x0, "Provided source data is not valid .zibravdb sequence.", true);
+    ZIB_RESULT_DEFINE(INCOMPATIBLE_SOURCE, COMPRESSION_ENGINE, 0x1,
+                      "Specified .zibravdb sequence file version is not compatible with current SDK.", true);
+    ZIB_RESULT_DEFINE(CORRUPTED_SOURCE, COMPRESSION_ENGINE, 0x2, ".zibravdb sequence is corrupted.", true);
+    ZIB_RESULT_DEFINE(MERGE_VERSION_MISMATCH, COMPRESSION_ENGINE, 0x3,
+                      "Specified .zibravdb sequence does not use current file version and can't be merged.", true);
+    ZIB_RESULT_DEFINE(BINARY_FILE_SAVED_AS_TEXT, COMPRESSION_ENGINE, 0x4,
+                      "Specified .zibravdb sequence was corrupted by saving it as text.", true);
+
+    ZIB_RESULT_DEFINE(COMPRESSION_LICENSE_ERROR, COMPRESSION_ENGINE, 0x100, "ZibraVDB compression requires active license.", true);
+    ZIB_RESULT_DEFINE(DECOMPRESSION_LICENSE_ERROR, COMPRESSION_ENGINE, 0x101, "Decompression of this file requires active license.", true);
+    ZIB_RESULT_DEFINE(DECOMPRESSION_LICENSE_TIER_TOO_LOW, COMPRESSION_ENGINE, 0x102,
+                      "Your license does not allow decompression of this effect.", true);
+} // namespace Zibra
 
 namespace Zibra::CE
 {
     static constexpr int SPARSE_BLOCK_SIZE = 8;
     static constexpr int SPARSE_BLOCK_VOXEL_COUNT = SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE;
-    static constexpr size_t MAX_CHANNEL_COUNT = 8;
+    static constexpr size_t MAX_CHANNEL_COUNT = 32;
+    static constexpr size_t CHUNK_SIZE_IN_BYTES = 128 * 1024 * 1024;
 
     using ChannelMask = uint32_t;
-
-    enum ReturnCode
-    {
-        // Successfully finished operation
-        ZCE_SUCCESS = 0,
-        // Unexpected error
-        ZCE_ERROR = 100,
-        // Fatal error
-        ZCE_FATAL_ERROR = 110,
-
-        ZCE_ERROR_NOT_INITIALIZED = 200,
-        ZCE_ERROR_ALREADY_INITIALIZED = 201,
-
-        ZCE_ERROR_INVALID_USAGE = 300,
-        ZCE_ERROR_INVALID_ARGUMENTS = 301,
-        ZCE_ERROR_NOT_IMPLEMENTED = 310,
-        ZCE_ERROR_NOT_SUPPORTED = 311,
-
-        ZCE_ERROR_NOT_FOUND = 400,
-        // Out of CPU memory
-        ZCE_ERROR_OUT_OF_CPU_MEMORY = 410,
-        // Out of GPU memory
-        ZCE_ERROR_OUT_OF_GPU_MEMORY = 411,
-        // Time out
-        ZCE_ERROR_TIME_OUT = 430,
-
-        ZCE_ERROR_INVALID_SOURCE = 500,
-        ZCE_ERROR_INCOMPTIBLE_SOURCE = 501,
-        ZCE_ERROR_CORRUPTED_SOURCE = 502,
-        ZCE_ERROR_IO_ERROR = 503,
-
-        ZCE_ERROR_LICENSE_ERROR = 1000,
-        ZCE_ERROR_LICENSE_TIER_TOO_LOW = 1001,
-    };
 
     struct MetadataEntry
     {
@@ -60,7 +47,7 @@ namespace Zibra::CE
          * Dense voxels container.
          * @range [-INF; INF]
          */
-        float voxels[SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE] = {};
+        float voxels[SPARSE_BLOCK_VOXEL_COUNT] = {};
     };
 
     struct SpatialBlockInfo
@@ -97,12 +84,86 @@ namespace Zibra::CE
                (a.channelCount == b.channelCount);
     }
 
+    struct ChannelVoxelStatistics
+    {
+        /**
+         * Min voxel value for entire channel gird.
+         * @range [-INF; INF]
+         */
+        float minValue = 0.f;
+        /**
+         * Max voxel value for entire channel gird.
+         * @range [-INF; INF]
+         */
+        float maxValue = 0.f;
+        float meanPositiveValue = 0.f;
+        float meanNegativeValue = 0.f;
+        /**
+         * Total voxels count per channel grid.
+         * @range [0; INF]
+         */
+        uint32_t voxelCount = 0;
+    };
+
+    struct ChannelInfo
+    {
+        /**
+         * Channel name.
+         */
+        const char* name = nullptr;
+        /**
+         * Axis aligned bounding box. Cannot be 0.
+         */
+        Math::AABB aabb = {};
+        /**
+         * Affine transformation matrix. Cannot be 0.
+         */
+        Math::Transform gridTransform = {};
+        ChannelVoxelStatistics voxelStatistics = {};
+    };
+
+    struct FrameInfo
+    {
+        /**
+         * Count of channels present in frame.
+         * @range [0; MAX_CHANNEL_COUNT]
+         */
+        size_t channelsCount = 0;
+        /**
+         * Per channel information.
+         * @range Length: =channelsCount
+         */
+        ChannelInfo channels[MAX_CHANNEL_COUNT] = {};
+        /**
+         * Spatial info count
+         * @range [1; INF]
+         */
+        uint32_t spatialBlockCount = 0;
+        /**
+         * Channel blocks count
+         * @range [1; INF]
+         */
+        uint32_t channelBlockCount = 0;
+        /**
+         * Total frame AABB.
+         * @range Volume must be greater than 0.
+         */
+        Math::AABB aabb = {};
+    };
+
+    struct PlaybackInfo
+    {
+        uint32_t framerateNumerator = 30;
+        uint32_t framerateDenominator = 1;
+        uint32_t sequenceIndexIncrement = 1;
+    };
+
     /**
      * Packs 3 coords into 32bit
      * @param [in] coords uint3 coords
      * @return packed 32-bit value
      */
-    inline uint32_t PackCoords(Math3D::uint3 coords) noexcept
+    inline uint32_t PackCoords(Math::uint3 coords) noexcept
     {
         return coords.x & 1023 | (coords.y & 1023) << 10 | (coords.z & 1023) << 20;
     }
@@ -111,7 +172,7 @@ namespace Zibra::CE
      * @param [in] packedCoords packed 32-bit value
      * @return uint3 coords
      */
-    inline Math3D::uint3 UnpackCoords(uint32_t packedCoords) noexcept
+    inline Math::uint3 UnpackCoords(uint32_t packedCoords) noexcept
     {
         return {packedCoords & 1023, (packedCoords >> 10) & 1023, (packedCoords >> 20) & 1023};
     }
@@ -133,7 +194,7 @@ namespace Zibra::CE
 
     template <class T>
     constexpr void NormalizeRange(T* data, const size_t size, const T minValue, const T maxValue, const T newMinValue,
-                                         const T newMaxValue) noexcept
+                                  const T newMaxValue) noexcept
     {
         for (size_t i = 0; i < size; i++)
         {

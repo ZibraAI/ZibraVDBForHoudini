@@ -1,7 +1,7 @@
-#include <string>
-#include <vector>
 #include <UT/UT_EnvControl.h>
 #include <Zibra/RHI.h>
+#include <string>
+#include <vector>
 
 namespace Zibra::Helpers
 {
@@ -22,4 +22,4 @@ namespace Zibra::Helpers
     // Querying options set via environment variables
     Zibra::RHI::GFXAPI SelectGFXAPI();
     bool NeedForceSoftwareDevice();
-}
+} // namespace Zibra::Helpers

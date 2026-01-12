@@ -138,6 +138,13 @@ window.gad = NORMAL_WINDOW "ZibraVDB"
         ACTION_BUTTON "Set License Server" VALUE(set_license_server.val) WIDTH(1.5);
     }
 
+    SEPARATOR;
+
+    ROW
+    {
+        ACTION_BUTTON "Open Analytics Settings" VALUE(open_analytics_settings.val) WIDTH(2.9);
+    }
+
     COLLAPSER "Advanced options"
     {
         VALUE(advanced_options.val) HSTRETCH LAYOUT(vertical) LOOK(plain)

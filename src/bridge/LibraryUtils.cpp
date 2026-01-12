@@ -4,26 +4,38 @@
 
 #include <UT/UT_EnvControl.h>
 
-#include "licensing/LicenseManager.h"
+#include "licensing/HoudiniLicenseManager.h"
 #include "utils/Helpers.h"
 
-// clang-format off
+// Defining used SDK API function pointers and putting it back to appropriate namespaces.
+namespace Zibra
+{
+    namespace RHI
+    {
+        PFN_CreateRHIFactory CreateRHIFactory = nullptr;
+        PFN_GetVersion GetVersion = nullptr;
+    } // namespace RHI
 
-#define ZSDK_RUNTIME_FUNCTION_LIST_APPLY(macro) \
-    ZRHI_API_APPLY(macro) \
-    ZCE_COMPRESSOR_API_APPLY(macro) \
-    ZCE_DECOMPRESSION_API_APPLY(macro) \
-    ZCE_LICENSING_API_APPLY(macro)
-
-// clang-format on
-
-#define ZSDK_CONCAT_HELPER(A, B) A##B
-#define ZSDK_PFN(name) ZSDK_CONCAT_HELPER(PFN_, name)
-#define ZSDK_DEFINE_FUNCTION_POINTER(name) ZSDK_PFN(name) name = nullptr;
-ZSDK_RUNTIME_FUNCTION_LIST_APPLY(ZSDK_DEFINE_FUNCTION_POINTER)
-#undef ZSDK_DEFINE_FUNCTION_POINTER
-#undef ZSDK_PFN
-#undef ZSDK_CONCAT_HELPER
+    namespace CE
+    {
+        namespace Decompression
+        {
+            PFN_CreateFileDecoder CreateFileDecoder = nullptr;
+            PFN_ReadFileDecoderInitByteRange ReadFileDecoderInitByteRange = nullptr;
+            PFN_GetVersion GetVersion = nullptr;
+        } // namespace Decompression
+        namespace Compression
+        {
+            PFN_CreateCompressorFactory CreateCompressorFactory = nullptr;
+            PFN_CreateSequenceMerger CreateSequenceMerger = nullptr;
+            PFN_GetVersion GetVersion = nullptr;
+        } // namespace Compression
+        namespace Licensing
+        {
+            PFN_GetLicenseManager GetLicenseManager = nullptr;
+        }
+    } // namespace CE
+} // namespace Zibra
 
 namespace Zibra::LibraryUtils
 {
@@ -46,22 +58,22 @@ namespace Zibra::LibraryUtils
 
     bool ValidateLoadedVersion()
     {
-        static_assert(CE::Compression::ZCE_COMPRESSION_VERSION.major == ZIB_COMPRESSION_ENGINE_MAJOR_VERSION);
-        if (g_CompressionEngineVersion.major != CE::Compression::ZCE_COMPRESSION_VERSION.major)
+        static_assert(CE::Compression::COMPRESSOR_VERSION.major == ZIB_COMPRESSION_ENGINE_MAJOR_VERSION);
+        if (g_CompressionEngineVersion.major != CE::Compression::COMPRESSOR_VERSION.major)
         {
             return false;
         }
-        if (g_CompressionEngineVersion.minor != CE::Compression::ZCE_COMPRESSION_VERSION.minor)
+        if (g_CompressionEngineVersion.minor != CE::Compression::COMPRESSOR_VERSION.minor)
         {
-            return g_CompressionEngineVersion.minor > CE::Compression::ZCE_COMPRESSION_VERSION.minor;
+            return g_CompressionEngineVersion.minor > CE::Compression::COMPRESSOR_VERSION.minor;
         }
-        if (g_CompressionEngineVersion.patch != CE::Compression::ZCE_COMPRESSION_VERSION.patch)
+        if (g_CompressionEngineVersion.patch != CE::Compression::COMPRESSOR_VERSION.patch)
         {
-            return g_CompressionEngineVersion.patch > CE::Compression::ZCE_COMPRESSION_VERSION.patch;
+            return g_CompressionEngineVersion.patch > CE::Compression::COMPRESSOR_VERSION.patch;
         }
-        if (g_CompressionEngineVersion.build != CE::Compression::ZCE_COMPRESSION_VERSION.build)
+        if (g_CompressionEngineVersion.build != CE::Compression::COMPRESSOR_VERSION.build)
         {
-            return g_CompressionEngineVersion.build > CE::Compression::ZCE_COMPRESSION_VERSION.build;
+            return g_CompressionEngineVersion.build > CE::Compression::COMPRESSOR_VERSION.build;
         }
         return true;
     }
@@ -77,26 +89,47 @@ namespace Zibra::LibraryUtils
     bool LoadFunctions() noexcept
     {
 #if ZIB_TARGET_OS_WIN
-#define ZIB_LOAD_FUNCTION_POINTER(functionName)                                                                             \
-    functionName = reinterpret_cast<ZCE_PFN(functionName)>(::GetProcAddress(g_LibraryHandle, ZIB_STRINGIFY(functionName))); \
-    if (functionName == nullptr)                                                                                            \
-    {                                                                                                                       \
-        return false;                                                                                                       \
+#define ZIB_LOAD_FUNCTION_POINTER(functionName, exportName)                                             \
+    functionName = reinterpret_cast<PFN_##functionName>(::GetProcAddress(g_LibraryHandle, exportName)); \
+    if (functionName == nullptr)                                                                        \
+    {                                                                                                   \
+        OutputDebugStringA("Failed to load API function:" #functionName);                               \
+        return false;                                                                                   \
     }
-        ZSDK_RUNTIME_FUNCTION_LIST_APPLY(ZIB_LOAD_FUNCTION_POINTER)
-#undef ZIB_LOAD_FUNCTION_POINTER
+
 #elif ZIB_TARGET_OS_LINUX || ZIB_TARGET_OS_MAC
-#define ZIB_LOAD_FUNCTION_POINTER(functionName)                                                                  \
-    functionName = reinterpret_cast<ZCE_PFN(functionName)>(dlsym(g_LibraryHandle, ZIB_STRINGIFY(functionName))); \
-    if (functionName == nullptr)                                                                                 \
-    {                                                                                                            \
-        return false;                                                                                            \
+#define ZIB_LOAD_FUNCTION_POINTER(functionName, exportName)                                  \
+    functionName = reinterpret_cast<PFN_##functionName>(dlsym(g_LibraryHandle, exportName)); \
+    if (functionName == nullptr)                                                             \
+    {                                                                                        \
+        return false;                                                                        \
     }
-        ZSDK_RUNTIME_FUNCTION_LIST_APPLY(ZIB_LOAD_FUNCTION_POINTER)
-#undef ZIB_LOAD_FUNCTION_POINTER
 #else
 #error Unsupported platform
 #endif
+
+        {
+            using namespace Zibra::RHI;
+            ZIB_LOAD_FUNCTION_POINTER(CreateRHIFactory, CreateRHIFactoryExportName);
+            ZIB_LOAD_FUNCTION_POINTER(GetVersion, GetVersionExportName);
+        }
+        {
+            using namespace Zibra::CE::Decompression;
+            ZIB_LOAD_FUNCTION_POINTER(CreateFileDecoder, CreateFileDecoderExportName);
+            ZIB_LOAD_FUNCTION_POINTER(ReadFileDecoderInitByteRange, ReadFileDecoderInitByteRangeExportName);
+            ZIB_LOAD_FUNCTION_POINTER(GetVersion, GetVersionExportName);
+        }
+        {
+            using namespace Zibra::CE::Compression;
+            ZIB_LOAD_FUNCTION_POINTER(CreateCompressorFactory, CreateCompressorFactoryExportName);
+            ZIB_LOAD_FUNCTION_POINTER(CreateSequenceMerger, CreateSequenceMergerExportName);
+            ZIB_LOAD_FUNCTION_POINTER(GetVersion, GetVersionExportName);
+        }
+        {
+            using namespace Zibra::CE::Licensing;
+            ZIB_LOAD_FUNCTION_POINTER(GetLicenseManager, GetLicenseManagerExportName);
+        }
+#undef ZIB_LOAD_FUNCTION_POINTER
         return true;
     }
 
@@ -125,7 +158,7 @@ namespace Zibra::LibraryUtils
             return false;
         }
 
-        g_CompressionEngineVersion = Zibra_CE_Compression_GetVersion();
+        g_CompressionEngineVersion = CE::Compression::GetVersion();
 
         if (!ValidateLoadedVersion())
         {
@@ -165,7 +198,7 @@ namespace Zibra::LibraryUtils
             return false;
         }
 
-        g_CompressionEngineVersion = Zibra_CE_Compression_GetVersion();
+        g_CompressionEngineVersion = CE::Compression::GetVersion();
 
         if (!ValidateLoadedVersion())
         {
@@ -192,7 +225,7 @@ namespace Zibra::LibraryUtils
             return true;
         }
 
-        std::optional<std::string> libraryDirectory = Helpers::GetNormalEnvironmentVariable("ZIBRAVDB_LIBRARY_VER_0_PATH");
+        std::optional<std::string> libraryDirectory = Helpers::GetNormalEnvironmentVariable("ZIBRAVDB_LIBRARY_VER_1_PATH");
         if (!libraryDirectory.has_value())
         {
             return false;
@@ -230,60 +263,65 @@ namespace Zibra::LibraryUtils
         return ToLibraryUtilsVersion(g_CompressionEngineVersion);
     }
 
-    std::string ErrorCodeToString(CE::ReturnCode errorCode)
+    std::string ErrorCodeToString(Result errorCode)
     {
+        assert(ZIB_FAILED(errorCode));
+
         switch (errorCode)
         {
-        case Zibra::CE::ZCE_SUCCESS:
-            assert(0);
-            return "";
-        case Zibra::CE::ZCE_ERROR:
-            return "Unexpected error";
-        case Zibra::CE::ZCE_FATAL_ERROR:
-            return "Fatal error";
-        case Zibra::CE::ZCE_ERROR_NOT_INITIALIZED:
-            return "ZibraVDB SDK is not initialized";
-        case Zibra::CE::ZCE_ERROR_ALREADY_INITIALIZED:
-            return "ZibraVDB SDK is already initialized";
-        case Zibra::CE::ZCE_ERROR_INVALID_USAGE:
-            return "ZibraVDB SDK invalid call";
-        case Zibra::CE::ZCE_ERROR_INVALID_ARGUMENTS:
-            return "ZibraVDB SDK invalid arguments";
-        case Zibra::CE::ZCE_ERROR_NOT_IMPLEMENTED:
-            return "Not implemented";
-        case Zibra::CE::ZCE_ERROR_NOT_SUPPORTED:
-            return "Unsupported";
-        case Zibra::CE::ZCE_ERROR_NOT_FOUND:
-            return "Not found";
-        case Zibra::CE::ZCE_ERROR_OUT_OF_CPU_MEMORY:
-            return "Out of CPU memory";
-        case Zibra::CE::ZCE_ERROR_OUT_OF_GPU_MEMORY:
-            return "Out of GPU memory";
-        case Zibra::CE::ZCE_ERROR_TIME_OUT:
-            return "Time out";
-        case Zibra::CE::ZCE_ERROR_INVALID_SOURCE:
-            return "Invalid file";
-        case Zibra::CE::ZCE_ERROR_INCOMPTIBLE_SOURCE:
-            return "Incompatible file";
-        case Zibra::CE::ZCE_ERROR_CORRUPTED_SOURCE:
-            return "Corrupted file";
-        case Zibra::CE::ZCE_ERROR_IO_ERROR:
-            return "I/O error";
-        case Zibra::CE::ZCE_ERROR_LICENSE_TIER_TOO_LOW:
-            if (LicenseManager::GetInstance().GetLicenseStatus(LicenseManager::Product::Decompression) == LicenseManager::Status::OK)
-            {
-                return "Your license does not allow decompression of this effect.";
-            }
-            else
-            {
-                return "Decompression of this file requires active license.";
-            }
+        case RESULT_SUCCESS:
+            return RESULT_SUCCESS_DESCRIPTION;
+        case RESULT_TIMEOUT:
+            return RESULT_TIMEOUT_DESCRIPTION;
+        case RESULT_ERROR:
+            return RESULT_ERROR_DESCRIPTION;
+        case RESULT_INVALID_ARGUMENTS:
+            return RESULT_INVALID_ARGUMENTS_DESCRIPTION;
+        case RESULT_INVALID_USAGE:
+            return RESULT_INVALID_USAGE_DESCRIPTION;
+        case RESULT_UNSUPPORTED:
+            return RESULT_UNSUPPORTED_DESCRIPTION;
+        case RESULT_UNINITIALIZED:
+            return RESULT_UNINITIALIZED_DESCRIPTION;
+        case RESULT_ALREADY_INITIALIZED:
+            return RESULT_ALREADY_INITIALIZED_DESCRIPTION;
+        case RESULT_NOT_FOUND:
+            return RESULT_NOT_FOUND_DESCRIPTION;
+        case RESULT_ALREADY_PRESENT:
+            return RESULT_ALREADY_PRESENT_DESCRIPTION;
+        case RESULT_OUT_OF_MEMORY:
+            return RESULT_OUT_OF_MEMORY_DESCRIPTION;
+        case RESULT_OUT_OF_BOUNDS:
+            return RESULT_OUT_OF_BOUNDS_DESCRIPTION;
+        case RESULT_IO_ERROR:
+            return RESULT_IO_ERROR_DESCRIPTION;
+        case RESULT_UNIMPLEMENTED:
+            return RESULT_UNIMPLEMENTED_DESCRIPTION;
+        case RESULT_UNEXPECTED_ERROR:
+            return RESULT_UNEXPECTED_ERROR_DESCRIPTION;
+        case RESULT_INVALID_SOURCE:
+            return RESULT_INVALID_SOURCE_DESCRIPTION;
+        case RESULT_INCOMPATIBLE_SOURCE:
+            return RESULT_INCOMPATIBLE_SOURCE_DESCRIPTION;
+        case RESULT_CORRUPTED_SOURCE:
+            return RESULT_CORRUPTED_SOURCE_DESCRIPTION;
+        case RESULT_MERGE_VERSION_MISMATCH:
+            return RESULT_MERGE_VERSION_MISMATCH_DESCRIPTION;
+        case RESULT_BINARY_FILE_SAVED_AS_TEXT:
+            return RESULT_BINARY_FILE_SAVED_AS_TEXT_DESCRIPTION;
+        case RESULT_QUEUE_EMPTY:
+            return RESULT_QUEUE_EMPTY_DESCRIPTION;
+        case RESULT_COMPRESSION_LICENSE_ERROR:
+            return RESULT_COMPRESSION_LICENSE_ERROR_DESCRIPTION;
+        case RESULT_DECOMPRESSION_LICENSE_ERROR:
+            return RESULT_DECOMPRESSION_LICENSE_ERROR_DESCRIPTION;
+        case RESULT_DECOMPRESSION_LICENSE_TIER_TOO_LOW:
+            return RESULT_DECOMPRESSION_LICENSE_TIER_TOO_LOW_DESCRIPTION;
+        case RESULT_FILE_NOT_FOUND:
+            return RESULT_FILE_NOT_FOUND_DESCRIPTION;
         default:
             assert(0);
             return "Unknown error: " + std::to_string(errorCode);
         }
     }
 } // namespace Zibra::LibraryUtils
-
-#undef ZCE_CONCAT_HELPER
-#undef ZRHI_CONCAT_HELPER

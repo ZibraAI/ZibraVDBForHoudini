@@ -5,8 +5,9 @@
 #include "MessageBox.h"
 #include "bridge/LibraryUtils.h"
 #include "bridge/UpdateCheck.h"
-#include "licensing/LicenseManager.h"
+#include "licensing/HoudiniLicenseManager.h"
 #include "utils/Helpers.h"
+#include "analytics/Analytics.h"
 
 namespace Zibra
 {
@@ -35,6 +36,7 @@ namespace Zibra
         void HandleSetLicenseKey(UI_Event* event);
         void HandleSetOfflineLicense(UI_Event* event);
         void HandleSetLicenseServer(UI_Event* event);
+        void HandleOpenAnalyticsSettings(UI_Event* event);
         void HandleRetryLicenseCheck(UI_Event* event);
         void HandleRemoveLicense(UI_Event* event);
         void HandleCopyLicenseToHSITE(UI_Event* event);
@@ -78,7 +80,7 @@ namespace Zibra
             return;
         }
 
-        LicenseManager::GetInstance().CheckoutLicense();
+        HoudiniLicenseManager::GetInstance().CheckoutLicense();
         InitializeLicenseFields();
         UpdateUI();
 
@@ -111,6 +113,8 @@ namespace Zibra
             ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleSetOfflineLicense));
         getValueSymbol("set_license_server.val")
             ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleSetLicenseServer));
+        getValueSymbol("open_analytics_settings.val")
+            ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleOpenAnalyticsSettings));
         getValueSymbol("retry_license_check.val")
             ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleRetryLicenseCheck));
         getValueSymbol("remove_license.val")
@@ -127,9 +131,9 @@ namespace Zibra
 
     void PluginManagementWindowImpl::InitializeLicenseFields()
     {
-        SetStringField("license_key.val", LicenseManager::GetInstance().GetLicenseKey().c_str());
-        SetStringField("offline_license.val", LicenseManager::GetInstance().GetOfflineLicense().c_str());
-        SetStringField("license_server.val", LicenseManager::GetInstance().GetLicenseServerAddress().c_str());
+        SetStringField("license_key.val", HoudiniLicenseManager::GetInstance().GetLicenseKey().c_str());
+        SetStringField("offline_license.val", HoudiniLicenseManager::GetInstance().GetOfflineLicense().c_str());
+        SetStringField("license_server.val", HoudiniLicenseManager::GetInstance().GetLicenseServerAddress().c_str());
     }
 
     void PluginManagementWindowImpl::HandleDownloadLibrary(UI_Event* event)
@@ -292,7 +296,7 @@ namespace Zibra
 
         if (isLoaded)
         {
-            LicenseManager::GetInstance().CheckoutLicense();
+            HoudiniLicenseManager::GetInstance().CheckoutLicense();
         }
 
         UpdateUI();
@@ -339,44 +343,72 @@ namespace Zibra
     void PluginManagementWindowImpl::HandleSetLicenseKey(UI_Event* event)
     {
         auto key = getValueSymbol("license_key.val")->getString();
-        LicenseManager::GetInstance().RemoveLicense();
-        LicenseManager::GetInstance().SetLicenseKey(key);
-        LicenseManager::GetInstance().CheckoutLicense();
+        HoudiniLicenseManager::GetInstance().RemoveLicense();
+        HoudiniLicenseManager::GetInstance().SetLicenseKey(key);
+        HoudiniLicenseManager::GetInstance().CheckoutLicense();
         UpdateUI();
     }
 
     void PluginManagementWindowImpl::HandleSetOfflineLicense(UI_Event* event)
     {
         auto offlineLicense = getValueSymbol("offline_license.val")->getString();
-        LicenseManager::GetInstance().RemoveLicense();
-        LicenseManager::GetInstance().SetOfflineLicense(offlineLicense);
-        LicenseManager::GetInstance().CheckoutLicense();
+        HoudiniLicenseManager::GetInstance().RemoveLicense();
+        HoudiniLicenseManager::GetInstance().SetOfflineLicense(offlineLicense);
+        HoudiniLicenseManager::GetInstance().CheckoutLicense();
         UpdateUI();
     }
 
     void PluginManagementWindowImpl::HandleSetLicenseServer(UI_Event* event)
     {
         auto offlineLicense = getValueSymbol("license_server.val")->getString();
-        LicenseManager::GetInstance().RemoveLicense();
-        LicenseManager::GetInstance().SetLicenseServer(offlineLicense);
-        LicenseManager::GetInstance().CheckoutLicense();
+        HoudiniLicenseManager::GetInstance().RemoveLicense();
+        HoudiniLicenseManager::GetInstance().SetLicenseServer(offlineLicense);
+        HoudiniLicenseManager::GetInstance().CheckoutLicense();
         UpdateUI();
+    }
+
+    void PluginManagementWindowImpl::HandleOpenAnalyticsSettings(UI_Event* event)
+    {
+        auto& analyticsManager = Analytics::AnalyticsManager::GetInstance();
+
+        if (!HoudiniLicenseManager::GetInstance().IsAnyLicenseValid())
+        {
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Analytics can not be enabled without active license.");
+            return;
+        }
+
+        if (!analyticsManager.IsLicenseKeyAvailable())
+        {
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Analytics can not be enabled if activation method other than License Key was used.");
+            return;
+        }
+
+        if (!analyticsManager.IsAnalyticsAllowedByLicense())
+        {
+            std::string errorMessage = std::string("Analytics can only be enabled when using Free license. Current license type is: ") +
+                                       HoudiniLicenseManager::GetInstance().GetLicenseType() + ".";
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, errorMessage.c_str());
+            return;
+        }
+
+        analyticsManager.ShowAnalyticsPrompt();
     }
 
     void PluginManagementWindowImpl::HandleRetryLicenseCheck(UI_Event* event)
     {
-        LicenseManager::GetInstance().CheckoutLicense();
+        HoudiniLicenseManager::GetInstance().CheckoutLicense();
         UpdateUI();
     }
 
     void PluginManagementWindowImpl::HandleRemoveLicense(UI_Event* event)
     {
-        LicenseManager::GetInstance().RemoveLicense();
-        LicenseManager::GetInstance().CheckoutLicense();
+        HoudiniLicenseManager::GetInstance().RemoveLicense();
+        HoudiniLicenseManager::GetInstance().CheckoutLicense();
 
-        for (size_t i = 0; i < size_t(LicenseManager::Product::Count); ++i)
+        for (size_t i = 0; i < size_t(HoudiniLicenseManager::Product::Count); ++i)
         {
-            if (LicenseManager::GetInstance().GetLicenseStatus(LicenseManager::Product(i)) == LicenseManager::Status::OK)
+            if (HoudiniLicenseManager::GetInstance().GetLicenseStatus(HoudiniLicenseManager::Product(i)) ==
+                HoudiniLicenseManager::Status::OK)
             {
                 UI::MessageBox::Show(UI::MessageBox::Type::OK, "Can not automatically remove license. If you wish to remove license from "
                                                                "HSITE or HQROOT please remove the file manually.");
@@ -388,7 +420,7 @@ namespace Zibra
 
     void PluginManagementWindowImpl::HandleCopyLicenseToHSITE(UI_Event* event)
     {
-        if (!LicenseManager::GetInstance().IsAnyLicenseValid())
+        if (!HoudiniLicenseManager::GetInstance().IsAnyLicenseValid())
         {
             UI::MessageBox::Show(UI::MessageBox::Type::OK, "No license found to copy.");
             return;
@@ -423,14 +455,14 @@ namespace Zibra
             return;
         }
 
-        LicenseManager::GetInstance().CopyLicenseFile(hsitePath[0]);
+        HoudiniLicenseManager::GetInstance().CopyLicenseFile(hsitePath[0]);
     }
 
     void PluginManagementWindowImpl::HandleCopyLicenseToHQROOT(UI_Event* event)
     {
         static EnterHQROOTPathWindow dialog(&HandleCopyLicenseToHQROOTCallback);
 
-        if (!LicenseManager::GetInstance().IsAnyLicenseValid())
+        if (!HoudiniLicenseManager::GetInstance().IsAnyLicenseValid())
         {
             UI::MessageBox::Show(UI::MessageBox::Type::OK, "No license found to copy.");
             return;
@@ -447,13 +479,13 @@ namespace Zibra
             return;
         }
 
-        LicenseManager::GetInstance().CopyLicenseFile(path);
+        HoudiniLicenseManager::GetInstance().CopyLicenseFile(path);
     }
 
     void PluginManagementWindowImpl::UpdateUI()
     {
         std::ignore = LibraryUtils::TryLoadLibrary();
-        const auto& licenseManager = LicenseManager::GetInstance();
+        const auto& licenseManager = HoudiniLicenseManager::GetInstance();
         {
             SetStringField("plugin_version.val", ZIBRAVDB_VERSION);
         }
@@ -502,10 +534,10 @@ namespace Zibra
         }
         {
             std::string activationStatus;
-            LicenseManager::Status status = LicenseManager::Status::Uninitialized;
-            for (size_t i = 0; i < size_t(LicenseManager::Product::Count); ++i)
+            HoudiniLicenseManager::Status status = HoudiniLicenseManager::Status::Uninitialized;
+            for (size_t i = 0; i < size_t(HoudiniLicenseManager::Product::Count); ++i)
             {
-                auto productStatus = licenseManager.GetLicenseStatus(LicenseManager::Product(i));
+                auto productStatus = licenseManager.GetLicenseStatus(HoudiniLicenseManager::Product(i));
                 if (productStatus < status)
                 {
                     status = productStatus;
@@ -514,10 +546,10 @@ namespace Zibra
 
             switch (status)
             {
-            case LicenseManager::Status::OK:
-                if (licenseManager.GetLicenseStatus(LicenseManager::Product::Compression) == LicenseManager::Status::OK)
+            case HoudiniLicenseManager::Status::OK:
+                if (licenseManager.GetLicenseStatus(HoudiniLicenseManager::Product::Compression) == HoudiniLicenseManager::Status::OK)
                 {
-                    if (licenseManager.GetLicenseStatus(LicenseManager::Product::Decompression) == LicenseManager::Status::OK)
+                    if (licenseManager.GetLicenseStatus(HoudiniLicenseManager::Product::Decompression) == HoudiniLicenseManager::Status::OK)
                     {
                         activationStatus = "Activated";
                     }
@@ -528,7 +560,7 @@ namespace Zibra
                 }
                 else
                 {
-                    if (licenseManager.GetLicenseStatus(LicenseManager::Product::Decompression) == LicenseManager::Status::OK)
+                    if (licenseManager.GetLicenseStatus(HoudiniLicenseManager::Product::Decompression) == HoudiniLicenseManager::Status::OK)
                     {
                         activationStatus = "Activated (Only Decompression)";
                     }
@@ -539,21 +571,21 @@ namespace Zibra
                     }
                 }
                 break;
-            case LicenseManager::Status::ValidationError: {
+            case HoudiniLicenseManager::Status::ValidationError: {
                 std::string activationError = licenseManager.GetActivationError();
                 activationStatus = std::string("License validation failed") + (activationError.empty() ? "" : ": ") + activationError;
                 break;
             }
-            case LicenseManager::Status::InvalidKeyFormat:
+            case HoudiniLicenseManager::Status::InvalidKeyFormat:
                 activationStatus = "Invalid Key Format";
                 break;
-            case LicenseManager::Status::NoLicense:
+            case HoudiniLicenseManager::Status::NoLicense:
                 activationStatus = "License not found";
                 break;
-            case LicenseManager::Status::LibraryError:
+            case HoudiniLicenseManager::Status::LibraryError:
                 activationStatus = "Library is required";
                 break;
-            case LicenseManager::Status::Uninitialized:
+            case HoudiniLicenseManager::Status::Uninitialized:
                 activationStatus = "Uninitialized";
                 break;
             default:
@@ -565,10 +597,10 @@ namespace Zibra
         }
         {
             std::string licenseType = "None";
-            for (size_t i = 0; i < size_t(LicenseManager::Product::Count); ++i)
+            for (size_t i = 0; i < size_t(HoudiniLicenseManager::Product::Count); ++i)
             {
-                LicenseManager::Product currentProduct = LicenseManager::Product(i);
-                if (licenseManager.GetLicenseStatus(currentProduct) == LicenseManager::Status::OK)
+                HoudiniLicenseManager::Product currentProduct = HoudiniLicenseManager::Product(i);
+                if (licenseManager.GetLicenseStatus(currentProduct) == HoudiniLicenseManager::Status::OK)
                 {
                     licenseType = licenseManager.GetLicenseType(currentProduct);
                     break;
@@ -581,16 +613,16 @@ namespace Zibra
             auto type = licenseManager.GetActivationType();
             switch (type)
             {
-            case LicenseManager::ActivationType::Offline:
+            case HoudiniLicenseManager::ActivationType::Offline:
                 activationType = "Offline";
                 break;
-            case LicenseManager::ActivationType::LicenseServer:
+            case HoudiniLicenseManager::ActivationType::LicenseServer:
                 activationType = "License Server";
                 break;
-            case LicenseManager::ActivationType::Online:
+            case HoudiniLicenseManager::ActivationType::Online:
                 activationType = "Online";
                 break;
-            case LicenseManager::ActivationType::None:
+            case HoudiniLicenseManager::ActivationType::None:
                 activationType = "None";
                 break;
             default:
@@ -605,19 +637,19 @@ namespace Zibra
             auto type = licenseManager.GetLicensePathType();
             switch (type)
             {
-            case LicenseManager::LicensePathType::EnvVar:
+            case HoudiniLicenseManager::LicensePathType::EnvVar:
                 licensePathType = "Environment Variable";
                 break;
-            case LicenseManager::LicensePathType::UserPrefDir:
+            case HoudiniLicenseManager::LicensePathType::UserPrefDir:
                 licensePathType = "User Preference Directory";
                 break;
-            case LicenseManager::LicensePathType::HSite:
+            case HoudiniLicenseManager::LicensePathType::HSite:
                 licensePathType = "HSITE";
                 break;
-            case LicenseManager::LicensePathType::HQRoot:
+            case HoudiniLicenseManager::LicensePathType::HQRoot:
                 licensePathType = "HQROOT";
                 break;
-            case LicenseManager::LicensePathType::None:
+            case HoudiniLicenseManager::LicensePathType::None:
                 licensePathType = "None";
                 break;
             default:
