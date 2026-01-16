@@ -14,17 +14,24 @@ namespace Zibra::UpdateCheck
     public:
         bool jsonKey(UT_JSONParser& p, const char* v, int64 len) final
         {
+            static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ZibraJsonVersionHandle::jsonKey)>);
+
             m_Key.assign(v, len);
             return true;
         };
+
         bool jsonString(UT_JSONParser& p, const char* v, int64 len) final
         {
+            static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ZibraJsonVersionHandle::jsonString)>);
+
             m_Value.assign(v, len);
             return true;
         };
 
         std::string GetVersion()
         {
+            static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ZibraJsonVersionHandle::GetVersion)>);
+
             if (m_Key == "version")
             {
                 return m_Value;
@@ -39,6 +46,8 @@ namespace Zibra::UpdateCheck
 
     std::optional<LibraryUtils::Version> ParseStringVersion(const std::string& versionString)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(ParseStringVersion)>);
+
         std::vector<uint32_t> versionNumbers;
         versionNumbers.push_back(0);
         for (char c : versionString)
@@ -63,6 +72,8 @@ namespace Zibra::UpdateCheck
 
     bool IsVersionLatest(const LibraryUtils::Version& currentVersion, const LibraryUtils::Version& latestVersion)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(IsVersionLatest)>);
+
         if (latestVersion.major > currentVersion.major)
         {
             return false;
@@ -88,6 +99,8 @@ namespace Zibra::UpdateCheck
 
     Status RunReal() noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(RunReal)>);
+
         // Get the current version of the application
         LibraryUtils::Version currentVersion = LibraryUtils::GetLibraryVersion();
 
@@ -126,6 +139,8 @@ namespace Zibra::UpdateCheck
 
     Status Run() noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(Run)>);
+
         using clock_t = std::chrono::system_clock;
         using time_point_t = std::chrono::time_point<clock_t>;
 

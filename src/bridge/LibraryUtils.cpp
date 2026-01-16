@@ -58,6 +58,8 @@ namespace Zibra::LibraryUtils
 
     bool ValidateLoadedVersion()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(ValidateLoadedVersion)>);
+
         static_assert(CE::Compression::COMPRESSOR_VERSION.major == ZIB_COMPRESSION_ENGINE_MAJOR_VERSION);
         if (g_CompressionEngineVersion.major != CE::Compression::COMPRESSOR_VERSION.major)
         {
@@ -88,6 +90,8 @@ namespace Zibra::LibraryUtils
 
     bool LoadFunctions() noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(LoadFunctions)>);
+
 #if ZIB_TARGET_OS_WIN
 #define ZIB_LOAD_FUNCTION_POINTER(functionName, exportName)                                             \
     functionName = reinterpret_cast<PFN_##functionName>(::GetProcAddress(g_LibraryHandle, exportName)); \
@@ -135,6 +139,8 @@ namespace Zibra::LibraryUtils
 
     bool LoadLibraryByPath(const std::string& libraryPath) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(LoadLibraryByPath)>);
+
 #if ZIB_TARGET_OS_WIN
         static_assert(IsPlatformSupported());
         if (libraryPath == "")
@@ -218,6 +224,8 @@ namespace Zibra::LibraryUtils
 
     bool TryLoadLibrary() noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(TryLoadLibrary)>);
+
         assert(g_IsLibraryLoaded == (g_LibraryHandle != NULL));
 
         if (g_IsLibraryLoaded)
@@ -239,11 +247,15 @@ namespace Zibra::LibraryUtils
 
     bool IsLibraryLoaded() noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(IsLibraryLoaded)>);
+
         return g_IsLibraryLoaded;
     }
 
     std::string GetLibraryVersionString() noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(GetLibraryVersionString)>);
+
         if (!g_IsLibraryLoaded)
         {
             return "";
@@ -254,17 +266,23 @@ namespace Zibra::LibraryUtils
 
     Version ToLibraryUtilsVersion(const Zibra::Version& version) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(ToLibraryUtilsVersion)>);
+
         return Version{version.major, version.minor, version.patch, version.build};
     }
 
     Version GetLibraryVersion() noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(GetLibraryVersion)>);
+
         assert(g_IsLibraryLoaded);
         return ToLibraryUtilsVersion(g_CompressionEngineVersion);
     }
 
     std::string ErrorCodeToString(Result errorCode)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(ErrorCodeToString)>);
+
         assert(ZIB_FAILED(errorCode));
 
         switch (errorCode)

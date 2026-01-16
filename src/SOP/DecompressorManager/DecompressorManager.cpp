@@ -12,6 +12,8 @@ namespace Zibra::Helpers
 {
     Result DecompressorManager::Initialize() noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&DecompressorManager::Initialize)>);
+
         if (m_IsInitialized)
         {
             return RESULT_SUCCESS;
@@ -67,6 +69,8 @@ namespace Zibra::Helpers
 
     Result DecompressorManager::AllocateExternalBuffer(BufferDesc& bufferDesc, size_t newSizeInBytes, size_t newStride) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&DecompressorManager::AllocateExternalBuffer)>);
+
         if (bufferDesc.sizeInBytes != newSizeInBytes || bufferDesc.stride != newStride)
         {
             if (bufferDesc.buffer)
@@ -101,6 +105,8 @@ namespace Zibra::Helpers
 
     Result DecompressorManager::RegisterDecompressor(const UT_String& filename) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&DecompressorManager::RegisterDecompressor)>);
+
         if (m_FileStream.has_value())
         {
             m_FileStream->close();
@@ -202,9 +208,11 @@ namespace Zibra::Helpers
         return RESULT_SUCCESS;
     }
     Result DecompressorManager::DecompressFrame(Span<const char> frameMemory, CE::Decompression::FrameProxy* frameDecoder,
-                                                std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridShuffle,
+                                                const std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc>& gridShuffle,
                                                 openvdb::GridPtrVec* vdbGrids) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&DecompressorManager::DecompressFrame)>);
+
         Analytics::AnalyticsManager::GetInstance().SendEventUsage();
 
         if (!m_RHIRuntime || !m_Decompressor)
@@ -221,20 +229,33 @@ namespace Zibra::Helpers
 
         const auto frameInfo = frameDecoder->GetInfo();
 
-        // Filling default mapping if metadata is empty/invalid
-        if (gridShuffle.empty())
+        const CE::Addons::OpenVDBUtils::VDBGridDesc* gridShuffleData = nullptr;
+        size_t gridShuffleSize = 0;
+        std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> defaultGridShuffle;
+
+        if (!gridShuffle.empty())
         {
+            gridShuffleData = gridShuffle.data();
+            gridShuffleSize = gridShuffle.size();
+        }
+        else
+        {
+            defaultGridShuffle.reserve(frameInfo.channelsCount);
+
             for (size_t i = 0; i < frameInfo.channelsCount; ++i)
             {
                 CE::Addons::OpenVDBUtils::VDBGridDesc gridDesc{};
                 gridDesc.gridName = frameInfo.channels[i].name;
                 gridDesc.voxelType = CE::Addons::OpenVDBUtils::GridVoxelType::Float1;
                 gridDesc.chSource[0] = frameInfo.channels[i].name;
-                gridShuffle.emplace_back(gridDesc);
+                defaultGridShuffle.emplace_back(gridDesc);
             }
+
+            gridShuffleData = defaultGridShuffle.data();
+            gridShuffleSize = defaultGridShuffle.size();
         }
 
-        CE::Addons::OpenVDBUtils::FrameEncoder encoder{gridShuffle.data(), gridShuffle.size(), frameInfo};
+        CE::Addons::OpenVDBUtils::FrameEncoder encoder{gridShuffleData, gridShuffleSize, frameInfo};
 
         const CE::Decompression::MaxDimensionsPerSubmit maxDimensionsPerSubmit = m_Decompressor->GetMaxDimensionsPerSubmit();
         const auto maxChunksPerSubmit = maxDimensionsPerSubmit.maxChunks;
@@ -294,6 +315,8 @@ namespace Zibra::Helpers
                                                          CE::Decompression::Shaders::PackedSpatialBlockInfo* perSpatialBlockInfo,
                                                          size_t spatialBlocksCount) const noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&DecompressorManager::GetDecompressedFrameData)>);
+
         if (!m_RHIRuntime)
         {
             assert(0);
@@ -319,6 +342,8 @@ namespace Zibra::Helpers
 
     std::pair<Span<char>, CE::Decompression::FrameProxy*> DecompressorManager::FetchFrame(const exint& frameIndex) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&DecompressorManager::FetchFrame)>);
+
         if (!m_FileDecoder)
         {
             return {};
@@ -347,6 +372,8 @@ namespace Zibra::Helpers
 
     CE::Decompression::FrameRange DecompressorManager::GetFrameRange() const noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&DecompressorManager::GetFrameRange)>);
+
         if (!m_FileDecoder)
         {
             return {};
@@ -356,6 +383,8 @@ namespace Zibra::Helpers
 
     Result DecompressorManager::FreeExternalBuffers() noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&DecompressorManager::FreeExternalBuffers)>);
+
         Result res;
         if (m_DecompressionPerChannelBlockDataBuffer.buffer)
         {
@@ -389,6 +418,8 @@ namespace Zibra::Helpers
 
     void DecompressorManager::Release() noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&DecompressorManager::Release)>);
+
         if (!m_IsInitialized)
         {
             return;

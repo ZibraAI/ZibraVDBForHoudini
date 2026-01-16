@@ -117,6 +117,7 @@
 #error Unexpected OS
 #endif
 
+#include <Zibra/FunctionCheck.h>
 #include <Zibra/OnScopeExit.h>
 #include <Zibra/Result.h>
 #include <Zibra/StreamWrapper.h>

@@ -1,21 +1,36 @@
 #pragma once
 
 #include <filesystem>
+#include <string>
 #include <vector>
 
 namespace Zibra::CE::Addons::FileManagement
 {
-    std::vector<std::filesystem::path> CalculateFileList(const std::string& inputMask)
+    template <typename CharType>
+    inline std::basic_string_view<CharType> GetZibraVDBFileExtension();
+
+    template <>
+    inline std::basic_string_view<char> GetZibraVDBFileExtension()
+    {
+        return ".VDB";
+    }
+
+    template <>
+    inline std::basic_string_view<wchar_t> GetZibraVDBFileExtension()
+    {
+        return L".VDB";
+    }
+
+    inline std::vector<std::filesystem::path> CalculateFileList(const std::filesystem::path::string_type& inputMask)
     {
         std::vector<std::filesystem::path> files;
 
         std::filesystem::path maskPath = inputMask;
         std::filesystem::path folderPath = maskPath.parent_path();
-        std::string mask = maskPath.filename().string();
+        std::filesystem::path::string_type mask = maskPath.filename().native();
 
         try
         {
-
             for (const auto& entry : std::filesystem::directory_iterator(folderPath))
             {
                 if (!entry.is_regular_file())
@@ -26,12 +41,12 @@ namespace Zibra::CE::Addons::FileManagement
                 std::filesystem::path filePath = entry.path();
                 std::filesystem::path fileName = filePath.filename();
 
-                if (fileName.string().find(mask) != 0)
+                if (fileName.native().find(mask) != 0)
                 {
                     continue;
                 }
 
-                auto tail = fileName.stem().string().substr(mask.size());
+                auto tail = fileName.stem().native().substr(mask.size());
                 bool tailIsDigitsOnly =
                     std::all_of(tail.begin(), tail.end(), [](char c) { return std::isdigit(static_cast<unsigned char>(c)); });
                 if (!tailIsDigitsOnly)
@@ -39,11 +54,11 @@ namespace Zibra::CE::Addons::FileManagement
                     continue;
                 }
 
-                std::string fileNameStr = fileName.string();
-                std::string fileNameStrUpper = fileNameStr;
+                std::filesystem::path::string_type fileNameStr = fileName.native();
+                std::filesystem::path::string_type fileNameStrUpper = fileNameStr;
                 std::transform(fileNameStrUpper.begin(), fileNameStrUpper.end(), fileNameStrUpper.begin(), ::toupper);
 
-                if (!fileNameStrUpper.ends_with(".VDB"))
+                if (!fileNameStrUpper.ends_with(GetZibraVDBFileExtension<std::filesystem::path::value_type>()))
                 {
                     continue;
                 }
@@ -57,8 +72,8 @@ namespace Zibra::CE::Addons::FileManagement
         }
 
         std::sort(files.begin(), files.end(), [&](const std::filesystem::path& a, const std::filesystem::path& b) {
-            std::string aStr = a.filename().string().substr(mask.size());
-            std::string bStr = b.filename().string().substr(mask.size());
+            std::filesystem::path::string_type aStr = a.filename().native().substr(mask.size());
+            std::filesystem::path::string_type bStr = b.filename().native().substr(mask.size());
             int frameIndexA = std::stoi(aStr);
             int frameIndexB = std::stoi(bStr);
             return frameIndexA < frameIndexB;

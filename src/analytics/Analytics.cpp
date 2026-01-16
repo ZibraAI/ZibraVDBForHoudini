@@ -13,8 +13,10 @@ namespace Zibra::Analytics
     const int AnalyticsManager::ms_FreeLicenseTier = 200;
 
     template <typename T>
-    static json VectorToJson(const std::vector<T> in)
+    static json VectorToJson(const std::vector<T>& in)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(VectorToJson<T>)>);
+
         json result = json::array();
 
         for (const T& value : in)
@@ -25,8 +27,10 @@ namespace Zibra::Analytics
         return result;
     }
 
-    static json CompressionPerChannelSettingsToJson(const std::vector<CompressionPerChannelSettings> in)
+    static json CompressionPerChannelSettingsToJson(const std::vector<CompressionPerChannelSettings>& in)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(CompressionPerChannelSettingsToJson)>);
+
         json result = json::object();
 
         for (const auto& setting : in)
@@ -42,6 +46,8 @@ namespace Zibra::Analytics
     public:
         const char* className() const final
         {
+            static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&AnalyticsPromptWindow::className)>);
+
             return "ZibraVDBAnalyticsPromptWindow";
         }
 
@@ -63,6 +69,8 @@ namespace Zibra::Analytics
 
     void AnalyticsPromptWindow::Show()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&AnalyticsPromptWindow::Show)>);
+
         if (!ParseUIFile())
         {
             return;
@@ -78,6 +86,8 @@ namespace Zibra::Analytics
 
     bool AnalyticsPromptWindow::ParseUIFile()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&AnalyticsPromptWindow::ParseUIFile)>);
+
         if (m_IsParsed)
         {
             return true;
@@ -97,6 +107,8 @@ namespace Zibra::Analytics
 
     void AnalyticsPromptWindow::InitializeValues()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&AnalyticsPromptWindow::InitializeValues)>);
+
         if (!AnalyticsManager::GetInstance().IsSettingsPresent())
         {
             return;
@@ -109,6 +121,8 @@ namespace Zibra::Analytics
 
     void AnalyticsPromptWindow::HandleOK(UI_Event* event)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&AnalyticsPromptWindow::HandleOK)>);
+
         auto* analyticsSymbol = getValueSymbol("analytics_enabled.val");
         int32 uiValue = 0;
         analyticsSymbol->getValue(&uiValue);
@@ -124,16 +138,22 @@ namespace Zibra::Analytics
 
     bool AnalyticsManager::IsNeedShowPrompt()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&AnalyticsManager::IsNeedShowPrompt)>);
+
         return !m_IsSettingsPresent && IsLicenseKeyAvailable() && IsAnalyticsAllowedByLicense();
     }
 
     bool AnalyticsManager::IsAnalyticsEnabled()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&AnalyticsManager::IsAnalyticsEnabled)>);
+
         return m_IsAnalyticsEnabledInSettings && IsLicenseKeyAvailable() && IsAnalyticsAllowedByLicense();
     }
 
     bool AnalyticsManager::IsAnalyticsAllowedByLicense()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&AnalyticsManager::IsAnalyticsAllowedByLicense)>);
+
         // We only allow sending analytics if license is activated and license is Free one
         // If license is not activated, GetLicenseTier returns -1
         return HoudiniLicenseManager::GetInstance().GetLicenseTier() == ms_FreeLicenseTier;
@@ -141,6 +161,8 @@ namespace Zibra::Analytics
 
     bool AnalyticsManager::IsLicenseKeyAvailable()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&AnalyticsManager::IsLicenseKeyAvailable)>);
+
         // We only send analytics if there's license key we can use for said analytics
         // Depending on activation method there may be no key available to query
         return !HoudiniLicenseManager::GetInstance().GetLicenseKey().empty();
@@ -148,18 +170,24 @@ namespace Zibra::Analytics
 
     void AnalyticsManager::ShowAnalyticsPrompt()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&AnalyticsManager::ShowAnalyticsPrompt)>);
+
         static AnalyticsPromptWindow window;
         window.Show();
     }
 
     AnalyticsManager& AnalyticsManager::GetInstance()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&AnalyticsManager::GetInstance)>);
+
         static AnalyticsManager instance;
         return instance;
     }
 
     void AnalyticsManager::SendEventUsage()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&AnalyticsManager::SendEventUsage)>);
+
         if (!IsAnalyticsEnabled())
         {
             return;
@@ -185,6 +213,8 @@ namespace Zibra::Analytics
 
     void AnalyticsManager::SendEventCompression(const CompressionEventData& eventData)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&AnalyticsManager::SendEventCompression)>);
+
         if (!IsAnalyticsEnabled())
         {
             return;
@@ -216,6 +246,8 @@ namespace Zibra::Analytics
 
     void AnalyticsManager::SaveSettings(bool isEnabled)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&AnalyticsManager::SaveSettings)>);
+
         WriteSettingsFile(isEnabled ? "1" : "0");
         m_IsSettingsPresent = true;
         m_IsAnalyticsEnabledInSettings = isEnabled;
@@ -223,6 +255,8 @@ namespace Zibra::Analytics
 
     void AnalyticsManager::LoadSettings()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&AnalyticsManager::LoadSettings)>);
+
         auto [readSuccessfully, fileData] = ReadSettingsFile();
 
         m_IsSettingsPresent = readSuccessfully;
@@ -237,11 +271,15 @@ namespace Zibra::Analytics
 
     bool AnalyticsManager::IsSettingsPresent()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&AnalyticsManager::IsSettingsPresent)>);
+
         return m_IsSettingsPresent;
     }
 
     json AnalyticsManager::ConstructCommonData()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&AnalyticsManager::ConstructCommonData)>);
+
         json result;
 
         result["Product"] = "zibravdb";
@@ -264,6 +302,8 @@ namespace Zibra::Analytics
 
     json AnalyticsManager::ConstructEventData(std::string_view eventName, const json& eventData)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&AnalyticsManager::ConstructEventData)>);
+
         json result = json::array();
         json& event = result.emplace_back(json::object());
         event["EventType"] = eventName;
@@ -274,6 +314,8 @@ namespace Zibra::Analytics
 
     void AnalyticsManager::ScheduleEvent(std::string_view eventName, json&& eventData)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&AnalyticsManager::ScheduleEvent)>);
+
         {
             std::lock_guard<std::mutex> lockGuard(m_QueueMutex);
             m_EventQueue.emplace(eventName, std::move(eventData));
@@ -290,6 +332,8 @@ namespace Zibra::Analytics
 
     void AnalyticsManager::SendEvent(std::string_view eventName, const json& fields)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&AnalyticsManager::SendEvent)>);
+
         json requestBody;
 
         requestBody["CommonData"] = ConstructCommonData();
@@ -311,6 +355,8 @@ namespace Zibra::Analytics
 
     std::string AnalyticsManager::GetHoudiniVersionString()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&AnalyticsManager::GetHoudiniVersionString)>);
+
         constexpr const char* COMPILE_TIME_VERSION = SYS_VERSION_MAJOR "." SYS_VERSION_MINOR;
 
         int major = 0;
@@ -340,6 +386,8 @@ namespace Zibra::Analytics
 
     void AnalyticsManager::WriteSettingsFile(std::string_view dataToWrite)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&AnalyticsManager::WriteSettingsFile)>);
+
         std::filesystem::path targetFile = GetSettingsFilePath();
         if (targetFile.empty())
         {
@@ -355,6 +403,8 @@ namespace Zibra::Analytics
 
     std::pair<bool, std::string> AnalyticsManager::ReadSettingsFile()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&AnalyticsManager::ReadSettingsFile)>);
+
         std::filesystem::path targetFile = GetSettingsFilePath();
         if (targetFile.empty())
         {
@@ -374,6 +424,8 @@ namespace Zibra::Analytics
 
     std::filesystem::path AnalyticsManager::GetSettingsFilePath()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&AnalyticsManager::GetSettingsFilePath)>);
+
         std::vector<std::string> userPrefDir = Helpers::GetHoudiniEnvironmentVariable(ENV_HOUDINI_USER_PREF_DIR, "HOUDINI_USER_PREF_DIR");
 
         if (userPrefDir.empty())
@@ -386,6 +438,8 @@ namespace Zibra::Analytics
 
     void AnalyticsManager::SendThreadEntrypoint()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&AnalyticsManager::SendThreadEntrypoint)>);
+
         while (true)
         {
             std::pair<std::string, json> event;

@@ -10,6 +10,8 @@ namespace Zibra::Helpers
 {
     std::vector<std::string> GetHoudiniEnvironmentVariable(UT_StrControl envVarEnum, const char* envVarName)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(GetHoudiniEnvironmentVariable)>);
+
         std::vector<std::string> result;
         const char* envVarHoudini = nullptr;
         if (envVarEnum < ENV_MAX_STR_CONTROLS)
@@ -34,6 +36,8 @@ namespace Zibra::Helpers
 
     std::optional<std::string> GetNormalEnvironmentVariable(const char* envVarName)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(GetNormalEnvironmentVariable)>);
+
         const char* result = std::getenv(envVarName);
         if (result == nullptr)
         {
@@ -44,6 +48,8 @@ namespace Zibra::Helpers
 
     void AppendToPath(std::vector<std::string>& pathsToModify, const std::string& relativePath)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(AppendToPath)>);
+
         for (std::string& path : pathsToModify)
         {
             std::filesystem::path fsPath(path);
@@ -54,6 +60,8 @@ namespace Zibra::Helpers
 
     void OpenInBrowser(const std::string& url)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(OpenInBrowser)>);
+
         std::string pythonCode = "import webbrowser\n"
                                  "webbrowser.open('" +
                                  url + "')";
@@ -62,6 +70,8 @@ namespace Zibra::Helpers
 
     void OpenInFileExplorer(const std::filesystem::path& path)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(OpenInFileExplorer)>);
+
         std::string normalizedPath;
         try
         {
@@ -92,6 +102,8 @@ namespace Zibra::Helpers
 
     Zibra::RHI::GFXAPI SelectGFXAPI()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(SelectGFXAPI)>);
+
         // Selects the graphics API based on the environment variable "ZIBRAVDB_FOR_HOUDINI_FORCE_GRAPHICS_API"
         // And limits the selection to the available graphics APIs
 
@@ -150,6 +162,8 @@ namespace Zibra::Helpers
 
     bool NeedForceSoftwareDevice()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(NeedForceSoftwareDevice)>);
+
         std::optional<std::string> envVar = GetNormalEnvironmentVariable("ZIBRAVDB_FOR_HOUDINI_FORCE_SOFTWARE_DEVICE");
         if (!envVar.has_value())
         {

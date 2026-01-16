@@ -18,29 +18,17 @@ namespace Zibra::ZibraVDBDecompressor
     using namespace std::literals;
     using namespace CE::Decompression;
 
-    class StreamAutorelease
-    {
-    public:
-        explicit StreamAutorelease(std::ifstream& stream) noexcept
-            : m_ManagedStream(stream)
-        {
-        }
-        ~StreamAutorelease() noexcept
-        {
-            m_ManagedStream.close();
-        }
-
-    private:
-        std::ifstream& m_ManagedStream;
-    };
-
     OP_Node* SOP_ZibraVDBDecompressor::Constructor(OP_Network* net, const char* name, OP_Operator* op) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&SOP_ZibraVDBDecompressor::Constructor)>);
+
         return new SOP_ZibraVDBDecompressor{net, name, op};
     }
 
     PRM_Template* SOP_ZibraVDBDecompressor::GetTemplateList() noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&SOP_ZibraVDBDecompressor::GetTemplateList)>);
+
         static PRM_Name theFileName(FILENAME_PARAM_NAME, "Input File");
         static PRM_Default theFileDefault(0, "$HIP/vol/$HIPNAME.$OS.zibravdb");
 
@@ -82,6 +70,8 @@ namespace Zibra::ZibraVDBDecompressor
 
     OP_ERROR SOP_ZibraVDBDecompressor::cookMySop(OP_Context& context)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&SOP_ZibraVDBDecompressor::cookMySop)>);
+
         gdp->clearAndDestroy();
 
         if (!LibraryUtils::IsPlatformSupported())
@@ -175,18 +165,24 @@ namespace Zibra::ZibraVDBDecompressor
 
     int SOP_ZibraVDBDecompressor::OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&SOP_ZibraVDBDecompressor::OpenManagementWindow)>);
+
         PluginManagementWindow::ShowWindow();
         return 0;
     }
 
     void SOP_ZibraVDBDecompressor::ApplyGridMetadata(GU_PrimVDB* vdbPrim, FrameProxy* const frameProxy)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&SOP_ZibraVDBDecompressor::ApplyGridMetadata)>);
+
         ApplyGridAttributeMetadata(vdbPrim, frameProxy);
         ApplyGridVisualizationMetadata(vdbPrim, frameProxy);
     }
 
     void SOP_ZibraVDBDecompressor::ApplyGridAttributeMetadata(GU_PrimVDB* vdbPrim, FrameProxy* const frameProxy)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&SOP_ZibraVDBDecompressor::ApplyGridAttributeMetadata)>);
+
         {
             const std::string attributeMetadataNameV2 = "houdiniPrimitiveAttributesV2_"s + vdbPrim->getGridName();
 
@@ -216,6 +212,8 @@ namespace Zibra::ZibraVDBDecompressor
 
     void SOP_ZibraVDBDecompressor::ApplyGridVisualizationMetadata(GU_PrimVDB* vdbPrim, FrameProxy* const frameProxy)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&SOP_ZibraVDBDecompressor::ApplyGridVisualizationMetadata)>);
+
         const std::string keyPrefix = "houdiniVisualizationAttributes_"s + vdbPrim->getGridName();
 
         const std::string keyVisMode = keyPrefix + "_mode";
@@ -243,6 +241,8 @@ namespace Zibra::ZibraVDBDecompressor
 
     void SOP_ZibraVDBDecompressor::ApplyDetailMetadata(GU_Detail* gdp, FrameProxy* const frameProxy)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&SOP_ZibraVDBDecompressor::ApplyDetailMetadata)>);
+
         {
             const char* detailMetadataV2 = frameProxy->GetMetadataByKey("houdiniDetailAttributesV2");
 
@@ -268,6 +268,8 @@ namespace Zibra::ZibraVDBDecompressor
 
     inline char* TransferStr(const std::string& src) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(TransferStr)>);
+
         char* dst = new char[src.length() + 1];
         strcpy(dst, src.c_str());
         return dst;
@@ -275,6 +277,8 @@ namespace Zibra::ZibraVDBDecompressor
 
     std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> SOP_ZibraVDBDecompressor::DeserializeGridShuffleInfo(FrameProxy* frameProxy) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&SOP_ZibraVDBDecompressor::DeserializeGridShuffleInfo)>);
+
         static std::map<std::string, CE::Addons::OpenVDBUtils::GridVoxelType> strToVoxelType = {
             {"Float1", CE::Addons::OpenVDBUtils::GridVoxelType::Float1}, {"Float3", CE::Addons::OpenVDBUtils::GridVoxelType::Float3}};
 
@@ -315,6 +319,8 @@ namespace Zibra::ZibraVDBDecompressor
 
     void SOP_ZibraVDBDecompressor::ReleaseGridShuffleInfo(std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc>& gridDescs) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&SOP_ZibraVDBDecompressor::ReleaseGridShuffleInfo)>);
+
         for (const CE::Addons::OpenVDBUtils::VDBGridDesc& desc : gridDescs)
         {
             delete desc.gridName;

@@ -16,12 +16,16 @@ namespace Zibra
 
     HoudiniLicenseManager& HoudiniLicenseManager::GetInstance()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::GetInstance)>);
+
         static HoudiniLicenseManager instance;
         return instance;
     }
 
     bool HoudiniLicenseManager::IsAnyLicenseValid() const
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::IsAnyLicenseValid)>);
+
         for (size_t i = 0; i < size_t(Product::Count); ++i)
         {
             if (m_Status[i] == Status::OK)
@@ -34,11 +38,15 @@ namespace Zibra
 
     HoudiniLicenseManager::Status HoudiniLicenseManager::GetLicenseStatus(Product product) const
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::GetLicenseStatus)>);
+
         return m_Status[size_t(product)];
     }
 
     int HoudiniLicenseManager::GetLicenseTier() const
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(static_cast<int(HoudiniLicenseManager::*)() const>(&HoudiniLicenseManager::GetLicenseTier))>);
+
         if (!IsLicenseManagerLoaded())
         {
             return -1;
@@ -56,6 +64,8 @@ namespace Zibra
 
     int HoudiniLicenseManager::GetLicenseTier(Product product) const
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(static_cast<int(HoudiniLicenseManager::*)(Product) const>(&HoudiniLicenseManager::GetLicenseTier))>);
+
         if (!IsLicenseManagerLoaded())
         {
             return -1;
@@ -71,6 +81,9 @@ namespace Zibra
 
     const char* HoudiniLicenseManager::GetLicenseType() const
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(static_cast<const char* (HoudiniLicenseManager::*)() const>(
+                          &HoudiniLicenseManager::GetLicenseType))>);
+
         if (!IsLicenseManagerLoaded())
         {
             return "None";
@@ -89,6 +102,9 @@ namespace Zibra
 
     const char* HoudiniLicenseManager::GetLicenseType(Product product) const
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(static_cast<const char* (HoudiniLicenseManager::*)(Product) const>(
+                          &HoudiniLicenseManager::GetLicenseType))>);
+
         if (!IsLicenseManagerLoaded())
         {
             return "Licensing is not initialized";
@@ -104,21 +120,29 @@ namespace Zibra
 
     HoudiniLicenseManager::ActivationType HoudiniLicenseManager::GetActivationType() const
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::GetActivationType)>);
+
         return m_Type;
     }
 
     HoudiniLicenseManager::LicensePathType HoudiniLicenseManager::GetLicensePathType() const
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::GetLicensePathType)>);
+
         return m_LicensePathType;
     }
 
     const std::string& HoudiniLicenseManager::GetLicensePath() const
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::GetLicensePath)>);
+
         return m_LicensePath;
     }
 
     void HoudiniLicenseManager::CheckoutLicense()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::CheckoutLicense)>);
+
         if (IsAnyLicenseValid())
         {
             return;
@@ -147,6 +171,8 @@ namespace Zibra
 
     void HoudiniLicenseManager::RemoveLicense()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::RemoveLicense)>);
+
         if (!LoadLicenseManager())
         {
             return;
@@ -182,21 +208,29 @@ namespace Zibra
 
     std::string HoudiniLicenseManager::GetLicenseKey() const
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::GetLicenseKey)>);
+
         return m_LicenseKey;
     }
 
     std::string HoudiniLicenseManager::GetOfflineLicense() const
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::GetOfflineLicense)>);
+
         return m_OfflineLicense;
     }
 
     std::string HoudiniLicenseManager::GetLicenseServerAddress() const
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::GetLicenseServerAddress)>);
+
         return m_LicenseServerAddress;
     }
 
     void HoudiniLicenseManager::SetLicenseKey(const char* key)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::SetLicenseKey)>);
+
         if (key == nullptr)
         {
             UI::MessageBox::Show(UI::MessageBox::Type::OK, "Please enter license key.");
@@ -248,6 +282,8 @@ namespace Zibra
 
     void HoudiniLicenseManager::SetOfflineLicense(const char* offlineLicense)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::SetOfflineLicense)>);
+
         if (offlineLicense == nullptr)
         {
             UI::MessageBox::Show(UI::MessageBox::Type::OK, "Please enter offline license.");
@@ -297,6 +333,8 @@ namespace Zibra
 
     void HoudiniLicenseManager::SetLicenseServer(const char* licenseServerAddress)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::SetLicenseServer)>);
+
         if (licenseServerAddress == nullptr)
         {
             UI::MessageBox::Show(UI::MessageBox::Type::OK, "Please enter license server address.");
@@ -344,6 +382,8 @@ namespace Zibra
 
     void HoudiniLicenseManager::CopyLicenseFile(const std::string& destFolder)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::CopyLicenseFile)>);
+
         if (!IsAnyLicenseValid())
         {
             assert(0);
@@ -381,6 +421,8 @@ namespace Zibra
 
     bool HoudiniLicenseManager::CheckLicense(Product product)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::CheckLicense)>);
+
         if (!IsLicenseValid(product))
         {
             CheckoutLicense();
@@ -390,11 +432,15 @@ namespace Zibra
 
     const std::string& HoudiniLicenseManager::GetActivationError() const
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::GetActivationError)>);
+
         return m_ActivationError;
     }
 
     std::string HoudiniLicenseManager::GetHardwareID()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::GetHardwareID)>);
+
         if (!IsLicenseManagerLoaded())
         {
             return {};
@@ -405,6 +451,8 @@ namespace Zibra
 
     bool HoudiniLicenseManager::LoadLicenseManager()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::LoadLicenseManager)>);
+
         if (m_Manager != nullptr)
         {
             return true;
@@ -422,11 +470,15 @@ namespace Zibra
 
     bool HoudiniLicenseManager::IsLicenseManagerLoaded() const
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::IsLicenseManagerLoaded)>);
+
         return m_Manager != nullptr;
     }
 
     void HoudiniLicenseManager::LicenseActivationCallback() const
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::LicenseActivationCallback)>);
+
         auto& analyticsManager = Analytics::AnalyticsManager::GetInstance();
         if (analyticsManager.IsNeedShowPrompt())
         {
@@ -436,6 +488,8 @@ namespace Zibra
 
     std::string HoudiniLicenseManager::SanitizePath(const std::string& path)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::SanitizePath)>);
+
         std::string result = path;
         const char* charsToStrip = " \n\r\t\"'";
 
@@ -458,6 +512,8 @@ namespace Zibra
 
     std::string HoudiniLicenseManager::SanitizeKey(const std::string& key)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::SanitizeKey)>);
+
         std::string result = key;
         const char* keyChars = "0123456789abcdef-";
 
@@ -480,6 +536,8 @@ namespace Zibra
 
     std::string HoudiniLicenseManager::SanitizeOfflineLicense(const std::string& offlineLicense)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::SanitizeOfflineLicense)>);
+
         std::string result = offlineLicense;
 
         size_t startPos = result.find_first_of('{');
@@ -500,6 +558,8 @@ namespace Zibra
 
     std::string HoudiniLicenseManager::GetKeyPath(LicensePathType pathType)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::GetKeyPath)>);
+
         std::vector<std::string> potentialPaths;
 
         switch (pathType)
@@ -538,6 +598,8 @@ namespace Zibra
 
     std::string HoudiniLicenseManager::GetOfflineLicensePath(LicensePathType pathType)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::GetOfflineLicensePath)>);
+
         std::vector<std::string> potentialPaths;
 
         switch (pathType)
@@ -576,6 +638,8 @@ namespace Zibra
 
     std::string HoudiniLicenseManager::GetLicenseServerAddressPath(LicensePathType pathType)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::GetLicenseServerAddressPath)>);
+
         std::vector<std::string> potentialPaths;
 
         switch (pathType)
@@ -614,6 +678,8 @@ namespace Zibra
 
     std::string HoudiniLicenseManager::ReadKeyFromFile(const std::string& path)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::ReadKeyFromFile)>);
+
         std::ifstream file(path);
         if (!file.is_open())
         {
@@ -626,6 +692,8 @@ namespace Zibra
 
     std::string HoudiniLicenseManager::ReadOfflineLicenseFromFile(const std::string& path)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::ReadOfflineLicenseFromFile)>);
+
         std::ifstream file(path);
         if (!file.is_open())
         {
@@ -638,6 +706,8 @@ namespace Zibra
 
     std::string HoudiniLicenseManager::ReadLicenseServerAddressFromFile(const std::string& path)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::ReadLicenseServerAddressFromFile)>);
+
         std::ifstream file(path);
         if (!file.is_open())
         {
@@ -652,11 +722,15 @@ namespace Zibra
 
     bool HoudiniLicenseManager::IsLicenseValid(Product product) const
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::IsLicenseValid)>);
+
         return m_Status[size_t(product)] == Status::OK;
     }
 
     HoudiniLicenseManager::Status HoudiniLicenseManager::TryCheckoutLicense(ActivationType type, LicensePathType pathType)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::TryCheckoutLicense)>);
+
         if (!LoadLicenseManager())
         {
             return Status::LibraryError;
@@ -767,6 +841,8 @@ namespace Zibra
 
     void HoudiniLicenseManager::SetStatusFromZibraVDBRuntime()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::SetStatusFromZibraVDBRuntime)>);
+
         if (!LoadLicenseManager())
         {
             return;
@@ -780,6 +856,8 @@ namespace Zibra
 
     void HoudiniLicenseManager::SetStatusForAllProducts(Status status)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&HoudiniLicenseManager::SetStatusForAllProducts)>);
+
         for (size_t i = 0; i < size_t(Product::Count); ++i)
         {
             m_Status[i] = status;
