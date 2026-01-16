@@ -16,6 +16,8 @@ namespace Zibra
     public:
         const char* className() const final
         {
+            static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&PluginManagementWindowImpl::className)>);
+
             return "ZibraVDBPluginManagement";
         }
 
@@ -55,6 +57,8 @@ namespace Zibra
         EnterHQROOTPathWindow(void (*callback)(const char*));
         const char* className() const final
         {
+            static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&EnterHQROOTPathWindow::className)>);
+
             return "ZibraVDBEnterHQROOTPath";
         }
 
@@ -75,6 +79,8 @@ namespace Zibra
 
     void PluginManagementWindowImpl::Show()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&PluginManagementWindowImpl::Show)>);
+
         if (!ParseUIFile())
         {
             return;
@@ -90,6 +96,8 @@ namespace Zibra
 
     bool PluginManagementWindowImpl::ParseUIFile()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&PluginManagementWindowImpl::ParseUIFile)>);
+
         if (m_IsParsed)
         {
             return true;
@@ -131,6 +139,8 @@ namespace Zibra
 
     void PluginManagementWindowImpl::InitializeLicenseFields()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&PluginManagementWindowImpl::InitializeLicenseFields)>);
+
         SetStringField("license_key.val", HoudiniLicenseManager::GetInstance().GetLicenseKey().c_str());
         SetStringField("offline_license.val", HoudiniLicenseManager::GetInstance().GetOfflineLicense().c_str());
         SetStringField("license_server.val", HoudiniLicenseManager::GetInstance().GetLicenseServerAddress().c_str());
@@ -138,6 +148,8 @@ namespace Zibra
 
     void PluginManagementWindowImpl::HandleDownloadLibrary(UI_Event* event)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&PluginManagementWindowImpl::HandleDownloadLibrary)>);
+
         if (LibraryUtils::IsLibraryLoaded())
         {
             UI::MessageBox::Show(UI::MessageBox::Type::OK, "Library is already downloaded.");
@@ -150,6 +162,8 @@ namespace Zibra
 
     void PluginManagementWindowImpl::HandleOpenPackagesDirectory(UI_Event* event)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&PluginManagementWindowImpl::HandleOpenPackagesDirectory)>);
+
         std::vector<std::string> userPrefDirPath =
             Helpers::GetHoudiniEnvironmentVariable(ENV_HOUDINI_USER_PREF_DIR, "HOUDINI_USER_PREF_DIR");
         if (userPrefDirPath.empty())
@@ -273,6 +287,8 @@ namespace Zibra
 
     void PluginManagementWindowImpl::HandleLoadLibrary(UI_Event* event)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&PluginManagementWindowImpl::HandleLoadLibrary)>);
+
         if (LibraryUtils::IsLibraryLoaded())
         {
             UI::MessageBox::Show(UI::MessageBox::Type::OK, "Library is already loaded.");
@@ -315,6 +331,8 @@ namespace Zibra
 
     void PluginManagementWindowImpl::HandleUpdateLibrary(UI_Event* event)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&PluginManagementWindowImpl::HandleUpdateLibrary)>);
+
         auto updateStatus = UpdateCheck::Run();
 
         if (updateStatus == UpdateCheck::Status::Latest)
@@ -337,11 +355,15 @@ namespace Zibra
 
     void PluginManagementWindowImpl::HandleUpdateLibraryCalback(UI::MessageBox::Result result)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&PluginManagementWindowImpl::HandleUpdateLibraryCalback)>);
+
         Helpers::OpenInBrowser(LIBRARY_DOWNLOAD_URL);
     }
 
     void PluginManagementWindowImpl::HandleSetLicenseKey(UI_Event* event)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&PluginManagementWindowImpl::HandleSetLicenseKey)>);
+
         auto key = getValueSymbol("license_key.val")->getString();
         HoudiniLicenseManager::GetInstance().RemoveLicense();
         HoudiniLicenseManager::GetInstance().SetLicenseKey(key);
@@ -351,6 +373,8 @@ namespace Zibra
 
     void PluginManagementWindowImpl::HandleSetOfflineLicense(UI_Event* event)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&PluginManagementWindowImpl::HandleSetOfflineLicense)>);
+
         auto offlineLicense = getValueSymbol("offline_license.val")->getString();
         HoudiniLicenseManager::GetInstance().RemoveLicense();
         HoudiniLicenseManager::GetInstance().SetOfflineLicense(offlineLicense);
@@ -360,6 +384,8 @@ namespace Zibra
 
     void PluginManagementWindowImpl::HandleSetLicenseServer(UI_Event* event)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&PluginManagementWindowImpl::HandleSetLicenseServer)>);
+
         auto offlineLicense = getValueSymbol("license_server.val")->getString();
         HoudiniLicenseManager::GetInstance().RemoveLicense();
         HoudiniLicenseManager::GetInstance().SetLicenseServer(offlineLicense);
@@ -369,6 +395,8 @@ namespace Zibra
 
     void PluginManagementWindowImpl::HandleOpenAnalyticsSettings(UI_Event* event)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&PluginManagementWindowImpl::HandleOpenAnalyticsSettings)>);
+
         auto& analyticsManager = Analytics::AnalyticsManager::GetInstance();
 
         if (!HoudiniLicenseManager::GetInstance().IsAnyLicenseValid())
@@ -396,12 +424,16 @@ namespace Zibra
 
     void PluginManagementWindowImpl::HandleRetryLicenseCheck(UI_Event* event)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&PluginManagementWindowImpl::HandleRetryLicenseCheck)>);
+
         HoudiniLicenseManager::GetInstance().CheckoutLicense();
         UpdateUI();
     }
 
     void PluginManagementWindowImpl::HandleRemoveLicense(UI_Event* event)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&PluginManagementWindowImpl::HandleRemoveLicense)>);
+
         HoudiniLicenseManager::GetInstance().RemoveLicense();
         HoudiniLicenseManager::GetInstance().CheckoutLicense();
 
@@ -420,6 +452,8 @@ namespace Zibra
 
     void PluginManagementWindowImpl::HandleCopyLicenseToHSITE(UI_Event* event)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&PluginManagementWindowImpl::HandleCopyLicenseToHSITE)>);
+
         if (!HoudiniLicenseManager::GetInstance().IsAnyLicenseValid())
         {
             UI::MessageBox::Show(UI::MessageBox::Type::OK, "No license found to copy.");
@@ -443,6 +477,8 @@ namespace Zibra
 
     void PluginManagementWindowImpl::HandleCopyLicenseToHSITECalback(UI::MessageBox::Result result)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&PluginManagementWindowImpl::HandleCopyLicenseToHSITECalback)>);
+
         if (result == UI::MessageBox::Result::No)
         {
             return;
@@ -460,6 +496,8 @@ namespace Zibra
 
     void PluginManagementWindowImpl::HandleCopyLicenseToHQROOT(UI_Event* event)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&PluginManagementWindowImpl::HandleCopyLicenseToHQROOT)>);
+
         static EnterHQROOTPathWindow dialog(&HandleCopyLicenseToHQROOTCallback);
 
         if (!HoudiniLicenseManager::GetInstance().IsAnyLicenseValid())
@@ -473,6 +511,8 @@ namespace Zibra
 
     void PluginManagementWindowImpl::HandleCopyLicenseToHQROOTCallback(const char* path)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&PluginManagementWindowImpl::HandleCopyLicenseToHQROOTCallback)>);
+
         if (path == nullptr)
         {
             UI::MessageBox::Show(UI::MessageBox::Type::OK, "Please enter valid path.");
@@ -484,6 +524,8 @@ namespace Zibra
 
     void PluginManagementWindowImpl::UpdateUI()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&PluginManagementWindowImpl::UpdateUI)>);
+
         std::ignore = LibraryUtils::TryLoadLibrary();
         const auto& licenseManager = HoudiniLicenseManager::GetInstance();
         {
@@ -674,6 +716,8 @@ namespace Zibra
 
     void PluginManagementWindowImpl::SetStringField(const char* fieldName, const char* value)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&PluginManagementWindowImpl::SetStringField)>);
+
         auto* symbol = getValueSymbol(fieldName);
         *symbol = value;
         symbol->changed(this);
@@ -686,6 +730,8 @@ namespace Zibra
 
     void EnterHQROOTPathWindow::Show()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&EnterHQROOTPathWindow::Show)>);
+
         if (!ParseUIFile())
         {
             return;
@@ -699,6 +745,8 @@ namespace Zibra
 
     bool EnterHQROOTPathWindow::ParseUIFile()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&EnterHQROOTPathWindow::ParseUIFile)>);
+
         if (m_IsParsed)
         {
             return true;
@@ -718,6 +766,8 @@ namespace Zibra
 
     void EnterHQROOTPathWindow::SetDefaultPath()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&EnterHQROOTPathWindow::SetDefaultPath)>);
+
         std::string defaultPath = "H:";
 
         std::optional<std::string> hqrootPath = Helpers::GetNormalEnvironmentVariable("HQROOT");
@@ -732,6 +782,8 @@ namespace Zibra
 
     void EnterHQROOTPathWindow::HandleClick(UI_Event* event)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&EnterHQROOTPathWindow::HandleClick)>);
+
         int32 result = (*getValueSymbol("result.val"));
         if (result == 1)
         {
@@ -748,12 +800,16 @@ namespace Zibra
 
     void EnterHQROOTPathWindow::CloseWindow()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&EnterHQROOTPathWindow::CloseWindow)>);
+
         (*getValueSymbol("dialog.val")) = false;
         getValueSymbol("dialog.val")->changed(this);
     }
 
     void PluginManagementWindow::ShowWindow()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&PluginManagementWindow::ShowWindow)>);
+
         static PluginManagementWindowImpl impl;
         impl.Show();
     }

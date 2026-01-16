@@ -19,6 +19,8 @@ namespace Zibra::InspectVolume
 
     const UT_StringHolder& ROP_InspectVolume_Operator::getDefaultShape() const
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_InspectVolume_Operator::getDefaultShape)>);
+
         static UT_StringHolder shapeSOP{"clipped_left"};
         switch (m_ContextType)
         {
@@ -34,6 +36,8 @@ namespace Zibra::InspectVolume
 
     UT_Color ROP_InspectVolume_Operator::getDefaultColor() const
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_InspectVolume_Operator::getDefaultColor)>);
+
         switch (m_ContextType)
         {
         case ContextType::SOP:
@@ -48,6 +52,8 @@ namespace Zibra::InspectVolume
 
     OP_Constructor ROP_InspectVolume_Operator::GetConstructorForContext(ContextType contextType)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_InspectVolume_Operator::GetConstructorForContext)>);
+
         switch (contextType)
         {
         case ContextType::SOP:
@@ -62,6 +68,8 @@ namespace Zibra::InspectVolume
 
     unsigned ROP_InspectVolume_Operator::GetOperatorFlags(ContextType contextType)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_InspectVolume_Operator::GetOperatorFlags)>);
+
         switch (contextType)
         {
         case ContextType::SOP:
@@ -76,6 +84,8 @@ namespace Zibra::InspectVolume
 
     unsigned ROP_InspectVolume_Operator::GetMinSources(ContextType contextType)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_InspectVolume_Operator::GetMinSources)>);
+
         switch (contextType)
         {
         case ContextType::SOP:
@@ -90,6 +100,8 @@ namespace Zibra::InspectVolume
 
     unsigned ROP_InspectVolume_Operator::GetMaxSources(ContextType contextType)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_InspectVolume_Operator::GetMaxSources)>);
+
         switch (contextType)
         {
         case ContextType::SOP:
@@ -104,11 +116,15 @@ namespace Zibra::InspectVolume
 
     const char* ROP_InspectVolume_Operator::GetNodeLabel(ContextType contextType)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_InspectVolume_Operator::GetNodeLabel)>);
+
         return NODE_LABEL;
     }
 
     const char* ROP_InspectVolume_Operator::GetNodeName(ContextType contextType)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_InspectVolume_Operator::GetNodeName)>);
+
         switch (contextType)
         {
         case ContextType::SOP:
@@ -125,6 +141,8 @@ namespace Zibra::InspectVolume
 
     unsigned ROP_InspectVolume_Operator::GetMaxOutputs(ContextType contextType)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_InspectVolume_Operator::GetMaxOutputs)>);
+
         switch (contextType)
         {
         case ContextType::SOP:
@@ -139,6 +157,8 @@ namespace Zibra::InspectVolume
 
     const char** ROP_InspectVolume_Operator::GetSourceLabels(ContextType contextType)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_InspectVolume_Operator::GetSourceLabels)>);
+
         static const char* SOP_LABELS[] = {"OpenVDB to Compress", nullptr};
         static const char* OUT_LABELS[] = {nullptr};
 
@@ -156,16 +176,22 @@ namespace Zibra::InspectVolume
 
     OP_Node* ROP_InspectVolume::ConstructorSOPContext(OP_Network* net, const char* name, OP_Operator* op) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_InspectVolume::ConstructorSOPContext)>);
+
         return new ROP_InspectVolume{ContextType::SOP, net, name, op};
     }
 
     OP_Node* ROP_InspectVolume::ConstructorOUTContext(OP_Network* net, const char* name, OP_Operator* op) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_InspectVolume::ConstructorOUTContext)>);
+
         return new ROP_InspectVolume{ContextType::OUT, net, name, op};
     }
 
     std::vector<PRM_Template>& ROP_InspectVolume::GetTemplateListContainer(ContextType contextType) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_InspectVolume::GetTemplateListContainer)>);
+
         static std::vector<PRM_Template> templateListSOP;
         static std::vector<PRM_Template> templateListOUT;
         switch (contextType)
@@ -182,6 +208,8 @@ namespace Zibra::InspectVolume
 
     PRM_Template* ROP_InspectVolume::GetTemplateList(ContextType contextType) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_InspectVolume::GetTemplateList)>);
+
         std::vector<PRM_Template>& templateList = GetTemplateListContainer(contextType);
 
         if (!templateList.empty())
@@ -217,6 +245,8 @@ namespace Zibra::InspectVolume
 
     OP_TemplatePair* ROP_InspectVolume::GetTemplatePairs(ContextType contextType) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_InspectVolume::GetTemplatePairs)>);
+
         static PRM_Template ROPTemplates[] = {theRopTemplates[ROP_RENDER_TPLATE],   theRopTemplates[ROP_RENDERBACKGROUND_TPLATE],
                                               theRopTemplates[ROP_PREVIEW_TPLATE],  theRopTemplates[ROP_RENDERDIALOG_TPLATE],
                                               theRopTemplates[ROP_TRANGE_TPLATE],   theRopTemplates[ROP_FRAMERANGE_TPLATE],
@@ -242,6 +272,8 @@ namespace Zibra::InspectVolume
 
     OP_VariablePair* ROP_InspectVolume::GetVariablePair(ContextType contextType) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_InspectVolume::GetVariablePair)>);
+
         static OP_VariablePair pair{ROP_Node::myVariableList};
         return &pair;
     }
@@ -252,10 +284,10 @@ namespace Zibra::InspectVolume
     {
     }
 
-    ROP_InspectVolume::~ROP_InspectVolume() noexcept = default;
-
     int ROP_InspectVolume::startRender(const int nFrames, const fpreal tStart, const fpreal tEnd)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_InspectVolume::startRender)>);
+
         using namespace std::string_literals;
 
         m_EndTime = tEnd;
@@ -340,6 +372,8 @@ namespace Zibra::InspectVolume
 
     ROP_RENDER_CODE ROP_InspectVolume::renderFrame(const fpreal time, UT_Interrupt* boss)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_InspectVolume::renderFrame)>);
+
         using namespace std::literals;
 
         executePreFrameScript(time);
@@ -488,6 +522,8 @@ namespace Zibra::InspectVolume
 
     ROP_RENDER_CODE ROP_InspectVolume::endRender()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_InspectVolume::endRender)>);
+
         if (error() < UT_ERROR_ABORT)
         {
             executePostRenderScript(m_EndTime);
@@ -498,6 +534,8 @@ namespace Zibra::InspectVolume
 
     void ROP_InspectVolume::getOutputFile(UT_String& filename)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_InspectVolume::getOutputFile)>);
+
         filename = "";
     }
 

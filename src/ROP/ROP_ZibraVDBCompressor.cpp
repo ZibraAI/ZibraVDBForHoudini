@@ -27,6 +27,8 @@ namespace Zibra::ZibraVDBCompressor
 
     const UT_StringHolder& ROP_ZibraVDBCompressor_Operator::getDefaultShape() const
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor_Operator::getDefaultShape)>);
+
         static UT_StringHolder shapeSOP{"clipped_left"};
         switch (m_ContextType)
         {
@@ -42,6 +44,8 @@ namespace Zibra::ZibraVDBCompressor
 
     UT_Color ROP_ZibraVDBCompressor_Operator::getDefaultColor() const
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor_Operator::getDefaultColor)>);
+
         switch (m_ContextType)
         {
         case ContextType::SOP:
@@ -56,6 +60,8 @@ namespace Zibra::ZibraVDBCompressor
 
     OP_Constructor ROP_ZibraVDBCompressor_Operator::GetConstructorForContext(ContextType contextType)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor_Operator::GetConstructorForContext)>);
+
         switch (contextType)
         {
         case ContextType::SOP:
@@ -70,6 +76,8 @@ namespace Zibra::ZibraVDBCompressor
 
     unsigned ROP_ZibraVDBCompressor_Operator::GetOperatorFlags(ContextType contextType)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor_Operator::GetOperatorFlags)>);
+
         switch (contextType)
         {
         case ContextType::SOP:
@@ -84,6 +92,8 @@ namespace Zibra::ZibraVDBCompressor
 
     unsigned ROP_ZibraVDBCompressor_Operator::GetMinSources(ContextType contextType)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor_Operator::GetMinSources)>);
+
         switch (contextType)
         {
         case ContextType::SOP:
@@ -98,6 +108,8 @@ namespace Zibra::ZibraVDBCompressor
 
     unsigned ROP_ZibraVDBCompressor_Operator::GetMaxSources(ContextType contextType)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor_Operator::GetMaxSources)>);
+
         switch (contextType)
         {
         case ContextType::SOP:
@@ -112,11 +124,15 @@ namespace Zibra::ZibraVDBCompressor
 
     const char* ROP_ZibraVDBCompressor_Operator::GetNodeLabel(ContextType contextType)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor_Operator::GetNodeLabel)>);
+
         return NODE_LABEL;
     }
 
     const char* ROP_ZibraVDBCompressor_Operator::GetNodeName(ContextType contextType)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor_Operator::GetNodeName)>);
+
         switch (contextType)
         {
         case ContextType::SOP:
@@ -133,6 +149,8 @@ namespace Zibra::ZibraVDBCompressor
 
     unsigned ROP_ZibraVDBCompressor_Operator::GetMaxOutputs(ContextType contextType)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor_Operator::GetMaxOutputs)>);
+
         switch (contextType)
         {
         case ContextType::SOP:
@@ -147,6 +165,8 @@ namespace Zibra::ZibraVDBCompressor
 
     const char** ROP_ZibraVDBCompressor_Operator::GetSourceLabels(ContextType contextType)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor_Operator::GetSourceLabels)>);
+
         static const char* SOP_LABELS[] = {"OpenVDB to Compress", nullptr};
         static const char* OUT_LABELS[] = {nullptr};
 
@@ -164,16 +184,22 @@ namespace Zibra::ZibraVDBCompressor
 
     OP_Node* ROP_ZibraVDBCompressor::ConstructorSOPContext(OP_Network* net, const char* name, OP_Operator* op) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor::ConstructorSOPContext)>);
+
         return new ROP_ZibraVDBCompressor{ContextType::SOP, net, name, op};
     }
 
     OP_Node* ROP_ZibraVDBCompressor::ConstructorOUTContext(OP_Network* net, const char* name, OP_Operator* op) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor::ConstructorOUTContext)>);
+
         return new ROP_ZibraVDBCompressor{ContextType::OUT, net, name, op};
     }
 
     std::vector<PRM_Template>& ROP_ZibraVDBCompressor::GetTemplateListContainer(ContextType contextType) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor::GetTemplateListContainer)>);
+
         static std::vector<PRM_Template> templateListSOP;
         static std::vector<PRM_Template> templateListOUT;
         switch (contextType)
@@ -190,6 +216,8 @@ namespace Zibra::ZibraVDBCompressor
 
     PRM_Template* ROP_ZibraVDBCompressor::GetTemplateList(ContextType contextType) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor::GetTemplateList)>);
+
         std::vector<PRM_Template>& templateList = GetTemplateListContainer(contextType);
 
         if (!templateList.empty())
@@ -262,6 +290,8 @@ namespace Zibra::ZibraVDBCompressor
 
     OP_TemplatePair* ROP_ZibraVDBCompressor::GetTemplatePairs(ContextType contextType) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor::GetTemplatePairs)>);
+
         static PRM_Template ROPTemplates[] = {theRopTemplates[ROP_RENDER_TPLATE],   theRopTemplates[ROP_RENDERBACKGROUND_TPLATE],
                                               theRopTemplates[ROP_PREVIEW_TPLATE],  theRopTemplates[ROP_RENDERDIALOG_TPLATE],
                                               theRopTemplates[ROP_TRANGE_TPLATE],   theRopTemplates[ROP_FRAMERANGE_TPLATE],
@@ -287,6 +317,8 @@ namespace Zibra::ZibraVDBCompressor
 
     OP_VariablePair* ROP_ZibraVDBCompressor::GetVariablePair(ContextType contextType) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor::GetVariablePair)>);
+
         static OP_VariablePair pair{ROP_Node::myVariableList};
         return &pair;
     }
@@ -301,6 +333,8 @@ namespace Zibra::ZibraVDBCompressor
 
     int ROP_ZibraVDBCompressor::startRender(const int nFrames, const fpreal tStart, const fpreal tEnd)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor::startRender)>);
+
         using namespace std::string_literals;
         if (!LibraryUtils::IsPlatformSupported())
         {
@@ -448,6 +482,8 @@ namespace Zibra::ZibraVDBCompressor
 
     ROP_RENDER_CODE ROP_ZibraVDBCompressor::renderFrame(const fpreal time, UT_Interrupt* boss)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor::renderFrame)>);
+
         using namespace std::literals;
 
         assert(LibraryUtils::IsLibraryLoaded());
@@ -606,6 +642,8 @@ namespace Zibra::ZibraVDBCompressor
 
     ROP_RENDER_CODE ROP_ZibraVDBCompressor::endRender()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor::endRender)>);
+
         if (!LibraryUtils::IsLibraryLoaded())
         {
             return ROP_ABORT_RENDER;
@@ -689,6 +727,8 @@ namespace Zibra::ZibraVDBCompressor
 
     ROP_RENDER_CODE ROP_ZibraVDBCompressor::CreateCompressor(const OP_Context& ctx) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor::CreateCompressor)>);
+
         UT_String filename = "";
         evalString(filename, FILENAME_PARAM_NAME, nullptr, 0, ctx.getTime());
 
@@ -759,6 +799,8 @@ namespace Zibra::ZibraVDBCompressor
 
     Result ROP_ZibraVDBCompressor::InitCompressor() noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor::InitCompressor)>);
+
         if (!LibraryUtils::IsLibraryLoaded())
         {
             assert(0);
@@ -841,6 +883,8 @@ namespace Zibra::ZibraVDBCompressor
     Result ROP_ZibraVDBCompressor::CompressFrame(const CE::Compression::SparseFrame& desc,
                                                  CE::Compression::FrameManager** outManager) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor::CompressFrame)>);
+
         if (!m_RHIRuntime || !m_Compressor)
         {
             assert(0);
@@ -867,8 +911,10 @@ namespace Zibra::ZibraVDBCompressor
         return RESULT_SUCCESS;
     }
 
-    Result ROP_ZibraVDBCompressor::MergeSequence(std::filesystem::path outPath) noexcept
+    Result ROP_ZibraVDBCompressor::MergeSequence(const std::filesystem::path& outPath) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor::MergeSequence)>);
+
         CE::Compression::SequenceMerger* merger = nullptr;
         Result res = CE::Compression::CreateSequenceMerger(&merger);
         if (ZIB_FAILED(res))
@@ -914,11 +960,15 @@ namespace Zibra::ZibraVDBCompressor
 
     void ROP_ZibraVDBCompressor::getOutputFile(UT_String& filename)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor::getOutputFile)>);
+
         evalString(filename, "filename", nullptr, 0, m_StartTime);
     }
 
     std::vector<std::pair<std::string, std::string>> ROP_ZibraVDBCompressor::DumpAttributes(const GU_Detail* gdp) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor::DumpAttributes)>);
+
         std::vector<std::pair<std::string, std::string>> result{};
 
         const GEO_Primitive* prim;
@@ -945,6 +995,8 @@ namespace Zibra::ZibraVDBCompressor
     void ROP_ZibraVDBCompressor::DumpVisualisationAttributes(std::vector<std::pair<std::string, std::string>>& attributes,
                                                              const GEO_PrimVDB* vdbPrim) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor::DumpVisualisationAttributes)>);
+
         const std::string keyPrefix = "houdiniVisualizationAttributes_"s + vdbPrim->getGridName();
 
         std::string keyVisMode = keyPrefix + "_mode";
@@ -964,8 +1016,10 @@ namespace Zibra::ZibraVDBCompressor
         attributes.emplace_back(std::move(keyVisLod), std::move(valueVisLod));
     }
 
-    nlohmann::json ROP_ZibraVDBCompressor::DumpGridsShuffleInfo(const std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridDescs) noexcept
+    nlohmann::json ROP_ZibraVDBCompressor::DumpGridsShuffleInfo(const std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc>& gridDescs) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor::DumpGridsShuffleInfo)>);
+
         static std::map<CE::Addons::OpenVDBUtils::GridVoxelType, std::string> voxelTypeToString = {
             {CE::Addons::OpenVDBUtils::GridVoxelType::Float1, "Float1"}, {CE::Addons::OpenVDBUtils::GridVoxelType::Float3, "Float3"}};
 
@@ -995,6 +1049,8 @@ namespace Zibra::ZibraVDBCompressor
 
     int ROP_ZibraVDBCompressor::OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor::OpenManagementWindow)>);
+
         PluginManagementWindow::ShowWindow();
         return 0;
     }

@@ -46,7 +46,7 @@ namespace Zibra::InspectVolume
 
     public:
         ROP_InspectVolume(ContextType contextType, OP_Network* net, const char* name, OP_Operator* entry) noexcept;
-        ~ROP_InspectVolume() noexcept final;
+        ~ROP_InspectVolume() noexcept final = default;
 
     public:
         int startRender(int nframes, fpreal tStart, fpreal tEnd) final;

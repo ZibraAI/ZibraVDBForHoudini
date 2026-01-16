@@ -6,6 +6,8 @@ namespace Zibra::Utils
 {
     static const char* GAStorageToStr(GA_Storage storage) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(GAStorageToStr)>);
+
         switch (storage)
         {
         case GA_STORE_BOOL:
@@ -38,6 +40,8 @@ namespace Zibra::Utils
 
     static GA_Storage StrTypeToGAStorage(const std::string& strType) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(StrTypeToGAStorage)>);
+
         if (strType == "bool")
         {
             return GA_STORE_BOOL;
@@ -98,32 +102,42 @@ namespace Zibra::Utils
     };
 
     template <typename DataType>
-    typename JSONSafeTypeMapping<DataType>::UnderlyingType ToJSONSafeType(DataType value)
+    typename JSONSafeTypeMapping<DataType>::UnderlyingType ToJSONSafeType(const DataType& value)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(ToJSONSafeType<DataType>)>);
+
         return value;
     }
 
     template <>
-    typename JSONSafeTypeMapping<int64>::UnderlyingType ToJSONSafeType<int64>(int64 value)
+    typename JSONSafeTypeMapping<int64>::UnderlyingType ToJSONSafeType<int64>(const int64& value)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(ToJSONSafeType<int64>)>);
+
         return std::to_string(value);
     }
 
     template <typename DataType>
-    DataType FromJSONSafeType(typename JSONSafeTypeMapping<DataType>::UnderlyingType value)
+    DataType FromJSONSafeType(const typename JSONSafeTypeMapping<DataType>::UnderlyingType& value)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(FromJSONSafeType<DataType>)>);
+
         return value;
     }
 
     template <>
-    int64 FromJSONSafeType<int64>(typename JSONSafeTypeMapping<int64>::UnderlyingType value)
+    int64 FromJSONSafeType<int64>(const typename JSONSafeTypeMapping<int64>::UnderlyingType& value)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(FromJSONSafeType<int64>)>);
+
         return std::stoll(value);
     }
 
     template <GA_StorageClass StorageClass, typename DataType, GA_Storage StorageType>
     std::optional<nlohmann::json> SerializeAttributeV2Fundamental(GA_Attribute* attribute, GA_Offset mapOffset)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(SerializeAttributeV2Fundamental<StorageClass, DataType, StorageType>)>);
+
         nlohmann::json result{};
         const GA_AIFTuple* tuple = attribute->getAIFTuple();
         if (tuple == nullptr)
@@ -144,6 +158,8 @@ namespace Zibra::Utils
     template <GA_StorageClass StorageClass>
     std::optional<nlohmann::json> SerializeAttributeV2(GA_Attribute* attribute, GA_Offset mapOffset)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(SerializeAttributeV2<StorageClass>)>);
+
         const GA_AIFTuple* tuple = attribute->getAIFTuple();
         if (tuple == nullptr)
         {
@@ -180,6 +196,8 @@ namespace Zibra::Utils
     template <>
     std::optional<nlohmann::json> SerializeAttributeV2<GA_STORECLASS_STRING>(GA_Attribute* attribute, GA_Offset mapOffset)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(SerializeAttributeV2<GA_STORECLASS_STRING>)>);
+
         nlohmann::json result{};
 
         const GA_AIFStringTuple* tuple = attribute->getAIFStringTuple();
@@ -209,6 +227,8 @@ namespace Zibra::Utils
     template <>
     std::optional<nlohmann::json> SerializeAttributeV2<GA_STORECLASS_DICT>(GA_Attribute* attribute, GA_Offset mapOffset)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(SerializeAttributeV2<GA_STORECLASS_DICT>)>);
+
         nlohmann::json result{};
         const GA_AIFSharedDictTuple* tuple = attribute->getAIFSharedDictTuple();
         if (tuple == nullptr)
@@ -234,6 +254,8 @@ namespace Zibra::Utils
 
     nlohmann::json DumpAttributesV2(const GU_Detail* gdp, GA_AttributeOwner attrOwner, GA_Offset mapOffset) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(DumpAttributesV2)>);
+
         nlohmann::json result = nlohmann::json::value_t::object;
 
         for (auto it = gdp->getAttributeDict(attrOwner).obegin(GA_SCOPE_PUBLIC); !it.atEnd(); it.advance())
@@ -274,30 +296,40 @@ namespace Zibra::Utils
     template <>
     bool IsCompatibleType<int32>(const nlohmann::json& value)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(IsCompatibleType<int32>)>);
+
         return value.is_number_integer();
     }
 
     template <>
     bool IsCompatibleType<int64>(const nlohmann::json& value)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(IsCompatibleType<int64>)>);
+
         return value.is_number_integer();
     }
 
     template <>
     bool IsCompatibleType<fpreal32>(const nlohmann::json& value)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(IsCompatibleType<fpreal32>)>);
+
         return value.is_number();
     }
 
     template <>
     bool IsCompatibleType<fpreal64>(const nlohmann::json& value)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(IsCompatibleType<fpreal64>)>);
+
         return value.is_number();
     }
 
     template <>
     bool IsCompatibleType<std::string>(const nlohmann::json& value)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(IsCompatibleType<std::string>)>);
+
         return value.is_string();
     }
 
@@ -305,6 +337,8 @@ namespace Zibra::Utils
     void LoadAttributeV1(GU_Detail* gdp, GA_AttributeOwner owner, GA_Offset mapOffset, const nlohmann::json& valuesContainer,
                          const std::string& name)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(LoadAttributeV1<StorageClass, DataType, StorageType>)>);
+
         if (!valuesContainer.is_array())
         {
             return;
@@ -333,6 +367,8 @@ namespace Zibra::Utils
     void LoadAttributeV1<GA_STORECLASS_STRING, std::string, GA_STORE_STRING>(GU_Detail* gdp, GA_AttributeOwner owner, GA_Offset mapOffset,
                                                                              const nlohmann::json& valuesContainer, const std::string& name)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(LoadAttributeV1<GA_STORECLASS_STRING, std::string, GA_STORE_STRING>)>);
+
         // V1 doesn't serialize strings as arrays
         if (!valuesContainer.is_string())
         {
@@ -348,6 +384,8 @@ namespace Zibra::Utils
 
     void LoadAttributesV1(GU_Detail* gdp, GA_AttributeOwner owner, GA_Offset mapOffset, const nlohmann::json& meta) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(LoadAttributesV1)>);
+
         if (!meta.is_object())
         {
             return;
@@ -414,6 +452,8 @@ namespace Zibra::Utils
     void LoadAttributeV2(GU_Detail* gdp, GA_AttributeOwner owner, GA_Offset mapOffset, const nlohmann::json& valuesContainer,
                          const std::string& name)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(LoadAttributeV2<StorageClass, DataType, StorageType>)>);
+
         if (!valuesContainer.is_array())
         {
             return;
@@ -445,6 +485,8 @@ namespace Zibra::Utils
                                                                              const nlohmann::json& valuesContainer,
                          const std::string& name)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(LoadAttributeV2<GA_STORECLASS_STRING, std::string, GA_STORE_STRING>)>);
+
         if (!valuesContainer.is_array())
         {
             return;
@@ -476,6 +518,8 @@ namespace Zibra::Utils
     void LoadAttributeV2<GA_STORECLASS_DICT, std::string, GA_STORE_DICT>(GU_Detail* gdp, GA_AttributeOwner owner, GA_Offset mapOffset,
                                                                              const nlohmann::json& valuesContainer, const std::string& name)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(LoadAttributeV2<GA_STORECLASS_DICT, std::string, GA_STORE_DICT>)>);
+
         if (!valuesContainer.is_array())
         {
             return;
@@ -525,6 +569,8 @@ namespace Zibra::Utils
 
     void LoadAttributesV2(GU_Detail* gdp, GA_AttributeOwner owner, GA_Offset mapOffset, const nlohmann::json& meta) noexcept
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(LoadAttributesV2)>);
+
         if (!meta.is_object())
         {
             return;

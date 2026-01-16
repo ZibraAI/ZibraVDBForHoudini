@@ -22,6 +22,8 @@ namespace curl
 
 static size_t DataCallback(void* contents, size_t size, size_t nmemb, void* userData)
 {
+    static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(DataCallback)>);
+
     std::vector<char>* vec = static_cast<std::vector<char>*>(userData);
     char* dataBegin = (char*)contents;
     char* dataEnd = dataBegin + size * nmemb;
@@ -29,7 +31,10 @@ static size_t DataCallback(void* contents, size_t size, size_t nmemb, void* user
     return size * nmemb;
 }
 
-static size_t HeaderCallback(char *buffer, size_t size, size_t nitems, void *userData) {
+static size_t HeaderCallback(char *buffer, size_t size, size_t nitems, void *userData)
+{
+    static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(HeaderCallback)>);
+
     std::vector<std::pair<std::string, std::string>>* headers = static_cast<std::vector<std::pair<std::string, std::string>>*>(userData);
     std::string headerData(buffer, size * nitems - 2); // drop last two bytes (/r/n)
     
@@ -51,6 +56,8 @@ namespace Zibra::NetworkRequest::CURLBackend
 {
     Response Perform(const Request& request)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(Perform)>);
+
         Response result;
 
         // Dynamically load libcurl and load functions

@@ -8,6 +8,8 @@ namespace Zibra::Analytics
 #ifdef ZIB_TARGET_OS_WIN
     std::string GetWindowsVersion()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(GetWindowsVersion)>);
+
         HMODULE ntdll = GetModuleHandleA("ntdll.dll");
         if (!ntdll)
         {
@@ -37,6 +39,8 @@ namespace Zibra::Analytics
 #ifdef ZIB_TARGET_OS_LINUX
     std::string StringString(const std::string& str)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(StringString)>);
+
         size_t start = str.find_first_not_of(" \t\n\v\f\r\"");
         size_t end = str.find_last_not_of(" \t\n\v\f\r\"");
         if (start == std::string::npos || end == std::string::npos)
@@ -48,6 +52,8 @@ namespace Zibra::Analytics
 
     std::string GetLinuxVersion()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(GetLinuxVersion)>);
+
         std::ifstream file("/etc/os-release");
         if (!file.is_open())
         {
@@ -87,6 +93,8 @@ namespace Zibra::Analytics
 #ifdef ZIB_TARGET_OS_MAC
     std::string GetMacOSVersion()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(GetMacOSVersion)>);
+
         std::string result;
         size_t resultSize = 0;
         int res = sysctlbyname("kern.osproductversion", nullptr, &resultSize, nullptr, 0);
@@ -109,6 +117,8 @@ namespace Zibra::Analytics
 
     OSInfo GetOSInfo()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(GetOSInfo)>);
+
         OSInfo result;
 #if ZIB_TARGET_OS_WIN
         result.Name = "Windows";

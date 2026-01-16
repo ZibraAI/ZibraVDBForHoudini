@@ -15,6 +15,8 @@ namespace Zibra::UI
 
         const char* className() const final
         {
+            static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&MessageBoxDialog::className)>);
+
             return "MessageBoxDialog";
         }
 
@@ -40,6 +42,8 @@ namespace Zibra::UI
 
     void MessageBoxDialog::Show(const std::string& message, void (*callback)(MessageBox::Result))
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&MessageBoxDialog::Show)>);
+
         if (!ParseUIFile())
         {
             return;
@@ -60,6 +64,8 @@ namespace Zibra::UI
 
     bool MessageBoxDialog::ParseUIFile()
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&MessageBoxDialog::ParseUIFile)>);
+
         if (m_IsParsed)
         {
             return true;
@@ -79,6 +85,8 @@ namespace Zibra::UI
 
     void MessageBoxDialog::HandleClick(UI_Event* event)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&MessageBoxDialog::HandleClick)>);
+
         (*getValueSymbol("dialog.val")) = false;
         getValueSymbol("dialog.val")->changed(this);
 
@@ -91,6 +99,8 @@ namespace Zibra::UI
 
     std::array<std::string, MessageBoxDialog::LINE_COUNT> MessageBoxDialog::SplitMessage(const std::string& message)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&MessageBoxDialog::SplitMessage)>);
+
         std::array<std::string, LINE_COUNT> result;
 
         size_t currentOffset = 0;
@@ -129,6 +139,8 @@ namespace Zibra::UI
 
     void MessageBox::Show(Type type, const std::string& message, void (*callback)(MessageBox::Result) /*= nullptr*/)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&MessageBoxDialog::Show)>);
+
         static MessageBoxDialog okDialog("ZibraVDBMessageBoxOK.ui");
         static MessageBoxDialog yesNoDialog("ZibraVDBMessageBoxYesNo.ui");
         switch (type)

@@ -22,6 +22,8 @@
 
 extern "C" SYS_VISIBILITY_EXPORT void newSopOperator(OP_OperatorTable* table)
 {
+    static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(newSopOperator)>);
+
     using namespace Zibra;
 
     table->addOperator(new ZibraVDBCompressor::ROP_ZibraVDBCompressor_Operator(ContextType::SOP));
@@ -34,6 +36,8 @@ extern "C" SYS_VISIBILITY_EXPORT void newSopOperator(OP_OperatorTable* table)
 
 extern "C" SYS_VISIBILITY_EXPORT void newDriverOperator(OP_OperatorTable* table)
 {
+    static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(newDriverOperator)>);
+
     using namespace Zibra;
 
     table->addOperator(new ZibraVDBCompressor::ROP_ZibraVDBCompressor_Operator(ContextType::OUT));

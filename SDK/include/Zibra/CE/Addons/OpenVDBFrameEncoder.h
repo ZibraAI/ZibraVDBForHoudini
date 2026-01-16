@@ -149,11 +149,23 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         {
             openvdb::GridPtrVec result{};
             result.reserve(m_Grids.size());
-            for (const auto& [gridName, grid] : m_Grids)
+
+            // Can not iterate over m_Grids directly
+            // since we need to ensure that we preserve order
+            for (const VDBGridDesc& gridDesc : m_GridDescs)
             {
+                const char* gridName = gridDesc.gridName;
+                auto gridIt = m_Grids.find(gridName);
+                if (gridIt == m_Grids.end())
+                {
+                    assert(0);
+                    return {};
+                }
+                openvdb::GridBase::Ptr grid = gridIt->second;
                 grid->setName(gridName);
                 result.emplace_back(grid);
             }
+
             return result;
         }
 

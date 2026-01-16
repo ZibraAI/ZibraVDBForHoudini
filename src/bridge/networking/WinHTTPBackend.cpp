@@ -12,11 +12,15 @@ namespace Zibra::NetworkRequest::WinHTTPBackend
     template <typename T, size_t size>
     constexpr size_t ZIB_ARR_SIZE(T (&)[size])
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(ZIB_ARR_SIZE<T, size>)>);
+
         return size;
     }
 
-    std::wstring ToWideString(const std::string str)
+    std::wstring ToWideString(const std::string& str)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(ToWideString)>);
+
         if (str.empty())
             return {};
 
@@ -32,8 +36,10 @@ namespace Zibra::NetworkRequest::WinHTTPBackend
         return {buf.data(), buf.size()};
     }
 
-    std::string ToNarrowString(const std::wstring str)
+    std::string ToNarrowString(const std::wstring& str)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(ToNarrowString)>);
+
         if (str.empty())
             return {};
 
@@ -51,6 +57,8 @@ namespace Zibra::NetworkRequest::WinHTTPBackend
 
     const wchar_t* MethodStr(Method method)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(MethodStr)>);
+
         switch (method)
         {
         case Method::GET:
@@ -65,6 +73,8 @@ namespace Zibra::NetworkRequest::WinHTTPBackend
 
     Response Perform(const Request& request)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(Perform)>);
+
         Response result;
 
         const std::wstring wideUserAgent = ToWideString(request.userAgent);

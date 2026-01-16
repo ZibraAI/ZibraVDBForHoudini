@@ -14,6 +14,8 @@ namespace Zibra::NetworkRequest
 
     Response Perform(const Request& request)
     {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(Perform)>);
+        
 #ifdef ZIB_NETWORK_REQUEST_BACKEND_WINHTTP
         return WinHTTPBackend::Perform(request);
 #elif defined(ZIB_NETWORK_REQUEST_BACKEND_CURL)
