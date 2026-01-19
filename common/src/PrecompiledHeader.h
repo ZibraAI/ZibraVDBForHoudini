@@ -44,6 +44,7 @@
 #include <UT/UT_JSONParser.h>
 #include <UT/UT_JSONValueMap.h>
 #include <UT/UT_StringHolder.h>
+#include <tools/henv.h>
 
 // OpenVDB includes
 #include <openvdb/io/Stream.h>
