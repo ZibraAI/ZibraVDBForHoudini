@@ -18,7 +18,7 @@ namespace Zibra::Helpers
             }
         }
 
-        const char* envVarSTL = std::getenv(envVarName);
+        const char* envVarSTL = HoudiniGetenv(envVarName);
         if (envVarSTL != nullptr)
         {
             if (envVarHoudini == nullptr || strcmp(envVarHoudini, envVarSTL) != 0)
@@ -31,7 +31,7 @@ namespace Zibra::Helpers
 
     std::optional<std::string> GetNormalEnvironmentVariable(const char* envVarName)
     {
-        const char* result = std::getenv(envVarName);
+        const char* result = HoudiniGetenv(envVarName);
         if (result == nullptr)
         {
             return std::nullopt;
