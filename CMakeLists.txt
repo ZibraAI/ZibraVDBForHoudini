@@ -16,7 +16,7 @@ set(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ Standard")
 set(CMAKE_CXX_STANDARD_REQUIRED ON CACHE BOOL "C++ Standard Required")
 set(CMAKE_CXX_EXTENSIONS OFF CACHE BOOL "C++ Standard Extensions")
 if (MSVC)
-   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive- /Zc:__cplusplus" CACHE STRING "C++ Compiler Flags")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive- /Zc:__cplusplus" CACHE STRING "C++ Compiler Flags")
 endif()
 
 # Houdini specific settings
@@ -27,7 +27,12 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
 option(LABS_BUILD "Build for Labs. Disables certain build system quirks." OFF)
 cmake_print_variables(LABS_BUILD)
 
-project(ZibraVDBForHoudini VERSION 1.2.3.0)
+project(ZibraVDBForHoudini VERSION 1.3.0.0)
+
+set(ZIBRAVDB_PLUGIN_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
+set(ZIBRAVDB_PLUGIN_VERSION_MINOR ${PROJECT_VERSION_MINOR})
+set(ZIBRAVDB_PLUGIN_VERSION_PATCH ${PROJECT_VERSION_PATCH})
+set(ZIBRAVDB_PLUGIN_VERSION_TWEAK ${PROJECT_VERSION_TWEAK})
 
 # Target OS detection
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
@@ -77,70 +82,29 @@ else()
     message(FATAL_ERROR "Unknown target OS: ${ZIB_TARGET_OS_NAME}.")
 endif()
 
-if ("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
-    set(ZIB_NETWORK_REQUEST_BACKEND "WINHTTP")
-elseif("${ZIB_TARGET_OS_NAME}" STREQUAL "LINUX")
-    set(ZIB_NETWORK_REQUEST_BACKEND "CURL")
-elseif("${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
-    set(ZIB_NETWORK_REQUEST_BACKEND "CURL")
-else()
-    message(FATAL_ERROR "Unsupported target OS: ${ZIB_TARGET_OS_NAME}")
-endif()
-cmake_print_variables(ZIB_NETWORK_REQUEST_BACKEND)
-
-configure_file(src/Globals.h.in src/Globals.h @ONLY)
-
 set(HeaderFiles
     src/PrecompiledHeader.h
-    src/Globals.h.in
-    src/bridge/networking/NetworkRequest.h
-    src/bridge/LibraryUtils.h
-    src/bridge/UpdateCheck.h
     src/ROP/CompressorManager/CompressorManager.h
-    src/SOP/DecompressorManager/DecompressorManager.h
-    src/licensing/LicenseManager.h
     src/ROP/ROP_ZibraVDBCompressor.h
     src/SOP/SOP_ZibraVDBDecompressor.h
-    src/ui/MessageBox.h
-    src/ui/PluginManagementWindow.h
-    src/utils/Helpers.h
-    src/utils/GAAttributesDump.h
-    
-    ${CMAKE_CURRENT_BINARY_DIR}/src/Globals.h
+    src/LOP/LOP_ZibraVDBImport.h
 )
 
 set(SourceFiles
     src/main.cpp
-    src/bridge/networking/NetworkRequest.cpp
-    src/bridge/LibraryUtils.cpp
-    src/bridge/UpdateCheck.cpp
     src/ROP/CompressorManager/CompressorManager.cpp
-    src/SOP/DecompressorManager/DecompressorManager.cpp
-    src/licensing/LicenseManager.cpp
     src/ROP/ROP_ZibraVDBCompressor.cpp
     src/SOP/SOP_ZibraVDBDecompressor.cpp
-    src/ui/MessageBox.cpp
-    src/ui/PluginManagementWindow.cpp
-    src/utils/Helpers.cpp
-    src/utils/GAAttributesDump.cpp
+    src/LOP/LOP_ZibraVDBImport.cpp
 )
 
 add_library(ZibraVDBForHoudini SHARED ${HeaderFiles} ${SourceFiles})
 target_include_directories(ZibraVDBForHoudini
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
-    PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/src
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/Include)
 target_precompile_headers(ZibraVDBForHoudini PRIVATE src/PrecompiledHeader.h)
-target_compile_definitions(ZibraVDBForHoudini PRIVATE 
-    ZIB_NETWORK_REQUEST_BACKEND_${ZIB_NETWORK_REQUEST_BACKEND}=1
+target_compile_definitions(ZibraVDBForHoudini PRIVATE
     ZIB_TARGET_OS_${ZIB_TARGET_OS_NAME}=1)
-
-if(${LABS_BUILD})
-    target_compile_definitions(ZibraVDBForHoudini PRIVATE LABS_BUILD)
-endif()
-
-target_include_directories(ZibraVDBForHoudini PRIVATE SDK/include)
-target_include_directories(ZibraVDBForHoudini PRIVATE "${HOUDINI_INCLUDE_DIR}")
 
 if(DEFINED ENV{ZIBRA_HOUDINI_PATH})
     message(STATUS "ENV{ZIBRA_HOUDINI_PATH}: $ENV{ZIBRA_HOUDINI_PATH}")
@@ -170,7 +134,7 @@ else()
         )
     endif()
     string(REGEX MATCH "HOUDINI_USER_PREF_DIR := '([^\n]*)'" _ ${HOUDINI_ENV_VARS})
-    
+
     if(${LABS_BUILD})
         set(OUTPUT_PATH "${CMAKE_MATCH_1}")
     else()
@@ -178,6 +142,22 @@ else()
     endif()
 endif()
 cmake_print_variables(OUTPUT_PATH)
+list(APPEND CMAKE_PREFIX_PATH "${HOUDINI_PATH}/toolkit/cmake")
+find_package(Houdini REQUIRED)
+
+set(DETECTED_HOUDINI_VERSION "${Houdini_VERSION_MAJOR}.${Houdini_VERSION_MINOR}")
+cmake_print_variables(DETECTED_HOUDINI_VERSION)
+
+add_subdirectory(common)
+setup_common_houdini_dependencies(ZibraVDBForHoudini)
+add_subdirectory(AssetResolver)
+
+if(${LABS_BUILD})
+    set_target_properties(ZibraVDBForHoudini PROPERTIES PREFIX "")
+    install(TARGETS ZibraVDBForHoudini DESTINATION "${OUTPUT_PATH}/dso")
+else()
+    houdini_configure_target(ZibraVDBForHoudini INSTDIR "${CMAKE_CURRENT_BINARY_DIR}/HOUDINI_INSTDIR")
+endif()
 
 if(${LABS_BUILD})
     # In Labs build we use simple post-build flow
@@ -188,29 +168,15 @@ if(${LABS_BUILD})
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/config/Applications/
         ${OUTPUT_PATH}/config/Applications/
     )
+    add_dependencies(ZibraVDBForHoudiniPostBuild ZibraVDBForHoudini)
 else()
     add_custom_target(ZibraVDBForHoudiniPostBuild ALL
-        COMMAND ${CMAKE_COMMAND} -E env NO_COLOR=1 pwsh "${CMAKE_CURRENT_SOURCE_DIR}/src/buildSteps/post-build.ps1" "${HOUDINI_PATH}" "${CMAKE_PROJECT_VERSION}" "$<TARGET_FILE:ZibraVDBForHoudini>" "${OUTPUT_PATH}"
+        COMMAND ${CMAKE_COMMAND} -E env NO_COLOR=1 pwsh "${CMAKE_CURRENT_SOURCE_DIR}/buildSteps/post-build.ps1" "${HOUDINI_PATH}" "${CMAKE_PROJECT_VERSION}" "$<TARGET_FILE:ZibraVDBForHoudini>" "$<TARGET_FILE:ZibraVDBResolver>" "${ZIBRAVDB_ASSET_RESOLVER_PLUGIN_CONFIG}" "${OUTPUT_PATH}"
     )
-endif()
-add_dependencies(ZibraVDBForHoudiniPostBuild ZibraVDBForHoudini)
-
-list(APPEND CMAKE_PREFIX_PATH "${HOUDINI_PATH}/toolkit/cmake")
-find_package(Houdini REQUIRED)
-target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini)
-
-set(DETECTED_HOUDINI_VERSION "${Houdini_VERSION_MAJOR}.${Houdini_VERSION_MINOR}")
-cmake_print_variables(DETECTED_HOUDINI_VERSION)
-
-if (NOT "${ZIB_TARGET_OS_NAME}" STREQUAL "MAC")
-    target_link_libraries(ZibraVDBForHoudini PRIVATE Houdini::Dep::openvdb_sesi)
-endif()
-
-if(${LABS_BUILD})
-    set_target_properties(ZibraVDBForHoudini PROPERTIES PREFIX "")
-    install(TARGETS ZibraVDBForHoudini DESTINATION "${OUTPUT_PATH}/dso")
-else()
-    houdini_configure_target(ZibraVDBForHoudini INSTDIR "${CMAKE_CURRENT_BINARY_DIR}/HOUDINI_INSTDIR")
+    target_sources(ZibraVDBForHoudiniPostBuild PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/buildSteps/post-build.ps1
+    )
+    add_dependencies(ZibraVDBForHoudiniPostBuild ZibraVDBForHoudini ZibraVDBResolver)
 endif()
 
 if(MSVC)

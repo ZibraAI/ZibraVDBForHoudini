@@ -1,59 +1,50 @@
 #pragma once
 
 // Standard library
-#include <cassert>
-#include <chrono>
-#include <climits>
-#include <cmath>
+#include <algorithm>
 #include <cstdint>
-#include <cstdio>
 #include <cstdlib>
-#include <execution>
 #include <filesystem>
 #include <iostream>
-#include <map>
-#include <mutex>
-#include <optional>
+#include <limits>
 #include <regex>
 #include <set>
 #include <sstream>
 #include <string>
-#include <thread>
 #include <utility>
 #include <vector>
 
+#if ZIB_TARGET_OS_WIN
+#include <codecvt>
+#include <locale>
+#endif
+
 // Houdini includes
-#include <CH/CH_LocalVariable.h>
-#include <CMD/CMD_Manager.h>
 #include <GA/GA_Attribute.h>
 #include <GA/GA_AttributeType.h>
-#include <GA/GA_GBMacros.h>
-#include <GEO/GEO_PrimPoly.h>
+#include <GA/GA_Handle.h>
+#include <GA/GA_Iterator.h>
+#include <GA/GA_Types.h>
+#include <GEO/GEO_Primitive.h>
 #include <GU/GU_Detail.h>
 #include <GU/GU_PrimVDB.h>
-#include <OP/OP_AutoLockInputs.h>
-#include <OP/OP_Director.h>
-#include <OP/OP_Operator.h>
-#include <OP/OP_OperatorTable.h>
-#include <PRM/PRM_Conditional.h>
-#include <PRM/PRM_Include.h>
-#include <PRM/PRM_Parm.h>
-#include <PRM/PRM_ParmList.h>
-#include <PRM/PRM_SpareData.h>
-#include <PRM/PRM_TemplateBuilder.h>
-#include <ROP/ROP_Error.h>
+#include <LOP/LOP_Node.h>
+#include <OP/OP_Context.h>
+#include <OP/OP_Node.h>
+#include <PY/PY_Python.h>
 #include <ROP/ROP_Node.h>
-#include <ROP/ROP_Templates.h>
 #include <SI/AP_Interface.h>
 #include <SOP/SOP_Node.h>
-#include <SYS/SYS_Math.h>
+#include <SYS/SYS_Types.h>
 #include <UI/UI_Value.h>
-#include <UT/UT_Assert.h>
-#include <UT/UT_Exit.h>
-#include <UT/UT_IOTable.h>
-#include <UT/UT_Interrupt.h>
-#include <UT/UT_OFStream.h>
+#include <UT/UT_EnvControl.h>
+#include <UT/UT_Error.h>
+#include <UT/UT_IStream.h>
+#include <UT/UT_JSONHandle.h>
+#include <UT/UT_JSONParser.h>
+#include <UT/UT_JSONValueMap.h>
 #include <UT/UT_StringHolder.h>
+#include <tools/henv.h>
 
 // OpenVDB includes
 #include <openvdb/io/Stream.h>
@@ -89,11 +80,11 @@
 #undef ERROR
 #undef OUT
 #elif ZIB_TARGET_OS_LINUX
-#include <curl/curl.h>
 #include <dlfcn.h>
+#include <curl/curl.h>
 #elif ZIB_TARGET_OS_MAC
-#include <curl/curl.h>
 #include <dlfcn.h>
+#include <curl/curl.h>
 #include <sys/xattr.h>
 #else
 #error Unexpected OS
@@ -103,14 +94,10 @@
 #include <Zibra/RHI.h>
 
 #define ZCE_NO_STATIC_API_DECL
-#include <Zibra/CE/Addons/OpenVDBFrameLoader.h>
 #include <Zibra/CE/Compression.h>
+#include <Zibra/CE/Decompression.h>
+#include <Zibra/CE/Licensing.h>
+#include <Zibra/CE/Literals.h>
 
-// Project includes
+// Project code
 #include "Globals.h"
-#include "bridge/LibraryUtils.h"
-#include "licensing/LicenseManager.h"
-#include "ui/PluginManagementWindow.h"
-#include "utils/DecompressorManager.h"
-#include "utils/Helpers.h"
-#include "utils/MetadataHelper.h"

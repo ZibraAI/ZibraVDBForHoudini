@@ -15,21 +15,33 @@
 
 // This header must be included exactly once in the plugin!
 #include <UT/UT_DSOVersion.h>
+#include <HUSD/HUSD_OutputProcessor.h>
 
+#include "LOP/LOP_ZibraVDBImport.h"
 #include "ROP/ROP_ZibraVDBCompressor.h"
 #include "SOP/SOP_ZibraVDBDecompressor.h"
 
-extern "C" SYS_VISIBILITY_EXPORT void newSopOperator(OP_OperatorTable* table)
+extern "C"
 {
-    using namespace Zibra;
+    SYS_VISIBILITY_EXPORT void newSopOperator(OP_OperatorTable* table)
+    {
+        using namespace Zibra;
 
-    table->addOperator(new ZibraVDBCompressor::ROP_ZibraVDBCompressor_Operator(ContextType::SOP));
-    table->addOperator(new ZibraVDBDecompressor::SOP_ZibraVDBDecompressor_Operator());
-}
+        table->addOperator(new ZibraVDBCompressor::ROP_ZibraVDBCompressor_Operator(ContextType::SOP));
+        table->addOperator(new ZibraVDBDecompressor::SOP_ZibraVDBDecompressor_Operator());
+    }
 
-extern "C" SYS_VISIBILITY_EXPORT void newDriverOperator(OP_OperatorTable* table)
-{
-    using namespace Zibra;
+    SYS_VISIBILITY_EXPORT void newLopOperator(OP_OperatorTable* table)
+    {
+        using namespace Zibra;
 
-    table->addOperator(new ZibraVDBCompressor::ROP_ZibraVDBCompressor_Operator(ContextType::OUT));
+        table->addOperator(new ZibraVDBImport::LOP_ZibraVDBImport_Operator());
+    }
+
+    SYS_VISIBILITY_EXPORT void newDriverOperator(OP_OperatorTable* table)
+    {
+        using namespace Zibra;
+
+        table->addOperator(new ZibraVDBCompressor::ROP_ZibraVDBCompressor_Operator(ContextType::OUT));
+    }
 }
