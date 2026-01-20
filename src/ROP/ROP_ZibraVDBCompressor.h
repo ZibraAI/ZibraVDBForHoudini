@@ -69,7 +69,6 @@ namespace Zibra::ZibraVDBCompressor
     private:
         static std::vector<PRM_Template>& GetTemplateListContainer(ContextType contextType) noexcept;
 
-
         static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate) noexcept;
 
         ROP_RENDER_CODE CreateCompressor(fpreal tStart) noexcept;

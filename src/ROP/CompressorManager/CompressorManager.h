@@ -18,4 +18,4 @@ namespace Zibra::CE::Compression
         std::ofstream m_Ofstream;
         bool m_IsSequenceEmpty = true;
     };
-} // namespace Zibra
+} // namespace Zibra::CE::Compression

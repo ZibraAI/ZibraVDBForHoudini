@@ -13,7 +13,7 @@ PXR_NAMESPACE_USING_DIRECTIVE
 
 namespace Zibra::ZibraVDBImport
 {
-    
+
     OP_Node* LOP_ZibraVDBImport::Constructor(OP_Network* net, const char* name, OP_Operator* op) noexcept
     {
         return new LOP_ZibraVDBImport{net, name, op};
@@ -38,12 +38,8 @@ namespace Zibra::ZibraVDBImport
         static PRM_Default channelsDefault(0.0f, "*");
         static PRM_ChoiceList channelsChoiceList(PRM_CHOICELIST_REPLACE, &LOP_ZibraVDBImport::BuildChannelsChoiceList);
 
-        static PRM_Name parentPrimTypeChoices[] = {
-            PRM_Name("none", "None"),
-            PRM_Name("xform", "Xform"),
-            PRM_Name("scope", "Scope"),
-            PRM_Name(0, 0)
-        };
+        static PRM_Name parentPrimTypeChoices[] = {PRM_Name("none", "None"), PRM_Name("xform", "Xform"), PRM_Name("scope", "Scope"),
+                                                   PRM_Name(0, 0)};
         static PRM_ChoiceList PRMparentPrimTypeChoiceList(PRM_CHOICELIST_SINGLE, parentPrimTypeChoices);
 
         static PRM_Name openPluginManagement(OPEN_PLUGIN_MANAGEMENT_PARAM_NAME, "Open Plugin Management");
@@ -55,8 +51,7 @@ namespace Zibra::ZibraVDBImport
             PRM_Template(PRM_ORD, 1, &parentPrimType, &parentPrimTypeDefault, &PRMparentPrimTypeChoiceList),
             PRM_Template(PRM_STRING, 1, &channels, &channelsDefault, &channelsChoiceList),
             PRM_Template(PRM_CALLBACK, 1, &openPluginManagement, nullptr, nullptr, nullptr, &LOP_ZibraVDBImport::OpenManagementWindow),
-            PRM_Template()
-        };
+            PRM_Template()};
         return templateList;
     }
 
@@ -65,7 +60,8 @@ namespace Zibra::ZibraVDBImport
     {
     }
 
-    void LOP_ZibraVDBImport::BuildChannelsChoiceList(void* data, PRM_Name* choiceNames, int maxListSize, const PRM_SpareData*, const PRM_Parm*)
+    void LOP_ZibraVDBImport::BuildChannelsChoiceList(void* data, PRM_Name* choiceNames, int maxListSize, const PRM_SpareData*,
+                                                     const PRM_Parm*)
     {
         if (!choiceNames || maxListSize <= 0)
         {
@@ -79,24 +75,24 @@ namespace Zibra::ZibraVDBImport
         }
 
         int choiceIndex = 0;
-        
+
         if (choiceIndex < maxListSize - 1)
         {
             choiceNames[choiceIndex].setToken("*");
             choiceNames[choiceIndex].setLabel("All Channels");
             choiceIndex++;
         }
-        
+
         for (const auto& gridName : node->m_CachedFileInfo.availableGrids)
         {
             if (choiceIndex >= maxListSize - 1)
                 break;
-                
+
             choiceNames[choiceIndex].setToken(gridName.c_str());
             choiceNames[choiceIndex].setLabel(gridName.c_str());
             choiceIndex++;
         }
-        
+
         if (choiceIndex < maxListSize)
         {
             choiceNames[choiceIndex].setToken(nullptr);
@@ -104,7 +100,7 @@ namespace Zibra::ZibraVDBImport
         }
     }
 
-    OP_ERROR LOP_ZibraVDBImport::cookMyLop(OP_Context &context)
+    OP_ERROR LOP_ZibraVDBImport::cookMyLop(OP_Context& context)
     {
 #define SHOW_ERROR_AND_RETURN(message) \
     addError(LOP_MESSAGE, message);    \
@@ -143,8 +139,9 @@ namespace Zibra::ZibraVDBImport
 
         if (currentFrameIndex < m_CachedFileInfo.frameStart || currentFrameIndex > m_CachedFileInfo.frameEnd)
         {
-            addWarning(LOP_MESSAGE, ("No volume data available for frame " + std::to_string(currentFrameIndex) +
-                      " (ZibraVDB range: " + std::to_string(m_CachedFileInfo.frameStart) + "-" + std::to_string(m_CachedFileInfo.frameEnd) + ")").c_str());
+            addWarning(LOP_MESSAGE, ("No volume data available for frame " + std::to_string(currentFrameIndex) + " (ZibraVDB range: " +
+                                     std::to_string(m_CachedFileInfo.frameStart) + "-" + std::to_string(m_CachedFileInfo.frameEnd) + ")")
+                                        .c_str());
             return error(context);
         }
 
@@ -159,7 +156,8 @@ namespace Zibra::ZibraVDBImport
             std::string invalidNamesList;
             for (const auto& channel : invalidChannelNames)
             {
-                if (!invalidNamesList.empty()) invalidNamesList += ", ";
+                if (!invalidNamesList.empty())
+                    invalidNamesList += ", ";
                 invalidNamesList += channel;
             }
             addWarning(LOP_MESSAGE, ("Unknown channel names specified: " + invalidNamesList).c_str());
@@ -197,16 +195,16 @@ namespace Zibra::ZibraVDBImport
             }
             changed = true;
         }
-        
+
         return changed;
     }
-    
+
     int LOP_ZibraVDBImport::OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate)
     {
         PluginManagementWindow::ShowWindow();
         return 0;
     }
-    
+
     std::string LOP_ZibraVDBImport::GetFilePath(fpreal t) const
     {
         UT_String filePath;
@@ -225,21 +223,21 @@ namespace Zibra::ZibraVDBImport
         evalString(primPath, PRIMPATH_PARAM_NAME, 0, t);
         return primPath.toStdString();
     }
-    
+
     std::string LOP_ZibraVDBImport::GetParentPrimType(fpreal t) const
     {
         UT_String parentPrimType;
         evalString(parentPrimType, PARENTPRIMTYPE_PARAM_NAME, 0, t);
         return parentPrimType.toStdString();
     }
-    
+
     std::string LOP_ZibraVDBImport::GetChannels(fpreal t) const
     {
         UT_String channels;
         evalString(channels, CHANNELS_PARAM_NAME, 0, t);
         return channels.toStdString();
     }
-    
+
     std::string LOP_ZibraVDBImport::SanitizeFieldNameForUSD(const std::string& fieldName)
     {
         return SdfPath::IsValidIdentifier(fieldName) ? fieldName : TfMakeValidIdentifier(fieldName);
@@ -248,21 +246,22 @@ namespace Zibra::ZibraVDBImport
     // Parses channel selection string. Expected formats:
     // "*" - selects all available channels
     // "channel1 channel2 channel3" - space-separated channel names (no support for channels with spaces in names)
-    std::set<std::string> LOP_ZibraVDBImport::ParseSelectedChannels(const std::string& channelsStr, std::set<std::string>& invalidChannelNames)
+    std::set<std::string> LOP_ZibraVDBImport::ParseSelectedChannels(const std::string& channelsStr,
+                                                                    std::set<std::string>& invalidChannelNames)
     {
         std::set<std::string> selectedChannels;
-        
+
         if (channelsStr.empty())
         {
             return selectedChannels;
         }
-        
+
         if (channelsStr == "*")
         {
             selectedChannels.insert(m_CachedFileInfo.availableGrids.begin(), m_CachedFileInfo.availableGrids.end());
             return selectedChannels;
         }
-        
+
         std::istringstream iss(channelsStr);
         std::string channel;
         while (iss >> channel)
@@ -276,7 +275,7 @@ namespace Zibra::ZibraVDBImport
                 invalidChannelNames.insert(channel);
             }
         }
-        
+
         return selectedChannels;
     }
 
@@ -284,7 +283,7 @@ namespace Zibra::ZibraVDBImport
     {
         FileInfo info;
         info.filePath = filePath;
-        
+
         if (!LibraryUtils::TryLoadLibrary())
         {
             info.error = "ZibraVDB library not loaded";
@@ -404,7 +403,7 @@ namespace Zibra::ZibraVDBImport
                 }
             }
         }
-        
+
         if (!stage->GetPrimAtPath(primPath))
         {
             stage->DefinePrim(primPath, primType);

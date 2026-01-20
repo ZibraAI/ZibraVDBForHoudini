@@ -681,14 +681,10 @@ namespace Zibra::ZibraVDBCompressor
         evalString(filename, "filename", nullptr, 0, m_StartTime);
     }
 
-
-
-
     int ROP_ZibraVDBCompressor::OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate) noexcept
     {
         PluginManagementWindow::ShowWindow();
         return 0;
     }
-
 
 } // namespace Zibra::ZibraVDBCompressor
