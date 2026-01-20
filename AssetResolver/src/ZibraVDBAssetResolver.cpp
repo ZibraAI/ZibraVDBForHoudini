@@ -123,9 +123,9 @@ ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
     if (decompressedPath.empty())
     {
         TF_DEBUG(ZIBRAVDB_RESOLVER)
-            .Msg("ZibraVDBResolver::_Resolve - Decompression failed for file '%s' (check temp directory permissions, decompressor manager "
-                 "initialization, frame availability, or compression format)\n",
-                 assetURI.path.c_str());
+            .Msg("ZibraVDBResolver::_Resolve - Decompression failed for frame %i in file '%s' (check temp directory permissions and "
+                 "sequence frame range)\n",
+                 frameIndex, assetURI.path.c_str());
         return {};
     }
 
