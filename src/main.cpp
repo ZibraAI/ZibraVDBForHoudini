@@ -13,9 +13,9 @@
 #endif // _MSC_VER
 #endif // !LABS_BUILD
 
+#include <HUSD/HUSD_OutputProcessor.h>
 // This header must be included exactly once in the plugin!
 #include <UT/UT_DSOVersion.h>
-#include <HUSD/HUSD_OutputProcessor.h>
 
 #include "LOP/LOP_ZibraVDBImport.h"
 #include "ROP/ROP_ZibraVDBCompressor.h"

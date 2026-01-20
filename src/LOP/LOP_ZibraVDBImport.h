@@ -40,7 +40,7 @@ namespace Zibra::ZibraVDBImport
 
         OP_ERROR cookMyLop(OP_Context& context) final;
         bool updateParmsFlags() final;
-        
+
     private:
         std::string GetFilePath(fpreal t) const;
         int GetFrameIndex(fpreal t) const;
@@ -52,7 +52,8 @@ namespace Zibra::ZibraVDBImport
         std::set<std::string> ParseSelectedChannels(const std::string& fieldsStr, std::set<std::string>& invalidGridNames);
         FileInfo LoadFileInfo(const std::string& filePath);
 
-        void WriteZibraVolumeToStage(const UsdStageRefPtr& stage, const SdfPath& volumePrimPath, const std::set<std::string>& selectedChannels, int frameIndex);
+        void WriteZibraVolumeToStage(const UsdStageRefPtr& stage, const SdfPath& volumePrimPath,
+                                     const std::set<std::string>& selectedChannels, int frameIndex);
         void WriteParentPrimHierarchyToStage(const UsdStageRefPtr& stage, const SdfPath& primPath);
         void WriteOpenVDBAssetPrimToStage(const UsdStageRefPtr& stage, const SdfPath& assetPath, int frameIndex);
         void WriteVolumeChannelRelationshipsToStage(const UsdVolVolume& volumePrim, const SdfPath& primPath);
@@ -70,8 +71,8 @@ namespace Zibra::ZibraVDBImport
 
     public:
         explicit LOP_ZibraVDBImport_Operator() noexcept
-            : OP_Operator(LOP_NODE_NAME, LOP_NODE_LABEL, LOP_ZibraVDBImport::Constructor,
-                          LOP_ZibraVDBImport::GetTemplateList(), 0, 1, 0, OP_FLAG_GENERATOR, 0, 1)
+            : OP_Operator(LOP_NODE_NAME, LOP_NODE_LABEL, LOP_ZibraVDBImport::Constructor, LOP_ZibraVDBImport::GetTemplateList(), 0, 1, 0,
+                          OP_FLAG_GENERATOR, 0, 1)
         {
             setIconName(ZIBRAVDB_ICON_PATH);
             setOpTabSubMenuPath(ZIBRAVDB_NODES_TAB_NAME);
