@@ -31,7 +31,7 @@ std::string ZibraVDBResolver::_CreateIdentifier(const std::string& assetPath, co
     {
         TF_DEBUG(ZIBRAVDB_RESOLVER)
             .Msg("ZibraVDBResolver::CreateIdentifier - Asset not handled by ZibraVDB resolver: '%s'\n", assetPath.c_str());
-        return assetPath;
+        return ArDefaultResolver().CreateIdentifier(assetPath, anchorAssetPath);
     }
 
     TF_DEBUG(ZIBRAVDB_RESOLVER).Msg("ZibraVDBResolver::CreateIdentifier - ZibraVDB asset detected: '%s'\n", assetPath.c_str());
