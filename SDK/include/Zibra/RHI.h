@@ -45,7 +45,7 @@
 
 namespace Zibra::RHI
 {
-    constexpr Version ZRHI_VERSION = {2, 1, 5, };
+    constexpr Legacy::Version ZRHI_VERSION = {2, 1, 5, };
 
     enum class GFXAPI : int8_t
     {
@@ -1795,7 +1795,7 @@ namespace Zibra::RHI
     };
 
     ReturnCode CreateRHIFactory(RHIFactory** outFactory) noexcept;
-    Version GetVersion() noexcept;
+    Legacy::Version GetVersion() noexcept;
 }
 
 #pragma region CAPI
@@ -2790,11 +2790,11 @@ namespace ZRHI_NS::CAPI
 
 #define ZRHI_FNPFX(name) ZRHI_FUNCS_EXPORT_FNPFX(name)
 
-typedef Zibra::Version (ZRHI_CALL_CONV *ZRHI_PFN(ZRHI_FNPFX(GetVersion)))() noexcept;
+typedef Zibra::Legacy::Version (ZRHI_CALL_CONV *ZRHI_PFN(ZRHI_FNPFX(GetVersion)))() noexcept;
 typedef ZRHI_NS::ReturnCode (ZRHI_CALL_CONV *ZRHI_PFN(ZRHI_FNPFX(CreateRHIFactory)))(ZRHI_NS::CAPI::ZRHIFactoryHandle* outInstance) noexcept;
 
 #ifndef ZRHI_NO_STATIC_API_DECL
-ZRHI_API_IMPORT Zibra::Version ZRHI_CALL_CONV ZRHI_FNPFX(GetVersion)() noexcept;
+ZRHI_API_IMPORT Zibra::Legacy::Version ZRHI_CALL_CONV ZRHI_FNPFX(GetVersion)() noexcept;
 ZRHI_API_IMPORT ZRHI_NS::ReturnCode ZRHI_CALL_CONV ZRHI_FNPFX(CreateRHIFactory)(ZRHI_NS::CAPI::ZRHIFactoryHandle* outInstance) noexcept;
 #else
 #define ZRHI_DECLARE_API_EXTERN_FUNCS(name) extern ZRHI_PFN(name) name;
@@ -2804,7 +2804,7 @@ ZRHI_FUNCS_API_APPLY(ZRHI_DECLARE_API_EXTERN_FUNCS);
 
 namespace ZRHI_NS::CAPI
 {
-    inline Version GetVersion()
+    inline Legacy::Version GetVersion()
     {
         return ZRHI_FNPFX(GetVersion)();
     }

@@ -6,6 +6,25 @@
 #define ZCE_CONCAT_HELPER(A, B) A##B
 #define ZCE_PFN(name) ZCE_CONCAT_HELPER(PFN_, name)
 
+#ifdef ZIB_DEBUG_BUILD
+#define ZIB_DEBUG_ONLY(x) x
+#else
+#define ZIB_DEBUG_ONLY(x)
+#endif
+
+#ifdef ZIB_PROFILE_BUILD
+#define ZIB_PROFILE_ONLY(x) x
+#else
+#define ZIB_PROFILE_ONLY(x)
+#endif
+
+#if defined(ZIB_DEBUG_BUILD) || defined(ZIB_PROFILE_BUILD)
+#define ZIB_DEBUG_OR_PROFILE_ONLY(x) x
+#else
+#define ZIB_DEBUG_OR_PROFILE_ONLY(x)
+#endif
+
+
 namespace Zibra::CE
 {
     static constexpr int SPARSE_BLOCK_SIZE = 8;
@@ -102,7 +121,7 @@ namespace Zibra::CE
      * @param [in] coords uint3 coords
      * @return packed 32-bit value
      */
-    inline uint32_t PackCoords(Math3D::uint3 coords) noexcept
+    inline uint32_t PackCoords(Legacy::Math3D::uint3 coords) noexcept
     {
         return coords.x & 1023 | (coords.y & 1023) << 10 | (coords.z & 1023) << 20;
     }
@@ -111,7 +130,7 @@ namespace Zibra::CE
      * @param [in] packedCoords packed 32-bit value
      * @return uint3 coords
      */
-    inline Math3D::uint3 UnpackCoords(uint32_t packedCoords) noexcept
+    inline Legacy::Math3D::uint3 UnpackCoords(uint32_t packedCoords) noexcept
     {
         return {packedCoords & 1023, (packedCoords >> 10) & 1023, (packedCoords >> 20) & 1023};
     }

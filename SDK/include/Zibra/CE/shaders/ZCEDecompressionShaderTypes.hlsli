@@ -8,7 +8,7 @@
 
 #ifdef __cplusplus
 namespace Zibra::CE::Decompression::Shaders {
-using namespace Math3D;
+using namespace Legacy::Math3D;
 #endif // __cplusplus
 
 struct ZCEDecompressionPackedSpatialBlockInfo {

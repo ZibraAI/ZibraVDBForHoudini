@@ -30,7 +30,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         struct GridIntermediate
         {
             GridVoxelType voxelType;
-            Math3D::Transform transform;
+            Legacy::Math3D::Transform transform;
             std::map<openvdb::Coord, LeafIntermediate> leafs;
         };
         struct VDBGridDescRef
@@ -74,7 +74,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                     int offsetY = encodingMetadata->offsetY;
                     int offsetZ = encodingMetadata->offsetZ;
                     frameInfo.gridTransform =
-                        Math3D::Transform::Translation(Math3D::float3(-offsetX, -offsetY, -offsetZ)) * frameInfo.gridTransform;
+                        Legacy::Math3D::Transform::Translation(Legacy::Math3D::float3(-offsetX, -offsetY, -offsetZ)) * frameInfo.gridTransform;
                 }
             }
         }
@@ -248,12 +248,12 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 chIt = chNameToGridDescs.insert({gridDesc.chSource[chSrcIdx], {}}).first;
             chIt->second.push_back(VDBGridDescRef{&gridDesc, chSrcIdx});
         }
-        static openvdb::math::Transform::Ptr SanitizeTransform(const Math3D::Transform& inTransform) noexcept
+        static openvdb::math::Transform::Ptr SanitizeTransform(const Legacy::Math3D::Transform& inTransform) noexcept
         {
             bool isEmpty = true;
             for (float value : inTransform.raw)
             {
-                if (!Math3D::IsNearlyEqual(value, 0.0f))
+                if (!Legacy::Math3D::IsNearlyEqual(value, 0.0f))
                 {
                     isEmpty = false;
                     break;
