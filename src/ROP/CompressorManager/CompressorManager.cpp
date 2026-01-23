@@ -161,7 +161,7 @@ namespace Zibra::CE::Compression
             return CE::ZCE_ERROR;
         }
 
-        Zibra::STDOStreamWrapper ostream(m_Ofstream);
+        Zibra::Legacy::STDOStreamWrapper ostream(m_Ofstream);
         if (ostream.fail())
         {
             return CE::ZCE_ERROR;
