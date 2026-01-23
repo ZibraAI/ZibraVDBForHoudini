@@ -27,71 +27,67 @@ ZibraVDBResolver::ZibraVDBResolver()
 std::string ZibraVDBResolver::_CreateIdentifier(const std::string& assetPath, const ArResolvedPath& anchorAssetPath) const
 {
     URI assetURI = URI(assetPath);
-    if (Zibra::Helpers::GetExtension(assetURI) != ZIB_ZIBRAVDB_EXT)
+    if (!assetURI.isValid)
     {
         TF_DEBUG(ZIBRAVDB_RESOLVER)
-            .Msg("ZibraVDBResolver::CreateIdentifier - Asset not handled by ZibraVDB resolver: '%s'\n", assetPath.c_str());
-        return ArDefaultResolver().CreateIdentifier(assetPath, anchorAssetPath);
+            .Msg("ZibraVDBResolver::CreateIdentifier - Invalid URI: '%s'\n", assetPath.c_str());
+        return {};
     }
 
     TF_DEBUG(ZIBRAVDB_RESOLVER).Msg("ZibraVDBResolver::CreateIdentifier - ZibraVDB asset detected: '%s'\n", assetPath.c_str());
 
-    if (TfIsRelativePath(assetURI.path) && anchorAssetPath)
+    auto frameIt = assetURI.queryParams.find("frame");
+    if (frameIt == assetURI.queryParams.end())
     {
-        std::string anchorDir = TfGetPathName(anchorAssetPath);
-        std::string resolvedPath = TfStringCatPaths(anchorDir, assetURI.path);
-        std::string normalizedPath = TfNormPath(resolvedPath);
-
-        std::string resolvedURI = normalizedPath;
-        auto frameIt = assetURI.queryParams.find("frame");
-        if (frameIt == assetURI.queryParams.end())
-        {
-            TF_DEBUG(ZIBRAVDB_RESOLVER)
-                .Msg("ZibraVDBResolver::CreateIdentifier - Missing mandatory 'frame' parameter for ZibraVDB file: '%s'\n",
-                     assetPath.c_str());
-            return {};
-        }
-
-        int frameIndex;
-        if (!Zibra::Helpers::TryParseInt(frameIt->second, frameIndex))
-        {
-            TF_DEBUG(ZIBRAVDB_RESOLVER)
-                .Msg("ZibraVDBResolver::CreateIdentifier - Invalid 'frame' parameter value for ZibraVDB file: '%s'\n",
-                     frameIt->second.c_str());
-            return {};
-        }
-
-        resolvedURI += "?frame=" + frameIt->second;
         TF_DEBUG(ZIBRAVDB_RESOLVER)
-            .Msg("ZibraVDBResolver::CreateIdentifier - Resolved ZibraVDB asset path to: '%s'\n", resolvedURI.c_str());
-        return resolvedURI;
+            .Msg("ZibraVDBResolver::CreateIdentifier - Missing mandatory 'frame' parameter for ZibraVDB file: '%s'\n",
+                 assetPath.c_str());
+        return {};
     }
 
-    return TfNormPath(assetPath);
+    int frameIndex;
+    if (!Zibra::Helpers::TryParseInt(frameIt->second, frameIndex))
+    {
+        TF_DEBUG(ZIBRAVDB_RESOLVER)
+            .Msg("ZibraVDBResolver::CreateIdentifier - Invalid 'frame' parameter value for ZibraVDB file: '%s'\n",
+                 frameIt->second.c_str());
+        return {};
+    }
+
+    std::string filePath = assetURI.path;
+    if (TfIsRelativePath(filePath) && anchorAssetPath)
+    {
+        std::string anchorDir = TfGetPathName(anchorAssetPath);
+        std::string resolvedPath = TfStringCatPaths(anchorDir, filePath);
+        filePath = TfNormPath(resolvedPath);
+    }
+    else
+    {
+        filePath = TfNormPath(filePath);
+    }
+
+    std::string resolvedURI = std::string(ZIB_ZIBRAVDB_SCHEME) + "://" + filePath + "?frame=" + frameIt->second;
+    TF_DEBUG(ZIBRAVDB_RESOLVER)
+        .Msg("ZibraVDBResolver::CreateIdentifier - Resolved ZibraVDB asset path to: '%s'\n", resolvedURI.c_str());
+    return resolvedURI;
 }
 
 std::string ZibraVDBResolver::_CreateIdentifierForNewAsset(const std::string& assetPath, const ArResolvedPath& anchorAssetPath) const
 {
-    // ZibraVDB asset resolver only handles decompression of existing .zibravdb files.
-    if (Zibra::Helpers::GetExtension(URI(assetPath)) != ZIB_ZIBRAVDB_EXT)
-    {
-        TF_DEBUG(ZIBRAVDB_RESOLVER)
-            .Msg("ZibraVDBResolver::CreateIdentifierForNewAsset - ZibraVDB asset resolver only handles existing .zibravdb files, not asset "
-                 "creation.\n");
-        return {};
-    }
-
-    return assetPath;
+    TF_DEBUG(ZIBRAVDB_RESOLVER)
+        .Msg("ZibraVDBResolver::CreateIdentifierForNewAsset - ZibraVDB asset resolver only handles existing .zibravdb files, not asset "
+             "creation: '%s'\n", assetPath.c_str());
+    return {};
 }
 
 ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
 {
     URI assetURI = URI(assetPath);
-    if (Zibra::Helpers::GetExtension(assetURI) != ZIB_ZIBRAVDB_EXT)
+    if (!assetURI.isValid)
     {
         TF_DEBUG(ZIBRAVDB_RESOLVER)
-            .Msg("ZibraVDBResolver::_Resolve - Asset not handled by ZibraVDB resolver: '%s'\n", assetPath.c_str());
-        return ArDefaultResolver().Resolve(assetPath);
+            .Msg("ZibraVDBResolver::_Resolve - Invalid URI: '%s'\n", assetPath.c_str());
+        return {};
     }
 
     TF_DEBUG(ZIBRAVDB_RESOLVER).Msg("ZibraVDBResolver::_Resolve - Detected ZibraVDB path: '%s'\n", assetPath.c_str());
@@ -135,16 +131,10 @@ ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
 
 ArResolvedPath ZibraVDBResolver::_ResolveForNewAsset(const std::string& assetPath) const
 {
-    // ZibraVDB asset resolver only handles decompression of existing .zibravdb files.
-    if (Zibra::Helpers::GetExtension(URI(assetPath)) != ZIB_ZIBRAVDB_EXT)
-    {
-        TF_DEBUG(ZIBRAVDB_RESOLVER)
-            .Msg("ZibraVDBResolver::_ResolveForNewAsset - ZibraVDB asset resolver only handles existing .zibravdb files, not asset "
-                 "creation.\n");
-        return {};
-    }
-
-    return ArDefaultResolver().ResolveForNewAsset(assetPath);
+    TF_DEBUG(ZIBRAVDB_RESOLVER)
+        .Msg("ZibraVDBResolver::_ResolveForNewAsset - ZibraVDB asset resolver only handles existing .zibravdb files, not asset "
+             "creation: '%s'\n", assetPath.c_str());
+    return {};
 }
 
 std::shared_ptr<ArAsset> ZibraVDBResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const

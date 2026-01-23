@@ -272,3 +272,29 @@ URI::URI(const std::string& URIString)
 
     isValid = true;
 }
+
+std::string URI::ToString() const
+{
+    std::string result;
+    if (!scheme.empty())
+    {
+        result = scheme + "://";
+    }
+    result += path;
+
+    if (!queryParams.empty())
+    {
+        result += "?";
+        bool first = true;
+        for (const auto& [key, value] : queryParams)
+        {
+            if (!first)
+            {
+                result += "&";
+            }
+            result += key + "=" + value;
+            first = false;
+        }
+    }
+    return result;
+}
