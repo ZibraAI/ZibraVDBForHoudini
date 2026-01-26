@@ -52,9 +52,12 @@ namespace Zibra::ZibraVDBOutputProcessor
         return s_Parameters;
     }
 
-    void ZibraVDBOutputProcessor::beginSave(OP_Node* configNode, const UT_Options& configOverrides, OP_Node* lopNode, fpreal t,
+    void ZibraVDBOutputProcessor::beginSave(OP_Node* configNode, const UT_Options& configOverrides, OP_Node* lopNode, fpreal t
+#if UT_VERSION_INT >= 0x14050000 // Houdini 20.5+ added stageVariables parameter
+                                            ,
                                             const UT_Options& stageVariables
-#if UT_VERSION_INT >= 0x15000000
+#endif
+#if UT_VERSION_INT >= 0x15000000 // Houdini 21.0+ added error parameter
                                             ,
                                             UT_String& error
 #endif

@@ -16,8 +16,11 @@ namespace Zibra::ZibraVDBOutputProcessor
     class ZibraVDBOutputProcessor final : public HUSD_OutputProcessor
     {
     public:
-        void beginSave(OP_Node* configNode, const UT_Options& configOverrides, OP_Node* lopNode, fpreal t,
+        void beginSave(OP_Node* configNode, const UT_Options& configOverrides, OP_Node* lopNode, fpreal t
+#if UT_VERSION_INT >= 0x14050000 // Houdini 20.5+
+                       ,
                        const UT_Options& stageVariables
+#endif
 #if UT_VERSION_INT >= 0x15000000 // Houdini 21.0+
                        ,
                        UT_String& error
