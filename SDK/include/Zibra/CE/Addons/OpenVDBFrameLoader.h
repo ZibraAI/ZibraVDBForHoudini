@@ -163,7 +163,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         {
             auto result = new Compression::SparseFrame{};
             std::map<openvdb::Coord, SpatialBlockIntermediate> spatialBlocks{};
-            Math3D::AABB totalAABB = {};
+            Legacy::Math3D::AABB totalAABB = {};
 
             // Resolving leaf data to spatial descriptors structure for future concurrent processing.
             for (size_t i = 0; i < m_Channels.size(); ++i)
@@ -352,15 +352,15 @@ namespace Zibra::CE::Addons::OpenVDBUtils
          * @return Total channel AABB
          */
         template <typename T>
-        Math3D::AABB ResolveBlocks(const ChannelDescriptor& ch, std::map<openvdb::Coord, SpatialBlockIntermediate>& spatialMap) const noexcept
+        Legacy::Math3D::AABB ResolveBlocks(const ChannelDescriptor& ch, std::map<openvdb::Coord, SpatialBlockIntermediate>& spatialMap) const noexcept
         {
             auto grid = openvdb::gridPtrCast<T>(ch.grid);
 
-            Math3D::AABB totalAABB = {};
+            Legacy::Math3D::AABB totalAABB = {};
             for (auto leafIt = grid->tree().cbeginLeaf(); leafIt; ++leafIt)
             {
                 const auto leaf = leafIt.getLeaf();
-                const Math3D::AABB leafAABB = CalculateAABB(leaf->getNodeBoundingBox());
+                const Legacy::Math3D::AABB leafAABB = CalculateAABB(leaf->getNodeBoundingBox());
                 totalAABB = totalAABB | leafAABB;
                 openvdb::Coord origin = openvdb::Coord(leafAABB.minX, leafAABB.minY, leafAABB.minZ);
 
@@ -380,9 +380,9 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             return totalAABB;
         }
 
-        static Math3D::Transform OpenVDBTransformToMath3DTransform(const openvdb::math::Transform& transform) noexcept
+        static Legacy::Math3D::Transform OpenVDBTransformToMath3DTransform(const openvdb::math::Transform& transform) noexcept
         {
-            Math3D::Transform result{};
+            Legacy::Math3D::Transform result{};
 
             const openvdb::math::Mat4 map = transform.baseMap()->getAffineMap()->getMat4();
             for (int i = 0; i < 16; ++i)
@@ -438,20 +438,20 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             return result;
         }
 
-        static Math3D::AABB CalculateAABB(const openvdb::CoordBBox bbox)
+        static Legacy::Math3D::AABB CalculateAABB(const openvdb::CoordBBox bbox)
         {
-            Math3D::AABB result{};
+            Legacy::Math3D::AABB result{};
 
             const openvdb::math::Vec3d transformedBBoxMin = bbox.min().asVec3d();
             const openvdb::math::Vec3d transformedBBoxMax = bbox.max().asVec3d();
 
-            result.minX = FloorToBlockSize(Math3D::FloorWithEpsilon(transformedBBoxMin.x())) / SPARSE_BLOCK_SIZE;
-            result.minY = FloorToBlockSize(Math3D::FloorWithEpsilon(transformedBBoxMin.y())) / SPARSE_BLOCK_SIZE;
-            result.minZ = FloorToBlockSize(Math3D::FloorWithEpsilon(transformedBBoxMin.z())) / SPARSE_BLOCK_SIZE;
+            result.minX = FloorToBlockSize(Legacy::Math3D::FloorWithEpsilon(transformedBBoxMin.x())) / SPARSE_BLOCK_SIZE;
+            result.minY = FloorToBlockSize(Legacy::Math3D::FloorWithEpsilon(transformedBBoxMin.y())) / SPARSE_BLOCK_SIZE;
+            result.minZ = FloorToBlockSize(Legacy::Math3D::FloorWithEpsilon(transformedBBoxMin.z())) / SPARSE_BLOCK_SIZE;
 
-            result.maxX = CeilToBlockSize(Math3D::CeilWithEpsilon(transformedBBoxMax.x())) / SPARSE_BLOCK_SIZE;
-            result.maxY = CeilToBlockSize(Math3D::CeilWithEpsilon(transformedBBoxMax.y())) / SPARSE_BLOCK_SIZE;
-            result.maxZ = CeilToBlockSize(Math3D::CeilWithEpsilon(transformedBBoxMax.z())) / SPARSE_BLOCK_SIZE;
+            result.maxX = CeilToBlockSize(Legacy::Math3D::CeilWithEpsilon(transformedBBoxMax.x())) / SPARSE_BLOCK_SIZE;
+            result.maxY = CeilToBlockSize(Legacy::Math3D::CeilWithEpsilon(transformedBBoxMax.y())) / SPARSE_BLOCK_SIZE;
+            result.maxZ = CeilToBlockSize(Legacy::Math3D::CeilWithEpsilon(transformedBBoxMax.z())) / SPARSE_BLOCK_SIZE;
 
             return result;
         }

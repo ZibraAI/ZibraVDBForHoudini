@@ -3,7 +3,7 @@
 #include <istream>
 #include <ostream>
 
-namespace Zibra
+namespace Zibra::Legacy
 {
     template<class T>
     constexpr auto ZCE_CEIL_TO_MULTIPLE_OF(T intValue, T multiple) noexcept

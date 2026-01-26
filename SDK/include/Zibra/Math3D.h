@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <array>
 
-namespace Zibra::Math3D
+namespace Zibra::Legacy::Math3D
 {
     using float32_t = float;
     using float64_t = double;

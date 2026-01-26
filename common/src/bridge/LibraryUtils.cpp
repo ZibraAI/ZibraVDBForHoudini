@@ -40,7 +40,7 @@ namespace Zibra::LibraryUtils
 #endif
 
     bool g_IsLibraryLoaded = false;
-    Zibra::Version g_CompressionEngineVersion = {};
+    Zibra::Legacy::Version g_CompressionEngineVersion = {};
 
     bool ValidateLoadedVersion()
     {
@@ -217,7 +217,7 @@ namespace Zibra::LibraryUtils
                std::to_string(g_CompressionEngineVersion.patch) + "." + std::to_string(g_CompressionEngineVersion.build);
     }
 
-    Version ToLibraryUtilsVersion(const Zibra::Version& version) noexcept
+    Version ToLibraryUtilsVersion(const Zibra::Legacy::Version& version) noexcept
     {
         return Version{version.major, version.minor, version.patch, version.build};
     }
