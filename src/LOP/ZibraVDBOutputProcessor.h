@@ -6,12 +6,12 @@
 
 namespace Zibra::ZibraVDBOutputProcessor
 {
-    constexpr const char* OUTPUT_PROCESSOR_INNER_NAME = "ZibraVDBOutputProcessor";
+    constexpr const char* OUTPUT_PROCESSOR_INNER_NAME = "zibravdboutputprocessor";
     constexpr const char* OUTPUT_PROCESSOR_UI_NAME = "ZibraVDB Output Processor";
 
     constexpr const char* PARM_MAKE_PATHS_RELATIVE = "zibravdb_relativepaths";
     constexpr const char* PARM_COPY_ASSETS = "zibravdb_copyassets";
-    constexpr const char* PARM_COPY_SUBDIRECTORY = "zibravdb_copysubdir";
+    constexpr const char* PARM_COPY_SUBDIRECTORY = "zibravdb_outputsubdir";
 
     class ZibraVDBOutputProcessor final : public HUSD_OutputProcessor
     {

@@ -2,6 +2,7 @@
 
 #include "ZibraVDBOutputProcessor.h"
 
+#include <PRM/PRM_Conditional.h>
 #include <PRM/PRM_Include.h>
 #include <UT/UT_DirUtil.h>
 #include <UT/UT_FileUtil.h>
@@ -18,13 +19,13 @@ namespace Zibra::ZibraVDBOutputProcessor
 {
     static PI_EditScriptedParms* CreateParameters()
     {
-        static PRM_Name s_CopyAssetsName(PARM_COPY_ASSETS, "Copy ZibraVDB Assets");
-        static PRM_Name s_CopySubdirName(PARM_COPY_SUBDIRECTORY, "Subdirectory");
+        static PRM_Name s_CopyAssetsName(PARM_COPY_ASSETS, "Copy ZibraVDB Assets to Layer Subdirectory");
+        static PRM_Name s_CopySubdirName(PARM_COPY_SUBDIRECTORY, "Output Subdirectory");
         static PRM_Name s_RelativePathsName(PARM_MAKE_PATHS_RELATIVE, "Make ZibraVDB Paths Relative");
 
         static PRM_Default s_CopyAssetsDefault(0);
         static PRM_Default s_CopySubdirDefault(0, "");
-        static PRM_Default s_RelativePathsDefault(0);
+        static PRM_Default s_RelativePathsDefault(1);
 
         static PRM_Template s_ParameterTemplates[] = {
             PRM_Template(PRM_TOGGLE, 1, &s_CopyAssetsName, &s_CopyAssetsDefault),
