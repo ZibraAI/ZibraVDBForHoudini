@@ -8,4 +8,6 @@ struct URI {
 
     URI() = delete;
     explicit URI(const std::string& URIString);
+
+    std::string ToString() const;
 };

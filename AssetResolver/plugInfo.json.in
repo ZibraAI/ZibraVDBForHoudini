@@ -4,7 +4,8 @@
             "Info": {
                 "Types": {
                     "ZibraVDBResolver": {
-                        "bases": ["ArResolver"]
+                        "bases": ["ArResolver"],
+                        "uriSchemes": ["zibravdb"]
                     }
                 }
             },
