@@ -4,6 +4,7 @@ Houdini plugin for ZibraVDB integration. Enables compression/decompression of vo
 ## Features
 * Volumetric effects compression and decompression
 * File cache for volumetric effects
+* Integration into Solaris/USD
 
 Note that compression/decompression implementation is not included in this repository, and is not open source. License from this repository is not applicable to compression/decompression implementation.
 
@@ -14,8 +15,8 @@ Note that compression/decompression implementation is not included in this repos
 * Linux
     * glibc 2.28 or higher
     * Vulkan capable GPU recommended
-
-macOS support will be added later
+* macOS 12 or newer
+    * Apple Silicon recommended
 
 ## Building
 Before you can build ZibraVDBForHoudini, you need to set up following in your build environment:
@@ -27,6 +28,11 @@ Before you can build ZibraVDBForHoudini, you need to set up following in your bu
         * Visual Studio 2022
             * C++ support
     * Linux
+        * curl headers (need to be in default include path)
+    * macOS
+        * Xcode 15.4 or newer
+            * Older Xcode may work, but is not guaranteed
+            * Xcode 15.4 requires macOS 14 or higher
         * curl headers (need to be in default include path)
 * Environment variables
     * `ZIBRA_HOUDINI_PATH` or `HFS` - must be set to Houdini path (e.g. "C:/Program Files/Side Effects Software/Houdini 20.5.386")
@@ -49,6 +55,7 @@ Additionally, following CMake parameters can be set:
 * `LABS_BUILD` (Bool) - Changes some details of build system to better accommodate building for Houdini Labs.
 * `INSTALL_RPATH` (Path) - On UNIX systems `CMAKE_INSTALL_RPATH` is set to this value. Not used on Windows.
 * `HOUDINI_INCLUDE_DIR` (Path) - Additional include path to use for plugin build.
+* `ZIBRAVDB_OUTPUT_PATH` (Path) - Output path for build artifacts.
 
 ## License
 
