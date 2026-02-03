@@ -424,7 +424,7 @@ namespace Zibra::ZibraVDBImport
             return;
         }
 
-        const std::string zibraURL = GetFilePath(0) + "?frame=" + std::to_string(frameIndex);
+        const std::string zibraURL = std::string(ZIB_ZIBRAVDB_SCHEME) + "://" + GetFilePath(0) + "?frame=" + std::to_string(frameIndex);
         const auto timeCode = UsdTimeCode(frameIndex);
 
         auto filePathAttr = openVDBAsset.GetFilePathAttr();

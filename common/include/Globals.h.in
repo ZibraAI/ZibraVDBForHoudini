@@ -11,6 +11,8 @@ namespace Zibra
 #define ZIB_COMPRESSION_ENGINE_MAJOR_VERSION 0
 
 #define ZIB_ZIBRAVDB_EXT ".zibravdb"
+#define ZIB_ZIBRAVDB_SCHEME "zibravdb"
+
 #define ZIB_TMP_FILES_FOLDER_NAME "zibravdb_houdini_usd_asset_resolver"
 #define ZIB_MAX_CACHED_FRAMES_DEFAULT 2
 
