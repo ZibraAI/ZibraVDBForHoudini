@@ -39,6 +39,7 @@ std::string ZibraVDBResolver::_CreateIdentifier(const std::string& assetPath, co
         TF_DEBUG(ZIBRAVDB_RESOLVER)
             .Msg("ZibraVDBResolver::CreateIdentifier - Unexpected URI scheme '%s' for path: '%s'\n",
                  assetURI.scheme.c_str(), assetPath.c_str());
+        assert(false && "Unexpected URI scheme in _CreateIdentifier: expected 'zibravdb'");
         return {};
     }
     TF_DEBUG(ZIBRAVDB_RESOLVER).Msg("ZibraVDBResolver::CreateIdentifier - ZibraVDB asset detected: '%s'\n", assetPath.c_str());
@@ -102,6 +103,7 @@ ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
         TF_DEBUG(ZIBRAVDB_RESOLVER)
             .Msg("ZibraVDBResolver::_Resolve - Unsupported URI scheme '%s' for asset: '%s'\n",
                  assetURI.scheme.c_str(), assetPath.c_str());
+        assert(false && "Unexpected URI scheme in _Resolve: expected 'zibravdb'");
         return {};
     }
     TF_DEBUG(ZIBRAVDB_RESOLVER).Msg("ZibraVDBResolver::_Resolve - Detected ZibraVDB path: '%s'\n", assetPath.c_str());

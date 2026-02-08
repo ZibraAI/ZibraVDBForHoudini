@@ -124,7 +124,7 @@ namespace Zibra::ZibraVDBOutputProcessor
     bool ZibraVDBOutputProcessor::processSavePath(const UT_StringRef& assetPath, const UT_StringRef& referencingLayerPath,
                                                   bool assetIsLayer, UT_String& newPath, UT_String& error)
     {
-        // Don't modify save paths, only reference paths
+        // This processor doesn't modify asset save destinations
         return false;
     }
 
