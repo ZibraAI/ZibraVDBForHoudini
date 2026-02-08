@@ -41,7 +41,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         static bool CopyAssetFile(const std::string& sourcePath, const std::string& targetDir, std::string& newPath,
                                   UT_String& error);
 
-    private:
+
         bool m_MakePathsRelative = false;
         bool m_CopyAssets = false;
         std::string m_CopySubdirectory;

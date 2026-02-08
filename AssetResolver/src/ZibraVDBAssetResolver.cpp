@@ -34,6 +34,13 @@ std::string ZibraVDBResolver::_CreateIdentifier(const std::string& assetPath, co
         return {};
     }
 
+    if (assetURI.scheme != ZIB_ZIBRAVDB_SCHEME)
+    {
+        TF_DEBUG(ZIBRAVDB_RESOLVER)
+            .Msg("ZibraVDBResolver::CreateIdentifier - Unexpected URI scheme '%s' for path: '%s'\n",
+                 assetURI.scheme.c_str(), assetPath.c_str());
+        return {};
+    }
     TF_DEBUG(ZIBRAVDB_RESOLVER).Msg("ZibraVDBResolver::CreateIdentifier - ZibraVDB asset detected: '%s'\n", assetPath.c_str());
 
     auto frameIt = assetURI.queryParams.find("frame");
@@ -90,6 +97,13 @@ ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
         return {};
     }
 
+    if (assetURI.scheme != ZIB_ZIBRAVDB_SCHEME)
+    {
+        TF_DEBUG(ZIBRAVDB_RESOLVER)
+            .Msg("ZibraVDBResolver::_Resolve - Unsupported URI scheme '%s' for asset: '%s'\n",
+                 assetURI.scheme.c_str(), assetPath.c_str());
+        return {};
+    }
     TF_DEBUG(ZIBRAVDB_RESOLVER).Msg("ZibraVDBResolver::_Resolve - Detected ZibraVDB path: '%s'\n", assetPath.c_str());
 
     if (!TfPathExists(assetURI.path))

@@ -291,9 +291,9 @@ std::string URI::ToString() const
             if (!first)
             {
                 result += "&";
+                first = false;
             }
             result += key + "=" + value;
-            first = false;
         }
     }
     return result;
