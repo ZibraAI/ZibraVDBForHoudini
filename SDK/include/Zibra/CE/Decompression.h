@@ -258,6 +258,7 @@ namespace Zibra::CE::Decompression
         virtual ~FileDecoder() noexcept = default;
 
     public:
+        virtual Version GetFileVersion() const noexcept = 0;
         /**
          * Returns valid frame range decompression parametrization.
          * @return pair StartFrame - EndFrame
