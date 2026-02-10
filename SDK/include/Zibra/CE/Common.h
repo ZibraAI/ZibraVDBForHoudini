@@ -19,6 +19,8 @@ namespace Zibra
                       "Specified .zibravdb sequence does not use current file version and can't be merged.", true);
     ZIB_RESULT_DEFINE(BINARY_FILE_SAVED_AS_TEXT, COMPRESSION_ENGINE, 0x4,
                       "Specified .zibravdb sequence was corrupted by saving it as text.", true);
+    ZIB_RESULT_DEFINE(BYTE_RANGE_IS_TOO_SMALL, COMPRESSION_ENGINE, 0x5,
+                      "Passed byte range was too small to perform requrested operation.", true);
 
     ZIB_RESULT_DEFINE(COMPRESSION_LICENSE_ERROR, COMPRESSION_ENGINE, 0x100, "ZibraVDB compression requires active license.", true);
     ZIB_RESULT_DEFINE(DECOMPRESSION_LICENSE_ERROR, COMPRESSION_ENGINE, 0x101, "Decompression of this file requires active license.", true);
