@@ -134,10 +134,10 @@ namespace Zibra::Helpers
         stream.seekg(range.start);
         stream.read(initFileMemory);
 
-        auto status = CE::Decompression::CreateFileDecoder(initFileMemory, &m_FileDecoder);
-        if (status != RESULT_SUCCESS)
+        Result res = CE::Decompression::CreateFileDecoder(initFileMemory, &m_FileDecoder);
+        if (ZIB_FAILED(res))
         {
-            return status;
+            return res;
         }
 
         if (m_Decompressor)
@@ -146,49 +146,49 @@ namespace Zibra::Helpers
             m_Decompressor = nullptr;
         }
         CE::Decompression::DecompressorFactory* factory;
-        status = m_FileDecoder->CreateDecompressorFactory(&factory);
-        if (status != RESULT_SUCCESS)
+        res = m_FileDecoder->CreateDecompressorFactory(&factory);
+        if (ZIB_FAILED(res))
         {
-            return status;
+            return res;
         }
         factory->UseRHI(m_RHIRuntime);
         using namespace Zibra::CE::Literals::Memory;
         factory->SetMemoryLimitPerResource(128_MiB);
 
-        status = factory->Create(&m_Decompressor);
+        res = factory->Create(&m_Decompressor);
         factory->Release();
-        if (status != RESULT_SUCCESS)
+        if (ZIB_FAILED(res))
         {
-            return status;
+            return res;
         }
 
-        status = m_Decompressor->Initialize();
-        if (status != RESULT_SUCCESS)
+        res = m_Decompressor->Initialize();
+        if (ZIB_FAILED(res))
         {
-            return status;
+            return res;
         }
 
         CE::Decompression::DecompressorResourcesRequirements newRequirements = m_Decompressor->GetResourcesRequirements();
-        status =
+        res =
             AllocateExternalBuffer(m_DecompressionPerChannelBlockDataBuffer, newRequirements.decompressionPerChannelBlockDataSizeInBytes,
                                    newRequirements.decompressionPerChannelBlockDataStride);
-        if (status != RESULT_SUCCESS)
+        if (ZIB_FAILED(res))
         {
-            return status;
+            return res;
         }
-        status =
+        res =
             AllocateExternalBuffer(m_DecompressionPerChannelBlockInfoBuffer, newRequirements.decompressionPerChannelBlockInfoSizeInBytes,
                                    newRequirements.decompressionPerChannelBlockInfoStride);
-        if (status != RESULT_SUCCESS)
+        if (ZIB_FAILED(res))
         {
-            return status;
+            return res;
         }
-        status =
+        res =
             AllocateExternalBuffer(m_DecompressionPerSpatialBlockInfoBuffer, newRequirements.decompressionPerSpatialBlockInfoSizeInBytes,
                                    newRequirements.decompressionPerSpatialBlockInfoStride);
-        if (status != RESULT_SUCCESS)
+        if (ZIB_FAILED(res))
         {
-            return status;
+            return res;
         }
 
         if (m_DecompressionPerChannelBlockDataBuffer.buffer != nullptr && m_DecompressionPerChannelBlockInfoBuffer.buffer != nullptr &&
@@ -198,10 +198,10 @@ namespace Zibra::Helpers
             decompressorResources.decompressionPerChannelBlockData = m_DecompressionPerChannelBlockDataBuffer.buffer;
             decompressorResources.decompressionPerChannelBlockInfo = m_DecompressionPerChannelBlockInfoBuffer.buffer;
             decompressorResources.decompressionPerSpatialBlockInfo = m_DecompressionPerSpatialBlockInfoBuffer.buffer;
-            status = m_Decompressor->RegisterResources(decompressorResources);
-            if (status != RESULT_SUCCESS)
+            res = m_Decompressor->RegisterResources(decompressorResources);
+            if (ZIB_FAILED(res))
             {
-                return status;
+                return res;
             }
         }
 
@@ -281,10 +281,10 @@ namespace Zibra::Helpers
             chunksToDecompress -= decompressDesc.chunkCount;
 
             CE::Decompression::DecompressedFrameFeedback fFeedback{};
-            Result status = m_Decompressor->DecompressFrame(decompressDesc, &fFeedback);
-            if (status != RESULT_SUCCESS)
+            Result res = m_Decompressor->DecompressFrame(decompressDesc, &fFeedback);
+            if (ZIB_FAILED(res))
             {
-                return status;
+                return res;
             }
 
             readbackDecompressionPerSpatialBlockInfo.resize(maxDimensionsPerSubmit.maxSpatialBlocks);
