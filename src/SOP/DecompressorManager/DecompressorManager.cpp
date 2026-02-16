@@ -25,34 +25,18 @@ namespace Zibra::Helpers
             return RESULT_UNEXPECTED_ERROR;
         }
 
-        RHI::RHIFactory* RHIFactory = nullptr;
-        Result res = RHI::CreateRHIFactory(&RHIFactory);
+        RHI::RHICreateDesc RHICreateDesc{};
+        RHICreateDesc.APIType = Helpers::SelectGFXAPI();
+        RHICreateDesc.externalDeviceAdapter = nullptr;
+        RHICreateDesc.adapterIndex = -1;
+        RHICreateDesc.useSoftwareDevice = Helpers::NeedForceSoftwareDevice();
+        RHICreateDesc.enableDebugLayer = false;
+
+        Result res = RHI::CreateRHIRuntime(&RHICreateDesc, &m_RHIRuntime);
         if (ZIB_FAILED(res))
         {
             return res;
         }
-
-        res = RHIFactory->SetGFXAPI(Helpers::SelectGFXAPI());
-        if (ZIB_FAILED(res))
-        {
-            return res;
-        }
-
-        if (Helpers::NeedForceSoftwareDevice())
-        {
-            res = RHIFactory->ForceSoftwareDevice();
-            if (ZIB_FAILED(res))
-            {
-                return res;
-            }
-        }
-
-        res = RHIFactory->Create(&m_RHIRuntime);
-        if (ZIB_FAILED(res))
-        {
-            return res;
-        }
-        RHIFactory->Release();
 
         res = m_RHIRuntime->Initialize();
         if (ZIB_FAILED(res))
@@ -145,18 +129,19 @@ namespace Zibra::Helpers
             m_Decompressor->Release();
             m_Decompressor = nullptr;
         }
-        CE::Decompression::DecompressorFactory* factory;
-        res = m_FileDecoder->CreateDecompressorFactory(&factory);
-        if (ZIB_FAILED(res))
-        {
-            return res;
-        }
-        factory->UseRHI(m_RHIRuntime);
-        using namespace Zibra::CE::Literals::Memory;
-        factory->SetMemoryLimitPerResource(128_MiB);
 
-        res = factory->Create(&m_Decompressor);
-        factory->Release();
+        CE::Decompression::DecompressorCreateDesc decompressorCreateDesc{};
+
+        // 128 MiB by default
+        decompressorCreateDesc.resourceSizeLimit = Zibra::CE::CHUNK_SIZE_IN_BYTES;
+        if (m_RHIRuntime->GetGFXAPI() == Zibra::RHI::GFXAPI::D3D12)
+        {
+            // 2 GiB on D3D12, since it is always supported
+            decompressorCreateDesc.resourceSizeLimit = uint64_t(2) * 1024 * 1024 * 1024;
+        }
+        decompressorCreateDesc.RHI = m_RHIRuntime;
+
+        res = m_FileDecoder->CreateDecompressor(&decompressorCreateDesc, &m_Decompressor);
         if (ZIB_FAILED(res))
         {
             return res;
@@ -165,27 +150,26 @@ namespace Zibra::Helpers
         res = m_Decompressor->Initialize();
         if (ZIB_FAILED(res))
         {
+            m_Decompressor->Release();
+            m_Decompressor = nullptr;
             return res;
         }
 
         CE::Decompression::DecompressorResourcesRequirements newRequirements = m_Decompressor->GetResourcesRequirements();
-        res =
-            AllocateExternalBuffer(m_DecompressionPerChannelBlockDataBuffer, newRequirements.decompressionPerChannelBlockDataSizeInBytes,
-                                   newRequirements.decompressionPerChannelBlockDataStride);
+        res = AllocateExternalBuffer(m_DecompressionPerChannelBlockDataBuffer, newRequirements.decompressionPerChannelBlockDataSizeInBytes,
+                                     newRequirements.decompressionPerChannelBlockDataStride);
         if (ZIB_FAILED(res))
         {
             return res;
         }
-        res =
-            AllocateExternalBuffer(m_DecompressionPerChannelBlockInfoBuffer, newRequirements.decompressionPerChannelBlockInfoSizeInBytes,
-                                   newRequirements.decompressionPerChannelBlockInfoStride);
+        res = AllocateExternalBuffer(m_DecompressionPerChannelBlockInfoBuffer, newRequirements.decompressionPerChannelBlockInfoSizeInBytes,
+                                     newRequirements.decompressionPerChannelBlockInfoStride);
         if (ZIB_FAILED(res))
         {
             return res;
         }
-        res =
-            AllocateExternalBuffer(m_DecompressionPerSpatialBlockInfoBuffer, newRequirements.decompressionPerSpatialBlockInfoSizeInBytes,
-                                   newRequirements.decompressionPerSpatialBlockInfoStride);
+        res = AllocateExternalBuffer(m_DecompressionPerSpatialBlockInfoBuffer, newRequirements.decompressionPerSpatialBlockInfoSizeInBytes,
+                                     newRequirements.decompressionPerSpatialBlockInfoStride);
         if (ZIB_FAILED(res))
         {
             return res;
@@ -257,15 +241,15 @@ namespace Zibra::Helpers
 
         CE::Addons::OpenVDBUtils::FrameEncoder encoder{gridShuffleData, gridShuffleSize, frameInfo};
 
-        const CE::Decompression::MaxDimensionsPerSubmit maxDimensionsPerSubmit = m_Decompressor->GetMaxDimensionsPerSubmit();
-        const auto maxChunksPerSubmit = maxDimensionsPerSubmit.maxChunks;
+        const CE::Decompression::MaxDimensionsPerPass maxDimensionsPerPass = m_Decompressor->GetMaxDimensionsPerPass();
+        const auto maxChunksPerSubmit = maxDimensionsPerPass.maxChunks;
         const auto chunksCount = m_Decompressor->GetFrameChunkCount(frameMemory);
         const auto chunkedIterations = Math::CeilToMultipleOf(chunksCount, maxChunksPerSubmit) / maxChunksPerSubmit;
 
         std::vector<CE::Decompression::Shaders::PackedSpatialBlockInfo> readbackDecompressionPerSpatialBlockInfo{};
-        readbackDecompressionPerSpatialBlockInfo.reserve(maxDimensionsPerSubmit.maxSpatialBlocks);
+        readbackDecompressionPerSpatialBlockInfo.reserve(maxDimensionsPerPass.maxSpatialBlocks);
         std::vector<uint16_t> readbackDecompressionPerChannelBlockData{};
-        readbackDecompressionPerChannelBlockData.reserve(maxDimensionsPerSubmit.maxChannelBlocks * CE::SPARSE_BLOCK_VOXEL_COUNT);
+        readbackDecompressionPerChannelBlockData.reserve(maxDimensionsPerPass.maxChannelBlocks * CE::SPARSE_BLOCK_VOXEL_COUNT);
 
         auto chunksToDecompress = chunksCount;
         for (int chunkIter = 0; chunkIter < chunkedIterations; ++chunkIter)
@@ -287,7 +271,7 @@ namespace Zibra::Helpers
                 return res;
             }
 
-            readbackDecompressionPerSpatialBlockInfo.resize(maxDimensionsPerSubmit.maxSpatialBlocks);
+            readbackDecompressionPerSpatialBlockInfo.resize(maxDimensionsPerPass.maxSpatialBlocks);
             readbackDecompressionPerChannelBlockData.resize(fFeedback.channelBlockCount * CE::SPARSE_BLOCK_VOXEL_COUNT);
             GetDecompressedFrameData(readbackDecompressionPerChannelBlockData.data(), fFeedback.channelBlockCount,
                                      readbackDecompressionPerSpatialBlockInfo.data(), fFeedback.spatialBlockCount);

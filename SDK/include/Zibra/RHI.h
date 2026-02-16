@@ -64,7 +64,7 @@ namespace Zibra
 
 namespace Zibra::RHI
 {
-    constexpr Version ZRHI_VERSION = {5, 0, 1, 0};
+    constexpr Version ZRHI_VERSION = {6, 0, 1, 0};
 
     enum class GFXAPI : int8_t
     {
@@ -90,17 +90,17 @@ namespace Zibra::RHI
     {
 
         /**
-         * GFXCore is an adapter between RHI backend and parent engine.
-         * Used for resource access, latency sync and other.
+         * DeviceAdapter is an adapter between RHI backend and parent engine.
+         * Used for synchronization between RHI and engine state.
          */
-        class GFXCore
+        class DeviceAdapter
         {
         public:
-            virtual ~GFXCore() = default;
+            virtual ~DeviceAdapter() = default;
             [[nodiscard]] virtual GFXAPI GetGFXAPI() const noexcept = 0;
         };
 
-#pragma region D3D11 GFXCore
+#pragma region D3D11 DeviceAdapter
 #ifdef ZRHI_USE_D3D11_INTEGRATION
         struct D3D11Texture2DDesc
         {
@@ -115,7 +115,7 @@ namespace Zibra::RHI
             ID3D11Buffer* buffer;
         };
 
-        class D3D11GFXCore : public GFXCore
+        class D3D11DeviceAdapter : public DeviceAdapter
         {
         public:
             virtual ID3D11Device* GetDevice() noexcept = 0;
@@ -126,9 +126,9 @@ namespace Zibra::RHI
             virtual Result AccessTexture3D(void* resourceHandle, D3D11Texture3DDesc& texture3dDesc) noexcept = 0;
         };
 #endif // ZRHI_USE_D3D11_INTEGRATION
-#pragma endregion D3D11 GFXCore
+#pragma endregion D3D11 DeviceAdapter
 
-#pragma region D3D12 GFXCore
+#pragma region D3D12 DeviceAdapter
 #ifdef ZRHI_USE_D3D12_INTEGRATION
         struct D3D12Texture2DDesc
         {
@@ -150,7 +150,7 @@ namespace Zibra::RHI
             ID3D12Resource* resource = nullptr;
         };
 
-        class D3D12GFXCore : public GFXCore
+        class D3D12DeviceAdapter : public DeviceAdapter
         {
         public:
             virtual ID3D12Device* GetDevice() noexcept = 0;
@@ -175,9 +175,9 @@ namespace Zibra::RHI
             virtual Result StopRecording(size_t statesCount, const D3D12TrackedResourceState* states, HANDLE* finishEvent) noexcept = 0;
         };
 #endif // ZRHI_USE_D3D12_INTEGRATION
-#pragma endregion D3D12 GFXCore
+#pragma endregion D3D12 DeviceAdapter
 
-#pragma region Vulkan GFXCore
+#pragma region Vulkan DeviceAdapter
 #ifdef ZRHI_USE_VULKAN_INTEGRATION
         struct VulkanMemoryDesc
         {
@@ -214,7 +214,7 @@ namespace Zibra::RHI
             VkBufferUsageFlags usage;
         };
 
-        class VulkanGFXCore : public GFXCore
+        class VulkanDeviceAdapter : public DeviceAdapter
         {
         public:
             virtual VkInstance GetInstance() noexcept = 0;
@@ -234,9 +234,9 @@ namespace Zibra::RHI
             virtual Result StopRecording(VkFence* finishFence) noexcept = 0;
         };
 #endif // ZRHI_USE_VULKAN_INTEGRATION
-#pragma endregion Vulkan GFXCore
+#pragma endregion Vulkan DeviceAdapter
 
-#pragma region Metal GFXCore
+#pragma region Metal DeviceAdapter
 #ifdef ZRHI_USE_METAL_INTEGRATION
         struct MetalBufferDesc
         {
@@ -253,7 +253,7 @@ namespace Zibra::RHI
             MTL::Texture* texture = nullptr;
         };
 
-        class MetalGFXCore : public GFXCore
+        class MetalDeviceAdapter : public DeviceAdapter
         {
         public:
             virtual MTL::Device* GetDevice() noexcept = 0;
@@ -265,9 +265,42 @@ namespace Zibra::RHI
             virtual Result StopRecording() noexcept = 0;
         };
 #endif // ZRHI_USE_METAL_INTEGRATION
-#pragma endregion Metal GFXCore
+#pragma endregion Metal DeviceAdapter
 
     } // namespace Integration
+
+    struct RHICreateDesc
+    {
+        /**
+         * Graphics API to create RHI object for
+         * If externalDeviceAdapter is not null, it must match respective API
+         * When externalDeviceAdapter is null, this can be set to Auto, to automatically select API for a given platform
+         */
+        GFXAPI APIType = GFXAPI::Auto;
+        /**
+         * Object implementing synchronization with engine and exposing its graphics device
+         * Optional, can ben null, in which case a standalone device is created
+         */
+        Integration::DeviceAdapter* externalDeviceAdapter = nullptr;
+        /**
+         * Index of GPU device to use
+         * If set to -1, device will be automatically selected
+         * If this index is invalid, creation will re-try by automatically selecting device, rather than failing
+         */
+        int32_t adapterIndex = -1;
+        /**
+         * Whether to use software adapter (e.g. WARP or llvmpipe) for RHI
+         * Ignored on Metal
+         * On Vulkan, if no software adapters are available, creation will re-try by using hardware GPU, rather than failing
+         */
+        bool useSoftwareDevice = false;
+        /**
+         * Whether to use internal RHI debug layer
+         * Note that this is separate from Graphics API debug layer
+         * You can also enable this by setting "ZRHI_DEBUG_LAYER" environment variable to "ON" or "1"
+         */
+        bool enableDebugLayer = false;
+    };
 
     /**
      * Resource base interface. Used for bindings
@@ -1789,29 +1822,13 @@ namespace Zibra::RHI
         RHIRuntime* m_Base;
     };
 
-    class RHIFactory
-    {
-    public:
-        virtual ~RHIFactory() noexcept = default;
-
-    public:
-        virtual Result SetGFXAPI(GFXAPI type) noexcept = 0;
-        virtual Result UseGFXCore(Integration::GFXCore* gfxAdapter) noexcept = 0;
-        virtual Result UseForcedAdapter(int32_t adapterIndex) noexcept = 0;
-        virtual Result UseAutoSelectedAdapter() noexcept = 0;
-        virtual Result ForceSoftwareDevice() noexcept = 0;
-        virtual Result ForceEnableDebugLayer() noexcept = 0;
-        virtual Result Create(RHIRuntime** outInstance) noexcept = 0;
-        virtual void Release() noexcept = 0;
-    };
-
-    typedef Result (ZRHI_CALL_CONV *PFN_CreateRHIFactory)(RHIFactory** outFactory);
+    typedef Result (ZRHI_CALL_CONV *PFN_CreateRHIRuntime)(const RHICreateDesc* createDesc, RHIRuntime** outInstance);
 #ifdef ZRHI_STATIC_LINKING
-    Result CreateRHIFactory(RHIFactory** outFactory) noexcept;
+    Result CreateRHIRuntime(const RHICreateDesc* createDesc, RHIRuntime** outInstance) noexcept;
 #elif defined(ZRHI_DYNAMIC_IMPLICIT_LINKING)
-    ZRHI_API_IMPORT Result ZRHI_CALL_CONV CreateRHIFactory(RHIFactory** outFactory) noexcept;
+    ZRHI_API_IMPORT Result ZRHI_CALL_CONV CreateRHIRuntime(const RHICreateDesc* createDesc, RHIRuntime** outInstance) noexcept;
 #else
-    constexpr const char* CreateRHIFactoryExportName = "Zibra_RHI_CreateRHIFactory";
+    constexpr const char* CreateRHIRuntimeExportName = "Zibra_RHI_CreateRHIRuntime";
 #endif
 
     typedef Version (ZRHI_CALL_CONV *PFN_GetVersion)();

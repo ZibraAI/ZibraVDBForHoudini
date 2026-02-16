@@ -83,7 +83,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 size_t localChannelBlockIdx = 0;
                 for (size_t i = 0; i < MAX_CHANNEL_COUNT; ++i)
                 {
-                    const auto& curSpatialInfo = Decompression::UnpackPackedSpatialBlockInfo(packedSpatialInfo[spatialIdx]);
+                    const SpatialBlock curSpatialInfo = Decompression::UnpackPackedSpatialBlockInfo(packedSpatialInfo[spatialIdx]);
                     openvdb::Coord blockCoord{curSpatialInfo.coords[0] + m_FrameInfo.aabb.minX,
                                               curSpatialInfo.coords[1] + m_FrameInfo.aabb.minY,
                                               curSpatialInfo.coords[2] + m_FrameInfo.aabb.minZ};
@@ -120,29 +120,26 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 }
             }
 
-            std::for_each(
-#if !ZIB_TARGET_OS_MAC
-                std::execution::par_unseq,
-#endif
-                gridsIntermediate.begin(), gridsIntermediate.end(), [&](auto& gridIt) {
-                    auto outGridIt = m_Grids.find(gridIt.first);
-                    if (outGridIt == m_Grids.end())
-                        outGridIt = m_Grids.insert({gridIt.first, nullptr}).first;
+            for (auto& grid : gridsIntermediate)
+            {
+                auto outGridIt = m_Grids.find(grid.first);
+                if (outGridIt == m_Grids.end())
+                    outGridIt = m_Grids.insert({grid.first, nullptr}).first;
 
-                    switch (gridIt.second.voxelType)
-                    {
-                    case GridVoxelType::Float1: {
-                        ConstructGrid<openvdb::FloatGrid>(gridIt.second, &outGridIt->second);
-                        break;
-                    }
-                    case GridVoxelType::Float3: {
-                        ConstructGrid<openvdb::Vec3fGrid>(gridIt.second, &outGridIt->second);
-                        break;
-                    }
-                    default:
-                        assert(0 && "Unsupported grid voxel type");
-                    }
-                });
+                switch (grid.second.voxelType)
+                {
+                case GridVoxelType::Float1: {
+                    ConstructGrid<openvdb::FloatGrid>(grid.second, &outGridIt->second);
+                    break;
+                }
+                case GridVoxelType::Float3: {
+                    ConstructGrid<openvdb::Vec3fGrid>(grid.second, &outGridIt->second);
+                    break;
+                }
+                default:
+                    assert(0 && "Unsupported grid voxel type");
+                }
+            };
         }
 
         openvdb::GridPtrVec GetGrids() noexcept

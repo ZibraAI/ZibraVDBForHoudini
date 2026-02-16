@@ -807,29 +807,14 @@ namespace Zibra::ZibraVDBCompressor
             return RESULT_UNEXPECTED_ERROR;
         }
 
-        RHI::RHIFactory* RHIFactory = nullptr;
-        Result res = RHI::CreateRHIFactory(&RHIFactory);
-        if (ZIB_FAILED(res))
-        {
-            return res;
-        }
+        RHI::RHICreateDesc RHICreateDesc{};
+        RHICreateDesc.APIType = Helpers::SelectGFXAPI();
+        RHICreateDesc.externalDeviceAdapter = nullptr;
+        RHICreateDesc.adapterIndex = -1;
+        RHICreateDesc.useSoftwareDevice = Helpers::NeedForceSoftwareDevice();
+        RHICreateDesc.enableDebugLayer = false;
 
-        res = RHIFactory->SetGFXAPI(Helpers::SelectGFXAPI());
-        if (ZIB_FAILED(res))
-        {
-            return res;
-        }
-
-        if (Helpers::NeedForceSoftwareDevice())
-        {
-            res = RHIFactory->ForceSoftwareDevice();
-            if (ZIB_FAILED(res))
-            {
-                return res;
-            }
-        }
-
-        res = RHIFactory->Create(&m_RHIRuntime);
+        Result res = RHI::CreateRHIRuntime(&RHICreateDesc, &m_RHIRuntime);
         if (ZIB_FAILED(res))
         {
             return res;
@@ -843,35 +828,28 @@ namespace Zibra::ZibraVDBCompressor
             return res;
         }
 
-        CE::Compression::CompressorFactory* compressorFactory = nullptr;
-        res = CE::Compression::CreateCompressorFactory(&compressorFactory);
-        if (ZIB_FAILED(res))
+        std::vector<Zibra::CE::Compression::ChannelSpecificQuality> channelSpecificQualityBuffer;
+        CE::Compression::CompressorCreateDesc compressorCreateDesc{};
+        compressorCreateDesc.RHI = m_RHIRuntime;
+        compressorCreateDesc.quality = m_Quality;
+        if (m_PerChannelCompressionSettings.empty())
         {
-            return res;
+            compressorCreateDesc.channelSpecificQuality = nullptr;
+            compressorCreateDesc.channelSpecificQualityCount = 0;
         }
-        ZIB_ON_SCOPE_EXIT([&]() { compressorFactory->Release(); });
-
-        res = compressorFactory->UseRHI(m_RHIRuntime);
-        if (ZIB_FAILED(res))
+        else
         {
-            return res;
-        }
-        res = compressorFactory->SetQuality(m_Quality);
-        if (ZIB_FAILED(res))
-        {
-            return res;
-        }
-
-        for (const auto& [channelName, quality] : m_PerChannelCompressionSettings)
-        {
-            res = compressorFactory->OverrideChannelQuality(channelName.c_str(), quality);
-            if (ZIB_FAILED(res))
+            channelSpecificQualityBuffer.reserve(m_PerChannelCompressionSettings.size());
+            for (const auto& [channelName, quality] : m_PerChannelCompressionSettings)
             {
-                return res;
+                channelSpecificQualityBuffer.push_back({channelName.c_str(), quality});
             }
+
+            compressorCreateDesc.channelSpecificQuality = channelSpecificQualityBuffer.data();
+            compressorCreateDesc.channelSpecificQualityCount = channelSpecificQualityBuffer.size();
         }
 
-        res = compressorFactory->Create(&m_Compressor);
+        res = CE::Compression::CreateCompressor(&compressorCreateDesc, &m_Compressor);
         if (ZIB_FAILED(res))
         {
             return res;

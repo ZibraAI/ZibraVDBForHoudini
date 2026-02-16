@@ -5,7 +5,7 @@ namespace Zibra
 {
     namespace RHI
     {
-        extern PFN_CreateRHIFactory CreateRHIFactory;
+        extern PFN_CreateRHIRuntime CreateRHIRuntime;
         extern PFN_GetVersion GetVersion;
     } // namespace RHI
 
@@ -19,7 +19,7 @@ namespace Zibra
         } // namespace Decompression
         namespace Compression
         {
-            extern PFN_CreateCompressorFactory CreateCompressorFactory;
+            extern PFN_CreateCompressor CreateCompressor;
             extern PFN_CreateSequenceMerger CreateSequenceMerger;
             extern PFN_GetVersion GetVersion;
         } // namespace Compression

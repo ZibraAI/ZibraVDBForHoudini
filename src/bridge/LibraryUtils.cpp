@@ -12,7 +12,7 @@ namespace Zibra
 {
     namespace RHI
     {
-        PFN_CreateRHIFactory CreateRHIFactory = nullptr;
+        PFN_CreateRHIRuntime CreateRHIRuntime = nullptr;
         PFN_GetVersion GetVersion = nullptr;
     } // namespace RHI
 
@@ -26,7 +26,7 @@ namespace Zibra
         } // namespace Decompression
         namespace Compression
         {
-            PFN_CreateCompressorFactory CreateCompressorFactory = nullptr;
+            PFN_CreateCompressor CreateCompressor = nullptr;
             PFN_CreateSequenceMerger CreateSequenceMerger = nullptr;
             PFN_GetVersion GetVersion = nullptr;
         } // namespace Compression
@@ -114,7 +114,7 @@ namespace Zibra::LibraryUtils
 
         {
             using namespace Zibra::RHI;
-            ZIB_LOAD_FUNCTION_POINTER(CreateRHIFactory, CreateRHIFactoryExportName);
+            ZIB_LOAD_FUNCTION_POINTER(CreateRHIRuntime, CreateRHIRuntimeExportName);
             ZIB_LOAD_FUNCTION_POINTER(GetVersion, GetVersionExportName);
         }
         {
@@ -125,7 +125,7 @@ namespace Zibra::LibraryUtils
         }
         {
             using namespace Zibra::CE::Compression;
-            ZIB_LOAD_FUNCTION_POINTER(CreateCompressorFactory, CreateCompressorFactoryExportName);
+            ZIB_LOAD_FUNCTION_POINTER(CreateCompressor, CreateCompressorExportName);
             ZIB_LOAD_FUNCTION_POINTER(CreateSequenceMerger, CreateSequenceMergerExportName);
             ZIB_LOAD_FUNCTION_POINTER(GetVersion, GetVersionExportName);
         }

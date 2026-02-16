@@ -45,6 +45,12 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         explicit FrameLoader(openvdb::GridBase::ConstPtr* grids, size_t gridsCount, bool matchVoxelSize = false) noexcept;
         ~FrameLoader() noexcept;
 
+        FrameLoader(const FrameLoader&) = delete;
+        FrameLoader& operator=(const FrameLoader&) = delete;
+
+        FrameLoader(FrameLoader&& other) = default;
+        FrameLoader& operator=(FrameLoader&&) = delete;
+
         [[nodiscard]] Compression::SparseFrame* LoadFrame() const noexcept;
         [[nodiscard]] const std::vector<VDBGridDesc>& GetGridsShuffleInfo() noexcept;
         static void ReleaseFrame(const Compression::SparseFrame* frame) noexcept;
@@ -309,7 +315,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         // Allocating result frame buffers from precalculated data
         auto* resultBlocks = new ChannelBlock[result->info.channelBlockCount];
         auto* resultChannelIndexPerBlock = new uint32_t[result->info.channelBlockCount];
-        auto* resultSpatialInfo = new SpatialBlockInfo[result->info.spatialBlockCount];
+        auto* resultSpatialInfo = new SpatialBlock[result->info.spatialBlockCount];
         auto* channels = result->info.channels;
 
         result->blocks = resultBlocks;
@@ -367,7 +373,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                     ++chIdx;
                 }
 
-                SpatialBlockInfo spatialInfo{};
+                SpatialBlock spatialInfo{};
                 spatialInfo.coords[0] = coord.x() - totalAABB.minX;
                 spatialInfo.coords[1] = coord.y() - totalAABB.minY;
                 spatialInfo.coords[2] = coord.z() - totalAABB.minZ;

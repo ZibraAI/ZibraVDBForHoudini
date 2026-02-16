@@ -16,14 +16,14 @@ namespace Zibra
                       "Specified .zibravdb sequence file version is not compatible with current SDK.", true);
     ZIB_RESULT_DEFINE(CORRUPTED_SOURCE, COMPRESSION_ENGINE, 0x2, ".zibravdb sequence is corrupted.", true);
     ZIB_RESULT_DEFINE(MERGE_VERSION_MISMATCH, COMPRESSION_ENGINE, 0x3,
-                      "Specified .zibravdb sequence does not use current file version and can't be merged.", true);
+                      "Specified .zibravdb sequence does not use the current file version and can't be merged.", true);
     ZIB_RESULT_DEFINE(BINARY_FILE_SAVED_AS_TEXT, COMPRESSION_ENGINE, 0x4,
                       "Specified .zibravdb sequence was corrupted by saving it as text.", true);
     ZIB_RESULT_DEFINE(BYTE_RANGE_IS_TOO_SMALL, COMPRESSION_ENGINE, 0x5,
-                      "Passed byte range was too small to perform requrested operation.", true);
+                      "Passed byte range was too small to perform requested operation.", true);
 
-    ZIB_RESULT_DEFINE(COMPRESSION_LICENSE_ERROR, COMPRESSION_ENGINE, 0x100, "ZibraVDB compression requires active license.", true);
-    ZIB_RESULT_DEFINE(DECOMPRESSION_LICENSE_ERROR, COMPRESSION_ENGINE, 0x101, "Decompression of this file requires active license.", true);
+    ZIB_RESULT_DEFINE(COMPRESSION_LICENSE_ERROR, COMPRESSION_ENGINE, 0x100, "ZibraVDB compression requires an active license.", true);
+    ZIB_RESULT_DEFINE(DECOMPRESSION_LICENSE_ERROR, COMPRESSION_ENGINE, 0x101, "Decompression of this file requires an active license.", true);
     ZIB_RESULT_DEFINE(DECOMPRESSION_LICENSE_TIER_TOO_LOW, COMPRESSION_ENGINE, 0x102,
                       "Your license does not allow decompression of this effect.", true);
 } // namespace Zibra
@@ -71,7 +71,7 @@ namespace Zibra::CE
         float voxels[SPARSE_BLOCK_VOXEL_COUNT] = {};
     };
 
-    struct SpatialBlockInfo
+    struct SpatialBlock
     {
         /**
          * Position of spatial block in space.
@@ -94,11 +94,11 @@ namespace Zibra::CE
 
         /**
          * Count of active channels in this spatial block.
-         * @range [0; 8]
+         * @range [0; 32]
          */
         uint32_t channelCount;
     };
-    inline bool operator==(const SpatialBlockInfo& a, const SpatialBlockInfo& b) noexcept
+    inline bool operator==(const SpatialBlock& a, const SpatialBlock& b) noexcept
     {
         const bool coords = a.coords[0] == b.coords[0] && a.coords[1] == b.coords[1] && a.coords[2] == b.coords[2];
         return coords && (a.channelBlocksOffset == b.channelBlocksOffset) && (a.channelMask == b.channelMask) &&

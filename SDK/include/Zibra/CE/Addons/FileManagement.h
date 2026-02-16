@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cwctype>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -19,6 +20,21 @@ namespace Zibra::CE::Addons::FileManagement
     inline std::basic_string_view<wchar_t> GetZibraVDBFileExtension()
     {
         return L".VDB";
+    }
+
+    template <typename CharType>
+    inline bool IsDigit(CharType chr);
+
+    template <>
+    inline bool IsDigit<char>(char chr)
+    {
+        return std::isdigit(static_cast<unsigned char>(chr)) != 0;
+    }
+
+    template <>
+    inline bool IsDigit<wchar_t>(wchar_t chr)
+    {
+        return std::iswdigit(chr) != 0;
     }
 
     inline std::vector<std::filesystem::path> CalculateFileList(const std::filesystem::path::string_type& inputMask)
@@ -47,8 +63,7 @@ namespace Zibra::CE::Addons::FileManagement
                 }
 
                 auto tail = fileName.stem().native().substr(mask.size());
-                bool tailIsDigitsOnly =
-                    std::all_of(tail.begin(), tail.end(), [](char c) { return std::isdigit(static_cast<unsigned char>(c)); });
+                bool tailIsDigitsOnly = std::all_of(tail.begin(), tail.end(), IsDigit<std::filesystem::path::string_type::value_type>);
                 if (!tailIsDigitsOnly)
                 {
                     continue;
@@ -58,7 +73,9 @@ namespace Zibra::CE::Addons::FileManagement
                 std::filesystem::path::string_type fileNameStrUpper = fileNameStr;
                 std::transform(fileNameStrUpper.begin(), fileNameStrUpper.end(), fileNameStrUpper.begin(), ::toupper);
 
-                if (!fileNameStrUpper.ends_with(GetZibraVDBFileExtension<std::filesystem::path::value_type>()))
+                if (fileNameStrUpper.substr(fileNameStrUpper.size() -
+                                            GetZibraVDBFileExtension<std::filesystem::path::value_type>().size()) !=
+                    GetZibraVDBFileExtension<std::filesystem::path::value_type>())
                 {
                     continue;
                 }

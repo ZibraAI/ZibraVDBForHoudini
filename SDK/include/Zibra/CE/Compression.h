@@ -25,10 +25,52 @@ namespace Zibra::CE::Compression
         FrameInfo info = {};
         size_t originalSize = 0;
         /// Spatial blocks info array
-        const SpatialBlockInfo* spatialInfo = nullptr;
+        const SpatialBlock* spatialInfo = nullptr;
         /// ChannelBlocks array.
         const ChannelBlock* blocks = nullptr;
         const uint32_t* channelIndexPerBlock = nullptr;
+    };
+
+    struct ChannelSpecificQuality
+    {
+        /**
+         * Name of the channel to set custom quality setting to
+         * Must not be null
+         */
+        const char* channelName = nullptr;
+        /**
+         * Quality to use for the channel
+         * Must be in range 0.0 - 1.0
+         */
+        float quality = -1.0f;
+    };
+
+    struct CompressorCreateDesc
+    {
+        /**
+         * RHIRuntime object to use for compression
+         * Must not be null
+         * User is responsible keeping this object alive for whole lifetime of compressor
+         * It is invalid to use any other RHIRuntime object with created comrpessor
+         */
+        RHI::RHIRuntime* RHI = nullptr;
+        /**
+         * Quality to use for compression
+         * Must be in range 0.0 - 1.0
+         */
+        float quality = 0.6f;
+        /**
+         * Pointer to buffer containing ChannelSpecificQuality entries
+         * Allows setting different quality for different channels
+         * Must not contain duplicate channels
+         * If channelSpecificQualityCount is not 0, this must not be null
+         * If channelSpecificQualityCount is 0, this must be null
+         */
+        const ChannelSpecificQuality* channelSpecificQuality = nullptr;
+        /**
+         * Number of elements in channelSpecificQuality buffer
+         */
+        uint32_t channelSpecificQualityCount = 0;
     };
 
     class FrameManager
@@ -101,51 +143,13 @@ namespace Zibra::CE::Compression
         virtual void Release() noexcept = 0;
     };
 
-    class CompressorFactory
-    {
-    protected:
-        virtual ~CompressorFactory() noexcept = default;
-
-    public:
-        /**
-         * Sets RHI instance to use in spawned objects.
-         * @param [in] rhi RHI instance.
-         * @return ZCE_SUCCESS in case of success, ZCE_ERROR_NOT_SUPPORTED if GFXAPI is not supported or error code otherwise.
-         */
-        virtual Result UseRHI(RHI::RHIRuntime* rhi) noexcept = 0;
-        /**
-         * Sets default channel compression quality to use in spawned objects.
-         * @param [in] quality Target quality in range [0.0f : 1.0f].
-         * @return ZCE_SUCCESS in case of success or error code otherwise.
-         */
-        virtual Result SetQuality(float quality) noexcept = 0;
-        /**
-         * Sets quality override for selected channel to use in spawned objects.
-         * @param [in] channelName Target override channel name.
-         * @param [in] quality - Target quality for selected channel in range [0.0f : 1.0f].
-         * @return ZCE_SUCCESS in case of success or error code otherwise.
-         */
-        virtual Result OverrideChannelQuality(const char* channelName, float quality) noexcept = 0;
-        /**
-         * Creates a compressor instance.
-         * @param outInstance - out compressor instance.
-         * @return ZCE_SUCCESS in case of success or error code otherwise.
-         */
-        virtual Result Create(Compressor** outInstance) noexcept = 0;
-        /**
-         * Destructs CompressorFactory instance and releases it's memory.
-         * After release pointer becomes invalid.
-         */
-        virtual void Release() noexcept = 0;
-    };
-
-    typedef Result(ZCE_CALL_CONV* PFN_CreateCompressorFactory)(CompressorFactory** outInstance);
+    typedef Result(ZCE_CALL_CONV* PFN_CreateCompressor)(const CompressorCreateDesc* createDesc, Compressor** outInstance);
 #ifdef ZCE_STATIC_LINKING
-    Result CreateCompressorFactory(CompressorFactory** outInstance) noexcept;
+    Result CreateCompressor(const CompressorCreateDesc* createDesc, Compressor** outInstance) noexcept;
 #elif defined(ZCE_DYNAMIC_IMPLICIT_LINKING)
-    ZCE_API_IMPORT Result ZCE_CALL_CONV Zibra_CE_Compression_CreateCompressorFactory(CompressorFactory** outInstance) noexcept;
+    ZCE_API_IMPORT Result ZCE_CALL_CONV Zibra_CE_Compression_CreateCompressor(const CompressorCreateDesc* createDesc, Compressor** outInstance) noexcept;
 #else
-    constexpr const char* CreateCompressorFactoryExportName = "Zibra_CE_Compression_CreateCompressorFactory";
+    constexpr const char* CreateCompressorExportName = "Zibra_CE_Compression_CreateCompressor";
 #endif
 
     typedef Result(ZCE_CALL_CONV* PFN_CreateSequenceMerger)(SequenceMerger** outInstance);
