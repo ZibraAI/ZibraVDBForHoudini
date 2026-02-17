@@ -246,8 +246,8 @@ namespace Zibra::Helpers
         const auto chunksCount = m_Decompressor->GetFrameChunkCount(frameMemory);
         const auto chunkedIterations = Math::CeilToMultipleOf(chunksCount, maxChunksPerSubmit) / maxChunksPerSubmit;
 
-        std::vector<CE::Decompression::Shaders::PackedSpatialBlockInfo> readbackDecompressionPerSpatialBlockInfo{};
-        readbackDecompressionPerSpatialBlockInfo.reserve(maxDimensionsPerPass.maxSpatialBlocks);
+        std::vector<CE::Decompression::Shaders::PackedSpatialBlock> readbackDecompressionPerSpatialBlock{};
+        readbackDecompressionPerSpatialBlock.reserve(maxDimensionsPerPass.maxSpatialBlocks);
         std::vector<uint16_t> readbackDecompressionPerChannelBlockData{};
         readbackDecompressionPerChannelBlockData.reserve(maxDimensionsPerPass.maxChannelBlocks * CE::SPARSE_BLOCK_VOXEL_COUNT);
 
@@ -271,15 +271,15 @@ namespace Zibra::Helpers
                 return res;
             }
 
-            readbackDecompressionPerSpatialBlockInfo.resize(maxDimensionsPerPass.maxSpatialBlocks);
+            readbackDecompressionPerSpatialBlock.resize(maxDimensionsPerPass.maxSpatialBlocks);
             readbackDecompressionPerChannelBlockData.resize(fFeedback.channelBlockCount * CE::SPARSE_BLOCK_VOXEL_COUNT);
             GetDecompressedFrameData(readbackDecompressionPerChannelBlockData.data(), fFeedback.channelBlockCount,
-                                     readbackDecompressionPerSpatialBlockInfo.data(), fFeedback.spatialBlockCount);
+                                     readbackDecompressionPerSpatialBlock.data(), fFeedback.spatialBlockCount);
             m_RHIRuntime->GarbageCollect();
 
             CE::Addons::OpenVDBUtils::FrameData fData{};
             fData.decompressionPerChannelBlockData = readbackDecompressionPerChannelBlockData.data();
-            fData.decompressionPerSpatialBlockInfo = readbackDecompressionPerSpatialBlockInfo.data();
+            fData.decompressionPerSpatialBlockInfo = readbackDecompressionPerSpatialBlock.data();
             // TODO VDB-1291: Implement read-back circular buffer, to optimize GPU stalls.
             //                Implement cpu circular buffer to optimize RAM allocation for DecompressedFrameData.
             //                Move EncodeChunk into separate thread to overlay CPU and CPU work.
@@ -296,7 +296,7 @@ namespace Zibra::Helpers
     }
 
     Result DecompressorManager::GetDecompressedFrameData(uint16_t* perChannelBlockData, size_t channelBlocksCount,
-                                                         CE::Decompression::Shaders::PackedSpatialBlockInfo* perSpatialBlockInfo,
+                                                         CE::Decompression::Shaders::PackedSpatialBlock* perSpatialBlockInfo,
                                                          size_t spatialBlocksCount) const noexcept
     {
         static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&DecompressorManager::GetDecompressedFrameData)>);

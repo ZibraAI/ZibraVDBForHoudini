@@ -12,7 +12,7 @@ namespace Zibra::CE::Decompression::Shaders {
     using uint = uint32_t;
 #endif // __cplusplus
 
-struct ZCEDecompressionPackedSpatialBlockInfo {
+struct ZCEDecompressionPackedSpatialBlock {
     uint packedCoords;
     uint channelBlocksOffset;
     uint channelMask;
@@ -24,7 +24,7 @@ struct ZCEDecompressionPackedChannelBlockInfo {
 
 #ifdef __cplusplus
 using PackedChannelBlockInfo = ZCEDecompressionPackedChannelBlockInfo;
-using PackedSpatialBlockInfo = ZCEDecompressionPackedSpatialBlockInfo;
+using PackedSpatialBlock = ZCEDecompressionPackedSpatialBlock;
 } // namespace Zibra::CE::Decompression::Shaders
 #endif // __cplusplus
 

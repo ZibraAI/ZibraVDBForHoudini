@@ -72,10 +72,10 @@ namespace Zibra::CE::Addons::OpenVDBUtils
 
         void EncodeChunk(const FrameData& fData, size_t spatialBlocksCount, size_t chunkChBlocksFirstIndex) noexcept
         {
-            using PackedSpatialBlockInfo = Decompression::Shaders::PackedSpatialBlockInfo;
+            using PackedSpatialBlock = Decompression::Shaders::PackedSpatialBlock;
 
             std::map<std::string, GridIntermediate> gridsIntermediate{};
-            const auto* packedSpatialInfo = static_cast<const PackedSpatialBlockInfo*>(fData.decompressionPerSpatialBlockInfo);
+            const auto* packedSpatialInfo = static_cast<const PackedSpatialBlock*>(fData.decompressionPerSpatialBlockInfo);
             const auto* channelBlocksSrc = static_cast<const ChannelBlockF16Mem*>(fData.decompressionPerChannelBlockData);
 
             for (size_t spatialIdx = 0; spatialIdx < spatialBlocksCount; ++spatialIdx)
@@ -83,11 +83,11 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 size_t localChannelBlockIdx = 0;
                 for (size_t i = 0; i < MAX_CHANNEL_COUNT; ++i)
                 {
-                    const SpatialBlock curSpatialInfo = Decompression::UnpackPackedSpatialBlockInfo(packedSpatialInfo[spatialIdx]);
-                    openvdb::Coord blockCoord{curSpatialInfo.coords[0] + m_FrameInfo.aabb.minX,
-                                              curSpatialInfo.coords[1] + m_FrameInfo.aabb.minY,
-                                              curSpatialInfo.coords[2] + m_FrameInfo.aabb.minZ};
-                    if (curSpatialInfo.channelMask & (1 << i))
+                    const SpatialBlock currentSpatialBlock = Decompression::UnpackSpatialBlock(packedSpatialInfo[spatialIdx]);
+                    openvdb::Coord blockCoord{currentSpatialBlock.coords[0] + m_FrameInfo.aabb.minX,
+                                              currentSpatialBlock.coords[1] + m_FrameInfo.aabb.minY,
+                                              currentSpatialBlock.coords[2] + m_FrameInfo.aabb.minZ};
+                    if (currentSpatialBlock.channelMask & (1 << i))
                     {
                         const char* chName = m_FrameInfo.channels[i].name;
 
@@ -111,7 +111,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                                 if (leafIntermediateMapIt == gridIntermediateIt->second.leafs.end())
                                     leafIntermediateMapIt = gridIntermediateIt->second.leafs.insert({blockCoord, {}}).first;
 
-                                const size_t chBlcIdx = curSpatialInfo.channelBlocksOffset + localChannelBlockIdx - chunkChBlocksFirstIndex;
+                                const size_t chBlcIdx = currentSpatialBlock.channelBlocksOffset + localChannelBlockIdx - chunkChBlocksFirstIndex;
                                 leafIntermediateMapIt->second.chBlocks[gridRef.chIdx] = &channelBlocksSrc[chBlcIdx];
                             }
                             ++localChannelBlockIdx;

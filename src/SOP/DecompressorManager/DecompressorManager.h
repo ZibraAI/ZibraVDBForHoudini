@@ -28,7 +28,7 @@ namespace Zibra::Helpers
 
     private:
         Result GetDecompressedFrameData(uint16_t* perChannelBlockData, size_t channelBlocksCount,
-                                        CE::Decompression::Shaders::PackedSpatialBlockInfo* perSpatialBlockInfo,
+                                        CE::Decompression::Shaders::PackedSpatialBlock* perSpatialBlockInfo,
                                         size_t spatialBlocksCount) const noexcept;
         Result AllocateExternalBuffer(BufferDesc& bufferDesc, size_t newSizeInBytes, size_t newStride) noexcept;
         Result FreeExternalBuffers() noexcept;

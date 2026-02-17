@@ -66,7 +66,7 @@ namespace Zibra::CE::Decompression
         RHI::Buffer* decompressionPerSpatialBlockInfo = nullptr;
     };
 
-    inline SpatialBlock UnpackPackedSpatialBlockInfo(const Shaders::PackedSpatialBlockInfo& packedBlock) noexcept
+    inline SpatialBlock UnpackSpatialBlock(const Shaders::PackedSpatialBlock& packedBlock) noexcept
     {
         SpatialBlock result{};
         result.coords[0] = static_cast<int32_t>((packedBlock.packedCoords >> 0u) & 1023u);
@@ -99,17 +99,17 @@ namespace Zibra::CE::Decompression
          * Write offset in bytes for decompressionPerChannelBlockData buffer. Must be multiple of 4 (sizeof uint).
          * @note Decompressor expects the size of registered buffer to be larger than offset + VRAM MemoryLimitPerResource.
         */
-        uint32_t decompressionPerChannelBlockDataOffset = 0;
+        uint64_t decompressionPerChannelBlockDataOffset = 0;
         /**
          * Write offset in bytes for decompressionPerChannelBlockInfo buffer. Must be multiple of 4 (sizeof uint).
          * @note Decompressor expects the size of registered buffer to be larger than offset + VRAM MemoryLimitPerResource.
          */
-        uint32_t decompressionPerChannelBlockInfoOffset = 0;
+        uint64_t decompressionPerChannelBlockInfoOffset = 0;
         /**
          * Write offset in bytes for decompressionPerSpatialBlockInfo buffer. Must be multiple of 4 (sizeof uint).
          * @note Decompressor expects the size of registered buffer to be larger than offset + VRAM MemoryLimitPerResource.
          */
-        uint32_t decompressionPerSpatialBlockInfoOffset = 0;
+        uint64_t decompressionPerSpatialBlockInfoOffset = 0;
     };
 
     struct DecompressedFrameFeedback

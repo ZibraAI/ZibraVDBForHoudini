@@ -253,7 +253,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             }
             delete[] frame->channelIndexPerBlock;
             delete[] frame->blocks;
-            delete[] frame->spatialInfo;
+            delete[] frame->spatialBlock;
             delete frame;
         }
     }
@@ -319,7 +319,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         auto* channels = result->info.channels;
 
         result->blocks = resultBlocks;
-        result->spatialInfo = resultSpatialInfo;
+        result->spatialBlock = resultSpatialInfo;
         result->channelIndexPerBlock = resultChannelIndexPerBlock;
 
         // Preparing channel info. Filling known data and setting edge initial values for future statistics calculation.
@@ -373,14 +373,14 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                     ++chIdx;
                 }
 
-                SpatialBlock spatialInfo{};
-                spatialInfo.coords[0] = coord.x() - totalAABB.minX;
-                spatialInfo.coords[1] = coord.y() - totalAABB.minY;
-                spatialInfo.coords[2] = coord.z() - totalAABB.minZ;
-                spatialInfo.channelMask = mask;
-                spatialInfo.channelCount = spatialIntrm.blocks.size();
-                spatialInfo.channelBlocksOffset = spatialIntrm.destFirstChannelBlockIndex;
-                resultSpatialInfo[spatialIntrm.destSpatialBlockIndex] = spatialInfo;
+                SpatialBlock spatialBlock{};
+                spatialBlock.coords[0] = coord.x() - totalAABB.minX;
+                spatialBlock.coords[1] = coord.y() - totalAABB.minY;
+                spatialBlock.coords[2] = coord.z() - totalAABB.minZ;
+                spatialBlock.channelMask = mask;
+                spatialBlock.channelCount = spatialIntrm.blocks.size();
+                spatialBlock.channelBlocksOffset = spatialIntrm.destFirstChannelBlockIndex;
+                resultSpatialInfo[spatialIntrm.destSpatialBlockIndex] = spatialBlock;
             });
 
         // Resolving concurrently calculated per block voxel statistics to general frame per channel voxel statistics.

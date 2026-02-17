@@ -25,7 +25,7 @@ namespace Zibra::CE::Compression
         FrameInfo info = {};
         size_t originalSize = 0;
         /// Spatial blocks info array
-        const SpatialBlock* spatialInfo = nullptr;
+        const SpatialBlock* spatialBlock = nullptr;
         /// ChannelBlocks array.
         const ChannelBlock* blocks = nullptr;
         const uint32_t* channelIndexPerBlock = nullptr;

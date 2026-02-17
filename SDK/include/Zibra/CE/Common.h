@@ -96,7 +96,7 @@ namespace Zibra::CE
          * Count of active channels in this spatial block.
          * @range [0; 32]
          */
-        uint32_t channelCount;
+        uint8_t channelCount;
     };
     inline bool operator==(const SpatialBlock& a, const SpatialBlock& b) noexcept
     {
@@ -149,7 +149,7 @@ namespace Zibra::CE
          * Count of channels present in frame.
          * @range [0; MAX_CHANNEL_COUNT]
          */
-        size_t channelsCount = 0;
+        uint8_t channelsCount = 0;
         /**
          * Per channel information.
          * @range Length: =channelsCount
