@@ -201,7 +201,7 @@ namespace Zibra::ZibraVDBCompressor
         templateList.emplace_back(PRM_FILE, 1, &theFileName, &theFileDefault);
 
         static PRM_Name theQualityName(QUALITY_PARAM_NAME, "Quality");
-        static PRM_Default theQualityDefault(0.6, nullptr);
+        static PRM_Default theQualityDefault(0.7, nullptr);
         static PRM_Range theQualityRange(PRM_RANGE_RESTRICTED, 0.0f, PRM_RANGE_RESTRICTED, 1.0f);
 
         templateList.emplace_back(PRM_FLT, 1, &theQualityName, &theQualityDefault, nullptr, &theQualityRange);
