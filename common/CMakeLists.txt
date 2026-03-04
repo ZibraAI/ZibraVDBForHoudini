@@ -107,6 +107,10 @@ function(setup_common_houdini_dependencies target)
         endif()
 
         cmake_print_variables(_houdini_python_version)
+        if(${LABS_BUILD})
+            cmake_print_variables(HOUDINI_PYTHON_BIN)
+            set(Python_EXECUTABLE "${HOUDINI_PYTHON_BIN}")
+        endif()
         find_package(Python ${_houdini_python_version} EXACT
             COMPONENTS Interpreter Development
             REQUIRED
