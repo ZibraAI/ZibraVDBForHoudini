@@ -29,7 +29,7 @@ namespace Zibra::ZibraVDBOutputProcessor
 
         static PRM_Template s_ParameterTemplates[] = {
             PRM_Template(PRM_TOGGLE, 1, &s_CopyAssetsName, &s_CopyAssetsDefault),
-            PRM_Template(PRM_STRING, 1, &s_CopySubdirName, &s_CopySubdirDefault),
+            PRM_Template(PRM_DIRECTORY, 1, &s_CopySubdirName, &s_CopySubdirDefault),
             PRM_Template(PRM_TOGGLE, 1, &s_RelativePathsName, &s_RelativePathsDefault),
             PRM_Template()
         };
