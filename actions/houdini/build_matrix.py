@@ -12,11 +12,7 @@ def get_secret(secret_name):
 HOUDINI_PRODUCT = "houdini"
 HOUDINI_VERSIONS = ["21.0"]
 HOUDINI_VERSIONS_ALL = ["20.0", "20.5", "21.0"]
-HOUDINI_PLATFORMS = [
-    "win64-vc143",
-    # "macosx_arm64", TODO: re-enable macos once Houdini API is up
-    "linux_x86_64_gcc11.2",
-]
+HOUDINI_PLATFORMS = ["win64-vc143", "macosx_arm64", "linux_x86_64_gcc11.2"]
     
 def windows_x64_entry(version, build):
     return {
