@@ -34,8 +34,8 @@ namespace Zibra::ZibraVDBDecompressor
         void ApplyGridAttributeMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::FrameProxy* frameProxy);
         void ApplyGridVisualizationMetadata(GU_PrimVDB* vdbPrim, CE::Decompression::FrameProxy* frameProxy);
         void ApplyDetailMetadata(GU_Detail* gdp, CE::Decompression::FrameProxy* frameProxy);
-        std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> DeserializeGridShuffleInfo(
-            CE::Decompression::FrameProxy* frameContainer) noexcept;
+        std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> ReconstructGridShuffleFromChannelGroups(
+            CE::Decompression::FrameProxy* frameProxy) noexcept;
         void ReleaseGridShuffleInfo(std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc>& gridDescs) noexcept;
 
     private:

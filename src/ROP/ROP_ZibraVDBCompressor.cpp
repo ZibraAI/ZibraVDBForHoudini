@@ -599,8 +599,41 @@ namespace Zibra::ZibraVDBCompressor
 
         vdbFrameLoader.ReleaseFrame(frame);
 
+        // Add channel groups for vector (Float3) grids
+        std::vector<CE::ChannelGroupInfo> channelGroups;
+        std::vector<std::vector<const char*>> channelGroupNameStorage;
+        for (const auto& gridDesc : gridsShuffleInfo)
+        {
+            if (gridDesc.voxelType == CE::Addons::OpenVDBUtils::GridVoxelType::Float3)
+            {
+                channelGroupNameStorage.emplace_back();
+                auto& names = channelGroupNameStorage.back();
+                for (uint32_t c = 0; c < 3; ++c)
+                {
+                    if (gridDesc.chSource[c])
+                    {
+                        names.push_back(gridDesc.chSource[c]);
+                    }
+                }
+                CE::ChannelGroupInfo group{};
+                group.groupName = gridDesc.gridName;
+                group.channelNames = names.data();
+                group.channelCount = names.size();
+                channelGroups.push_back(group);
+            }
+        }
+        for (const auto& group : channelGroups)
+        {
+            res = frameManager->AddChannelGroup(group);
+            if (ZIB_FAILED(res))
+            {
+                std::string errorMessage = "Failed to add channel group: " + LibraryUtils::ErrorCodeToString(res);
+                addError(ROP_MESSAGE, errorMessage.c_str());
+                return ROP_ABORT_RENDER;
+            }
+        }
+
         auto frameMetadata = DumpAttributes(gdp);
-        frameMetadata.push_back({"chShuffle", DumpGridsShuffleInfo(gridsShuffleInfo).dump()});
         for (const auto& [key, val] : frameMetadata)
         {
             frameManager->AddMetadata(key.c_str(), val.c_str());
@@ -992,37 +1025,6 @@ namespace Zibra::ZibraVDBCompressor
         std::string keyVisLod = keyPrefix + "_lod";
         std::string valueVisLod = std::to_string(static_cast<int>(vdbPrim->getVisLod()));
         attributes.emplace_back(std::move(keyVisLod), std::move(valueVisLod));
-    }
-
-    nlohmann::json ROP_ZibraVDBCompressor::DumpGridsShuffleInfo(const std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc>& gridDescs) noexcept
-    {
-        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor::DumpGridsShuffleInfo)>);
-
-        static std::map<CE::Addons::OpenVDBUtils::GridVoxelType, std::string> voxelTypeToString = {
-            {CE::Addons::OpenVDBUtils::GridVoxelType::Float1, "Float1"}, {CE::Addons::OpenVDBUtils::GridVoxelType::Float3, "Float3"}};
-
-        nlohmann::json result = nlohmann::json::array();
-        for (const CE::Addons::OpenVDBUtils::VDBGridDesc& gridDesc : gridDescs)
-        {
-            nlohmann::json serializedDesc = nlohmann::json{
-                {"gridName", gridDesc.gridName},
-                {"voxelType", voxelTypeToString.at(gridDesc.voxelType)},
-            };
-            for (size_t i = 0; i < std::size(gridDesc.chSource); ++i)
-            {
-                std::string name{"chSource"};
-                if (gridDesc.chSource[i])
-                {
-                    serializedDesc[name + std::to_string(i)] = gridDesc.chSource[i];
-                }
-                else
-                {
-                    serializedDesc[name + std::to_string(i)] = nullptr;
-                }
-            }
-            result.emplace_back(serializedDesc);
-        }
-        return result;
     }
 
     int ROP_ZibraVDBCompressor::OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate) noexcept

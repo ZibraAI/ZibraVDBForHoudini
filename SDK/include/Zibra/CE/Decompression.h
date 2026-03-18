@@ -221,6 +221,8 @@ namespace Zibra::CE::Decompression
         [[nodiscard]] virtual const char* GetMetadataByKey(const char* key) const noexcept = 0;
         [[nodiscard]] virtual uint64_t GetMetadataCount() const noexcept = 0;
         [[nodiscard]] virtual Result GetMetadataByIndex(uint64_t index, MetadataEntry* outEntry) const noexcept = 0;
+        [[nodiscard]] virtual uint64_t GetChannelGroupCount() const noexcept = 0;
+        [[nodiscard]] virtual Result GetChannelGroupByIndex(uint64_t index, ChannelGroupInfo* outEntry) const noexcept = 0;
         virtual void Release() noexcept = 0;
     };
 

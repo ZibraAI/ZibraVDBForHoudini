@@ -87,6 +87,12 @@ namespace Zibra::CE::Compression
          */
         virtual Result AddMetadata(const char* key, const char* value) noexcept = 0;
         /**
+         * Adds channel group item to frame channel groups section.
+         * @param [in] group channel group info
+         * @return ZCE_SUCCESS in case of success or error code otherwise.
+         */
+        virtual Result AddChannelGroup(const ChannelGroupInfo& group) noexcept = 0;
+        /**
          * Finishes frame encoding, adds encoded frame to encoded sequence and releases FrameManager memory.
          * @return ZCE_SUCCESS in case of success or error code otherwise.
          */

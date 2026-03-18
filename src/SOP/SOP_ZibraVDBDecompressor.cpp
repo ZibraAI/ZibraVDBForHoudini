@@ -129,7 +129,8 @@ namespace Zibra::ZibraVDBDecompressor
             return error(context);
         }
 
-        auto gridShuffle = DeserializeGridShuffleInfo(frameProxy);
+        // Use native channel groups from binary format; empty means all-scalar fallback in DecompressorManager
+        auto gridShuffle = ReconstructGridShuffleFromChannelGroups(frameProxy);
 
         openvdb::GridPtrVec vdbGrids = {};
         res = m_DecompressorManager.DecompressFrame(frameMemory, frameProxy, gridShuffle, &vdbGrids);
@@ -275,45 +276,48 @@ namespace Zibra::ZibraVDBDecompressor
         return dst;
     }
 
-    std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> SOP_ZibraVDBDecompressor::DeserializeGridShuffleInfo(FrameProxy* frameProxy) noexcept
+    std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> SOP_ZibraVDBDecompressor::ReconstructGridShuffleFromChannelGroups(
+        FrameProxy* frameProxy) noexcept
     {
-        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&SOP_ZibraVDBDecompressor::DeserializeGridShuffleInfo)>);
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&SOP_ZibraVDBDecompressor::ReconstructGridShuffleFromChannelGroups)>);
 
-        static std::map<std::string, CE::Addons::OpenVDBUtils::GridVoxelType> strToVoxelType = {
-            {"Float1", CE::Addons::OpenVDBUtils::GridVoxelType::Float1}, {"Float3", CE::Addons::OpenVDBUtils::GridVoxelType::Float3}};
-
-        const char* meta = frameProxy->GetMetadataByKey("chShuffle");
-        if (!meta)
+        const uint64_t groupCount = frameProxy->GetChannelGroupCount();
+        if (groupCount == 0)
             return {};
 
-        auto serialized = nlohmann::json::parse(meta);
-        if (!serialized.is_array())
+        const auto frameInfo = frameProxy->GetInfo();
+        std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> result;
+        std::set<std::string> groupedChannelNames;
+
+        for (uint64_t g = 0; g < groupCount; ++g)
         {
-            addWarning(SOP_MESSAGE, "Corrupted metadata for grid reconstruction. Applying direct mapping.");
-            return {};
-        }
-        std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> result{};
-        for (const auto& serializedDesc : serialized)
-        {
+            CE::ChannelGroupInfo group{};
+            frameProxy->GetChannelGroupByIndex(g, &group);
+
             CE::Addons::OpenVDBUtils::VDBGridDesc gridDesc{};
-            if (!serializedDesc.is_object())
+            gridDesc.gridName = TransferStr(group.groupName);
+            gridDesc.voxelType = CE::Addons::OpenVDBUtils::GridVoxelType::Float3;
+            for (size_t c = 0; c < group.channelCount; ++c)
             {
-                addWarning(SOP_MESSAGE, "Partially corrupted metadata for grid reconstruction. Skipping corrupted grids.");
-                continue;
+                gridDesc.chSource[c] = TransferStr(group.channelNames[c]);
+                groupedChannelNames.insert(group.channelNames[c]);
             }
-            gridDesc.gridName = TransferStr(serializedDesc["gridName"]);
-            gridDesc.voxelType = strToVoxelType.at(serializedDesc["voxelType"]);
-
-            for (size_t i = 0; i < std::size(gridDesc.chSource); ++i)
-            {
-                auto key = std::string{"chSource"} + std::to_string(i);
-                if (serializedDesc.contains(key) && serializedDesc[key].is_string())
-                {
-                    gridDesc.chSource[i] = TransferStr(serializedDesc[key]);
-                }
-            }
-            result.emplace_back(gridDesc);
+            result.push_back(gridDesc);
         }
+
+        // Add ungrouped channels as individual scalar grids
+        for (uint32_t ch = 0; ch < frameInfo.channelsCount; ++ch)
+        {
+            if (groupedChannelNames.count(frameInfo.channels[ch].name))
+                continue;
+
+            CE::Addons::OpenVDBUtils::VDBGridDesc gridDesc{};
+            gridDesc.gridName = TransferStr(frameInfo.channels[ch].name);
+            gridDesc.voxelType = CE::Addons::OpenVDBUtils::GridVoxelType::Float1;
+            gridDesc.chSource[0] = TransferStr(frameInfo.channels[ch].name);
+            result.push_back(gridDesc);
+        }
+
         return result;
     }
 

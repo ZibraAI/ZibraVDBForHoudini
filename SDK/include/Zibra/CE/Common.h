@@ -62,6 +62,13 @@ namespace Zibra::CE
         const char* value = nullptr;
     };
 
+    struct ChannelGroupInfo
+    {
+        const char* groupName = nullptr;
+        const char* const* channelNames = nullptr;
+        size_t channelCount = 0;
+    };
+
     struct ChannelBlock
     {
         /**
