@@ -31,6 +31,6 @@ $RepositeryRoot = "$PSScriptRoot/.."
 Push-Location $RepositeryRoot
 
 & ./scripts/configure.ps1 $AdditionalArgs $TargetFolder
-cmake --build $TargetFolder --config Release
+cmake --build $TargetFolder --config Release --parallel
 
 Pop-Location
