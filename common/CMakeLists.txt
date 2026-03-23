@@ -72,9 +72,10 @@ target_sources(ZibraVDBCommon
         src/ui/PluginManagementWindow.cpp
 )
 
-target_include_directories(ZibraVDBCommon
-    PUBLIC ${CMAKE_SOURCE_DIR}/external/Include
-    PUBLIC ${CMAKE_SOURCE_DIR}/SDK/include)
+target_include_directories(ZibraVDBCommon PUBLIC
+    ${CMAKE_SOURCE_DIR}/external/Include
+    ${CMAKE_SOURCE_DIR}/SDK/include
+    "${HOUDINI_INCLUDE_DIR}")
 
 target_compile_definitions(ZibraVDBCommon PUBLIC
     ZIB_NETWORK_REQUEST_BACKEND_${ZIB_NETWORK_REQUEST_BACKEND}=1
