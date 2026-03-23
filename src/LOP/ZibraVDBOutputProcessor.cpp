@@ -164,7 +164,10 @@ namespace Zibra::ZibraVDBOutputProcessor
         if (m_MakePathsRelative)
         {
             UT_String utPath(uri.path);
-            UTmakeRelativeFilePath(utPath, TfGetPathName(referencingLayerStr).c_str());
+            // UTmakeRelativeFilePath has a bug on Houdini versions before 21.0.506
+            // It does not properly handle basepath that ends with a trailing slash
+            // We work around it by passing path to a *file* in basepath directory
+            UTmakeRelativeFilePath(utPath, referencingLayerStr.c_str());
             uri.path = utPath.toStdString();
         }
 
