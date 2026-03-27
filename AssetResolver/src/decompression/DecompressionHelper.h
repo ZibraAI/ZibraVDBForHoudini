@@ -13,18 +13,17 @@ namespace Zibra::AssetResolver
         DecompressionHelper& operator=(const DecompressionHelper&) = delete;
         DecompressionHelper(DecompressionHelper&&) = delete;
         DecompressionHelper& operator=(DecompressionHelper&&) = delete;
-        ~DecompressionHelper() = default;
+        ~DecompressionHelper();
 
         static DecompressionHelper& GetInstance();
-        static bool HasInstance();
+        static void DeleteInstance();
         std::string DecompressZibraVDBFile(const std::string& zibraVDBPath, int frame);
-        void Cleanup();
 
     private:
         DecompressionHelper() = default;
 
     private:
-        static std::unique_ptr<DecompressionHelper> ms_Instance;
+        static DecompressionHelper* ms_Instance;
 
         std::map<std::string, std::string> m_PathToUUIDMap;
         std::map<std::string, std::unique_ptr<DecompressionSequenceItem>> m_DecompressionFiles;
