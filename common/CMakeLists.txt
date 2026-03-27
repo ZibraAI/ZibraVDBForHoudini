@@ -88,13 +88,6 @@ function(setup_common_houdini_dependencies target)
     message(STATUS "Setting up dependencies for ${target}")
     target_link_libraries(${target} PRIVATE Houdini ZibraVDBCommon)
 
-    if("${ZIB_TARGET_OS_NAME}" STREQUAL "LINUX")
-        target_link_options(${target} 
-            PRIVATE 
-            "-Wl,--exclude-libs,libZibraVDBCommon.a"
-            )        
-    endif()
-
     if("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
         if(${Houdini_VERSION_MAJOR} GREATER_EQUAL 21)
             set(HOUDINI_BOOST_PYTHON_TARGET "pxr_python")
