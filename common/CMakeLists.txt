@@ -79,7 +79,9 @@ target_include_directories(ZibraVDBCommon PUBLIC
 
 target_compile_definitions(ZibraVDBCommon PUBLIC
     ZIB_NETWORK_REQUEST_BACKEND_${ZIB_NETWORK_REQUEST_BACKEND}=1
-    ZIB_TARGET_OS_${ZIB_TARGET_OS_NAME}=1)
+    ZIB_TARGET_OS_${ZIB_TARGET_OS_NAME}=1
+    ZCE_NO_STATIC_API_DECL
+    ZRHI_NO_STATIC_API_DECL)
 
 target_precompile_headers(ZibraVDBCommon PRIVATE src/PrecompiledHeader.h)
 target_link_libraries(ZibraVDBCommon PUBLIC Houdini)

@@ -1,8 +1,5 @@
 #pragma once
 
-#define ZCE_NO_STATIC_API_DECL
-#define ZRHI_NO_STATIC_API_DECL
-
 // Standard library
 #include <csignal>
 #include <filesystem>

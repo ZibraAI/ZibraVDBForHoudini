@@ -99,10 +99,8 @@
 #error Unexpected OS
 #endif
 
-#define ZRHI_NO_STATIC_API_DECL
 #include <Zibra/RHI.h>
 
-#define ZCE_NO_STATIC_API_DECL
 #include <Zibra/CE/Addons/OpenVDBFrameLoader.h>
 #include <Zibra/CE/Compression.h>
 
