@@ -10,20 +10,33 @@
 
 namespace Zibra::AssetResolver
 {
-    std::unique_ptr<DecompressionHelper> DecompressionHelper::ms_Instance = nullptr;
+    DecompressionHelper* DecompressionHelper::ms_Instance = nullptr;
+
+    DecompressionHelper::~DecompressionHelper() 
+    {
+        TF_DEBUG(ZIBRAVDB_RESOLVER)
+            .Msg("ZibraVDBDecompressionManager::Destructor - Starting cleanup of %zu compressed file "
+                 "entries\n",
+                 m_DecompressionFiles.size());
+
+        m_PathToUUIDMap.clear();
+        m_DecompressionFiles.clear();
+        TF_DEBUG(ZIBRAVDB_RESOLVER).Msg("ZibraVDBDecompressionManager::Destructor - Cleanup completed\n");
+    }
 
     DecompressionHelper& DecompressionHelper::GetInstance()
     {
         if (!ms_Instance)
         {
-            ms_Instance = std::unique_ptr<DecompressionHelper>(new DecompressionHelper());
+            ms_Instance = new DecompressionHelper();
         }
         return *ms_Instance;
     }
 
-    bool DecompressionHelper::HasInstance()
+    void DecompressionHelper::DeleteInstance()
     {
-        return ms_Instance != nullptr;
+        delete ms_Instance;
+        ms_Instance = nullptr;
     }
 
     std::string DecompressionHelper::DecompressZibraVDBFile(const std::string& zibraVDBPath, int frame)
@@ -74,20 +87,6 @@ namespace Zibra::AssetResolver
         DecompressionSequenceItem* item = fileIt->second.get();
 
         return item->DecompressFrame(frame);
-    }
-
-    void DecompressionHelper::Cleanup()
-    {
-        std::lock_guard lock(m_DecompressionFilesMutex);
-
-        TF_DEBUG(ZIBRAVDB_RESOLVER)
-            .Msg("ZibraVDBDecompressionManager::CleanupAllDecompressedFiles - Starting cleanup of %zu compressed file "
-                 "entries\n",
-                 m_DecompressionFiles.size());
-
-        m_PathToUUIDMap.clear();
-        m_DecompressionFiles.clear();
-        TF_DEBUG(ZIBRAVDB_RESOLVER).Msg("ZibraVDBDecompressionManager::CleanupAllDecompressedFiles - Cleanup completed\n");
     }
 
 } // namespace Zibra::AssetResolver
