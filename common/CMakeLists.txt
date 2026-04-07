@@ -55,6 +55,7 @@ target_sources(ZibraVDBCommon
         FILES
             src/PrecompiledHeader.h
             src/utils/GAAttributesDump.h
+            src/licensing/InteractiveSessionDetector.h
             src/bridge/UpdateCheck.h
             src/bridge/networking/NetworkRequest.h
             src/ui/MessageBox.h
@@ -65,6 +66,7 @@ target_sources(ZibraVDBCommon
         src/utils/GAAttributesDump.cpp
         src/utils/DecompressorManager.cpp
         src/licensing/LicenseManager.cpp
+        src/licensing/InteractiveSessionDetector.cpp
         src/bridge/LibraryUtils.cpp
         src/bridge/UpdateCheck.cpp
         src/bridge/networking/NetworkRequest.cpp

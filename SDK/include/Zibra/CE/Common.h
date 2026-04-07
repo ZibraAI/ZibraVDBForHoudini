@@ -65,6 +65,7 @@ namespace Zibra::CE
 
         ZCE_ERROR_LICENSE_ERROR = 1000,
         ZCE_ERROR_LICENSE_TIER_TOO_LOW = 1001,
+        ZCE_ERROR_LICENSE_INCOMPATIBLE_FILE = 1002,
     };
 
     struct MetadataEntry

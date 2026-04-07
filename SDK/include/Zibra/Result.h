@@ -41,10 +41,10 @@ namespace Zibra
     ZIB_RESULT_DEFINE(ERROR, GENERIC, 0x0, "General failure.", true);
 
     ZIB_RESULT_DEFINE(INVALID_ARGUMENTS, GENERIC, 0x100, "One or multiple function arguments were not valid.", true);
-    ZIB_RESULT_DEFINE(INVALID_USAGE, GENERIC, 0x101, "Operation cannot be perfored due to API misuse.", true);
-    ZIB_RESULT_DEFINE(UNSUPPORTED, GENERIC, 0x102, "Operation not supported on current platoform/in current built/etc.", true);
-    ZIB_RESULT_DEFINE(UNINITIALIZED, GENERIC, 0x103, "Opearion requires initialization, but it was not performed successfully.", true);
-    ZIB_RESULT_DEFINE(ALREADY_INITIALIZED, GENERIC, 0x104, "Initalization was already performed.", true);
+    ZIB_RESULT_DEFINE(INVALID_USAGE, GENERIC, 0x101, "Operation cannot be performed due to API misuse.", true);
+    ZIB_RESULT_DEFINE(UNSUPPORTED, GENERIC, 0x102, "Operation not supported on current platform/in current built/etc.", true);
+    ZIB_RESULT_DEFINE(UNINITIALIZED, GENERIC, 0x103, "Operation requires initialization, but it was not performed successfully.", true);
+    ZIB_RESULT_DEFINE(ALREADY_INITIALIZED, GENERIC, 0x104, "Initialization was already performed.", true);
     ZIB_RESULT_DEFINE(NOT_FOUND, GENERIC, 0x105, "Requested item was not found.", true);
     ZIB_RESULT_DEFINE(ALREADY_PRESENT, GENERIC, 0x106, "Submitted item is already present.", true);
     ZIB_RESULT_DEFINE(OUT_OF_MEMORY, GENERIC, 0x107, "Out of memory.", true);

@@ -15,7 +15,7 @@ namespace Zibra::CE::ZibraVDB
 
 namespace Zibra::CE::Decompression
 {
-    constexpr Legacy::Version ZCE_DECOMPRESSION_VERSION = {0, 9, 33, 0};
+    constexpr Legacy::Version ZCE_DECOMPRESSION_VERSION = {0, 9, 38, 0};
 
     struct DecompressorResourcesRequirements
     {

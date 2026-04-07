@@ -12,7 +12,7 @@ namespace Zibra::CE::ZibraVDB
 
 namespace Zibra::CE::Compression
 {
-    constexpr Legacy::Version ZCE_COMPRESSION_VERSION = {0, 9, 33, 0};
+    constexpr Legacy::Version ZCE_COMPRESSION_VERSION = {0, 9, 38, 0};
 
     struct VoxelStatistics
     {
