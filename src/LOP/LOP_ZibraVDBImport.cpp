@@ -304,7 +304,7 @@ namespace Zibra::ZibraVDBImport
 
         // License may or may not be required depending on .zibravdb file
         // So we need to trigger license check, but if it fails we proceed with decompression
-        LicenseManager::GetInstance().CheckLicense(Zibra::LicenseManager::Product::Decompression);
+        LicenseManager::GetInstance().CheckLicense();
 
         Helpers::DecompressorManager decompressor;
         auto result = decompressor.Initialize();

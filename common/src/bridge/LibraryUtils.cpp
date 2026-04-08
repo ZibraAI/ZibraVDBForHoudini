@@ -286,7 +286,7 @@ namespace Zibra::LibraryUtils
         case Zibra::CE::ZCE_ERROR_LICENSE_ERROR:
             return "License is not validated";
         case Zibra::CE::ZCE_ERROR_LICENSE_TIER_TOO_LOW:
-            if (LicenseManager::GetInstance().GetLicenseStatus(LicenseManager::Product::Decompression) == LicenseManager::Status::OK)
+            if (LicenseManager::GetInstance().IsLicenseValidated())
             {
                 return "Your license does not allow decompression of this file.";
             }

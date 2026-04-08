@@ -306,16 +306,9 @@ namespace Zibra::ZibraVDBCompressor
             return ROP_ABORT_RENDER;
         }
 
-        if (!LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Compression))
+        if (!LicenseManager::GetInstance().IsLicenseValidated())
         {
-            if (LicenseManager::GetInstance().IsAnyLicenseValid())
-            {
-                addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_NO_COMPRESSION);
-            }
-            else
-            {
-                addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR);
-            }
+            addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR);
             return ROP_ABORT_RENDER;
         }
 
@@ -421,7 +414,6 @@ namespace Zibra::ZibraVDBCompressor
 
         if (CreateCompressor(tStart) == ROP_ABORT_RENDER)
         {
-            addError(ROP_MESSAGE, "Failed to create compressor instance.");
             return ROP_ABORT_RENDER;
         }
 
@@ -431,7 +423,7 @@ namespace Zibra::ZibraVDBCompressor
         auto status = m_CompressorManager.StartSequence(filename);
         if (status != CE::ZCE_SUCCESS)
         {
-            addError(ROP_MESSAGE, "Failed to start sequence compresion.");
+            addError(ROP_MESSAGE, "Failed to start sequence compression.");
             return ROP_ABORT_RENDER;
         }
 
@@ -669,7 +661,16 @@ namespace Zibra::ZibraVDBCompressor
         auto status = m_CompressorManager.Initialize(frameMappingDesc, defaultQuality, perChannelCompressionSettings);
         if (status != CE::ReturnCode::ZCE_SUCCESS)
         {
-            addError(ROP_MESSAGE, "Failed to initialize compressor.");
+            switch (status)
+            {
+            case CE::ZCE_ERROR_LICENSE_ERROR:
+                addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_NO_COMPRESSION);
+                break;
+            default:
+                addError(ROP_MESSAGE, "Failed to initialize compressor.");
+                break;
+            }
+
             return ROP_ABORT_RENDER;
         }
 

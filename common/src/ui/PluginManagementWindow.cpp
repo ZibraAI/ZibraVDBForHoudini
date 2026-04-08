@@ -3,7 +3,6 @@
 #include "ui/PluginManagementWindow.h"
 
 #include "MessageBox.h"
-
 #include "bridge/LibraryUtils.h"
 #include "bridge/UpdateCheck.h"
 #include "licensing/LicenseManager.h"
@@ -377,7 +376,7 @@ namespace Zibra
 
         for (size_t i = 0; i < size_t(LicenseManager::Product::Count); ++i)
         {
-            if (LicenseManager::GetInstance().GetLicenseStatus(LicenseManager::Product(i)) == LicenseManager::Status::OK)
+            if (LicenseManager::GetInstance().IsLicenseValidated())
             {
                 UI::MessageBox::Show(UI::MessageBox::Type::OK, "Can not automatically remove license. If you wish to remove license from "
                                                                "HSITE or HQROOT please remove the file manually.");
@@ -389,7 +388,7 @@ namespace Zibra
 
     void PluginManagementWindowImpl::HandleCopyLicenseToHSITE(UI_Event* event)
     {
-        if (!LicenseManager::GetInstance().IsAnyLicenseValid())
+        if (!LicenseManager::GetInstance().IsLicenseValidated())
         {
             UI::MessageBox::Show(UI::MessageBox::Type::OK, "No license found to copy.");
             return;
@@ -431,7 +430,7 @@ namespace Zibra
     {
         static EnterHQROOTPathWindow dialog(&HandleCopyLicenseToHQROOTCallback);
 
-        if (!LicenseManager::GetInstance().IsAnyLicenseValid())
+        if (!LicenseManager::GetInstance().IsLicenseValidated())
         {
             UI::MessageBox::Show(UI::MessageBox::Type::OK, "No license found to copy.");
             return;
@@ -503,43 +502,22 @@ namespace Zibra
         }
         {
             std::string activationStatus;
-            LicenseManager::Status status = LicenseManager::Status::Uninitialized;
-            for (size_t i = 0; i < size_t(LicenseManager::Product::Count); ++i)
-            {
-                auto productStatus = licenseManager.GetLicenseStatus(LicenseManager::Product(i));
-                if (productStatus < status)
-                {
-                    status = productStatus;
-                }
-            }
+            LicenseManager::Status status = licenseManager.GetStatus();
 
             switch (status)
             {
-            case LicenseManager::Status::OK:
-                if (licenseManager.GetLicenseStatus(LicenseManager::Product::Compression) == LicenseManager::Status::OK)
+            case LicenseManager::Status::OK: {
+                std::string activationError = licenseManager.GetActivationError();
+                if (activationError != "")
                 {
-                    if (licenseManager.GetLicenseStatus(LicenseManager::Product::Decompression) == LicenseManager::Status::OK)
-                    {
-                        activationStatus = "Activated";
-                    }
-                    else
-                    {
-                        activationStatus = "Activated (Only Compression)";
-                    }
+                    activationStatus = "Activated (Last Error: " + activationError + ")";
                 }
                 else
                 {
-                    if (licenseManager.GetLicenseStatus(LicenseManager::Product::Decompression) == LicenseManager::Status::OK)
-                    {
-                        activationStatus = "Activated (Only Decompression)";
-                    }
-                    else
-                    {
-                        assert(0);
-                        activationStatus = "You should never see this.";
-                    }
+                    activationStatus = "Activated";
                 }
-                break;
+            }
+            break;
             case LicenseManager::Status::ValidationError: {
                 std::string activationError = licenseManager.GetActivationError();
                 activationStatus = std::string("License validation failed") + (activationError.empty() ? "" : ": ") + activationError;
@@ -566,15 +544,11 @@ namespace Zibra
         }
         {
             std::string licenseType = "None";
-            for (size_t i = 0; i < size_t(LicenseManager::Product::Count); ++i)
+            if (licenseManager.IsLicenseValidated())
             {
-                LicenseManager::Product currentProduct = LicenseManager::Product(i);
-                if (licenseManager.GetLicenseStatus(currentProduct) == LicenseManager::Status::OK)
-                {
-                    licenseType = licenseManager.GetLicenseType(currentProduct);
-                    break;
-                }
+                licenseType = licenseManager.GetLicenseType(LicenseManager::Product::Decompression);
             }
+
             SetStringField("license_type.val", licenseType.c_str());
         }
         {

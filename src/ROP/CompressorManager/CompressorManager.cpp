@@ -49,13 +49,13 @@ namespace Zibra::CE::Compression
         }
 
         CompressorFactory* compressorFactory = nullptr;
-        compressorFactory = CAPI::CreateCompressorFactory();
-        if (compressorFactory == nullptr)
+        auto status = CAPI::CreateCompressorFactory(&compressorFactory);
+        if (status != CE::ReturnCode::ZCE_SUCCESS)
         {
-            return CE::ZCE_ERROR;
+            return status;
         }
 
-        auto status = compressorFactory->UseRHI(m_RHIRuntime);
+        status = compressorFactory->UseRHI(m_RHIRuntime);
         if (status != CE::ReturnCode::ZCE_SUCCESS)
         {
             compressorFactory->Release();

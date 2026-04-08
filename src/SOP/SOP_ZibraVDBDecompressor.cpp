@@ -71,7 +71,7 @@ namespace Zibra::ZibraVDBDecompressor
 
         // License may or may not be required depending on .zibravdb file
         // So we need to trigger license check, but if it fails we proceed with decompression
-        LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Decompression);
+        LicenseManager::GetInstance().CheckLicense();
 
         UT_String filename = "";
         evalString(filename, "filename", nullptr, 0, context.getTime());

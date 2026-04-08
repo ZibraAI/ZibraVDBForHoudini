@@ -2,13 +2,17 @@
 
 #include <Zibra/CE/Common.h>
 
+#define ZIB_CE_LICENSING_DECOMPRESSION_LICENSE_INDEX 0
+#define ZIB_CE_LICENSING_COMPRESSION_LICENSE_INDEX 1
+#define ZIB_CE_LICENSING_LICENSE_TYPE_COUNT 2
+
 namespace Zibra::CE::Licensing
 {
     enum class ProductType
     {
-        Compression,
-        Decompression,
-        Count
+        Decompression = ZIB_CE_LICENSING_DECOMPRESSION_LICENSE_INDEX,
+        Compression = ZIB_CE_LICENSING_COMPRESSION_LICENSE_INDEX,
+        Count = ZIB_CE_LICENSING_LICENSE_TYPE_COUNT
     };
 
     void SetInteractiveSessionFlag() noexcept;

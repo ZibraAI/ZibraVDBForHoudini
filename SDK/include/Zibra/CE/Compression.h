@@ -472,15 +472,16 @@ namespace ZCE_NS::CAPI
         return ZCE_FNPFX(GetVersion)();
     }
 
-    inline CompressorFactory* CreateCompressorFactory() noexcept
+    inline CE::ReturnCode CreateCompressorFactory(CompressorFactory** outFactory) noexcept
     {
         CompressorFactoryHandle handle = nullptr;
         CE::ReturnCode result = ZCE_FNPFX(CreateCompressorFactory)(&handle);
         if (result != CE::ZCE_SUCCESS)
         {
-            return nullptr;
+            return result;
         }
-        return new CompressorFactoryCAPI{handle};
+        *outFactory = new CompressorFactoryCAPI{handle};
+        return result;
     }
 } // namespace ZCE_NS::CAPI
 

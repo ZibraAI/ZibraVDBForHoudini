@@ -11,8 +11,8 @@ namespace Zibra
         // Or at least not exceed it
         enum class Product
         {
-            Compression,
             Decompression,
+            Compression,
             Count
         };
 
@@ -53,8 +53,8 @@ namespace Zibra
         // Singleton
         static LicenseManager& GetInstance();
 
-        bool IsAnyLicenseValid() const;
-        Status GetLicenseStatus(Product product) const;
+        bool IsLicenseValidated() const;
+        Status GetStatus() const;
         int GetLicenseTier(Product product) const;
         const char* GetLicenseType(Product product) const;
         ActivationType GetActivationType() const;
@@ -75,16 +75,15 @@ namespace Zibra
 
         void CopyLicenseFile(const std::string& destFolder);
 
-        bool CheckLicense(Product product);
-        const std::string& GetActivationError() const;
+        bool CheckLicense();
+        std::string GetActivationError() const;
 
     private:
         static const char* const ms_DefaultLicenseKeyFileName;
         static const char* const ms_DefaultOfflineLicenseFileName;
         static const char* const ms_DefaultLicenseServerFileName;
 
-        Status m_Status[size_t(Product::Count)] = {Status::Uninitialized, Status::Uninitialized};
-        std::string m_ActivationError;
+        Status m_Status = Status::Uninitialized;
         ActivationType m_Type = ActivationType::None;
         LicensePathType m_LicensePathType = LicensePathType::None;
         std::string m_LicensePath;
@@ -104,10 +103,8 @@ namespace Zibra
         static std::string ReadOfflineLicenseFromFile(const std::string& path);
         static std::string ReadLicenseServerAddressFromFile(const std::string& path);
 
-        bool IsLicenseValid(Product product) const;
         Status TryCheckoutLicense(ActivationType type, LicensePathType pathType);
 
         void SetStatusFromZibraVDBRuntime();
-        void SetStatusForAllProducts(Status status);
     };
 } // namespace Zibra
