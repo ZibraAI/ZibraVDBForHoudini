@@ -33,7 +33,6 @@ namespace Zibra
         void HandleUpdateLibrary(UI_Event* event);
         static void HandleUpdateLibraryCalback(UI::MessageBox::Result result);
         void HandleSetLicenseKey(UI_Event* event);
-        void HandleSetOfflineLicense(UI_Event* event);
         void HandleSetLicenseServer(UI_Event* event);
         void HandleRetryLicenseCheck(UI_Event* event);
         void HandleRemoveLicense(UI_Event* event);
@@ -107,8 +106,6 @@ namespace Zibra
             ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleUpdateLibrary));
         getValueSymbol("set_license_key.val")
             ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleSetLicenseKey));
-        getValueSymbol("set_offline_license.val")
-            ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleSetOfflineLicense));
         getValueSymbol("set_license_server.val")
             ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleSetLicenseServer));
         getValueSymbol("retry_license_check.val")
@@ -128,7 +125,6 @@ namespace Zibra
     void PluginManagementWindowImpl::InitializeLicenseFields()
     {
         SetStringField("license_key.val", LicenseManager::GetInstance().GetLicenseKey().c_str());
-        SetStringField("offline_license.val", LicenseManager::GetInstance().GetOfflineLicense().c_str());
         SetStringField("license_server.val", LicenseManager::GetInstance().GetLicenseServerAddress().c_str());
     }
 
@@ -345,20 +341,11 @@ namespace Zibra
         UpdateUI();
     }
 
-    void PluginManagementWindowImpl::HandleSetOfflineLicense(UI_Event* event)
-    {
-        auto offlineLicense = getValueSymbol("offline_license.val")->getString();
-        LicenseManager::GetInstance().RemoveLicense();
-        LicenseManager::GetInstance().SetOfflineLicense(offlineLicense);
-        LicenseManager::GetInstance().CheckoutLicense();
-        UpdateUI();
-    }
-
     void PluginManagementWindowImpl::HandleSetLicenseServer(UI_Event* event)
     {
-        auto offlineLicense = getValueSymbol("license_server.val")->getString();
+        auto licenseServer = getValueSymbol("license_server.val")->getString();
         LicenseManager::GetInstance().RemoveLicense();
-        LicenseManager::GetInstance().SetLicenseServer(offlineLicense);
+        LicenseManager::GetInstance().SetLicenseServer(licenseServer);
         LicenseManager::GetInstance().CheckoutLicense();
         UpdateUI();
     }
@@ -401,12 +388,11 @@ namespace Zibra
             return;
         }
 
-        UI::MessageBox::Show(
-            UI::MessageBox::Type::YesNo,
-            "This will copy your license key, offline license or license server address to HSITE. This is intended for site-wide "
-            "installation of the license. Note that \"Remove License\" button can not remove license from HSITE. In case "
-            "you'll want to remove it, please manually remove the file. Do you wish to proceed?",
-            &PluginManagementWindowImpl::HandleCopyLicenseToHSITECalback);
+        UI::MessageBox::Show(UI::MessageBox::Type::YesNo,
+                             "This will copy your license key or license server address to HSITE. This is intended for site-wide "
+                             "installation of the license. Note that \"Remove License\" button can not remove license from HSITE. In case "
+                             "you'll want to remove it, please manually remove the file. Do you wish to proceed?",
+                             &PluginManagementWindowImpl::HandleCopyLicenseToHSITECalback);
     }
 
     void PluginManagementWindowImpl::HandleCopyLicenseToHSITECalback(UI::MessageBox::Result result)
@@ -556,9 +542,6 @@ namespace Zibra
             auto type = licenseManager.GetActivationType();
             switch (type)
             {
-            case LicenseManager::ActivationType::Offline:
-                activationType = "Offline";
-                break;
             case LicenseManager::ActivationType::LicenseServer:
                 activationType = "License Server";
                 break;

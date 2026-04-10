@@ -32,7 +32,6 @@ namespace Zibra
         // Listed in order of priority
         enum class ActivationType
         {
-            Offline,
             LicenseServer,
             Online,
             // Must be last
@@ -66,11 +65,9 @@ namespace Zibra
         void RemoveLicense();
 
         std::string GetLicenseKey() const;
-        std::string GetOfflineLicense() const;
         std::string GetLicenseServerAddress() const;
 
         void SetLicenseKey(const char* key);
-        void SetOfflineLicense(const char* offlineLicense);
         void SetLicenseServer(const char* licenseServerAddress);
 
         void CopyLicenseFile(const std::string& destFolder);
@@ -80,7 +77,6 @@ namespace Zibra
 
     private:
         static const char* const ms_DefaultLicenseKeyFileName;
-        static const char* const ms_DefaultOfflineLicenseFileName;
         static const char* const ms_DefaultLicenseServerFileName;
 
         Status m_Status = Status::Uninitialized;
@@ -88,19 +84,15 @@ namespace Zibra
         LicensePathType m_LicensePathType = LicensePathType::None;
         std::string m_LicensePath;
         std::string m_LicenseKey;
-        std::string m_OfflineLicense;
         std::string m_LicenseServerAddress;
 
         static std::string SanitizePath(const std::string& path);
         static std::string SanitizeKey(const std::string& key);
-        static std::string SanitizeOfflineLicense(const std::string& offlineLicense);
 
         static std::string GetKeyPath(LicensePathType pathType);
-        static std::string GetOfflineLicensePath(LicensePathType pathType);
         static std::string GetLicenseServerAddressPath(LicensePathType pathType);
 
         static std::string ReadKeyFromFile(const std::string& path);
-        static std::string ReadOfflineLicenseFromFile(const std::string& path);
         static std::string ReadLicenseServerAddressFromFile(const std::string& path);
 
         Status TryCheckoutLicense(ActivationType type, LicensePathType pathType);
