@@ -100,14 +100,6 @@ set(SourceFiles
     src/LOP/ZibraVDBOutputProcessor.cpp
 )
 
-add_library(ZibraVDBForHoudini SHARED ${HeaderFiles} ${SourceFiles})
-target_include_directories(ZibraVDBForHoudini
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/Include)
-target_precompile_headers(ZibraVDBForHoudini PRIVATE src/PrecompiledHeader.h)
-target_compile_definitions(ZibraVDBForHoudini PRIVATE
-    ZIB_TARGET_OS_${ZIB_TARGET_OS_NAME}=1)
-
 if(DEFINED ENV{ZIBRA_HOUDINI_PATH})
     message(STATUS "ENV{ZIBRA_HOUDINI_PATH}: $ENV{ZIBRA_HOUDINI_PATH}")
     set(HOUDINI_PATH "$ENV{ZIBRA_HOUDINI_PATH}")
@@ -151,7 +143,16 @@ set(DETECTED_HOUDINI_VERSION "${Houdini_VERSION_MAJOR}.${Houdini_VERSION_MINOR}"
 cmake_print_variables(DETECTED_HOUDINI_VERSION)
 
 add_subdirectory(common)
-setup_common_houdini_dependencies(ZibraVDBForHoudini)
+
+add_library(ZibraVDBForHoudini SHARED ${HeaderFiles} ${SourceFiles})
+target_include_directories(ZibraVDBForHoudini
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/Include)
+target_precompile_headers(ZibraVDBForHoudini PRIVATE src/PrecompiledHeader.h)
+target_compile_definitions(ZibraVDBForHoudini PRIVATE
+    ZIB_TARGET_OS_${ZIB_TARGET_OS_NAME}=1)
+target_link_libraries(ZibraVDBForHoudini PUBLIC ZibraVDBCommon)
+    
 add_subdirectory(AssetResolver)
 
 if(${LABS_BUILD})

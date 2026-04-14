@@ -23,15 +23,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     target_compile_options(ZibraVDBResolver PRIVATE "/Zc:inline-")
 endif()
 
-setup_common_houdini_dependencies(ZibraVDBResolver)
-
-if("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
-    target_link_libraries(ZibraVDBResolver PRIVATE
-        Houdini::Dep::pxr_ar
-        Houdini::Dep::pxr_arch
-        Houdini::Dep::pxr_tf
-    )
-endif()
+target_link_libraries(ZibraVDBResolver PUBLIC ZibraVDBCommon)
 
 if (${LABS_BUILD})
     # If RUNTIME_OUTPUT_DIRECTORY/LIBRARY_OUTPUT_DIRECTORY does not have generator expressions
