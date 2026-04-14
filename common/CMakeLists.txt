@@ -85,15 +85,41 @@ target_compile_definitions(ZibraVDBCommon PUBLIC
     ZRHI_NO_STATIC_API_DECL)
 
 target_precompile_headers(ZibraVDBCommon PRIVATE src/PrecompiledHeader.h)
-target_link_libraries(ZibraVDBCommon PUBLIC Houdini HoudiniThirdParty)
+
+if(NOT DEFINED _houdini_python_version)
+    message(FATAL_ERROR "Houdini Python version not detected")
+endif()
+cmake_print_variables(_houdini_python_version)
+
+target_link_libraries(ZibraVDBCommon PUBLIC Houdini)
+
+if ( _houdini_platform_osx AND _houdini_use_framework )
+    target_link_libraries( Houdini INTERFACE "${_houdini_install_root}/Frameworks/Python.framework" )
+endif()
+
+if (${_houdini_release_version} VERSION_GREATER_EQUAL 20.5)
+    target_link_libraries(ZibraVDBCommon PUBLIC HoudiniThirdParty)
+elseif(${_houdini_release_version} VERSION_EQUAL 20.0)
+    if (NOT _houdini_platform_osx OR NOT _houdini_use_framework )
+        target_link_libraries(ZibraVDBCommon PUBLIC
+            Houdini::Dep::hboost_python
+            Houdini::Dep::openvdb_sesi
+            Houdini::Dep::pxr_ar
+            Houdini::Dep::pxr_arch
+            Houdini::Dep::pxr_sdf
+            Houdini::Dep::pxr_tf
+            Houdini::Dep::pxr_tf
+            Houdini::Dep::pxr_usd
+            Houdini::Dep::pxr_usdVol
+            Houdini::Dep::python${_houdini_python_version}
+            Houdini::Dep::tbb)
+    endif()
+else()
+    message(FATAL_ERROR "Unexpected houdini version: ${_houdini_release_version}")
+endif()
 
 # On Windows we also need debug Python library to build debug configuration
 if("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
-    if(NOT DEFINED _houdini_python_version)
-        message(FATAL_ERROR "Houdini Python version not detected")
-    endif()
-
-    cmake_print_variables(_houdini_python_version)
     if(${LABS_BUILD})
         cmake_print_variables(HOUDINI_PYTHON_BIN)
         set(Python_EXECUTABLE "${HOUDINI_PYTHON_BIN}")
@@ -104,17 +130,13 @@ if("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
     )
 
     if (NOT Python_FOUND)
-        message(Warning "Python ${_houdini_python_version} was not found. You won't be able to build debug configuration")
+        message(WARNING "Python ${_houdini_python_version} was not found. You won't be able to build debug configuration")
         target_compile_definitions(ZibraVDBCommon PUBLIC ZIB_NO_DEBUG_PYTHON=1)
     elseif(NOT Python_LIBRARY_DEBUG)
-        message(Warning "Python ${_houdini_python_version} was found, but no debug library is available. You won't be able to build debug configuration")
+        message(WARNING "Python ${_houdini_python_version} was found, but no debug library is available. You won't be able to build debug configuration")
         target_compile_definitions(ZibraVDBCommon PUBLIC ZIB_NO_DEBUG_PYTHON=1)
     else()
         target_link_libraries(ZibraVDBCommon PUBLIC Python::Python)
         message(STATUS "Found Python ${_houdini_python_version} with debug library: ${Python_LIBRARY_DEBUG}" )
     endif()
-endif()
-
-if ( _houdini_platform_osx AND _houdini_use_framework )
-    target_link_libraries( Houdini INTERFACE "${_houdini_install_root}/Frameworks/Python.framework" )
 endif()
