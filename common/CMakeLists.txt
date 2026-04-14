@@ -114,3 +114,7 @@ if("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
         message(STATUS "Found Python ${_houdini_python_version} with debug library: ${Python_LIBRARY_DEBUG}" )
     endif()
 endif()
+
+if ( _houdini_platform_osx AND _houdini_use_framework )
+    target_link_libraries( Houdini INTERFACE "${_houdini_install_root}/Frameworks/Python.framework" )
+endif()
