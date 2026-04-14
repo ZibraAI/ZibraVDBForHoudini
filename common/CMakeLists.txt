@@ -60,6 +60,7 @@ target_sources(ZibraVDBCommon
             src/ui/MessageBox.h
         
     PRIVATE
+        src/main.cpp
         src/utils/Helpers.cpp
         src/utils/MetadataHelper.cpp
         src/utils/GAAttributesDump.cpp
@@ -86,7 +87,7 @@ target_compile_definitions(ZibraVDBCommon PUBLIC
 target_precompile_headers(ZibraVDBCommon PRIVATE src/PrecompiledHeader.h)
 target_link_libraries(ZibraVDBCommon PUBLIC Houdini HoudiniThirdParty)
 
-# On Windows we also need debug Python library, which doesn't come with HDK
+# On Windows we also need debug Python library to build debug configuration
 if("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
     if(NOT DEFINED _houdini_python_version)
         message(FATAL_ERROR "Houdini Python version not detected")
@@ -97,13 +98,19 @@ if("${ZIB_TARGET_OS_NAME}" STREQUAL "WIN")
         cmake_print_variables(HOUDINI_PYTHON_BIN)
         set(Python_EXECUTABLE "${HOUDINI_PYTHON_BIN}")
     endif()
+
     find_package(Python ${_houdini_python_version} EXACT
         COMPONENTS Interpreter Development
-        REQUIRED
     )
-    if(NOT Python_LIBRARY_DEBUG)
-        message(FATAL_ERROR "Python ${python_version} was found, but no debug library is available.")
-    endif()
 
-    target_link_libraries(ZibraVDBCommon PUBLIC Python::Python)
+    if (NOT Python_FOUND)
+        message(Warning "Python ${_houdini_python_version} was not found. You won't be able to build debug configuration")
+        target_compile_definitions(ZibraVDBCommon PUBLIC ZIB_NO_DEBUG_PYTHON=1)
+    elseif(NOT Python_LIBRARY_DEBUG)
+        message(Warning "Python ${_houdini_python_version} was found, but no debug library is available. You won't be able to build debug configuration")
+        target_compile_definitions(ZibraVDBCommon PUBLIC ZIB_NO_DEBUG_PYTHON=1)
+    else()
+        target_link_libraries(ZibraVDBCommon PUBLIC Python::Python)
+        message(STATUS "Found Python ${_houdini_python_version} with debug library: ${Python_LIBRARY_DEBUG}" )
+    endif()
 endif()
