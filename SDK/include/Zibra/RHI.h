@@ -45,7 +45,7 @@
 
 namespace Zibra::RHI
 {
-    constexpr Legacy::Version ZRHI_VERSION = {2, 1, 5, };
+    constexpr Legacy::Version ZRHI_VERSION = {2, 2, 1, };
 
     enum class GFXAPI : int8_t
     {
@@ -3214,7 +3214,7 @@ namespace ZRHI_NS::CAPI::ConsumerBridge
         }
         ReturnCode StopRecording() noexcept final
         {
-            return m_VT.StartRecording(m_VT.obj);
+            return m_VT.StopRecording(m_VT.obj);
         }
         ReturnCode UploadBuffer(Buffer* buffer, const void* data, uint32_t size, uint32_t offset) noexcept final
         {

@@ -32,6 +32,8 @@ namespace Zibra::Helpers
         
         CE::Decompression::SequenceInfo GetSequenceInfo() const noexcept;
 
+        const UT_String& GetWarning() const noexcept;
+
     private:
         CE::ReturnCode GetDecompressedFrameData(uint16_t* perChannelBlockData, size_t channelBlocksCount,
                                                 CE::Decompression::Shaders::PackedSpatialBlockInfo* perSpatialBlockInfo,
@@ -50,5 +52,9 @@ namespace Zibra::Helpers
         BufferDesc m_DecompressionPerChannelBlockDataBuffer;
         BufferDesc m_DecompressionPerChannelBlockInfoBuffer;
         BufferDesc m_DecompressionPerSpatialBlockInfoBuffer;
+
+        UT_String m_Warning;
+
+        UT_String GetPatchedFileName(const UT_String& filename) const noexcept;
     };
 } // namespace Zibra

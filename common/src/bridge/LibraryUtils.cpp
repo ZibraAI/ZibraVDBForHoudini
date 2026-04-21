@@ -3,6 +3,7 @@
 #include "bridge/LibraryUtils.h"
 
 #include "licensing/LicenseManager.h"
+#include "licensing/InteractiveSessionDetector.h"
 #include "utils/Helpers.h"
 
 // clang-format off
@@ -42,9 +43,12 @@ namespace Zibra::LibraryUtils
     bool g_IsLibraryLoaded = false;
     Zibra::Legacy::Version g_CompressionEngineVersion = {};
 
+    const std::string g_ZibraVDBFileExtensions[5] = {".zibravdbe", ".zibravdbf", ".zibravdbt", ".zibravdb", ".zibravdbs"};
+
     bool ValidateLoadedVersion()
     {
         static_assert(CE::Compression::ZCE_COMPRESSION_VERSION.major == ZIB_COMPRESSION_ENGINE_MAJOR_VERSION);
+        static_assert(CE::Compression::ZCE_COMPRESSION_VERSION.minor == ZIB_COMPRESSION_ENGINE_MINOR_VERSION);
         if (g_CompressionEngineVersion.major != CE::Compression::ZCE_COMPRESSION_VERSION.major)
         {
             return false;
@@ -181,6 +185,15 @@ namespace Zibra::LibraryUtils
 #endif
     }
 
+    void InitializeLibrary() noexcept
+    {
+        bool isInteractiveSession = Zibra::IsInteractiveSession();
+        if (isInteractiveSession)
+        {
+            Zibra_CE_Licensing_SetInteractiveSessionFlag();
+        }
+    }
+
     bool TryLoadLibrary() noexcept
     {
         assert(g_IsLibraryLoaded == (g_LibraryHandle != NULL));
@@ -190,7 +203,7 @@ namespace Zibra::LibraryUtils
             return true;
         }
 
-        std::optional<std::string> libraryDirectory = Helpers::GetNormalEnvironmentVariable("ZIBRAVDB_LIBRARY_VER_0_PATH");
+        std::optional<std::string> libraryDirectory = Helpers::GetNormalEnvironmentVariable("ZIBRAVDB_LIBRARY_VER_0_10_PATH");
         if (!libraryDirectory.has_value())
         {
             return false;
@@ -199,6 +212,12 @@ namespace Zibra::LibraryUtils
         std::string libraryPath = libraryDirectory.value() + "/" ZIB_DYNAMIC_LIB_NAME;
 
         g_IsLibraryLoaded = LoadLibraryByPath(libraryPath);
+
+        if (g_IsLibraryLoaded)
+        {
+            InitializeLibrary();
+        }
+
         return g_IsLibraryLoaded;
     }
 
@@ -267,15 +286,19 @@ namespace Zibra::LibraryUtils
             return "Corrupted file";
         case Zibra::CE::ZCE_ERROR_IO_ERROR:
             return "I/O error";
+        case Zibra::CE::ZCE_ERROR_LICENSE_ERROR:
+            return "License is not validated";
         case Zibra::CE::ZCE_ERROR_LICENSE_TIER_TOO_LOW:
-            if (LicenseManager::GetInstance().GetLicenseStatus(LicenseManager::Product::Decompression) == LicenseManager::Status::OK)
+            if (LicenseManager::GetInstance().IsLicenseValidated())
             {
-                return "Your license does not allow decompression of this effect.";
+                return "Your license does not allow decompression of this file.";
             }
             else
             {
                 return "Decompression of this file requires active license.";
             }
+        case Zibra::CE::ZCE_ERROR_LICENSE_INCOMPATIBLE_FILE:
+                return "Your license does not allow decompression of this file.";
         default:
             assert(0);
             return "Unknown error: " + std::to_string(errorCode);

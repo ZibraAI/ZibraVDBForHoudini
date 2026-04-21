@@ -35,7 +35,7 @@ target_sources(ZibraVDBCommon
         BASE_DIRS include
         FILES
             include/Globals.h.in
-            include/Types.h
+            include/URI.h
             include/utils/Helpers.h
             include/utils/MetadataHelper.h
             include/utils/DecompressorManager.h
@@ -55,16 +55,19 @@ target_sources(ZibraVDBCommon
         FILES
             src/PrecompiledHeader.h
             src/utils/GAAttributesDump.h
+            src/licensing/InteractiveSessionDetector.h
             src/bridge/UpdateCheck.h
             src/bridge/networking/NetworkRequest.h
             src/ui/MessageBox.h
         
     PRIVATE
+        src/URI.cpp
         src/utils/Helpers.cpp
         src/utils/MetadataHelper.cpp
         src/utils/GAAttributesDump.cpp
         src/utils/DecompressorManager.cpp
         src/licensing/LicenseManager.cpp
+        src/licensing/InteractiveSessionDetector.cpp
         src/bridge/LibraryUtils.cpp
         src/bridge/UpdateCheck.cpp
         src/bridge/networking/NetworkRequest.cpp

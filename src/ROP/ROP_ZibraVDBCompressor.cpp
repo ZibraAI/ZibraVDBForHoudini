@@ -306,16 +306,9 @@ namespace Zibra::ZibraVDBCompressor
             return ROP_ABORT_RENDER;
         }
 
-        if (!LicenseManager::GetInstance().CheckLicense(LicenseManager::Product::Compression))
+        if (!LicenseManager::GetInstance().CheckLicense())
         {
-            if (LicenseManager::GetInstance().IsAnyLicenseValid())
-            {
-                addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_NO_COMPRESSION);
-            }
-            else
-            {
-                addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR);
-            }
+            addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR);
             return ROP_ABORT_RENDER;
         }
 
@@ -421,17 +414,17 @@ namespace Zibra::ZibraVDBCompressor
 
         if (CreateCompressor(tStart) == ROP_ABORT_RENDER)
         {
-            addError(ROP_MESSAGE, "Failed to create compressor instance.");
             return ROP_ABORT_RENDER;
         }
 
-        UT_String filename = "";
-        evalString(filename, FILENAME_PARAM_NAME, nullptr, 0, tStart);
+        m_OutputFileName = "";
+        m_OutputFileInconsistentWarningShown = false;
+        evalString(m_OutputFileName, FILENAME_PARAM_NAME, nullptr, 0, tStart);
 
-        auto status = m_CompressorManager.StartSequence(filename);
+        auto status = m_CompressorManager.StartSequence(m_OutputFileName);
         if (status != CE::ZCE_SUCCESS)
         {
-            addError(ROP_MESSAGE, "Failed to start sequence compresion.");
+            addError(ROP_MESSAGE, "Failed to start sequence compression.");
             return ROP_ABORT_RENDER;
         }
 
@@ -460,6 +453,21 @@ namespace Zibra::ZibraVDBCompressor
         OP_AutoLockInputs inputs{this};
         if (inputs.lock(ctx) >= UT_ERROR_ABORT)
             return ROP_RETRY_RENDER;
+
+        UT_String currentFileName = "";
+        evalString(currentFileName, FILENAME_PARAM_NAME, nullptr, 0, time);
+
+        if (!m_OutputFileInconsistentWarningShown && m_OutputFileName != currentFileName)
+        {
+            std::string warningMessage = "Output file name can not be changed during the sequence. At the start of compression \"" +
+                                         m_OutputFileName.toStdString() + "\" was specified, but on frame " +
+                                         std::to_string(ctx.getFrame()) + " the path is now \"" + currentFileName.toStdString() +
+                                         "\". This may lead to errors to find compressed sequence if you try to use file path other than "
+                                         "what was specified in first frame of the sequence.";
+            addWarning(ROP_MESSAGE, warningMessage.c_str());
+            return ROP_ABORT_RENDER;
+            m_OutputFileInconsistentWarningShown = true;
+        }
 
         const GU_Detail* gdp = m_InputSOP->getCookedGeoHandle(ctx, 0).gdp();
         if (!gdp)
@@ -546,9 +554,58 @@ namespace Zibra::ZibraVDBCompressor
         const auto& gridsShuffleInfo = vdbFrameLoader.GetGridsShuffleInfo();
 
         auto status = m_CompressorManager.CompressFrame(compressFrameDesc, &frameManager);
-        if (status != CE::ZCE_SUCCESS)
+        switch (status)
         {
-            addError(ROP_MESSAGE, "Failed to compress sequence frame.");
+        case CE::ZCE_SUCCESS:
+            break;
+        case CE::ZCE_ERROR_LICENSE_CHANNEL_COUNT_EXCEEDED: {
+            int licenseTier = LicenseManager::GetInstance().GetLicenseTier();
+            int channelLimit = -1;
+            if (licenseTier > 100 && licenseTier <= 150)
+            {
+                // Free license limit
+                channelLimit = 4;
+            }
+            else if (licenseTier > 150 && licenseTier <= 200)
+            {
+                // Education license limit
+                channelLimit = 16;
+            }
+            else
+            {
+                assert(0);
+            }
+
+            addError(ROP_MESSAGE, ("Compression Error - Your license allows compression of up to " + std::to_string(channelLimit) +
+                                   " channels in a single frame.")
+                                      .c_str());
+            return ROP_ABORT_RENDER;
+        }
+        case CE::ZCE_ERROR_LICENSE_RESOLUTION_EXCEEDED: {
+            int licenseTier = LicenseManager::GetInstance().GetLicenseTier();
+            int resolutionLimit = -1;
+            if (licenseTier > 100 && licenseTier <= 150)
+            {
+                // Free license limit
+                resolutionLimit = 512;
+            }
+            if (licenseTier > 150 && licenseTier <= 200)
+            {
+                // Education license limit
+                resolutionLimit = 2048;
+            }
+            else
+            {
+                assert(0);
+            }
+
+            addError(ROP_MESSAGE, ("Compression Error - Your license allows compression of effects with resolution up to " +
+                                   std::to_string(resolutionLimit) + " voxels along longest axis.")
+                                      .c_str());
+            return ROP_ABORT_RENDER;
+        }
+        default:
+            addError(ROP_MESSAGE, "Compression Error - Unexpected Error.");
             return ROP_ABORT_RENDER;
         }
 
@@ -583,25 +640,29 @@ namespace Zibra::ZibraVDBCompressor
         }
 
         std::string warning;
-
         auto status = m_CompressorManager.FinishSequence(warning);
 
-        if (status != CE::ZCE_SUCCESS)
+        if (error() < UT_ERROR_ABORT)
         {
-            addError(ROP_MESSAGE, "Failed to finish compressing sequence.");
-            return ROP_ABORT_RENDER;
-        }
-        m_CompressorManager.Release();
+            if (status != CE::ZCE_SUCCESS)
+            {
+                addError(ROP_MESSAGE, "Failed to finish compressing sequence.");
+                return ROP_ABORT_RENDER;
+            }
 
-        if (!warning.empty())
-        {
-            addWarning(ROP_MESSAGE, warning.c_str());
+            if (!warning.empty())
+            {
+                addWarning(ROP_MESSAGE, warning.c_str());
+            }
         }
+
+        m_CompressorManager.Release();
 
         if (error() < UT_ERROR_ABORT)
         {
             executePostRenderScript(m_EndTime);
         }
+
         return error() < UT_ERROR_ABORT ? ROP_CONTINUE_RENDER : ROP_ABORT_RENDER;
     }
 
@@ -669,7 +730,16 @@ namespace Zibra::ZibraVDBCompressor
         auto status = m_CompressorManager.Initialize(frameMappingDesc, defaultQuality, perChannelCompressionSettings);
         if (status != CE::ReturnCode::ZCE_SUCCESS)
         {
-            addError(ROP_MESSAGE, "Failed to initialize compressor.");
+            switch (status)
+            {
+            case CE::ZCE_ERROR_LICENSE_ERROR:
+                addError(ROP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_NO_COMPRESSION);
+                break;
+            default:
+                addError(ROP_MESSAGE, "Failed to initialize compressor.");
+                break;
+            }
+
             return ROP_ABORT_RENDER;
         }
 

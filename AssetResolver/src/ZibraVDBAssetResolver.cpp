@@ -21,7 +21,7 @@ ZibraVDBResolver::ZibraVDBResolver()
 
 std::string ZibraVDBResolver::_CreateIdentifier(const std::string& assetPath, const ArResolvedPath& anchorAssetPath) const
 {
-    URI assetURI = URI(assetPath);
+    Zibra::URI assetURI = Zibra::URI(assetPath);
     if (!assetURI.isValid)
     {
         TF_DEBUG(ZIBRAVDB_RESOLVER).Msg("ZibraVDBResolver::CreateIdentifier - Invalid URI: '%s'\n", assetPath.c_str());
@@ -82,7 +82,7 @@ std::string ZibraVDBResolver::_CreateIdentifierForNewAsset(const std::string& as
 
 ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
 {
-    URI assetURI = URI(assetPath);
+    Zibra::URI assetURI = Zibra::URI(assetPath);
     if (!assetURI.isValid)
     {
         TF_DEBUG(ZIBRAVDB_RESOLVER).Msg("ZibraVDBResolver::_Resolve - Invalid URI: '%s'\n", assetPath.c_str());

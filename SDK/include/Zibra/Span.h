@@ -1,7 +1,10 @@
 #pragma once
 
+#include "Result.h"
+
 #include <array>
 #include <cassert>
+#include <cstring>
 #include <cstddef>
 #include <cstring>
 #include <string>
@@ -29,13 +32,13 @@ namespace Zibra
         template <std::size_t N>
         using ArrayType = std::conditional_t<std::is_const_v<T>, const std::array<ElementType, N>, std::array<ElementType, N>>;
 
-        BasicSpan()
+        BasicSpan() noexcept
             : m_Data(nullptr)
             , m_Size(0)
         {
         }
 
-        BasicSpan(T& element)
+        BasicSpan(T& element) noexcept
             : m_Data(&element)
             , m_Size(1)
         {
@@ -43,7 +46,7 @@ namespace Zibra
             static_assert(std::is_trivially_copyable_v<T>);
         }
 
-        BasicSpan(T* data, size_t size)
+        BasicSpan(T* data, size_t size) noexcept
             : m_Data(data)
             , m_Size(size)
         {
@@ -51,54 +54,54 @@ namespace Zibra
 
         // Automatic conversion from containers
         template <size_t N>
-        BasicSpan(T (&data)[N])
+        BasicSpan(T (&data)[N]) noexcept
             : m_Data(data)
             , m_Size(N)
         {
         }
 
-        BasicSpan(VectorType& vec)
+        BasicSpan(VectorType& vec) noexcept
             : m_Data(vec.data())
             , m_Size(vec.size())
         {
         }
 
         template <std::size_t N>
-        BasicSpan(ArrayType<N>& arr)
+        BasicSpan(ArrayType<N>& arr) noexcept
             : m_Data(arr.data())
             , m_Size(N)
         {
         }
 
         template <typename U = T, typename = std::enable_if_t<std::is_const_v<U>>>
-        BasicSpan(const BasicSpan<ElementType>& nonConstSpan)
+        BasicSpan(const BasicSpan<ElementType>& nonConstSpan) noexcept
             : m_Data(nonConstSpan.data())
             , m_Size(nonConstSpan.size())
         {
         }
 
         // STL container compatibility
-        const T* begin() const
+        const T* begin() const noexcept
         {
             return m_Data;
         }
 
-        const T* end() const
+        const T* end() const noexcept
         {
             return m_Data + m_Size;
         }
 
-        T* data()
+        T* data() noexcept
         {
             return m_Data;
         }
 
-        const T* data() const
+        const T* data() const noexcept
         {
             return m_Data;
         }
 
-        size_t size() const
+        size_t size() const noexcept
         {
             return m_Size;
         }
@@ -115,21 +118,21 @@ namespace Zibra
             return {m_Data + first, m_Size - first};
         }
 
-        const T& operator[](size_t index) const
+        const T& operator[](size_t index) const noexcept
         {
             assert(index < m_Size);
             return m_Data[index];
         }
 
         template <typename U = T, typename = std::enable_if_t<!std::is_const_v<U>>>
-        T& operator[](size_t index)
+        T& operator[](size_t index) noexcept
         {
             assert(index < m_Size);
             return m_Data[index];
         }
 
         // Helper methods
-        bool ContentEquals(BasicSpan<ConstElementType> other) const
+        bool ContentEquals(BasicSpan<ConstElementType> other) const noexcept
         {
             if (size() != other.size())
             {
@@ -150,54 +153,103 @@ namespace Zibra
         using BasicSpan<T>::BasicSpan;
 
         template <typename T2, typename = std::enable_if_t<!std::is_base_of_v<SpanFlag, T2>>>
-        ReinterpretReadSpan(const T2& element)
+        ReinterpretReadSpan(const T2& element) noexcept
             : BasicSpan<T>(reinterpret_cast<const T*>(&element), sizeof(T2) / sizeof(T))
         {
             static_assert(std::is_trivially_destructible_v<T2>);
             static_assert(std::is_trivially_copyable_v<T2>);
-            static_assert(sizeof(T2) % sizeof(T) == 0);
+            static_assert(sizeof(T) == 1);
         }
 
         template <typename T2, typename = std::enable_if_t<!std::is_same_v<std::remove_const_t<T>, std::remove_const_t<T2>>>>
-        ReinterpretReadSpan(const T2* elements, size_t elementCount)
+        ReinterpretReadSpan(const T2* elements, size_t elementCount) noexcept
             : BasicSpan<T>(reinterpret_cast<const T*>(elements), sizeof(T2) * elementCount / sizeof(T))
         {
-            static_assert(sizeof(T2) % sizeof(T) == 0);
+            static_assert(sizeof(T) == 1);
         }
 
         template <typename T2, size_t N>
-        ReinterpretReadSpan(const T2 (&data)[N])
+        ReinterpretReadSpan(const T2 (&data)[N]) noexcept
             : BasicSpan<T>(reinterpret_cast<const T*>(data), sizeof(data) / sizeof(T))
         {
-            static_assert(sizeof(T2) % sizeof(T) == 0);
+            static_assert(sizeof(T) == 1);
         }
 
         template <typename T2>
-        ReinterpretReadSpan(const std::vector<T2>& vec)
+        ReinterpretReadSpan(const std::vector<T2>& vec) noexcept
             : BasicSpan<T>(reinterpret_cast<const T*>(vec.data()), vec.size() * sizeof(T2) / sizeof(T))
         {
-            static_assert(sizeof(T2) % sizeof(T) == 0);
+            static_assert(sizeof(T) == 1);
         }
 
         template <typename T2, size_t N>
-        ReinterpretReadSpan(const std::array<T2, N>& arr)
+        ReinterpretReadSpan(const std::array<T2, N>& arr) noexcept
             : BasicSpan<T>(reinterpret_cast<const T*>(arr.data()), N * sizeof(T2) / sizeof(T))
         {
-            static_assert(sizeof(T2) % sizeof(T) == 0);
+            static_assert(sizeof(T) == 1);
         }
 
-        ReinterpretReadSpan(const std::string& str)
+        ReinterpretReadSpan(const std::string& str) noexcept
             : BasicSpan<T>(reinterpret_cast<const T*>(str.data()), str.size())
         {
             static_assert(sizeof(T) == 1);
         }
 
         template <typename T2>
-        const T2& load(size_t offset = 0) const
+        const T2& load(size_t offset = 0) const noexcept
         {
+            static_assert(sizeof(T) == 1);
             assert(offset < this->size());
             assert(sizeof(T2) + offset <= this->size());
             return *reinterpret_cast<const T2*>(this->data() + offset);
+        }
+
+        template <typename T2>
+        [[nodiscard]] Result advance(T2* elements, size_t elementCount) noexcept
+        {
+            static_assert(sizeof(T) == 1);
+            const size_t size = elementCount * sizeof(T2);
+
+            if (size > BasicSpan<T>::m_Size)
+            {
+                return RESULT_OUT_OF_BOUNDS;
+            }
+
+            std::memcpy(elements, BasicSpan<T>::m_Data, size);
+            BasicSpan<T>::m_Data += size;
+            BasicSpan<T>::m_Size -= size;
+
+            return RESULT_SUCCESS;
+        }
+
+        template <typename T2>
+        [[nodiscard]] Result advance(T2& output) noexcept
+        {
+            return advance(&output, 1);
+        }
+
+        template <typename T2>
+        [[nodiscard]] Result advance_ptr(T2*& elements, size_t elementCount) noexcept
+        {
+            static_assert(sizeof(T) == 1);
+            const size_t size = elementCount * sizeof(T2);
+
+            if (size > BasicSpan<T>::m_Size)
+            {
+                return RESULT_OUT_OF_BOUNDS;
+            }
+
+            elements = reinterpret_cast<T2*>(BasicSpan<T>::m_Data);
+            BasicSpan<T>::m_Data += size;
+            BasicSpan<T>::m_Size -= size;
+
+            return RESULT_SUCCESS;
+        }
+
+        template <typename T2>
+        [[nodiscard]] Result advance_ptr(T2*& output) noexcept
+        {
+            return advance_ptr(output, 1);
         }
     };
 
@@ -208,54 +260,113 @@ namespace Zibra
         using BasicSpan<T>::BasicSpan;
 
         template <typename T2, typename = std::enable_if_t<!std::is_base_of_v<SpanFlag, T2>>>
-        ReinterpretWriteSpan(T2& element)
+        ReinterpretWriteSpan(T2& element) noexcept
             : BasicSpan<T>(reinterpret_cast<T*>(&element), sizeof(T2) / sizeof(T))
         {
             static_assert(std::is_trivially_destructible_v<T2>);
             static_assert(std::is_trivially_copyable_v<T2>);
-            static_assert(sizeof(T2) % sizeof(T) == 0);
+            static_assert(sizeof(T) == 1);
         }
 
         template <typename T2, typename = std::enable_if_t<!std::is_same_v<std::remove_const_t<T>, std::remove_const_t<T2>>>>
-        ReinterpretWriteSpan(T2* elements, size_t elementCount)
+        ReinterpretWriteSpan(T2* elements, size_t elementCount) noexcept
             : BasicSpan<T>(reinterpret_cast<T*>(elements), sizeof(T2) * elementCount / sizeof(T))
         {
-            static_assert(sizeof(T2) % sizeof(T) == 0);
+            static_assert(sizeof(T) == 1);
         }
 
         template <typename T2, size_t N>
-        ReinterpretWriteSpan(T2 (&data)[N])
+        ReinterpretWriteSpan(T2 (&data)[N]) noexcept
             : BasicSpan<T>(reinterpret_cast<T*>(data), sizeof(data) / sizeof(T))
         {
-            static_assert(sizeof(T2) % sizeof(T) == 0);
+            static_assert(sizeof(T) == 1);
         }
 
         template <typename T2>
-        ReinterpretWriteSpan(std::vector<T2>& vec)
+        ReinterpretWriteSpan(std::vector<T2>& vec) noexcept
             : BasicSpan<T>(reinterpret_cast<T*>(vec.data()), vec.size() * sizeof(T2) / sizeof(T))
         {
-            static_assert(sizeof(T2) % sizeof(T) == 0);
+            static_assert(sizeof(T) == 1);
         }
 
         template <typename T2, size_t N>
-        ReinterpretWriteSpan(std::array<T2, N>& arr)
+        ReinterpretWriteSpan(std::array<T2, N>& arr) noexcept
             : BasicSpan<T>(reinterpret_cast<T*>(arr.data()), N * sizeof(T2) / sizeof(T))
         {
-            static_assert(sizeof(T2) % sizeof(T) == 0);
+            static_assert(sizeof(T) == 1);
         }
 
-        ReinterpretWriteSpan(std::string& str)
+        ReinterpretWriteSpan(std::string& str) noexcept
             : BasicSpan<T>(reinterpret_cast<T*>(str.data()), str.size())
         {
             static_assert(sizeof(T) == 1);
         }
 
         template <typename T2>
-        T2& load(size_t offset = 0)
+        T2& load(size_t offset = 0) noexcept
         {
+            static_assert(sizeof(T) == 1);
             assert(offset < this->size());
             assert(sizeof(T2) + offset <= this->size());
             return *reinterpret_cast<T2*>(this->data() + offset);
+        }
+
+        template <typename T2>
+        [[nodiscard]] Result advance(T2* elements, size_t elementCount) noexcept
+        {
+            static_assert(sizeof(T) == 1);
+            const size_t size = elementCount * sizeof(T2);
+
+            if (size > BasicSpan<T>::m_Size)
+            {
+                return RESULT_OUT_OF_BOUNDS;
+            }
+
+            std::memcpy(elements, BasicSpan<T>::m_Data, size);
+            BasicSpan<T>::m_Data += size;
+            BasicSpan<T>::m_Size -= size;
+
+            return RESULT_SUCCESS;
+        }
+
+        template <typename T2>
+        [[nodiscard]] Result advance(T2& output) noexcept
+        {
+            static_assert(sizeof(T) == 1);
+            if (sizeof(T2) > BasicSpan<T>::m_Size)
+            {
+                return RESULT_OUT_OF_BOUNDS;
+            }
+
+            std::memcpy(&output, BasicSpan<T>::m_Data, sizeof(T2));
+            BasicSpan<T>::m_Data += sizeof(T2);
+            BasicSpan<T>::m_Size -= sizeof(T2);
+
+            return RESULT_SUCCESS;
+        }
+
+        template <typename T2>
+        [[nodiscard]] Result advance_ptr(T2*& elements, size_t elementCount) noexcept
+        {
+            static_assert(sizeof(T) == 1);
+            const size_t size = elementCount * sizeof(T2);
+
+            if (size > BasicSpan<T>::m_Size)
+            {
+                return RESULT_OUT_OF_BOUNDS;
+            }
+
+            elements = reinterpret_cast<T2*>(BasicSpan<T>::m_Data);
+            BasicSpan<T>::m_Data += size;
+            BasicSpan<T>::m_Size -= size;
+
+            return RESULT_SUCCESS;
+        }
+
+        template <typename T2>
+        [[nodiscard]] Result advance_ptr(T2*& output) noexcept
+        {
+            return advance_ptr(output, 1);
         }
     };
 

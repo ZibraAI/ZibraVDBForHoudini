@@ -119,13 +119,21 @@ namespace Zibra::Helpers
 
     CE::ReturnCode DecompressorManager::RegisterDecompressor(const UT_String& filename) noexcept
     {
+        m_Warning = "";
+
         if (m_Decoder)
         {
             CE::Decompression::CAPI::ReleaseDecoder(m_Decoder);
             m_Decoder = nullptr;
         }
 
-        auto status = CE::Decompression::CAPI::CreateDecoder(filename.c_str(), &m_Decoder);
+        UT_String patchedFileName = GetPatchedFileName(filename);
+        if (patchedFileName.length() == 0)
+        {
+            return CE::ZCE_ERROR_NOT_FOUND;
+        }
+
+        auto status = CE::Decompression::CAPI::CreateDecoder(patchedFileName.c_str(), &m_Decoder);
         if (status != CE::ZCE_SUCCESS)
         {
             return status;
@@ -171,6 +179,17 @@ namespace Zibra::Helpers
         {
             return status;
         }
+                
+        std::string filenameStdStr = patchedFileName.toStdString();
+        std::string actualFileExtension = Helpers::GetExtension(filenameStdStr);
+        std::string expectedFileExtension = m_FormatMapper->GetExpectedFileExtension();
+
+        if (actualFileExtension != expectedFileExtension)
+        {
+            m_Warning = "File " + filenameStdStr + " opened successfully, but its file extension (" + actualFileExtension +
+                        ") does not match file contents. Correct extension for "
+                        "that file should be " + expectedFileExtension + ".";
+        }
 
         CE::Decompression::DecompressorResourcesRequirements newRequirements = m_Decompressor->GetResourcesRequirements();
         status =
@@ -194,7 +213,7 @@ namespace Zibra::Helpers
         {
             return status;
         }
-        
+
         if (m_DecompressionPerChannelBlockDataBuffer.buffer != nullptr && m_DecompressionPerChannelBlockInfoBuffer.buffer != nullptr &&
             m_DecompressionPerSpatialBlockInfoBuffer.buffer != nullptr)
         {
@@ -241,7 +260,7 @@ namespace Zibra::Helpers
             }
         }
 
-        CE::Addons::OpenVDBUtils::EncodingMetadata encodingMetadataStorage; 
+        CE::Addons::OpenVDBUtils::EncodingMetadata encodingMetadataStorage;
         CE::Addons::OpenVDBUtils::EncodingMetadata* encodingMetadata = nullptr;
         const char* encodingMetadataStr = frameContainer->GetMetadataByKey("houdiniDecodeMetadata");
         if (encodingMetadataStr)
@@ -433,12 +452,13 @@ namespace Zibra::Helpers
         CE::Decompression::CompressedFrameContainer* frameContainer) noexcept
     {
         static std::map<std::string, CE::Addons::OpenVDBUtils::GridVoxelType> strToVoxelType = {
-            {"Float1", CE::Addons::OpenVDBUtils::GridVoxelType::Float1},
-            {"Float3", CE::Addons::OpenVDBUtils::GridVoxelType::Float3}
-        };
+            {"Float1", CE::Addons::OpenVDBUtils::GridVoxelType::Float1}, {"Float3", CE::Addons::OpenVDBUtils::GridVoxelType::Float3}};
 
         const char* meta = frameContainer->GetMetadataByKey("chShuffle");
-        if (!meta) return {};
+        if (!meta)
+        {
+            return {};
+        }
 
         auto serialized = nlohmann::json::parse(meta);
         if (!serialized.is_array())
@@ -489,6 +509,59 @@ namespace Zibra::Helpers
             return {};
         }
         return m_FormatMapper->GetSequenceInfo();
+    }
+
+    UT_String DecompressorManager::GetPatchedFileName(const UT_String& filename) const noexcept
+    {
+        std::filesystem::path filenamePath;
+        try
+        {
+            filenamePath = filename.toStdString();
+        }
+        catch (const std::filesystem::filesystem_error&)
+        {
+            // If we can't parse filename as path, just return it and let decoder handle error
+            return filename;
+        }
+
+        if (std::filesystem::exists(filenamePath))
+        {
+            return filename;
+        }
+
+        // If specified extension is not .zibravdb, don't try to patch filename
+        std::string inputFileExtension = filenamePath.extension().string();
+        bool isZibraVDBExtension = false;
+        for (const std::string& acceptedExtension : LibraryUtils::g_ZibraVDBFileExtensions)
+        {
+            if (inputFileExtension == acceptedExtension)
+            {
+                isZibraVDBExtension = true;
+                break;
+            }
+        }
+
+        if (!isZibraVDBExtension)
+        {
+            return {};
+        }
+
+        for (const std::string& acceptedExtension : LibraryUtils::g_ZibraVDBFileExtensions)
+        {
+            std::filesystem::path patchedPath = filenamePath;
+            patchedPath.replace_extension(acceptedExtension);
+            if (std::filesystem::exists(patchedPath))
+            {
+                return UT_String(patchedPath.string());
+            }
+        }
+
+        return {};
+    }
+
+    const UT_String& DecompressorManager::GetWarning() const noexcept
+    {
+        return m_Warning;
     }
 
 } // namespace Zibra::Helpers

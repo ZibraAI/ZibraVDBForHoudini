@@ -11,7 +11,7 @@
 #include <pxr/base/tf/stringUtils.h>
 
 #include "Globals.h"
-#include "Types.h"
+#include "URI.h"
 
 PXR_NAMESPACE_USING_DIRECTIVE
 

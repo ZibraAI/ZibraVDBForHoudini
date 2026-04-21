@@ -206,11 +206,30 @@ namespace Zibra::AssetResolver
 
         UT_String filename(compressedFile.c_str());
         result = manager->RegisterDecompressor(filename);
-        if (result != CE::ZCE_SUCCESS)
+        switch (result)
         {
+        case CE::ZCE_SUCCESS:
+            break;
+        case CE::ZCE_ERROR_LICENSE_INCOMPATIBLE_FILE:
+            TF_DEBUG(ZIBRAVDB_RESOLVER)
+                .Msg("Your license does not allow for decompression of this file.");
+            return nullptr;
+        case CE::ZCE_ERROR_LICENSE_ERROR:
+            TF_DEBUG(ZIBRAVDB_RESOLVER).Msg(ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR);
+            return nullptr;
+        case CE::ZCE_ERROR_NOT_FOUND:
+            TF_DEBUG(ZIBRAVDB_RESOLVER).Msg(ZIBRAVDB_ERROR_MESSAGE_FILE_NOT_FOUND);
+            return nullptr;
+        default: {
             TF_DEBUG(ZIBRAVDB_RESOLVER)
                 .Msg("DecompressionItem::CreateDecompressorManager - Failed to register decompressor: %d\n", (int)result);
             return nullptr;
+        }
+        }
+
+        if (manager->GetWarning().length() > 0)
+        {
+            TF_DEBUG(ZIBRAVDB_RESOLVER).Msg(manager->GetWarning().c_str());
         }
 
         return std::move(manager);
