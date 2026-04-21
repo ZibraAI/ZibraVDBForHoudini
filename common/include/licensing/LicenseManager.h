@@ -54,8 +54,8 @@ namespace Zibra
 
         bool IsLicenseValidated() const;
         Status GetStatus() const;
-        int GetLicenseTier(Product product) const;
-        const char* GetLicenseType(Product product) const;
+        int GetLicenseTier() const;
+        const char* GetLicenseType() const;
         ActivationType GetActivationType() const;
         LicensePathType GetLicensePathType() const;
         const std::string& GetLicensePath() const;

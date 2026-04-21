@@ -27,14 +27,14 @@ namespace Zibra
         return m_Status;
     }
 
-    int LicenseManager::GetLicenseTier(Product product) const
+    int LicenseManager::GetLicenseTier() const
     {
-        return CE::Licensing::CAPI::GetProductLicenseTier(CE::Licensing::ProductType(size_t(product)));
+        return CE::Licensing::CAPI::GetProductLicenseTier(CE::Licensing::ProductType(0));
     }
 
-    const char* LicenseManager::GetLicenseType(Product product) const
+    const char* LicenseManager::GetLicenseType() const
     {
-        return CE::Licensing::CAPI::GetProductLicenseType(CE::Licensing::ProductType(size_t(product)));
+        return CE::Licensing::CAPI::GetProductLicenseType(CE::Licensing::ProductType(0));
     }
 
     LicenseManager::ActivationType LicenseManager::GetActivationType() const

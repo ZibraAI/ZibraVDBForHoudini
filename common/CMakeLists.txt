@@ -35,7 +35,7 @@ target_sources(ZibraVDBCommon
         BASE_DIRS include
         FILES
             include/Globals.h.in
-            include/Types.h
+            include/URI.h
             include/utils/Helpers.h
             include/utils/MetadataHelper.h
             include/utils/DecompressorManager.h
@@ -61,6 +61,7 @@ target_sources(ZibraVDBCommon
             src/ui/MessageBox.h
         
     PRIVATE
+        src/URI.cpp
         src/utils/Helpers.cpp
         src/utils/MetadataHelper.cpp
         src/utils/GAAttributesDump.cpp

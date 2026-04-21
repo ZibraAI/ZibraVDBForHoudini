@@ -1,6 +1,7 @@
 #include "PrecompiledHeader.h"
 
 #include "CompressorManager.h"
+#include "bridge/LibraryUtils.h"
 
 namespace Zibra::CE::Compression
 {
@@ -113,7 +114,16 @@ namespace Zibra::CE::Compression
             return status;
         }
 
-        m_Ofstream.open(filename, std::ios::binary);
+        const char* fileExtension = nullptr;
+        status = m_Compressor->GetFileExtension(&fileExtension);
+        if (status != CE::ReturnCode::ZCE_SUCCESS)
+        {
+            return status;
+        }
+
+        UT_String patchedFilename = PatchExtension(filename, fileExtension);
+
+        m_Ofstream.open(patchedFilename, std::ios::binary);
         if (!m_Ofstream.is_open())
         {
             return CE::ZCE_ERROR;
@@ -188,6 +198,32 @@ namespace Zibra::CE::Compression
             m_RHIRuntime->Release();
             m_RHIRuntime = nullptr;
         }
+    }
+
+    UT_String CompressorManager::PatchExtension(const UT_String& filename, const char* newExtension) noexcept
+    {
+        std::string str(filename.c_str());
+        std::string originalFileExtension = Helpers::GetExtension(str);
+
+        bool isExpectedExtension = false;
+        for (const std::string& expectedExtension : LibraryUtils::g_ZibraVDBFileExtensions)
+        {
+            if (originalFileExtension == expectedExtension)
+            {
+                isExpectedExtension = true;
+                break;
+            }
+        }
+
+        if (!isExpectedExtension)
+        {
+            return filename;
+        }
+
+        str = str.substr(0, str.length() - originalFileExtension.length());
+        str += newExtension;
+
+        return UT_String(str);
     }
 
 } // namespace Zibra::CE::Compression

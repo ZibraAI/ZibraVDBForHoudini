@@ -137,6 +137,11 @@ namespace Zibra::ZibraVDBImport
             SHOW_ERROR_AND_RETURN("No valid ZibraVDB file loaded")
         }
 
+        if (!m_CachedFileInfo.warning.empty())
+        {
+            addWarning(LOP_MESSAGE, m_CachedFileInfo.warning.c_str());
+        }
+
         if (currentFrameIndex < m_CachedFileInfo.frameStart || currentFrameIndex > m_CachedFileInfo.frameEnd)
         {
             addWarning(LOP_MESSAGE, ("No volume data available for frame " + std::to_string(currentFrameIndex) + " (ZibraVDB range: " +
@@ -292,13 +297,7 @@ namespace Zibra::ZibraVDBImport
 
         if (!std::filesystem::exists(filePath))
         {
-            info.error = "ZibraVDB file does not exist";
-            return info;
-        }
-
-        if (Helpers::GetExtension(URI(filePath)) != ZIB_ZIBRAVDB_EXT || !std::filesystem::exists(filePath))
-        {
-            info.error = "No valid .zibravdb file found";
+            info.error = "File not found.";
             return info;
         }
 
@@ -315,12 +314,26 @@ namespace Zibra::ZibraVDBImport
         }
 
         result = decompressor.RegisterDecompressor(UT_String(filePath));
-        if (result != CE::ZCE_SUCCESS)
+        switch (result)
         {
-            decompressor.Release();
-            info.error = "Failed to register ZibraVDB file with decompressor: " + LibraryUtils::ErrorCodeToString(result);
+        case CE::ZCE_SUCCESS:
+            break;
+        case CE::ZCE_ERROR_LICENSE_INCOMPATIBLE_FILE:
+            info.error = "Your license does not allow for decompression of this file.";
+            return info;
+        case CE::ZCE_ERROR_LICENSE_ERROR:
+            info.error = ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR;
+            return info;
+        case CE::ZCE_ERROR_NOT_FOUND:
+            info.error = ZIBRAVDB_ERROR_MESSAGE_FILE_NOT_FOUND;
+            return info;
+        default: {
+            info.error = "Failed to initialize decompressor: " + LibraryUtils::ErrorCodeToString(result);
             return info;
         }
+        }
+
+        info.warning = decompressor.GetWarning();
 
         auto sequenceInfo = decompressor.GetSequenceInfo();
         info.uuid = Helpers::FormatUUIDString(sequenceInfo.fileUUID);

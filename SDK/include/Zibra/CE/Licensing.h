@@ -30,7 +30,16 @@ namespace Zibra::CE::Licensing
 
 #pragma region CAPI
 
+#if defined(_MSC_VER)
 #define ZCE_API_IMPORT extern "C" __declspec(dllimport)
+#define ZCE_CALL_CONV __cdecl
+#elif defined(__GNUC__)
+#define ZCE_API_IMPORT extern "C"
+#define ZCE_CALL_CONV
+#else
+#error "Unsupported compiler"
+#endif
+
 #define ZCE_NS Zibra::CE::Licensing
 
 #ifndef ZCE_NO_CAPI_IMPL
@@ -53,30 +62,30 @@ namespace Zibra::CE::Licensing
 
 #define ZCE_FNPFX(name) ZCE_LICENSING_FUNCS_EXPORT_FNPFX(name)
 
-typedef void (*ZCE_PFN(ZCE_FNPFX(SetInteractiveSessionFlag)))();
-typedef void (*ZCE_PFN(ZCE_FNPFX(CheckoutLicenseWithKey)))(const char* licenseKey);
-typedef void (*ZCE_PFN(ZCE_FNPFX(CheckoutLicenseOffline)))(const char* license, int licenseSize);
-typedef void (*ZCE_PFN(ZCE_FNPFX(CheckoutLicenseLicenseServer)))(const char* licenseServerAddress);
-typedef bool (*ZCE_PFN(ZCE_FNPFX(IsLicenseValidated)))(ZCE_NS::ProductType product);
-typedef int (*ZCE_PFN(ZCE_FNPFX(GetProductLicenseTier)))(ZCE_NS::ProductType product);
-typedef const char* (*ZCE_PFN(ZCE_FNPFX(GetProductLicenseType)))(ZCE_NS::ProductType product);
-typedef const char* (*ZCE_PFN(ZCE_FNPFX(GetHardwareID)))();
-typedef void (*ZCE_PFN(ZCE_FNPFX(ReleaseLicense)))();
-typedef const char* (*ZCE_PFN(ZCE_FNPFX(GetLicenseError)))();
-typedef const char* (*ZCE_PFN(ZCE_FNPFX(GetLicenseMessage)))(ZCE_NS::ProductType product);
+typedef void (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(SetInteractiveSessionFlag)))();
+typedef void (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(CheckoutLicenseWithKey)))(const char* licenseKey);
+typedef void (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(CheckoutLicenseOffline)))(const char* license, int licenseSize);
+typedef void (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(CheckoutLicenseLicenseServer)))(const char* licenseServerAddress);
+typedef bool (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(IsLicenseValidated)))(ZCE_NS::ProductType product);
+typedef int (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(GetProductLicenseTier)))(ZCE_NS::ProductType product);
+typedef const char* (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(GetProductLicenseType)))(ZCE_NS::ProductType product);
+typedef const char* (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(GetHardwareID)))();
+typedef void (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(ReleaseLicense)))();
+typedef const char* (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(GetLicenseError)))();
+typedef const char* (ZCE_CALL_CONV *ZCE_PFN(ZCE_FNPFX(GetLicenseMessage)))(ZCE_NS::ProductType product);
 
 #ifndef ZCE_NO_STATIC_API_DECL
-ZCE_API_IMPORT void ZCE_FNPFX(SetInteractiveSessionFlag)() noexcept;
-ZCE_API_IMPORT void ZCE_FNPFX(CheckoutLicenseWithKey)(const char* licenseKey) noexcept;
-ZCE_API_IMPORT void ZCE_FNPFX(CheckoutLicenseOffline)(const char* license, int licenseSize) noexcept;
-ZCE_API_IMPORT void ZCE_FNPFX(CheckoutLicenseLicenseServer)(const char* licenseServerAddress) noexcept;
-ZCE_API_IMPORT bool ZCE_FNPFX(IsLicenseValidated)(ZCE_NS::ProductType product) noexcept;
-ZCE_API_IMPORT int ZCE_FNPFX(GetProductLicenseTier)(ZCE_NS::ProductType product) noexcept;
-ZCE_API_IMPORT const char* ZCE_FNPFX(GetProductLicenseType)(ZCE_NS::ProductType product) noexcept;
-ZCE_API_IMPORT const char* ZCE_FNPFX(GetHardwareID)() noexcept;
-ZCE_API_IMPORT void ZCE_FNPFX(ReleaseLicense)() noexcept;
-ZCE_API_IMPORT const char* ZCE_FNPFX(GetLicenseError)() noexcept;
-ZCE_API_IMPORT const char* ZCE_FNPFX(GetLicenseMessage)(ZCE_NS::ProductType product) noexcept;
+ZCE_API_IMPORT void ZCE_CALL_CONV ZCE_FNPFX(SetInteractiveSessionFlag)() noexcept;
+ZCE_API_IMPORT void ZCE_CALL_CONV ZCE_FNPFX(CheckoutLicenseWithKey)(const char* licenseKey) noexcept;
+ZCE_API_IMPORT void ZCE_CALL_CONV ZCE_FNPFX(CheckoutLicenseOffline)(const char* license, int licenseSize) noexcept;
+ZCE_API_IMPORT void ZCE_CALL_CONV ZCE_FNPFX(CheckoutLicenseLicenseServer)(const char* licenseServerAddress) noexcept;
+ZCE_API_IMPORT bool ZCE_CALL_CONV ZCE_FNPFX(IsLicenseValidated)(ZCE_NS::ProductType product) noexcept;
+ZCE_API_IMPORT int ZCE_CALL_CONV ZCE_FNPFX(GetProductLicenseTier)(ZCE_NS::ProductType product) noexcept;
+ZCE_API_IMPORT const char* ZCE_CALL_CONV ZCE_FNPFX(GetProductLicenseType)(ZCE_NS::ProductType product) noexcept;
+ZCE_API_IMPORT const char* ZCE_CALL_CONV ZCE_FNPFX(GetHardwareID)() noexcept;
+ZCE_API_IMPORT void ZCE_CALL_CONV ZCE_FNPFX(ReleaseLicense)() noexcept;
+ZCE_API_IMPORT const char* ZCE_CALL_CONV ZCE_FNPFX(GetLicenseError)() noexcept;
+ZCE_API_IMPORT const char* ZCE_CALL_CONV ZCE_FNPFX(GetLicenseMessage)(ZCE_NS::ProductType product) noexcept;
 #else
 #define ZCE_DECLARE_API_EXTERN_FUNCS(name) extern ZCE_PFN(name) name;
 ZCE_LICENSING_FUNCS_API_APPLY(ZCE_DECLARE_API_EXTERN_FUNCS);

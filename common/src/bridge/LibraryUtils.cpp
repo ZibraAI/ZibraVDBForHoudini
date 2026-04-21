@@ -43,9 +43,12 @@ namespace Zibra::LibraryUtils
     bool g_IsLibraryLoaded = false;
     Zibra::Legacy::Version g_CompressionEngineVersion = {};
 
+    const std::string g_ZibraVDBFileExtensions[5] = {".zibravdbe", ".zibravdbf", ".zibravdbt", ".zibravdb", ".zibravdbs"};
+
     bool ValidateLoadedVersion()
     {
         static_assert(CE::Compression::ZCE_COMPRESSION_VERSION.major == ZIB_COMPRESSION_ENGINE_MAJOR_VERSION);
+        static_assert(CE::Compression::ZCE_COMPRESSION_VERSION.minor == ZIB_COMPRESSION_ENGINE_MINOR_VERSION);
         if (g_CompressionEngineVersion.major != CE::Compression::ZCE_COMPRESSION_VERSION.major)
         {
             return false;
@@ -200,7 +203,7 @@ namespace Zibra::LibraryUtils
             return true;
         }
 
-        std::optional<std::string> libraryDirectory = Helpers::GetNormalEnvironmentVariable("ZIBRAVDB_LIBRARY_VER_0_PATH");
+        std::optional<std::string> libraryDirectory = Helpers::GetNormalEnvironmentVariable("ZIBRAVDB_LIBRARY_VER_0_10_PATH");
         if (!libraryDirectory.has_value())
         {
             return false;

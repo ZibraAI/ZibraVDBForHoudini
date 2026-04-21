@@ -81,20 +81,32 @@ namespace Zibra::ZibraVDBDecompressor
             return error(context);
         }
 
-        if (!std::filesystem::exists(filename.toStdString()))
-        {
-            addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_FILE_NOT_FOUND);
-            return error(context);
-        }
-
         m_DecompressorManager.Initialize();
 
         auto status = m_DecompressorManager.RegisterDecompressor(filename);
-        if (status != CE::ZCE_SUCCESS)
+        switch (status)
         {
+        case CE::ZCE_SUCCESS:
+            break;
+        case CE::ZCE_ERROR_LICENSE_INCOMPATIBLE_FILE:
+            addError(SOP_MESSAGE, "Your license does not allow for decompression of this file.");
+            return error(context);
+        case CE::ZCE_ERROR_LICENSE_ERROR:
+            addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_LICENSE_ERROR);
+            return error(context);
+        case CE::ZCE_ERROR_NOT_FOUND:
+            addError(SOP_MESSAGE, ZIBRAVDB_ERROR_MESSAGE_FILE_NOT_FOUND);
+            return error(context);
+        default: {
             std::string errorMessage = "Failed to initialize decompressor: " + LibraryUtils::ErrorCodeToString(status);
             addError(SOP_MESSAGE, errorMessage.c_str());
             return error(context);
+        }
+        }
+
+        if (m_DecompressorManager.GetWarning().length() > 0)
+        {
+            addWarning(SOP_MESSAGE, m_DecompressorManager.GetWarning().c_str());
         }
 
         const exint frameIndex = evalInt(FRAME_PARAM_NAME, 0, context.getTime());

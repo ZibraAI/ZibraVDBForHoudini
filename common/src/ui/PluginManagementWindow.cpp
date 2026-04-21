@@ -280,7 +280,7 @@ namespace Zibra
         }
 
         std::string packagePath =
-            userPrefDirPath[0] + "/packages/ZibraVDB_Library_" ZIB_STRINGIFY(ZIB_COMPRESSION_ENGINE_MAJOR_VERSION) ".json";
+            userPrefDirPath[0] + "/packages/ZibraVDB_Library_" ZIB_STRINGIFY(ZIB_COMPRESSION_ENGINE_MAJOR_VERSION) "_" ZIB_STRINGIFY(ZIB_COMPRESSION_ENGINE_MINOR_VERSION) ".json";
 
         UT_EnvControl::loadPackage(packagePath.c_str(), UT_EnvControl::packageLoader());
 
@@ -532,7 +532,7 @@ namespace Zibra
             std::string licenseType = "None";
             if (licenseManager.IsLicenseValidated())
             {
-                licenseType = licenseManager.GetLicenseType(LicenseManager::Product::Decompression);
+                licenseType = licenseManager.GetLicenseType();
             }
 
             SetStringField("license_type.val", licenseType.c_str());
