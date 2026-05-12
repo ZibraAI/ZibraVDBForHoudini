@@ -529,7 +529,7 @@ namespace Zibra::Helpers
             return filename;
         }
 
-        // If specified extension is not .zibravdb, don't try to patch filename
+        // If specified extension is not one of ZibraVDB file extensions, don't try to patch filename
         std::string inputFileExtension = filenamePath.extension().string();
         bool isZibraVDBExtension = false;
         for (const std::string& acceptedExtension : LibraryUtils::g_ZibraVDBFileExtensions)

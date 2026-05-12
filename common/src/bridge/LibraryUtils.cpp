@@ -43,7 +43,7 @@ namespace Zibra::LibraryUtils
     bool g_IsLibraryLoaded = false;
     Zibra::Legacy::Version g_CompressionEngineVersion = {};
 
-    const std::string g_ZibraVDBFileExtensions[5] = {".zibravdbe", ".zibravdbf", ".zibravdbt", ".zibravdb", ".zibravdbs"};
+    const std::string g_ZibraVDBFileExtensions[5] = {".cvdbe", ".cvdbf", ".cvdb", ".zibravdb"};
 
     bool ValidateLoadedVersion()
     {
