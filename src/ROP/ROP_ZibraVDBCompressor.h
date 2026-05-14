@@ -84,5 +84,8 @@ namespace Zibra::ZibraVDBCompressor
         ContextType m_ContextType;
 
         CE::Compression::CompressorManager m_CompressorManager;
+        
+        UT_String m_OutputFileName;
+        bool m_OutputFileInconsistentWarningShown = false;
     };
 } // namespace Zibra::ZibraVDBCompressor

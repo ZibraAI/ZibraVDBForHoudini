@@ -3,7 +3,6 @@
 #include "ui/PluginManagementWindow.h"
 
 #include "MessageBox.h"
-
 #include "bridge/LibraryUtils.h"
 #include "bridge/UpdateCheck.h"
 #include "licensing/LicenseManager.h"
@@ -34,7 +33,6 @@ namespace Zibra
         void HandleUpdateLibrary(UI_Event* event);
         static void HandleUpdateLibraryCalback(UI::MessageBox::Result result);
         void HandleSetLicenseKey(UI_Event* event);
-        void HandleSetOfflineLicense(UI_Event* event);
         void HandleSetLicenseServer(UI_Event* event);
         void HandleRetryLicenseCheck(UI_Event* event);
         void HandleRemoveLicense(UI_Event* event);
@@ -108,8 +106,6 @@ namespace Zibra
             ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleUpdateLibrary));
         getValueSymbol("set_license_key.val")
             ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleSetLicenseKey));
-        getValueSymbol("set_offline_license.val")
-            ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleSetOfflineLicense));
         getValueSymbol("set_license_server.val")
             ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleSetLicenseServer));
         getValueSymbol("retry_license_check.val")
@@ -129,7 +125,6 @@ namespace Zibra
     void PluginManagementWindowImpl::InitializeLicenseFields()
     {
         SetStringField("license_key.val", LicenseManager::GetInstance().GetLicenseKey().c_str());
-        SetStringField("offline_license.val", LicenseManager::GetInstance().GetOfflineLicense().c_str());
         SetStringField("license_server.val", LicenseManager::GetInstance().GetLicenseServerAddress().c_str());
     }
 
@@ -285,7 +280,7 @@ namespace Zibra
         }
 
         std::string packagePath =
-            userPrefDirPath[0] + "/packages/ZibraVDB_Library_" ZIB_STRINGIFY(ZIB_COMPRESSION_ENGINE_MAJOR_VERSION) ".json";
+            userPrefDirPath[0] + "/packages/ZibraVDB_Library_" ZIB_STRINGIFY(ZIB_COMPRESSION_ENGINE_MAJOR_VERSION) "_" ZIB_STRINGIFY(ZIB_COMPRESSION_ENGINE_MINOR_VERSION) ".json";
 
         UT_EnvControl::loadPackage(packagePath.c_str(), UT_EnvControl::packageLoader());
 
@@ -346,20 +341,11 @@ namespace Zibra
         UpdateUI();
     }
 
-    void PluginManagementWindowImpl::HandleSetOfflineLicense(UI_Event* event)
-    {
-        auto offlineLicense = getValueSymbol("offline_license.val")->getString();
-        LicenseManager::GetInstance().RemoveLicense();
-        LicenseManager::GetInstance().SetOfflineLicense(offlineLicense);
-        LicenseManager::GetInstance().CheckoutLicense();
-        UpdateUI();
-    }
-
     void PluginManagementWindowImpl::HandleSetLicenseServer(UI_Event* event)
     {
-        auto offlineLicense = getValueSymbol("license_server.val")->getString();
+        auto licenseServer = getValueSymbol("license_server.val")->getString();
         LicenseManager::GetInstance().RemoveLicense();
-        LicenseManager::GetInstance().SetLicenseServer(offlineLicense);
+        LicenseManager::GetInstance().SetLicenseServer(licenseServer);
         LicenseManager::GetInstance().CheckoutLicense();
         UpdateUI();
     }
@@ -377,7 +363,7 @@ namespace Zibra
 
         for (size_t i = 0; i < size_t(LicenseManager::Product::Count); ++i)
         {
-            if (LicenseManager::GetInstance().GetLicenseStatus(LicenseManager::Product(i)) == LicenseManager::Status::OK)
+            if (LicenseManager::GetInstance().IsLicenseValidated())
             {
                 UI::MessageBox::Show(UI::MessageBox::Type::OK, "Can not automatically remove license. If you wish to remove license from "
                                                                "HSITE or HQROOT please remove the file manually.");
@@ -389,7 +375,7 @@ namespace Zibra
 
     void PluginManagementWindowImpl::HandleCopyLicenseToHSITE(UI_Event* event)
     {
-        if (!LicenseManager::GetInstance().IsAnyLicenseValid())
+        if (!LicenseManager::GetInstance().IsLicenseValidated())
         {
             UI::MessageBox::Show(UI::MessageBox::Type::OK, "No license found to copy.");
             return;
@@ -402,12 +388,11 @@ namespace Zibra
             return;
         }
 
-        UI::MessageBox::Show(
-            UI::MessageBox::Type::YesNo,
-            "This will copy your license key, offline license or license server address to HSITE. This is intended for site-wide "
-            "installation of the license. Note that \"Remove License\" button can not remove license from HSITE. In case "
-            "you'll want to remove it, please manually remove the file. Do you wish to proceed?",
-            &PluginManagementWindowImpl::HandleCopyLicenseToHSITECalback);
+        UI::MessageBox::Show(UI::MessageBox::Type::YesNo,
+                             "This will copy your license key or license server address to HSITE. This is intended for site-wide "
+                             "installation of the license. Note that \"Remove License\" button can not remove license from HSITE. In case "
+                             "you'll want to remove it, please manually remove the file. Do you wish to proceed?",
+                             &PluginManagementWindowImpl::HandleCopyLicenseToHSITECalback);
     }
 
     void PluginManagementWindowImpl::HandleCopyLicenseToHSITECalback(UI::MessageBox::Result result)
@@ -431,7 +416,7 @@ namespace Zibra
     {
         static EnterHQROOTPathWindow dialog(&HandleCopyLicenseToHQROOTCallback);
 
-        if (!LicenseManager::GetInstance().IsAnyLicenseValid())
+        if (!LicenseManager::GetInstance().IsLicenseValidated())
         {
             UI::MessageBox::Show(UI::MessageBox::Type::OK, "No license found to copy.");
             return;
@@ -503,43 +488,22 @@ namespace Zibra
         }
         {
             std::string activationStatus;
-            LicenseManager::Status status = LicenseManager::Status::Uninitialized;
-            for (size_t i = 0; i < size_t(LicenseManager::Product::Count); ++i)
-            {
-                auto productStatus = licenseManager.GetLicenseStatus(LicenseManager::Product(i));
-                if (productStatus < status)
-                {
-                    status = productStatus;
-                }
-            }
+            LicenseManager::Status status = licenseManager.GetStatus();
 
             switch (status)
             {
-            case LicenseManager::Status::OK:
-                if (licenseManager.GetLicenseStatus(LicenseManager::Product::Compression) == LicenseManager::Status::OK)
+            case LicenseManager::Status::OK: {
+                std::string activationError = licenseManager.GetActivationError();
+                if (activationError != "")
                 {
-                    if (licenseManager.GetLicenseStatus(LicenseManager::Product::Decompression) == LicenseManager::Status::OK)
-                    {
-                        activationStatus = "Activated";
-                    }
-                    else
-                    {
-                        activationStatus = "Activated (Only Compression)";
-                    }
+                    activationStatus = "Activated (Last Error: " + activationError + ")";
                 }
                 else
                 {
-                    if (licenseManager.GetLicenseStatus(LicenseManager::Product::Decompression) == LicenseManager::Status::OK)
-                    {
-                        activationStatus = "Activated (Only Decompression)";
-                    }
-                    else
-                    {
-                        assert(0);
-                        activationStatus = "You should never see this.";
-                    }
+                    activationStatus = "Activated";
                 }
-                break;
+            }
+            break;
             case LicenseManager::Status::ValidationError: {
                 std::string activationError = licenseManager.GetActivationError();
                 activationStatus = std::string("License validation failed") + (activationError.empty() ? "" : ": ") + activationError;
@@ -566,15 +530,11 @@ namespace Zibra
         }
         {
             std::string licenseType = "None";
-            for (size_t i = 0; i < size_t(LicenseManager::Product::Count); ++i)
+            if (licenseManager.IsLicenseValidated())
             {
-                LicenseManager::Product currentProduct = LicenseManager::Product(i);
-                if (licenseManager.GetLicenseStatus(currentProduct) == LicenseManager::Status::OK)
-                {
-                    licenseType = licenseManager.GetLicenseType(currentProduct);
-                    break;
-                }
+                licenseType = licenseManager.GetLicenseType();
             }
+
             SetStringField("license_type.val", licenseType.c_str());
         }
         {
@@ -582,9 +542,6 @@ namespace Zibra
             auto type = licenseManager.GetActivationType();
             switch (type)
             {
-            case LicenseManager::ActivationType::Offline:
-                activationType = "Offline";
-                break;
             case LicenseManager::ActivationType::LicenseServer:
                 activationType = "License Server";
                 break;

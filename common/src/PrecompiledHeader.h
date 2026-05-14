@@ -28,6 +28,7 @@
 #include <GEO/GEO_Primitive.h>
 #include <GU/GU_Detail.h>
 #include <GU/GU_PrimVDB.h>
+#include <HOM/HOM_Module.h>
 #include <LOP/LOP_Node.h>
 #include <OP/OP_Context.h>
 #include <OP/OP_Node.h>
@@ -80,22 +81,21 @@
 #undef ERROR
 #undef OUT
 #elif ZIB_TARGET_OS_LINUX
-#include <dlfcn.h>
 #include <curl/curl.h>
+#include <dlfcn.h>
 #elif ZIB_TARGET_OS_MAC
-#include <dlfcn.h>
 #include <curl/curl.h>
+#include <dlfcn.h>
 #include <sys/xattr.h>
 #else
 #error Unexpected OS
 #endif
 
-#include <Zibra/RHI.h>
-
 #include <Zibra/CE/Compression.h>
 #include <Zibra/CE/Decompression.h>
 #include <Zibra/CE/Licensing.h>
 #include <Zibra/CE/Literals.h>
+#include <Zibra/RHI.h>
 
 // Project code
 #include "Globals.h"

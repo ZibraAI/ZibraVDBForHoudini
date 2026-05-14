@@ -9,7 +9,6 @@
 namespace Zibra
 {
     const char* const LicenseManager::ms_DefaultLicenseKeyFileName = "zibravdb_license_key.txt";
-    const char* const LicenseManager::ms_DefaultOfflineLicenseFileName = "zibravdb_offline_license.txt";
     const char* const LicenseManager::ms_DefaultLicenseServerFileName = "zibravdb_license_server.txt";
 
     LicenseManager& LicenseManager::GetInstance()
@@ -18,39 +17,24 @@ namespace Zibra
         return instance;
     }
 
-    bool LicenseManager::IsAnyLicenseValid() const
+    bool LicenseManager::IsLicenseValidated() const
     {
-        for (size_t i = 0; i < size_t(Product::Count); ++i)
-        {
-            if (m_Status[i] == Status::OK)
-            {
-                return true;
-            }
-        }
-        return false;
+        return m_Status == Status::OK;
     }
 
-    Zibra::LicenseManager::Status LicenseManager::GetLicenseStatus(Product product) const
+    LicenseManager::Status LicenseManager::GetStatus() const
     {
-        return m_Status[size_t(product)];
+        return m_Status;
     }
 
-    int LicenseManager::GetLicenseTier(Product product) const
+    int LicenseManager::GetLicenseTier() const
     {
-        if (m_Status[size_t(product)] == Status::OK)
-        {
-            return CE::Licensing::CAPI::GetProductLicenseTier(CE::Licensing::ProductType(size_t(product)));
-        }
-        return -1; // Return -1 if the license is not valid
+        return CE::Licensing::CAPI::GetProductLicenseTier(CE::Licensing::ProductType(0));
     }
 
-    const char* LicenseManager::GetLicenseType(Product product) const
+    const char* LicenseManager::GetLicenseType() const
     {
-        if (m_Status[size_t(product)] == Status::OK)
-        {
-            return CE::Licensing::CAPI::GetProductLicenseType(CE::Licensing::ProductType(size_t(product)));
-        }
-        return "None";
+        return CE::Licensing::CAPI::GetProductLicenseType(CE::Licensing::ProductType(0));
     }
 
     LicenseManager::ActivationType LicenseManager::GetActivationType() const
@@ -70,13 +54,13 @@ namespace Zibra
 
     void LicenseManager::CheckoutLicense()
     {
-        if (IsAnyLicenseValid())
+        if (IsLicenseValidated())
         {
             return;
         }
 
         Status status = Status::Uninitialized;
-        for (ActivationType i = ActivationType::Offline; i < ActivationType::None; i = ActivationType(uint32_t(i) + 1))
+        for (ActivationType i = ActivationType::LicenseServer; i < ActivationType::None; i = ActivationType(uint32_t(i) + 1))
         {
             for (LicensePathType j = LicensePathType::EnvVar; j < LicensePathType::None; j = LicensePathType(uint32_t(j) + 1))
             {
@@ -92,7 +76,8 @@ namespace Zibra
                 }
             }
         }
-        SetStatusForAllProducts(status);
+
+        m_Status = status;
     }
 
     void LicenseManager::RemoveLicense()
@@ -104,11 +89,6 @@ namespace Zibra
             {
                 std::filesystem::remove(keyPath);
             }
-            std::string offlineLicensePath = GetOfflineLicensePath(i);
-            if (std::filesystem::is_regular_file(offlineLicensePath))
-            {
-                std::filesystem::remove(offlineLicensePath);
-            }
             std::string licenseServerAddressPath = GetLicenseServerAddressPath(i);
             if (std::filesystem::is_regular_file(licenseServerAddressPath))
             {
@@ -116,12 +96,11 @@ namespace Zibra
             }
         }
 
-        SetStatusForAllProducts(Status::Uninitialized);
+        m_Status = Status::Uninitialized;
         m_Type = ActivationType::None;
         m_LicensePathType = LicensePathType::None;
         m_LicensePath = "";
         m_LicenseKey = "";
-        m_OfflineLicense = "";
 
         if (!LibraryUtils::TryLoadLibrary())
         {
@@ -133,11 +112,6 @@ namespace Zibra
     std::string LicenseManager::GetLicenseKey() const
     {
         return m_LicenseKey;
-    }
-
-    std::string LicenseManager::GetOfflineLicense() const
-    {
-        return m_OfflineLicense;
     }
 
     std::string LicenseManager::GetLicenseServerAddress() const
@@ -196,55 +170,6 @@ namespace Zibra
         }
     }
 
-    void LicenseManager::SetOfflineLicense(const char* offlineLicense)
-    {
-        if (offlineLicense == nullptr)
-        {
-            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Please enter offline license.");
-            return;
-        }
-
-        std::string offlineLicenseTrimmed(offlineLicense);
-        offlineLicenseTrimmed.erase(0, offlineLicenseTrimmed.find_first_not_of(" \r\n\t_"));
-        offlineLicenseTrimmed.erase(offlineLicenseTrimmed.find_last_not_of(" \r\n\t_") + 1);
-
-        // Check that first and last characters are '{' and '}' respectively
-        if (offlineLicenseTrimmed.empty() || offlineLicenseTrimmed.front() != '{' || offlineLicenseTrimmed.back() != '}')
-        {
-            UI::MessageBox::Show(UI::MessageBox::Type::OK,
-                                 "Invalid offline license format. Please enter offline license in format: \"{ \"license_info\": ... }\".");
-            return;
-        }
-
-        std::string targetFile;
-
-        std::optional<std::string> envPath = Helpers::GetNormalEnvironmentVariable("ZIBRAVDB_OFFLINE_LICENSE");
-        if (envPath.has_value() && std::filesystem::is_regular_file(envPath.value()))
-        {
-            targetFile = envPath.value();
-        }
-        else
-        {
-            std::vector<std::string> userPrefDir =
-                Helpers::GetHoudiniEnvironmentVariable(ENV_HOUDINI_USER_PREF_DIR, "HOUDINI_USER_PREF_DIR");
-            assert(userPrefDir.size() >= 1);
-            if (!userPrefDir.empty())
-            {
-                targetFile = (std::filesystem::path(userPrefDir[0]) / ms_DefaultOfflineLicenseFileName).string();
-            }
-        }
-
-        assert(!targetFile.empty());
-        if (!targetFile.empty())
-        {
-            std::ofstream file(targetFile);
-            if (file.is_open())
-            {
-                file << offlineLicenseTrimmed;
-            }
-        }
-    }
-
     void LicenseManager::SetLicenseServer(const char* licenseServerAddress)
     {
         if (licenseServerAddress == nullptr)
@@ -294,7 +219,7 @@ namespace Zibra
 
     void LicenseManager::CopyLicenseFile(const std::string& destFolder)
     {
-        if (!IsAnyLicenseValid())
+        if (!IsLicenseValidated())
         {
             assert(0);
             UI::MessageBox::Show(UI::MessageBox::Type::OK, "No license file found to copy.");
@@ -329,18 +254,18 @@ namespace Zibra
         }
     }
 
-    bool LicenseManager::CheckLicense(Product product)
+    bool LicenseManager::CheckLicense()
     {
-        if (!IsLicenseValid(product))
+        if (!IsLicenseValidated())
         {
             CheckoutLicense();
         }
-        return IsLicenseValid(product);
+        return IsLicenseValidated();
     }
 
-    const std::string& LicenseManager::GetActivationError() const
+    std::string LicenseManager::GetActivationError() const
     {
-        return m_ActivationError;
+        return CE::Licensing::CAPI::GetLicenseError();
     }
 
     std::string LicenseManager::SanitizePath(const std::string& path)
@@ -387,26 +312,6 @@ namespace Zibra
         return result;
     }
 
-    std::string LicenseManager::SanitizeOfflineLicense(const std::string& offlineLicense)
-    {
-        std::string result = offlineLicense;
-
-        size_t startPos = result.find_first_of('{');
-        if (startPos == std::string::npos)
-        {
-            return "";
-        }
-        result.erase(0, startPos);
-
-        size_t endPos = result.find_last_of('}');
-        if (endPos == std::string::npos)
-        {
-            return "";
-        }
-        result.erase(endPos + 1);
-        return result;
-    }
-
     std::string LicenseManager::GetKeyPath(LicensePathType pathType)
     {
         std::vector<std::string> potentialPaths;
@@ -427,44 +332,6 @@ namespace Zibra
         case LicensePathType::HQRoot:
             potentialPaths = Helpers::GetHoudiniEnvironmentVariable(ENV_MAX_STR_CONTROLS, "HQROOT");
             Helpers::AppendToPath(potentialPaths, ms_DefaultLicenseKeyFileName);
-            break;
-        default:
-            assert(0);
-            return "";
-        }
-
-        for (const std::string& path : potentialPaths)
-        {
-            std::string sanitizedPath = SanitizePath(path);
-            if (std::filesystem::is_regular_file(sanitizedPath))
-            {
-                return sanitizedPath;
-            }
-        }
-
-        return "";
-    }
-
-    std::string LicenseManager::GetOfflineLicensePath(LicensePathType pathType)
-    {
-        std::vector<std::string> potentialPaths;
-
-        switch (pathType)
-        {
-        case LicensePathType::EnvVar:
-            potentialPaths = Helpers::GetHoudiniEnvironmentVariable(ENV_MAX_STR_CONTROLS, "ZIBRAVDB_OFFLINE_LICENSE");
-            break;
-        case LicensePathType::UserPrefDir:
-            potentialPaths = Helpers::GetHoudiniEnvironmentVariable(ENV_HOUDINI_USER_PREF_DIR, "HOUDINI_USER_PREF_DIR");
-            Helpers::AppendToPath(potentialPaths, ms_DefaultOfflineLicenseFileName);
-            break;
-        case LicensePathType::HSite:
-            potentialPaths = Helpers::GetHoudiniEnvironmentVariable(ENV_HSITE, "HSITE");
-            Helpers::AppendToPath(potentialPaths, ms_DefaultOfflineLicenseFileName);
-            break;
-        case LicensePathType::HQRoot:
-            potentialPaths = Helpers::GetHoudiniEnvironmentVariable(ENV_MAX_STR_CONTROLS, "HQROOT");
-            Helpers::AppendToPath(potentialPaths, ms_DefaultOfflineLicenseFileName);
             break;
         default:
             assert(0);
@@ -533,18 +400,6 @@ namespace Zibra
         return SanitizeKey(licenseKey);
     }
 
-    std::string LicenseManager::ReadOfflineLicenseFromFile(const std::string& path)
-    {
-        std::ifstream file(path);
-        if (!file.is_open())
-        {
-            return "";
-        }
-
-        std::string offlineLicense((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-        return SanitizeOfflineLicense(offlineLicense);
-    }
-
     std::string LicenseManager::ReadLicenseServerAddressFromFile(const std::string& path)
     {
         std::ifstream file(path);
@@ -559,11 +414,6 @@ namespace Zibra
         return licenseServerAddress;
     }
 
-    bool LicenseManager::IsLicenseValid(Product product) const
-    {
-        return m_Status[size_t(product)] == Status::OK;
-    }
-
     LicenseManager::Status LicenseManager::TryCheckoutLicense(ActivationType type, LicensePathType pathType)
     {
         if (!LibraryUtils::TryLoadLibrary())
@@ -573,38 +423,6 @@ namespace Zibra
 
         switch (type)
         {
-        case ActivationType::Offline: {
-            std::string offlineLicensePath = GetOfflineLicensePath(pathType);
-            if (offlineLicensePath.empty())
-            {
-                return Status::NoLicense;
-            }
-            std::string offlineLicense = ReadOfflineLicenseFromFile(offlineLicensePath);
-            if (offlineLicense.empty())
-            {
-                return Status::NoLicense;
-            }
-            
-            m_LicenseKey = "";
-            m_OfflineLicense = offlineLicense;
-            m_LicenseServerAddress = "";
-
-            CE::Licensing::CAPI::CheckoutLicenseOffline(offlineLicense.c_str(), static_cast<int>(offlineLicense.size()));
-
-            if (CE::Licensing::CAPI::IsLicenseValidated(CE::Licensing::ProductType::Compression) ||
-                CE::Licensing::CAPI::IsLicenseValidated(CE::Licensing::ProductType::Decompression))
-            {
-                SetStatusFromZibraVDBRuntime();
-                m_Type = ActivationType::Offline;
-                m_LicensePathType = pathType;
-                m_LicensePath = offlineLicensePath;
-                return Status::OK;
-            }
-
-            m_ActivationError = CE::Licensing::CAPI::GetLicenseError();
-
-            return Status::ValidationError;
-        }
         case ActivationType::LicenseServer: {
             std::string licenseServerAddressPath = GetLicenseServerAddressPath(pathType);
             if (licenseServerAddressPath.empty())
@@ -616,9 +434,8 @@ namespace Zibra
             {
                 return Status::NoLicense;
             }
-            
+
             m_LicenseKey = "";
-            m_OfflineLicense = "";
             m_LicenseServerAddress = licenseServerAddress;
 
             CE::Licensing::CAPI::CheckoutLicenseLicenseServer(licenseServerAddress.c_str());
@@ -632,8 +449,6 @@ namespace Zibra
                 m_LicensePath = licenseServerAddressPath;
                 return Status::OK;
             }
-
-            m_ActivationError = CE::Licensing::CAPI::GetLicenseError();
 
             return Status::ValidationError;
         }
@@ -650,7 +465,6 @@ namespace Zibra
             }
 
             m_LicenseKey = licenseKey;
-            m_OfflineLicense = "";
             m_LicenseServerAddress = "";
 
             CE::Licensing::CAPI::CheckoutLicenseWithKey(licenseKey.c_str());
@@ -660,11 +474,9 @@ namespace Zibra
                 SetStatusFromZibraVDBRuntime();
                 m_Type = ActivationType::Online;
                 m_LicensePathType = pathType;
-                m_LicensePath = licenseKeyPath; 
+                m_LicensePath = licenseKeyPath;
                 return Status::OK;
             }
-
-            m_ActivationError = CE::Licensing::CAPI::GetLicenseError();
 
             return Status::ValidationError;
         }
@@ -684,16 +496,14 @@ namespace Zibra
 
         for (size_t i = 0; i < size_t(Product::Count); ++i)
         {
-            m_Status[i] = CE::Licensing::CAPI::IsLicenseValidated(CE::Licensing::ProductType(i)) ? Status::OK : Status::ValidationError;
+            if (CE::Licensing::CAPI::IsLicenseValidated(CE::Licensing::ProductType(i)))
+            {
+                m_Status = Status::OK;
+                return;
+            }
         }
-    }
 
-    void LicenseManager::SetStatusForAllProducts(Status status)
-    {
-        for (size_t i = 0; i < size_t(Product::Count); ++i)
-        {
-            m_Status[i] = status;
-        }
+        m_Status = Status::ValidationError;
     }
 
 } // namespace Zibra
