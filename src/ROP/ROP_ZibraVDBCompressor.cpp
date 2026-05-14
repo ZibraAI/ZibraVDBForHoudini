@@ -2,6 +2,10 @@
 
 #include "ROP_ZibraVDBCompressor.h"
 
+#define INTERNAL_LICENSE_TIER 100
+#define EDUCATION_LICENSE_TIER 150
+#define FREE_LICENSE_TIER 200
+
 namespace Zibra::ZibraVDBCompressor
 {
     using namespace std::literals;
@@ -561,12 +565,12 @@ namespace Zibra::ZibraVDBCompressor
         case CE::ZCE_ERROR_LICENSE_CHANNEL_COUNT_EXCEEDED: {
             int licenseTier = LicenseManager::GetInstance().GetLicenseTier();
             int channelLimit = -1;
-            if (licenseTier > 100 && licenseTier <= 150)
+            if (licenseTier > INTERNAL_LICENSE_TIER && licenseTier <= EDUCATION_LICENSE_TIER)
             {
                 // Free license limit
                 channelLimit = 4;
             }
-            else if (licenseTier > 150 && licenseTier <= 200)
+            else if (licenseTier > EDUCATION_LICENSE_TIER && licenseTier <= FREE_LICENSE_TIER)
             {
                 // Education license limit
                 channelLimit = 16;
@@ -584,12 +588,12 @@ namespace Zibra::ZibraVDBCompressor
         case CE::ZCE_ERROR_LICENSE_RESOLUTION_EXCEEDED: {
             int licenseTier = LicenseManager::GetInstance().GetLicenseTier();
             int resolutionLimit = -1;
-            if (licenseTier > 100 && licenseTier <= 150)
+            if (licenseTier > INTERNAL_LICENSE_TIER && licenseTier <= EDUCATION_LICENSE_TIER)
             {
                 // Free license limit
                 resolutionLimit = 512;
             }
-            if (licenseTier > 150 && licenseTier <= 200)
+            if (licenseTier > EDUCATION_LICENSE_TIER && licenseTier <= FREE_LICENSE_TIER)
             {
                 // Education license limit
                 resolutionLimit = 2048;
