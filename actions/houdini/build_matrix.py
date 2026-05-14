@@ -13,6 +13,17 @@ HOUDINI_PRODUCT = "houdini"
 HOUDINI_VERSIONS = ["21.0"]
 HOUDINI_VERSIONS_ALL = ["20.0", "20.5", "21.0"]
 HOUDINI_PLATFORMS = ["win64-vc143", "macosx_arm64", "linux_x86_64_gcc11.2"]
+
+def python_version_for_houdini_version(houdini_version):
+    match houdini_version:
+        case "20.0":
+            return "3.10"
+        case "20.5":
+            return "3.11"
+        case "21.0":
+            return "3.11"
+        case _:
+            raise Exception(f"Unknown houdini version {houdini_version}")
     
 def windows_x64_entry(version, build):
     return {
@@ -30,7 +41,7 @@ def windows_x64_entry(version, build):
                "houdini-platform": "win64-vc143",
                "houdini-install-path": f"C:\\Houdini\\{version}.{build}",
                "hfs-path": f"C:\\Houdini\\{version}.{build}",
-               "python-version": "3.11",
+               "python-version": python_version_for_houdini_version(version),
                "python-command": "python",
                "python-venv-activate-path": "Scripts/Activate.ps1",
                "additional-config-args": None
@@ -51,7 +62,7 @@ def linux_x64_entry(version, build):
                "houdini-platform": "linux_x86_64_gcc11.2",
                "houdini-install-path": f"/opt/hfs{version}.{build}",
                "hfs-path": f"/opt/hfs{version}.{build}",
-               "python-version": "3.11",
+               "python-version": python_version_for_houdini_version(version),
                "python-command": "python3",
                "python-venv-activate-path": "bin/Activate.ps1",
                "additional-config-args": None
@@ -72,7 +83,7 @@ def macos_arm64_entry(version, build):
                "houdini-platform": "macosx_arm64",
                "houdini-install-path": f"/Applications/Houdini/Houdini{version}.{build}",
                "hfs-path": f"/Applications/Houdini/Houdini{version}.{build}/Frameworks/Houdini.framework/Versions/Current/Resources",
-               "python-version": "3.11",
+               "python-version": python_version_for_houdini_version(version),
                "python-command": "python3",
                "python-venv-activate-path": "bin/Activate.ps1",
                "additional-config-args": "-DCMAKE_OSX_ARCHITECTURES=arm64"
