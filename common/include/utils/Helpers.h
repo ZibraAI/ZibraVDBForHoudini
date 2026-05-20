@@ -1,7 +1,7 @@
 #include <UT/UT_EnvControl.h>
 #include <Zibra/RHI.h>
 
-#include "Types.h"
+#include "URI.h"
 
 namespace Zibra::Helpers
 {
@@ -22,6 +22,9 @@ namespace Zibra::Helpers
     // Querying options set via environment variables
     Zibra::RHI::GFXAPI SelectGFXAPI();
     bool NeedForceSoftwareDevice();
+
+    // Path parsing
+    std::string GetExtension(const std::string& filePath);
 
     // URI parsing
     std::map<std::string, std::string> ParseQueryParamsString(const std::string& queryString);

@@ -17,5 +17,7 @@ namespace Zibra::CE::Compression
         RHI::RHIRuntime* m_RHIRuntime = nullptr;
         std::ofstream m_Ofstream;
         bool m_IsSequenceEmpty = true;
+
+        static UT_String PatchExtension(const UT_String& filename, const char* newExtension) noexcept;
     };
 } // namespace Zibra::CE::Compression

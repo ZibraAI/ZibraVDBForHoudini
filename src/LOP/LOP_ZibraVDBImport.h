@@ -22,6 +22,7 @@ namespace Zibra::ZibraVDBImport
             int frameStart = 0;
             int frameEnd = 0;
             std::string error;
+            std::string warning;
         };
 
     private:
