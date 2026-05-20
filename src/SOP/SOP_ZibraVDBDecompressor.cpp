@@ -15,7 +15,7 @@ namespace Zibra::ZibraVDBDecompressor
     PRM_Template* SOP_ZibraVDBDecompressor::GetTemplateList() noexcept
     {
         static PRM_Name theFileName(FILENAME_PARAM_NAME, "Input File");
-        static PRM_Default theFileDefault(0, "$HIP/vol/$HIPNAME.$OS.zibravdb");
+        static PRM_Default theFileDefault(0, "$HIP/vol/$HIPNAME.$OS.cvdb");
 
         static PRM_Name theFrameName(FRAME_PARAM_NAME, "Sequence Frame");
         static PRM_Default theFrameDefault(0, "$F");
@@ -69,7 +69,7 @@ namespace Zibra::ZibraVDBDecompressor
             return error(context);
         }
 
-        // License may or may not be required depending on .zibravdb file
+        // License may or may not be required depending on ZibraVDB file
         // So we need to trigger license check, but if it fails we proceed with decompression
         LicenseManager::GetInstance().CheckLicense();
 

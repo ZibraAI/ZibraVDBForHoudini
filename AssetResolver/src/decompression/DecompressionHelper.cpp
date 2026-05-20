@@ -50,7 +50,7 @@ namespace Zibra::AssetResolver
             return {};
         }
 
-        // License may or may not be required depending on .zibravdb file
+        // License may or may not be required depending on ZibraVDB file
         // So we need to trigger license check, but if it fails we proceed with decompression
         LicenseManager::GetInstance().CheckLicense();
 

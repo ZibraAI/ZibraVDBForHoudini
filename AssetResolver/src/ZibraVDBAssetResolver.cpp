@@ -74,7 +74,7 @@ std::string ZibraVDBResolver::_CreateIdentifier(const std::string& assetPath, co
 std::string ZibraVDBResolver::_CreateIdentifierForNewAsset(const std::string& assetPath, const ArResolvedPath& anchorAssetPath) const
 {
     TF_DEBUG(ZIBRAVDB_RESOLVER)
-        .Msg("ZibraVDBResolver::CreateIdentifierForNewAsset - ZibraVDB asset resolver only handles existing .zibravdb files, not asset "
+        .Msg("ZibraVDBResolver::CreateIdentifierForNewAsset - ZibraVDB asset resolver only handles existing ZibraVDB files, not asset "
              "creation: '%s'\n",
              assetPath.c_str());
     return {};
@@ -138,7 +138,7 @@ ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
 ArResolvedPath ZibraVDBResolver::_ResolveForNewAsset(const std::string& assetPath) const
 {
     TF_DEBUG(ZIBRAVDB_RESOLVER)
-        .Msg("ZibraVDBResolver::_ResolveForNewAsset - ZibraVDB asset resolver only handles existing .zibravdb files, not asset "
+        .Msg("ZibraVDBResolver::_ResolveForNewAsset - ZibraVDB asset resolver only handles existing ZibraVDB files, not asset "
              "creation: '%s'\n",
              assetPath.c_str());
     return {};
