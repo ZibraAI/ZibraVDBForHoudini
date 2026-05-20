@@ -200,7 +200,7 @@ namespace Zibra::ZibraVDBCompressor
         }
 
         static PRM_Name theFileName(FILENAME_PARAM_NAME, "Out File");
-        static PRM_Default theFileDefault(0, "$HIP/vol/$HIPNAME.$OS.zibravdb");
+        static PRM_Default theFileDefault(0, "$HIP/vol/$HIPNAME.$OS.cvdb");
 
         templateList.emplace_back(PRM_FILE, 1, &theFileName, &theFileDefault);
 
