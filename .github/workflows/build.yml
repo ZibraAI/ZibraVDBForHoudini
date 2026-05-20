@@ -8,7 +8,7 @@ jobs:
     runs-on: [self-hosted, Linux, X64]
     outputs:
       need-run: ${{ steps.pr_check.outputs.has_open_pr != 'true' }}
-      need-build-macos: ${{ (steps.pr_check.outputs.has_open_pr != 'true') && (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') }}
+      need-build-macos: ${{ (steps.pr_check.outputs.has_open_pr != 'true') && (github.ref == 'refs/heads/v1.3' || github.event_name == 'pull_request') }}
       # Legend
       # name - Human readable OS/Arch name. Version is appended separately.
       # os - Runner OS. Used for workflow logic.
@@ -51,7 +51,7 @@ jobs:
           python3 -m venv actions/houdini/venv
           ./actions/houdini/venv/bin/Activate.ps1
           pip3 install -r actions/houdini/requirements.txt
-          python3 actions/houdini/build_matrix.py --all-platforms ${{ github.ref == 'refs/heads/main' && '--all-builds' || '' }} ${{ (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') && '--all-versions' || '' }}
+          python3 actions/houdini/build_matrix.py --all-platforms ${{ github.ref == 'refs/heads/v1.3' && '--all-builds' || '' }} ${{ (github.ref == 'refs/heads/v1.3' || github.event_name == 'pull_request') && '--all-versions' || '' }}
         env:
           HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
           HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
