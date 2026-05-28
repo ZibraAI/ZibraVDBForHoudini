@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Zibra/CE/Addons/OpenVDBFrameEncoder.h>
+#include <Zibra/CE/Addons/SparseFrameToOpenVDB.h>
 #include <Zibra/CE/Decompression.h>
 
 namespace Zibra::Helpers
@@ -20,7 +20,6 @@ namespace Zibra::Helpers
         Result Initialize() noexcept;
         Result RegisterDecompressor(const UT_String& filename) noexcept;
         Result DecompressFrame(Span<const char> frameMemory, CE::Decompression::FrameProxy* frameDecoder,
-                               const std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc>& gridShuffle,
                                openvdb::GridPtrVec* vdbGrids) noexcept;
         std::pair<Span<char>, CE::Decompression::FrameProxy*> FetchFrame(const exint& frameIndex) noexcept;
         CE::Decompression::FrameRange GetFrameRange() const noexcept;

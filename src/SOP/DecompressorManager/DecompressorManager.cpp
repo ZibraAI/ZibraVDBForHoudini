@@ -192,7 +192,6 @@ namespace Zibra::Helpers
         return RESULT_SUCCESS;
     }
     Result DecompressorManager::DecompressFrame(Span<const char> frameMemory, CE::Decompression::FrameProxy* frameDecoder,
-                                                const std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc>& gridShuffle,
                                                 openvdb::GridPtrVec* vdbGrids) noexcept
     {
         static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&DecompressorManager::DecompressFrame)>);
@@ -213,33 +212,7 @@ namespace Zibra::Helpers
 
         const auto frameInfo = frameDecoder->GetInfo();
 
-        const CE::Addons::OpenVDBUtils::VDBGridDesc* gridShuffleData = nullptr;
-        size_t gridShuffleSize = 0;
-        std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> defaultGridShuffle;
-
-        if (!gridShuffle.empty())
-        {
-            gridShuffleData = gridShuffle.data();
-            gridShuffleSize = gridShuffle.size();
-        }
-        else
-        {
-            defaultGridShuffle.reserve(frameInfo.channelsCount);
-
-            for (size_t i = 0; i < frameInfo.channelsCount; ++i)
-            {
-                CE::Addons::OpenVDBUtils::VDBGridDesc gridDesc{};
-                gridDesc.gridName = frameInfo.channels[i].name;
-                gridDesc.voxelType = CE::Addons::OpenVDBUtils::GridVoxelType::Float1;
-                gridDesc.chSource[0] = frameInfo.channels[i].name;
-                defaultGridShuffle.emplace_back(gridDesc);
-            }
-
-            gridShuffleData = defaultGridShuffle.data();
-            gridShuffleSize = defaultGridShuffle.size();
-        }
-
-        CE::Addons::OpenVDBUtils::FrameEncoder encoder{gridShuffleData, gridShuffleSize, frameInfo};
+        CE::Addons::OpenVDBUtils::SparseFrameToOpenVDB encoder{frameInfo};
 
         const CE::Decompression::MaxDimensionsPerPass maxDimensionsPerPass = m_Decompressor->GetMaxDimensionsPerPass();
         const auto maxChunksPerSubmit = maxDimensionsPerPass.maxChunks;
@@ -282,8 +255,8 @@ namespace Zibra::Helpers
             fData.decompressionPerSpatialBlockInfo = readbackDecompressionPerSpatialBlock.data();
             // TODO VDB-1291: Implement read-back circular buffer, to optimize GPU stalls.
             //                Implement cpu circular buffer to optimize RAM allocation for DecompressedFrameData.
-            //                Move EncodeChunk into separate thread to overlay CPU and CPU work.
-            encoder.EncodeChunk(fData, fFeedback.spatialBlockCount, fFeedback.firstChannelBlockIndex);
+            //                Move AddChunk into separate thread to overlay CPU and CPU work.
+            encoder.AddChunk(fData, fFeedback.spatialBlockCount, fFeedback.firstChannelBlockIndex);
         }
         res = m_RHIRuntime->StopRecording();
         if (ZIB_FAILED(res))

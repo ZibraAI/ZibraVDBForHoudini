@@ -73,8 +73,8 @@ namespace Zibra::CE::Decompression
         result.coords[1] = static_cast<int32_t>((packedBlock.packedCoords >> 10u) & 1023u);
         result.coords[2] = static_cast<int32_t>((packedBlock.packedCoords >> 20u) & 1023u);
         result.channelBlocksOffset = packedBlock.channelBlocksOffset;
-        result.channelMask = packedBlock.channelMask;
-        result.channelCount = CountBits(packedBlock.channelMask);
+        result.componentMask = packedBlock.componentMask;
+        result.channelCount = CountBits(packedBlock.componentMask);
         return result;
     }
 
@@ -197,6 +197,8 @@ namespace Zibra::CE::Decompression
         uint64_t originalSize;
         uint8_t channelCount;
         const char* channels[MAX_CHANNEL_COUNT];
+        uint8_t componentCounts[MAX_CHANNEL_COUNT];
+        uint32_t firstComponentIndices[MAX_CHANNEL_COUNT];
     };
 
     class FrameProxy

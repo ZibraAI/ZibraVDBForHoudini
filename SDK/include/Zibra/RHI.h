@@ -64,7 +64,7 @@ namespace Zibra
 
 namespace Zibra::RHI
 {
-    constexpr Version ZRHI_VERSION = {6, 0, 1, 0};
+    constexpr Version ZRHI_VERSION = {6, 0, 2, 0};
 
     enum class GFXAPI : int8_t
     {
