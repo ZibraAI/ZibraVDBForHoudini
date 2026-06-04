@@ -141,7 +141,7 @@ namespace Zibra::CE
         /**
          * Index of the first scalar component stream for this channel.
          */
-        uint32_t firstComponentIndex = 0;
+        uint8_t firstComponentIndex = 0;
         /**
          * Axis aligned bounding box. Cannot be 0.
          */
@@ -150,7 +150,6 @@ namespace Zibra::CE
          * Affine transformation matrix. Cannot be 0.
          */
         Math::Transform gridTransform = {};
-        ComponentVoxelStatistics componentStatistics[MAX_COMPONENTS_PER_CHANNEL] = {};
     };
 
     struct FrameInfo
@@ -170,6 +169,11 @@ namespace Zibra::CE
          * @range Length: =channelsCount
          */
         ChannelInfo channels[MAX_CHANNEL_COUNT] = {};
+        /**
+         * Per component information.
+         * @range Length: =componentsCount
+         */
+        ComponentVoxelStatistics components[MAX_COMPONENT_COUNT] = {};
         /**
          * Spatial info count
          * @range [1; INF]

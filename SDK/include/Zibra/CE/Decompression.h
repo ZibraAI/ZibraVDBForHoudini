@@ -198,7 +198,7 @@ namespace Zibra::CE::Decompression
         uint8_t channelCount;
         const char* channels[MAX_CHANNEL_COUNT];
         uint8_t componentCounts[MAX_CHANNEL_COUNT];
-        uint32_t firstComponentIndices[MAX_CHANNEL_COUNT];
+        uint8_t firstComponentIndices[MAX_CHANNEL_COUNT];
     };
 
     class FrameProxy

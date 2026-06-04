@@ -4,8 +4,9 @@
 #include <algorithm>
 #include <cstdint>
 #include <execution>
-#include <map>
 #include <mutex>
+#include <optional>
+#include <vector>
 #include <openvdb/tools/Dense.h>
 
 namespace Zibra::CE::Addons::OpenVDBUtils
@@ -18,6 +19,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
 
     class SparseFrameToOpenVDB
     {
+    private:
         using float16_mem = uint16_t;
         struct ChannelBlockF16Mem
         {
@@ -34,9 +36,12 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             std::map<openvdb::Coord, LeafIntermediate> leafs{};
         };
 
+        FrameInfo m_FrameInfo{};
+        std::vector<openvdb::GridBase::Ptr> m_Grids{};
     public:
         explicit SparseFrameToOpenVDB(const FrameInfo& fInfo) noexcept
             : m_FrameInfo(fInfo)
+            , m_Grids(fInfo.channelsCount)
         {
         }
 
@@ -44,7 +49,14 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         {
             using PackedSpatialBlock = Decompression::Shaders::PackedSpatialBlock;
 
-            std::map<std::string, GridIntermediate> gridsIntermediate{};
+            std::vector<GridIntermediate> gridsIntermediate;
+            gridsIntermediate.reserve(m_FrameInfo.channelsCount);
+            for (uint8_t chIdx = 0; chIdx < m_FrameInfo.channelsCount; ++chIdx)
+            {
+                const ChannelInfo& chInfo = m_FrameInfo.channels[chIdx];
+                gridsIntermediate.emplace_back(GridIntermediate{chInfo.componentCount, chInfo.gridTransform, {}});
+            }
+
             const auto* packedSpatialInfo = static_cast<const PackedSpatialBlock*>(fData.decompressionPerSpatialBlockInfo);
             const auto* channelBlocksSrc = static_cast<const ChannelBlockF16Mem*>(fData.decompressionPerChannelBlockData);
 
@@ -56,47 +68,31 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                                                 currentSpatialBlock.coords[2] + m_FrameInfo.aabb.minZ};
 
                 size_t localChBlockIdx = 0;
-                for (uint32_t chIdx = 0; chIdx < m_FrameInfo.channelsCount; ++chIdx)
+                for (uint8_t chIdx = 0; chIdx < m_FrameInfo.channelsCount; ++chIdx)
                 {
                     const ChannelInfo& chInfo = m_FrameInfo.channels[chIdx];
 
-                    GridIntermediate* grid = nullptr;
-                    LeafIntermediate* leaf = nullptr;
-
                     for (uint8_t i = 0; i < chInfo.componentCount; ++i)
                     {
-                        const uint32_t componentIdx = chInfo.firstComponentIndex + i;
+                        const uint8_t componentIdx = chInfo.firstComponentIndex + i;
                         if (!(currentSpatialBlock.componentMask & (1u << componentIdx)))
                             continue;
 
-                        if (!grid)
-                        {
-                            auto gridIt = gridsIntermediate.find(chInfo.name);
-                            if (gridIt == gridsIntermediate.end())
-                            {
-                                const GridIntermediate gridToCreate{chInfo.componentCount, chInfo.gridTransform, {}};
-                                gridIt = gridsIntermediate.insert({chInfo.name, gridToCreate}).first;
-                            }
-                            grid = &gridIt->second;
-                        }
-                        if (!leaf)
-                        {
-                            auto leafIt = grid->leafs.find(blockCoord);
-                            if (leafIt == grid->leafs.end())
-                                leafIt = grid->leafs.insert({blockCoord, {}}).first;
-                            leaf = &leafIt->second;
-                        }
+                        LeafIntermediate& leaf = gridsIntermediate[chIdx].leafs[blockCoord];
 
                         const size_t chBlcIdx = currentSpatialBlock.channelBlocksOffset + localChBlockIdx - chunkChBlocksFirstIndex;
-                        leaf->chBlocks[i] = &channelBlocksSrc[chBlcIdx];
+                        leaf.chBlocks[i] = &channelBlocksSrc[chBlcIdx];
                         ++localChBlockIdx;
                     }
                 }
             }
 
-            for (auto& [gridName, grid] : gridsIntermediate)
+            for (uint8_t chIdx = 0; chIdx < m_FrameInfo.channelsCount; ++chIdx)
             {
-                auto& outGrid = m_Grids[gridName];
+                const auto& grid = gridsIntermediate[chIdx];
+                if (grid.leafs.empty())
+                    continue;
+                auto& outGrid = m_Grids[chIdx];
                 switch (grid.componentCount)
                 {
                 case 1:
@@ -118,14 +114,12 @@ namespace Zibra::CE::Addons::OpenVDBUtils
 
             for (uint8_t i = 0; i < m_FrameInfo.channelsCount; ++i)
             {
-                const char* gridName = m_FrameInfo.channels[i].name;
-                auto gridIt = m_Grids.find(gridName);
-                if (gridIt == m_Grids.end())
+                openvdb::GridBase::Ptr grid = m_Grids[i];
+                if (!grid)
                 {
                     continue;
                 }
-                openvdb::GridBase::Ptr grid = gridIt->second;
-                grid->setName(gridName);
+                grid->setName(m_FrameInfo.channels[i].name);
                 result.emplace_back(grid);
             }
             return result;
@@ -200,9 +194,5 @@ namespace Zibra::CE::Addons::OpenVDBUtils
 
             return openvdb::math::Transform::createLinearTransform(openvdb::Mat4d{inTransform.raw});
         }
-
-    private:
-        FrameInfo m_FrameInfo{};
-        std::map<std::string, openvdb::GridBase::Ptr> m_Grids{};
     };
 } // namespace Zibra::CE::Addons::OpenVDBUtils

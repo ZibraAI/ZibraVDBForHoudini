@@ -599,6 +599,10 @@ namespace Zibra::ZibraVDBCompressor
         vdbFrameLoader.ReleaseFrame(frame);
 
         auto frameMetadata = DumpAttributes(gdp);
+        for (const auto& [key, val] : frameMetadata)
+        {
+            frameManager->AddMetadata(key.c_str(), val.c_str());
+        }
         if (m_FilePerFrameMode)
         {
             std::ofstream outFrameFile{filename, std::ios::binary};
