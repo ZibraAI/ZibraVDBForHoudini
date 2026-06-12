@@ -2,7 +2,7 @@
 
 #include "ROP_ZibraVDBCompressor.h"
 
-#include "Zibra/CE/Addons/OpenVDBFrameLoader.h"
+#include "Zibra/CE/Addons/OpenVDBToSparseFrame.h"
 #include "Zibra/CE/Common.h"
 #include "bridge/LibraryUtils.h"
 #include "licensing/HoudiniLicenseManager.h"
@@ -579,10 +579,9 @@ namespace Zibra::ZibraVDBCompressor
 
         CE::Compression::FrameManager* frameManager = nullptr;
 
-        CE::Addons::OpenVDBUtils::FrameLoader vdbFrameLoader{volumes.data(), volumes.size()};
+        CE::Addons::OpenVDBUtils::OpenVDBToSparseFrame vdbFrameLoader{volumes.data(), volumes.size()};
 
         const CE::Compression::SparseFrame* frame = vdbFrameLoader.LoadFrame();
-        const auto& gridsShuffleInfo = vdbFrameLoader.GetGridsShuffleInfo();
 
         Result res = CompressFrame(*frame, &frameManager);
         if (ZIB_FAILED(res))
@@ -600,7 +599,6 @@ namespace Zibra::ZibraVDBCompressor
         vdbFrameLoader.ReleaseFrame(frame);
 
         auto frameMetadata = DumpAttributes(gdp);
-        frameMetadata.push_back({"chShuffle", DumpGridsShuffleInfo(gridsShuffleInfo).dump()});
         for (const auto& [key, val] : frameMetadata)
         {
             frameManager->AddMetadata(key.c_str(), val.c_str());
@@ -992,37 +990,6 @@ namespace Zibra::ZibraVDBCompressor
         std::string keyVisLod = keyPrefix + "_lod";
         std::string valueVisLod = std::to_string(static_cast<int>(vdbPrim->getVisLod()));
         attributes.emplace_back(std::move(keyVisLod), std::move(valueVisLod));
-    }
-
-    nlohmann::json ROP_ZibraVDBCompressor::DumpGridsShuffleInfo(const std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc>& gridDescs) noexcept
-    {
-        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&ROP_ZibraVDBCompressor::DumpGridsShuffleInfo)>);
-
-        static std::map<CE::Addons::OpenVDBUtils::GridVoxelType, std::string> voxelTypeToString = {
-            {CE::Addons::OpenVDBUtils::GridVoxelType::Float1, "Float1"}, {CE::Addons::OpenVDBUtils::GridVoxelType::Float3, "Float3"}};
-
-        nlohmann::json result = nlohmann::json::array();
-        for (const CE::Addons::OpenVDBUtils::VDBGridDesc& gridDesc : gridDescs)
-        {
-            nlohmann::json serializedDesc = nlohmann::json{
-                {"gridName", gridDesc.gridName},
-                {"voxelType", voxelTypeToString.at(gridDesc.voxelType)},
-            };
-            for (size_t i = 0; i < std::size(gridDesc.chSource); ++i)
-            {
-                std::string name{"chSource"};
-                if (gridDesc.chSource[i])
-                {
-                    serializedDesc[name + std::to_string(i)] = gridDesc.chSource[i];
-                }
-                else
-                {
-                    serializedDesc[name + std::to_string(i)] = nullptr;
-                }
-            }
-            result.emplace_back(serializedDesc);
-        }
-        return result;
     }
 
     int ROP_ZibraVDBCompressor::OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate) noexcept

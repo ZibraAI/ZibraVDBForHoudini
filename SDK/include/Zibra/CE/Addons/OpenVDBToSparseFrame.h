@@ -6,21 +6,28 @@
 #include <openvdb/openvdb.h>
 #include <openvdb/tools/GridTransformer.h>
 
-#include "OpenVDBCommon.h"
-
 namespace Zibra::CE::Addons::OpenVDBUtils
 {
-    class FrameLoader
+    class OpenVDBToSparseFrame
     {
         struct ChannelDescriptor
         {
             std::string name;
-            ChannelMask channelMask;
+            openvdb::GridBase::Ptr grid;
+            uint8_t componentCount;
+            uint8_t firstComponentIndex;
+        };
+
+        struct ComponentDescriptor
+        {
+            ComponentMask componentMask;
             openvdb::GridBase::Ptr grid;
             uint32_t valueSize;
             uint32_t valueStride;
             uint32_t valueOffset;
+            uint8_t channelIndex;
         };
+
         struct ChannelBlockIntermediate
         {
             const void* data;
@@ -32,7 +39,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         {
             uint32_t destSpatialBlockIndex = 0;
             uint32_t destFirstChannelBlockIndex = 0;
-            std::map<ChannelMask, ChannelBlockIntermediate> blocks{};
+            std::map<ComponentMask, ChannelBlockIntermediate> blocks{};
         };
 
     public:
@@ -42,17 +49,16 @@ namespace Zibra::CE::Addons::OpenVDBUtils
          * @param gridsCount - number of entries in grids param
          * @param matchVoxelSize - gets one origin grid and resamples other to its voxel size. (Heavy operation)
          */
-        explicit FrameLoader(openvdb::GridBase::ConstPtr* grids, size_t gridsCount, bool matchVoxelSize = false) noexcept;
-        ~FrameLoader() noexcept;
+        explicit OpenVDBToSparseFrame(openvdb::GridBase::ConstPtr* grids, size_t gridsCount, bool matchVoxelSize = false) noexcept;
+        ~OpenVDBToSparseFrame() noexcept = default;
 
-        FrameLoader(const FrameLoader&) = delete;
-        FrameLoader& operator=(const FrameLoader&) = delete;
+        OpenVDBToSparseFrame(const OpenVDBToSparseFrame&) = delete;
+        OpenVDBToSparseFrame& operator=(const OpenVDBToSparseFrame&) = delete;
 
-        FrameLoader(FrameLoader&& other) = default;
-        FrameLoader& operator=(FrameLoader&&) = delete;
+        OpenVDBToSparseFrame(OpenVDBToSparseFrame&& other) = default;
+        OpenVDBToSparseFrame& operator=(OpenVDBToSparseFrame&&) = delete;
 
         [[nodiscard]] Compression::SparseFrame* LoadFrame() const noexcept;
-        [[nodiscard]] const std::vector<VDBGridDesc>& GetGridsShuffleInfo() noexcept;
         static void ReleaseFrame(const Compression::SparseFrame* frame) noexcept;
 
     private:
@@ -64,16 +70,12 @@ namespace Zibra::CE::Addons::OpenVDBUtils
          * @return Total channel AABB
          */
         template <typename T>
-        Math::AABB ResolveBlocks(const ChannelDescriptor& ch,
+        Math::AABB ResolveBlocks(const ComponentDescriptor& ch,
                                  std::map<openvdb::Coord, SpatialBlockIntermediate>& spatialMap) const noexcept;
         static Math::Transform OpenVDBTransformToMathTransform(const openvdb::math::Transform& transform) noexcept;
-        static uint32_t FirstChannelIndexFromMask(ChannelMask mask) noexcept;
-        static std::vector<ChannelDescriptor> ChannelsFromGrid(openvdb::GridBase::Ptr grid, uint32_t voxelComponentCount,
-                                                               uint32_t voxelComponentSize, ChannelMask firstChMask) noexcept;
+        static uint32_t FirstChannelIndexFromMask(ComponentMask mask) noexcept;
         static Math::AABB CalculateAABB(const openvdb::CoordBBox& bbox) noexcept;
         static void PackFromStride(void* dst, const void* src, size_t stride, size_t offset, size_t size, size_t count) noexcept;
-        static std::string ValueComponentIndexToLetter(uint32_t valueComponentIdx) noexcept;
-        static std::string SplitGridNameFromValueComponentIdx(const std::string gridName, uint32_t valueComponentIdx);
         static float GetUniformVoxelScale(const openvdb::GridBase::ConstPtr& grid);
 
         /** Calculate transformation to origin grid's index space.
@@ -92,11 +94,11 @@ namespace Zibra::CE::Addons::OpenVDBUtils
 
     private:
         std::vector<ChannelDescriptor> m_Channels{};
-        std::vector<VDBGridDesc> m_GridsShuffle{};
+        std::vector<ComponentDescriptor> m_Components{};
     };
 
     template <typename T>
-    Math::AABB FrameLoader::ResolveBlocks(const ChannelDescriptor& ch, std::map<openvdb::Coord,
+    Math::AABB OpenVDBToSparseFrame::ResolveBlocks(const ComponentDescriptor& ch, std::map<openvdb::Coord,
                                           SpatialBlockIntermediate>& spatialMap) const noexcept
     {
         auto grid = openvdb::gridPtrCast<T>(ch.grid);
@@ -118,14 +120,14 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             localChannelBlock.valueSize = ch.valueSize;
             localChannelBlock.valueStride = ch.valueStride;
             localChannelBlock.valueOffset = ch.valueOffset;
-            localSpatialBlock.blocks[ch.channelMask] = localChannelBlock;
+            localSpatialBlock.blocks[ch.componentMask] = localChannelBlock;
 
             spatialMap[origin] = localSpatialBlock;
         }
         return totalAABB;
     }
 
-    inline openvdb::math::Transform FrameLoader::GetIndexSpaceRelativeTransform(const openvdb::GridBase::ConstPtr& targetGrid,
+    inline openvdb::math::Transform OpenVDBToSparseFrame::GetIndexSpaceRelativeTransform(const openvdb::GridBase::ConstPtr& targetGrid,
                                                                                 const openvdb::GridBase::ConstPtr& referenceGrid) noexcept
     {
         openvdb::math::Transform result{targetGrid->transform().baseMap()->copy()};
@@ -133,36 +135,14 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         return result;
     }
 
-    inline float FrameLoader::GetUniformVoxelScale(const openvdb::GridBase::ConstPtr& grid)
+    inline float OpenVDBToSparseFrame::GetUniformVoxelScale(const openvdb::GridBase::ConstPtr& grid)
     {
         const openvdb::Vec3f voxelSize{grid->voxelSize()};
         assert(grid->hasUniformVoxels());
         return voxelSize.x();
     }
 
-    inline std::string FrameLoader::SplitGridNameFromValueComponentIdx(const std::string gridName, uint32_t valueComponentIdx)
-    {
-        return gridName + "." + ValueComponentIndexToLetter(valueComponentIdx);
-    }
-
-    inline std::string FrameLoader::ValueComponentIndexToLetter(uint32_t valueComponentIdx) noexcept
-    {
-        switch (valueComponentIdx)
-        {
-        case 0:
-            return "x";
-        case 1:
-            return "y";
-        case 2:
-            return "z";
-        case 3:
-            return "w";
-        default:
-            return "c" + std::to_string(valueComponentIdx);
-        }
-    }
-
-    inline void FrameLoader::PackFromStride(void* dst, const void* src, size_t stride, size_t offset, size_t size, size_t count) noexcept
+    inline void OpenVDBToSparseFrame::PackFromStride(void* dst, const void* src, size_t stride, size_t offset, size_t size, size_t count) noexcept
     {
         if (stride == size && offset == 0)
         {
@@ -179,7 +159,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         }
     }
 
-    inline Math::AABB FrameLoader::CalculateAABB(const openvdb::CoordBBox& bbox) noexcept
+    inline Math::AABB OpenVDBToSparseFrame::CalculateAABB(const openvdb::CoordBBox& bbox) noexcept
     {
         Math::AABB result{};
 
@@ -197,27 +177,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         return result;
     }
 
-    inline std::vector<FrameLoader::ChannelDescriptor> FrameLoader::ChannelsFromGrid(openvdb::GridBase::Ptr grid,
-                                                                                     uint32_t voxelComponentCount,
-                                                                                     uint32_t voxelComponentSize,
-                                                                                     ChannelMask firstChMask) noexcept
-    {
-        std::vector<ChannelDescriptor> result{};
-        for (size_t chIdx = 0; chIdx < voxelComponentCount; ++chIdx)
-        {
-            ChannelDescriptor chDesc{};
-            chDesc.name = voxelComponentCount > 1 ? SplitGridNameFromValueComponentIdx(grid->getName(), chIdx) : grid->getName();
-            chDesc.grid = grid;
-            chDesc.channelMask = firstChMask << chIdx;
-            chDesc.valueOffset = chIdx * voxelComponentSize;
-            chDesc.valueSize = voxelComponentSize;
-            chDesc.valueStride = voxelComponentSize * voxelComponentCount;
-            result.emplace_back(chDesc);
-        }
-        return result;
-    }
-
-    inline uint32_t FrameLoader::FirstChannelIndexFromMask(ChannelMask mask) noexcept
+    inline uint32_t OpenVDBToSparseFrame::FirstChannelIndexFromMask(ComponentMask mask) noexcept
     {
         for (size_t i = 0; i < sizeof(mask) * 8; ++i)
         {
@@ -229,7 +189,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         return 0;
     }
 
-    inline Math::Transform FrameLoader::OpenVDBTransformToMathTransform(const openvdb::math::Transform& transform) noexcept
+    inline Math::Transform OpenVDBToSparseFrame::OpenVDBTransformToMathTransform(const openvdb::math::Transform& transform) noexcept
     {
         Math::Transform result{};
 
@@ -243,7 +203,7 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         return result;
     }
 
-    inline void FrameLoader::ReleaseFrame(const Compression::SparseFrame* frame) noexcept
+    inline void OpenVDBToSparseFrame::ReleaseFrame(const Compression::SparseFrame* frame) noexcept
     {
         if (frame)
         {
@@ -258,33 +218,29 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         }
     }
 
-    inline const std::vector<VDBGridDesc>& FrameLoader::GetGridsShuffleInfo() noexcept
-    {
-        return m_GridsShuffle;
-    }
-
-    inline Compression::SparseFrame* FrameLoader::LoadFrame() const noexcept
+    inline Compression::SparseFrame* OpenVDBToSparseFrame::LoadFrame() const noexcept
     {
         auto result = new Compression::SparseFrame{};
         std::map<openvdb::Coord, SpatialBlockIntermediate> spatialBlocks{};
         std::vector<Math::AABB> orderedChannelAABBs{};
-        Math::AABB totalAABB = {};
+        Math::AABB frameAABB = {};
 
-        // Resolving leaf data to spatial descriptors structure for future concurrent processing.
-        for (size_t i = 0; i < m_Channels.size(); ++i)
+        // ResolveBlocks requires component-level iteration to correctly fill spatialBlocks
+        // As side effect, it gives component AABB
+        for (size_t i = 0; i < m_Components.size(); ++i)
         {
-            const ChannelDescriptor& channel = m_Channels[i];
-            if (channel.grid->baseTree().isType<openvdb::Vec3STree>())
+            const ComponentDescriptor& component = m_Components[i];
+            if (component.grid->baseTree().isType<openvdb::Vec3STree>())
             {
-                Math::AABB channelAABB = ResolveBlocks<openvdb::Vec3fGrid>(channel, spatialBlocks);
-                orderedChannelAABBs.emplace_back(channelAABB);
-                totalAABB = totalAABB | channelAABB;
+                Math::AABB componentAABB = ResolveBlocks<openvdb::Vec3fGrid>(component, spatialBlocks);
+                orderedChannelAABBs.emplace_back(componentAABB);
+                frameAABB = frameAABB | componentAABB;
             }
-            else if (channel.grid->baseTree().isType<openvdb::FloatTree>())
+            else if (component.grid->baseTree().isType<openvdb::FloatTree>())
             {
-                Math::AABB channelAABB = ResolveBlocks<openvdb::FloatGrid>(channel, spatialBlocks);
-                orderedChannelAABBs.emplace_back(channelAABB);
-                totalAABB = totalAABB | channelAABB;
+                Math::AABB componentAABB = ResolveBlocks<openvdb::FloatGrid>(component, spatialBlocks);
+                orderedChannelAABBs.emplace_back(componentAABB);
+                frameAABB = frameAABB | componentAABB;
             }
             else
             {
@@ -310,7 +266,8 @@ namespace Zibra::CE::Addons::OpenVDBUtils
         result->info.channelBlockCount = channelBlockAccumulator;
         result->info.spatialBlockCount = spatialBlocks.size();
         result->info.channelsCount = m_Channels.size();
-        result->info.aabb = totalAABB;
+        result->info.componentsCount = m_Components.size();
+        result->info.aabb = frameAABB;
 
         // Allocating result frame buffers from precalculated data
         auto* resultBlocks = new ChannelBlock[result->info.channelBlockCount];
@@ -328,36 +285,42 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             auto chName = new char[m_Channels[i].name.length() + 1];
             strcpy(chName, m_Channels[i].name.c_str());
             channels[i].name = chName;
-            channels[i].aabb = orderedChannelAABBs[i];
+            channels[i].componentCount = m_Channels[i].componentCount;
+            channels[i].firstComponentIndex = m_Channels[i].firstComponentIndex;
+            channels[i].aabb = orderedChannelAABBs[channels[i].firstComponentIndex];
             channels[i].gridTransform = OpenVDBTransformToMathTransform(m_Channels[i].grid->constTransform());
-            channels[i].voxelStatistics.minValue = std::numeric_limits<float>::max();
-            channels[i].voxelStatistics.maxValue = std::numeric_limits<float>::min();
+        }
+
+        for (size_t i = 0; i < result->info.componentsCount; ++i)
+        {
+            result->info.components[i].minValue = std::numeric_limits<float>::max();
+            result->info.components[i].maxValue = std::numeric_limits<float>::min();
         }
 
         // Concurrently moving voxel data from leafs to destination ChannelBlock array using precalculated offsets and other data
         // stored in spatial descriptors + calculating voxel statistics per block.
-        std::vector<ChannelVoxelStatistics> perBlockStatistics{};
+        std::vector<ComponentVoxelStatistics> perBlockStatistics{};
         perBlockStatistics.resize(result->info.channelBlockCount);
         std::for_each(
 #if !ZIB_TARGET_OS_MAC
             std::execution::par_unseq,
 #endif
             spatialBlocks.begin(), spatialBlocks.end(), [&](const std::pair<openvdb::Coord, SpatialBlockIntermediate>& item) {
-                auto& [coord, spatialIntrm] = item;
-                ChannelMask mask = 0x0;
+                auto& [coord, spatialIntermediate] = item;
+                ComponentMask mask = 0x0;
 
-                // Iterating channels in order of increasing mask.
-                size_t chIdx = 0;
-                for (auto& [chMask, chBlockIntrm] : spatialIntrm.blocks)
+                // Iterating components in order of increasing mask.
+                uint8_t componentIndex = 0;
+                for (auto& [compMask, compBlockIntrm] : spatialIntermediate.blocks)
                 {
-                    uint32_t channelBlockIndex = spatialIntrm.destFirstChannelBlockIndex + chIdx;
-                    ChannelBlock& outBlock = resultBlocks[channelBlockIndex];
-                    mask |= chMask;
-                    resultChannelIndexPerBlock[channelBlockIndex] = FirstChannelIndexFromMask(chMask);
-                    PackFromStride(&outBlock, chBlockIntrm.data, chBlockIntrm.valueStride, chBlockIntrm.valueOffset, chBlockIntrm.valueSize,
+                    uint32_t componentBlockIndex = spatialIntermediate.destFirstChannelBlockIndex + componentIndex;
+                    ChannelBlock& outBlock = resultBlocks[componentBlockIndex];
+                    mask |= compMask;
+                    resultChannelIndexPerBlock[componentBlockIndex] = FirstChannelIndexFromMask(compMask);
+                    PackFromStride(&outBlock, compBlockIntrm.data, compBlockIntrm.valueStride, compBlockIntrm.valueOffset, compBlockIntrm.valueSize,
                                    SPARSE_BLOCK_VOXEL_COUNT);
 
-                    ChannelVoxelStatistics& dstStatistics = perBlockStatistics[channelBlockIndex];
+                    ComponentVoxelStatistics& dstStatistics = perBlockStatistics[componentBlockIndex];
                     dstStatistics.minValue = std::numeric_limits<float>::max();
                     dstStatistics.maxValue = std::numeric_limits<float>::min();
                     for (float voxel : outBlock.voxels)
@@ -370,24 +333,26 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                     dstStatistics.meanPositiveValue /= static_cast<float>(SPARSE_BLOCK_VOXEL_COUNT);
                     dstStatistics.meanNegativeValue /= static_cast<float>(SPARSE_BLOCK_VOXEL_COUNT);
 
-                    ++chIdx;
+                    ++componentIndex;
                 }
 
                 SpatialBlock spatialBlock{};
-                spatialBlock.coords[0] = coord.x() - totalAABB.minX;
-                spatialBlock.coords[1] = coord.y() - totalAABB.minY;
-                spatialBlock.coords[2] = coord.z() - totalAABB.minZ;
-                spatialBlock.channelMask = mask;
-                spatialBlock.channelCount = spatialIntrm.blocks.size();
-                spatialBlock.channelBlocksOffset = spatialIntrm.destFirstChannelBlockIndex;
-                resultSpatialInfo[spatialIntrm.destSpatialBlockIndex] = spatialBlock;
+                spatialBlock.coords[0] = coord.x() - frameAABB.minX;
+                spatialBlock.coords[1] = coord.y() - frameAABB.minY;
+                spatialBlock.coords[2] = coord.z() - frameAABB.minZ;
+                spatialBlock.componentMask = mask;
+                spatialBlock.channelCount = spatialIntermediate.blocks.size();
+                spatialBlock.channelBlocksOffset = spatialIntermediate.destFirstChannelBlockIndex;
+                resultSpatialInfo[spatialIntermediate.destSpatialBlockIndex] = spatialBlock;
             });
 
-        // Resolving concurrently calculated per block voxel statistics to general frame per channel voxel statistics.
+        // Resolving concurrently calculated per block voxel statistics to general frame per component voxel statistics.
         for (size_t i = 0; i < perBlockStatistics.size(); ++i)
         {
-            const auto channelIndex = result->channelIndexPerBlock[i];
-            auto& dstStatistics = channels[channelIndex].voxelStatistics;
+            const auto componentIndex = result->channelIndexPerBlock[i];
+            const auto& compDesc = m_Components[componentIndex];
+            auto& dstStatistics = result->info.components[componentIndex];
+
             dstStatistics.minValue = std::min(dstStatistics.minValue, perBlockStatistics[i].minValue);
             dstStatistics.maxValue = std::max(dstStatistics.maxValue, perBlockStatistics[i].maxValue);
             dstStatistics.meanPositiveValue += perBlockStatistics[i].meanPositiveValue;
@@ -395,44 +360,34 @@ namespace Zibra::CE::Addons::OpenVDBUtils
             // Writing blocks count to voxelCount to use it in the future.
             dstStatistics.voxelCount += 1;
         }
-        for (size_t i = 0; i < result->info.channelsCount; ++i)
+        
+        for (size_t i = 0; i < result->info.componentsCount; ++i)
         {
-            if (channels[i].voxelStatistics.voxelCount == 0)
+            auto& statistics = result->info.components[i];
+            if (statistics.voxelCount == 0)
             {
-                channels[i].voxelStatistics.minValue = 0;
-                channels[i].voxelStatistics.maxValue = 0;
+                statistics.minValue = 0;
+                statistics.maxValue = 0;
             }
             else
             {
-                channels[i].voxelStatistics.meanPositiveValue /= static_cast<float>(channels[i].voxelStatistics.voxelCount);
-                channels[i].voxelStatistics.meanNegativeValue /= static_cast<float>(channels[i].voxelStatistics.voxelCount);
-                // Previous cycle has written blocks per channel count to voxelCount field.
-                channels[i].voxelStatistics.voxelCount *= SPARSE_BLOCK_VOXEL_COUNT;
+                statistics.meanPositiveValue /= static_cast<float>(statistics.voxelCount);
+                statistics.meanNegativeValue /= static_cast<float>(statistics.voxelCount);
+                // Previous cycle has written blocks per component count to voxelCount field.
+                statistics.voxelCount *= SPARSE_BLOCK_VOXEL_COUNT;
             }
         }
 
         return result;
     }
 
-    inline FrameLoader::~FrameLoader() noexcept
-    {
-        for (auto& shuffleItem : m_GridsShuffle)
-        {
-            delete[] shuffleItem.gridName;
-            for (size_t i = 0; i < std::size(shuffleItem.chSource); ++i)
-            {
-                delete[] shuffleItem.chSource[i];
-            }
-        }
-    }
-
-    inline FrameLoader::FrameLoader(openvdb::GridBase::ConstPtr* grids, size_t gridsCount, bool matchVoxelSize /*= false*/) noexcept
+    inline OpenVDBToSparseFrame::OpenVDBToSparseFrame(openvdb::GridBase::ConstPtr* grids, size_t gridsCount, bool matchVoxelSize /*= false*/) noexcept
     {
         if (!gridsCount)
             return;
 
-        m_Channels.reserve(gridsCount * 4);
-        m_GridsShuffle.reserve(gridsCount);
+        m_Channels.reserve(gridsCount);
+        m_Components.reserve(gridsCount * 3);
 
         // Selecting orign grid for resampling
         openvdb::GridBase::ConstPtr originGrid = grids[0];
@@ -493,42 +448,46 @@ namespace Zibra::CE::Addons::OpenVDBUtils
                 return mutableCopy;
             });
 
-        // Splitting vector grids to separate scalar channels + constructing channels unshuffle structure
-        ChannelMask mask = 0x1;
+        // One logical channel per grid, vec3 grid -> 3 component, scalar grid -> 1 component
+        ComponentMask mask = 0x1;
         for (size_t i = 0; i < gridsCount; ++i)
         {
-            VDBGridDesc shuffleGridInfo{};
-            std::vector<ChannelDescriptor> channels;
+            uint8_t componentCount = {};
             if (processedGrids[i]->baseTree().isType<openvdb::Vec3STree>())
             {
-                shuffleGridInfo.voxelType = GridVoxelType::Float3;
-                channels = ChannelsFromGrid(processedGrids[i], 3, sizeof(float), mask);
+                componentCount = 3;
             }
             else if (processedGrids[i]->baseTree().isType<openvdb::FloatTree>())
             {
-                shuffleGridInfo.voxelType = GridVoxelType::Float1;
-                channels = ChannelsFromGrid(processedGrids[i], 1, sizeof(float), mask);
+                componentCount = 1;
             }
             else
             {
                 assert(0 && "Unsupported grid type. Loader supports only floating point grids.");
                 m_Channels.clear();
+                m_Components.clear();
                 return;
             }
 
-            const auto& gridName = processedGrids[i]->getName();
-            shuffleGridInfo.gridName = new char[gridName.length() + 1];
-            strcpy(const_cast<char*>(shuffleGridInfo.gridName), gridName.c_str());
+            ChannelDescriptor chDesc{};
+            chDesc.name = processedGrids[i]->getName();
+            chDesc.grid = processedGrids[i];
+            chDesc.componentCount = componentCount;
+            chDesc.firstComponentIndex = static_cast<uint8_t>(m_Components.size());
+            m_Channels.emplace_back(chDesc);
 
-            for (size_t chIdx = 0; chIdx < std::min(channels.size(), std::size(shuffleGridInfo.chSource)); ++chIdx)
+            for (uint8_t componentIndex = 0; componentIndex < componentCount; ++componentIndex)
             {
-                shuffleGridInfo.chSource[chIdx] = new char[channels[chIdx].name.length() + 1];
-                strcpy(const_cast<char*>(shuffleGridInfo.chSource[chIdx]), channels[chIdx].name.c_str());
+                ComponentDescriptor compDesc{};
+                compDesc.componentMask = mask;
+                compDesc.grid = processedGrids[i];
+                compDesc.valueSize = sizeof(float);
+                compDesc.valueStride = componentCount * sizeof(float);
+                compDesc.valueOffset = componentIndex * sizeof(float);
+                compDesc.channelIndex = static_cast<uint8_t>(m_Channels.size() - 1);
+                m_Components.emplace_back(compDesc);
+                mask = mask << 1;
             }
-
-            mask = mask << channels.size();
-            m_Channels.insert(m_Channels.end(), channels.begin(), channels.end());
-            m_GridsShuffle.push_back(shuffleGridInfo);
         }
     }
 

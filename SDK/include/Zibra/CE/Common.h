@@ -52,9 +52,11 @@ namespace Zibra::CE
     static constexpr int SPARSE_BLOCK_SIZE = 8;
     static constexpr int SPARSE_BLOCK_VOXEL_COUNT = SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE * SPARSE_BLOCK_SIZE;
     static constexpr size_t MAX_CHANNEL_COUNT = 32;
+    static constexpr size_t MAX_COMPONENT_COUNT = 32;
+    static constexpr size_t MAX_COMPONENTS_PER_CHANNEL = 4;
     static constexpr size_t CHUNK_SIZE_IN_BYTES = 128 * 1024 * 1024;
 
-    using ChannelMask = uint32_t;
+    using ComponentMask = uint32_t;
 
     struct MetadataEntry
     {
@@ -87,10 +89,10 @@ namespace Zibra::CE
         uint32_t channelBlocksOffset;
 
         /**
-         * Mask of active channels in this spatial block.
+         * Mask of active components in this spatial block.
          * @range [0x0; 0xFFFFFF]
          */
-        ChannelMask channelMask;
+        ComponentMask componentMask;
 
         /**
          * Count of active channels in this spatial block.
@@ -101,26 +103,26 @@ namespace Zibra::CE
     inline bool operator==(const SpatialBlock& a, const SpatialBlock& b) noexcept
     {
         const bool coords = a.coords[0] == b.coords[0] && a.coords[1] == b.coords[1] && a.coords[2] == b.coords[2];
-        return coords && (a.channelBlocksOffset == b.channelBlocksOffset) && (a.channelMask == b.channelMask) &&
+        return coords && (a.channelBlocksOffset == b.channelBlocksOffset) && (a.componentMask == b.componentMask) &&
                (a.channelCount == b.channelCount);
     }
 
-    struct ChannelVoxelStatistics
+    struct ComponentVoxelStatistics
     {
         /**
-         * Min voxel value for entire channel gird.
+         * Min voxel value for this component.
          * @range [-INF; INF]
          */
         float minValue = 0.f;
         /**
-         * Max voxel value for entire channel gird.
+         * Max voxel value for this component.
          * @range [-INF; INF]
          */
         float maxValue = 0.f;
         float meanPositiveValue = 0.f;
         float meanNegativeValue = 0.f;
         /**
-         * Total voxels count per channel grid.
+         * Total voxels count for this component.
          * @range [0; INF]
          */
         uint32_t voxelCount = 0;
@@ -133,6 +135,14 @@ namespace Zibra::CE
          */
         const char* name = nullptr;
         /**
+         * Count of components in channel. Cannot be 0.
+         */
+        uint8_t componentCount = 1;
+        /**
+         * Index of the first scalar component stream for this channel.
+         */
+        uint8_t firstComponentIndex = 0;
+        /**
          * Axis aligned bounding box. Cannot be 0.
          */
         Math::AABB aabb = {};
@@ -140,7 +150,10 @@ namespace Zibra::CE
          * Affine transformation matrix. Cannot be 0.
          */
         Math::Transform gridTransform = {};
-        ChannelVoxelStatistics voxelStatistics = {};
+        /**
+         * Compression quality of the channel.
+         */
+        float quality = -1.0f;
     };
 
     struct FrameInfo
@@ -151,10 +164,20 @@ namespace Zibra::CE
          */
         uint8_t channelsCount = 0;
         /**
+         * Count of scalar component streams present in frame.
+         * @range [0; MAX_COMPONENT_COUNT]
+         */
+        uint8_t componentsCount = 0;
+        /**
          * Per channel information.
          * @range Length: =channelsCount
          */
         ChannelInfo channels[MAX_CHANNEL_COUNT] = {};
+        /**
+         * Per component information.
+         * @range Length: =componentsCount
+         */
+        ComponentVoxelStatistics components[MAX_COMPONENT_COUNT] = {};
         /**
          * Spatial info count
          * @range [1; INF]

@@ -15,7 +15,7 @@ namespace Zibra::CE::Decompression::Shaders {
 struct ZCEDecompressionPackedSpatialBlock {
     uint packedCoords;
     uint channelBlocksOffset;
-    uint channelMask;
+    uint componentMask;
 };
 
 struct ZCEDecompressionPackedChannelBlockInfo {

@@ -129,11 +129,8 @@ namespace Zibra::ZibraVDBDecompressor
             return error(context);
         }
 
-        auto gridShuffle = DeserializeGridShuffleInfo(frameProxy);
-
         openvdb::GridPtrVec vdbGrids = {};
-        res = m_DecompressorManager.DecompressFrame(frameMemory, frameProxy, gridShuffle, &vdbGrids);
-        ReleaseGridShuffleInfo(gridShuffle);
+        res = m_DecompressorManager.DecompressFrame(frameMemory, frameProxy, &vdbGrids);
         if (ZIB_FAILED(res))
         {
             std::string errorMessage = "Failed to decompress frame: " + LibraryUtils::ErrorCodeToString(res);
@@ -273,63 +270,6 @@ namespace Zibra::ZibraVDBDecompressor
         char* dst = new char[src.length() + 1];
         strcpy(dst, src.c_str());
         return dst;
-    }
-
-    std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> SOP_ZibraVDBDecompressor::DeserializeGridShuffleInfo(FrameProxy* frameProxy) noexcept
-    {
-        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&SOP_ZibraVDBDecompressor::DeserializeGridShuffleInfo)>);
-
-        static std::map<std::string, CE::Addons::OpenVDBUtils::GridVoxelType> strToVoxelType = {
-            {"Float1", CE::Addons::OpenVDBUtils::GridVoxelType::Float1}, {"Float3", CE::Addons::OpenVDBUtils::GridVoxelType::Float3}};
-
-        const char* meta = frameProxy->GetMetadataByKey("chShuffle");
-        if (!meta)
-            return {};
-
-        auto serialized = nlohmann::json::parse(meta);
-        if (!serialized.is_array())
-        {
-            addWarning(SOP_MESSAGE, "Corrupted metadata for grid reconstruction. Applying direct mapping.");
-            return {};
-        }
-        std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> result{};
-        for (const auto& serializedDesc : serialized)
-        {
-            CE::Addons::OpenVDBUtils::VDBGridDesc gridDesc{};
-            if (!serializedDesc.is_object())
-            {
-                addWarning(SOP_MESSAGE, "Partially corrupted metadata for grid reconstruction. Skipping corrupted grids.");
-                continue;
-            }
-            gridDesc.gridName = TransferStr(serializedDesc["gridName"]);
-            gridDesc.voxelType = strToVoxelType.at(serializedDesc["voxelType"]);
-
-            for (size_t i = 0; i < std::size(gridDesc.chSource); ++i)
-            {
-                auto key = std::string{"chSource"} + std::to_string(i);
-                if (serializedDesc.contains(key) && serializedDesc[key].is_string())
-                {
-                    gridDesc.chSource[i] = TransferStr(serializedDesc[key]);
-                }
-            }
-            result.emplace_back(gridDesc);
-        }
-        return result;
-    }
-
-    void SOP_ZibraVDBDecompressor::ReleaseGridShuffleInfo(std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc>& gridDescs) noexcept
-    {
-        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&SOP_ZibraVDBDecompressor::ReleaseGridShuffleInfo)>);
-
-        for (const CE::Addons::OpenVDBUtils::VDBGridDesc& desc : gridDescs)
-        {
-            delete desc.gridName;
-            for (size_t i = 0; i < std::size(desc.chSource); ++i)
-            {
-                delete desc.chSource[i];
-            }
-        }
-        gridDescs.clear();
     }
 
 } // namespace Zibra::ZibraVDBDecompressor
