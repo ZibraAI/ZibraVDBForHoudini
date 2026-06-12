@@ -150,6 +150,10 @@ namespace Zibra::CE
          * Affine transformation matrix. Cannot be 0.
          */
         Math::Transform gridTransform = {};
+        /**
+         * Compression quality of the channel.
+         */
+        float quality = -1.0f;
     };
 
     struct FrameInfo
