@@ -608,7 +608,7 @@ namespace Zibra::ZibraVDBCompressor
         {
             if (!m_PerFrameFilenames.insert(filename.c_str()).second)
             {
-                addError(ROP_MESSAGE, ("Duplicate per-frame filename detected: '"s + filename.c_str()).c_str());
+                addError(ROP_MESSAGE, ("Trying to save 2 different frames into the same file: '"s + filename.c_str() + "'").c_str());
                 return ROP_ABORT_RENDER;
             }
 
@@ -632,12 +632,12 @@ namespace Zibra::ZibraVDBCompressor
             auto frameOutStream = new OStreamRAMWrapper{};
             res = frameManager->FinishAndEncode(frameOutStream);
             m_BakedFrames.emplace(int32_t(ctx.getFrame()), frameOutStream);
-        }
-        if (ZIB_FAILED(res))
-        {
-            std::string errorMessage = "Failed to dump frame data: " + LibraryUtils::ErrorCodeToString(res);
-            addError(ROP_MESSAGE, errorMessage.c_str());
-            return ROP_ABORT_RENDER;
+            if (ZIB_FAILED(res))
+            {
+                std::string errorMessage = "Failed to dump frame data: " + LibraryUtils::ErrorCodeToString(res);
+                addError(ROP_MESSAGE, errorMessage.c_str());
+                return ROP_ABORT_RENDER;
+            }
         }
 
         ++m_FrameCount;

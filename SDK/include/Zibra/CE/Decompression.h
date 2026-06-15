@@ -188,10 +188,9 @@ namespace Zibra::CE::Decompression
         uint64_t size;
     };
 
-    enum SequenceType : uint32_t
+    enum SequenceFlags : uint32_t
     {
-        MULTI_FRAME = 0,
-        SINGLE_FRAME = 1,
+        SEQUENCE_FLAG_FILE_PER_FRAME = 0x1,
     };
 
     struct SequenceInfo
@@ -207,7 +206,7 @@ namespace Zibra::CE::Decompression
         uint8_t firstComponentIndices[MAX_CHANNEL_COUNT];
         float channelQualities[MAX_CHANNEL_COUNT];
         float quality;
-        SequenceType sequenceType;
+        uint32_t sequenceFlags;
     };
 
     class FrameProxy
