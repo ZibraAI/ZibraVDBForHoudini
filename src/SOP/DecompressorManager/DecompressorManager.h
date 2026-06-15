@@ -23,6 +23,7 @@ namespace Zibra::Helpers
                                openvdb::GridPtrVec* vdbGrids) noexcept;
         std::pair<Span<char>, CE::Decompression::FrameProxy*> FetchFrame(const exint& frameIndex) noexcept;
         CE::Decompression::FrameRange GetFrameRange() const noexcept;
+        CE::Decompression::SequenceInfo GetSequenceInfo() const noexcept;
         void Release() noexcept;
 
     private:

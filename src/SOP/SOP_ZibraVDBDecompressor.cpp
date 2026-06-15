@@ -114,7 +114,10 @@ namespace Zibra::ZibraVDBDecompressor
             return error(context);
         }
 
-        const exint frameIndex = evalInt(FRAME_PARAM_NAME, 0, context.getTime());
+        const CE::Decompression::SequenceInfo seqInfo = m_DecompressorManager.GetSequenceInfo();
+        const exint frameIndex = (seqInfo.sequenceFlags & CE::Decompression::SEQUENCE_FLAG_FILE_PER_FRAME)
+            ? m_DecompressorManager.GetFrameRange().start
+            : evalInt(FRAME_PARAM_NAME, 0, context.getTime());
 
         auto [frameMemory, frameProxy] = m_DecompressorManager.FetchFrame(frameIndex);
         if (frameMemory.size() == 0)
