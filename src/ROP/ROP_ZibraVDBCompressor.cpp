@@ -476,6 +476,7 @@ namespace Zibra::ZibraVDBCompressor
         m_FrameCount = 0;
         m_Resolution = {};
         m_CompressionStartTime = std::chrono::system_clock::now();
+        m_PerFrameFilenames.clear();
 
         return ROP_CONTINUE_RENDER;
     }
@@ -605,6 +606,12 @@ namespace Zibra::ZibraVDBCompressor
         }
         if (m_FilePerFrameMode)
         {
+            if (!m_PerFrameFilenames.insert(filename.c_str()).second)
+            {
+                addError(ROP_MESSAGE, ("Duplicate per-frame filename detected: '"s + filename.c_str()).c_str());
+                return ROP_ABORT_RENDER;
+            }
+
             std::ofstream outFrameFile{filename, std::ios::binary};
             if (!outFrameFile.is_open() || outFrameFile.fail())
             {
@@ -614,6 +621,11 @@ namespace Zibra::ZibraVDBCompressor
             STDOStreamWrapper streamWrapper{outFrameFile};
             res = frameManager->FinishAndEncode(&streamWrapper);
             outFrameFile.close();
+            if (ZIB_FAILED(res))
+            {
+                addError(ROP_MESSAGE, ("Failed to encode frame to '"s + filename.c_str() + "': " + LibraryUtils::ErrorCodeToString(res)).c_str());
+                return ROP_ABORT_RENDER;
+            }
         }
         else
         {

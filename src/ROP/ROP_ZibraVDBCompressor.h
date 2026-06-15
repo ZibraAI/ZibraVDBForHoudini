@@ -96,5 +96,6 @@ namespace Zibra::ZibraVDBCompressor
         int m_FrameCount = 0;
         std::chrono::system_clock::time_point m_CompressionStartTime;
         std::array<uint32_t, 3> m_Resolution;
+        std::set<std::string> m_PerFrameFilenames{};
     };
 } // namespace Zibra::ZibraVDBCompressor

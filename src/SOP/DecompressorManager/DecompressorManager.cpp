@@ -338,6 +338,17 @@ namespace Zibra::Helpers
         return m_FileDecoder->GetFrameRange();
     }
 
+    CE::Decompression::SequenceInfo DecompressorManager::GetSequenceInfo() const noexcept
+    {
+        static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&DecompressorManager::GetSequenceInfo)>);
+
+        if (!m_FileDecoder)
+        {
+            return {};
+        }
+        return m_FileDecoder->GetSequenceInfo();
+    }
+
     Result DecompressorManager::FreeExternalBuffers() noexcept
     {
         static_assert(Zibra::is_all_func_arguments_acceptable_v<decltype(&DecompressorManager::FreeExternalBuffers)>);
