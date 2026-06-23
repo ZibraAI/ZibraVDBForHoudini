@@ -1,6 +1,6 @@
 name: Build
 
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
 
 jobs:
   select-houdini-build:
@@ -40,7 +40,7 @@ jobs:
 
       - name: Sync
         if: ${{ steps.pr_check.outputs.has_open_pr != 'true' }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Build matrix
         if: ${{ steps.pr_check.outputs.has_open_pr != 'true' }}
@@ -51,7 +51,7 @@ jobs:
           python3 -m venv actions/houdini/venv
           ./actions/houdini/venv/bin/Activate.ps1
           pip3 install -r actions/houdini/requirements.txt
-          python3 actions/houdini/build_matrix.py --all-platforms ${{ github.ref == 'refs/heads/main' && '--all-builds' || '' }} ${{ (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') && '--all-versions' || '' }}
+          python3 actions/houdini/build_matrix.py --all-platforms ${{ (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && '--all-builds' || '' }} ${{ (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') && '--all-versions' || '' }}
         env:
           HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
           HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
@@ -65,13 +65,13 @@ jobs:
             
     runs-on: ${{ matrix.runner }}
     concurrency:
-      group: ${{ matrix.houdini-platform }}-${{ matrix.houdini-version }}-${{ matrix.houdini-build }}-${{ github.workflow }}-${{ github.ref }}
+      group: ${{ matrix.houdini-platform }}-${{ matrix.houdini-version }}-${{ matrix.houdini-build }}-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
       cancel-in-progress: true
     name: Build ${{ matrix.name }}
 
     steps:
       - name: Sync
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install python
         if: ${{ matrix.os == 'windows' }}
@@ -126,7 +126,7 @@ jobs:
         run: cmake --build build --config Release
 
       - name: Save artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-${{ matrix.houdini-platform }}
           path: package
@@ -138,14 +138,14 @@ jobs:
     needs: [select-houdini-build, build-plugin]
     # Only run merge if there is more than one build in matrix
     if: ${{ fromJson(needs.select-houdini-build.outputs.build-matrix-json).include[1] != null }}
-    name: Merge packages ${{ github.event_name == 'pull_request' && '(PR)' || ' (Push)' }}
+    name: Merge packages ${{ github.event_name == 'pull_request' && '(PR)' || (github.event_name == 'workflow_dispatch' &&' (Workflow Dispatch)' || ' (Push)') }}
 
     steps:
       - name: Sync
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         
       - name: Download artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           pattern: ZibraVDBForHoudini-*
 
@@ -168,7 +168,7 @@ jobs:
           pwsh ${{ github.workspace }}/actions/houdini/merge_packages.ps1 -Prefix "ZibraVDBForHoudini-" -DestFolder "merged"
 
       - name: Save merged packages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ZibraVDBForHoudini
           path: merged
