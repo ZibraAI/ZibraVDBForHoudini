@@ -27,7 +27,7 @@ jobs:
 
     steps:
       - name: Sync
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Build matrix
         id: build_matrix
@@ -53,7 +53,7 @@ jobs:
 
     steps:
       - name: Sync
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install python
         if: ${{ matrix.os == 'windows' }}
@@ -108,7 +108,7 @@ jobs:
         run: cmake --build build --config Release
 
       - name: Save artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ZibraVDBForHoudini-${{ matrix.houdini-version }}.${{ matrix.houdini-build }}-${{ matrix.houdini-platform }}
           path: package
