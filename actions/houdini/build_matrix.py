@@ -26,7 +26,7 @@ def python_version_for_houdini_version(houdini_version):
         case "21.0":
             return "3.11"
         case "22.0":
-            return "3.13"
+            return "3.11"
         case _:
             raise Exception(f"Unknown houdini version {houdini_version}")
     
