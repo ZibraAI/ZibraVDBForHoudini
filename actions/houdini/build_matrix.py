@@ -12,7 +12,10 @@ def get_secret(secret_name):
 HOUDINI_PRODUCT = "houdini"
 HOUDINI_VERSIONS = ["22.0"]
 HOUDINI_VERSIONS_ALL = ["20.0", "20.5", "21.0", "22.0"]
-HOUDINI_PLATFORMS = ["win64-vc143", "macosx_arm64", "linux_x86_64"]
+HOUDINI_PLATFORMS_WIN_AND_MAC = ["win64-vc143", "macosx_arm64"]
+# TODO: simplify to a single plaform string once all supported versions use the same platform string
+HOUDINI_PLATFORMS_LINUX = {"20.0": "linux_x86_64_gcc11.2", "20.5": "linux_x86_64_gcc11.2",
+                           "21.0": "linux_x86_64_gcc11.2", "22.0": "linux_x86_64_gcc14.2"}
 
 def python_version_for_houdini_version(houdini_version):
     match houdini_version:
@@ -61,7 +64,7 @@ def linux_x64_entry(version, build):
                "executable-extension": None,
                "houdini-version": version,
                "houdini-build": build,
-               "houdini-platform": "linux_x86_64",
+               "houdini-platform": HOUDINI_PLATFORMS_LINUX[version],
                "houdini-install-path": f"/opt/hfs{version}.{build}",
                "hfs-path": f"/opt/hfs{version}.{build}",
                "python-version": python_version_for_houdini_version(version),
@@ -116,15 +119,16 @@ if __name__ == "__main__":
         versions_to_process = [args.specific_version]
     
     for version in versions_to_process:
+        platforms = HOUDINI_PLATFORMS_WIN_AND_MAC + [HOUDINI_PLATFORMS_LINUX[version]]
         valid_builds = houdini_version_query.query_houdini_builds(
             product=HOUDINI_PRODUCT,
             version=version,
-            platforms=HOUDINI_PLATFORMS,
+            platforms=platforms,
             allow_daily=args.specific_version is not None,
             verbose=False
         )
         if not valid_builds:
-            raise Exception(f"No common builds found for {HOUDINI_PRODUCT} {version} on platforms {HOUDINI_PLATFORMS}")
+            raise Exception(f"No common builds found for {HOUDINI_PRODUCT} {version} on platforms {platforms}")
         if args.specific_build:
             if args.specific_build not in valid_builds:
                 raise Exception(f"Requested build {args.specific_build} is not available for {HOUDINI_PRODUCT} {version} on all platforms")
