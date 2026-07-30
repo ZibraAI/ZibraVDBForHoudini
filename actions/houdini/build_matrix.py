@@ -14,7 +14,7 @@ HOUDINI_VERSIONS = ["22.0"]
 HOUDINI_VERSIONS_ALL = ["20.0", "20.5", "21.0", "22.0"]
 HOUDINI_PLATFORMS = {
     "win64": {"20.0": "win64-vc143", "20.5": "win64-vc143", "21.0": "win64-vc143", "22.0": "win64-vc143"},
-    "macosx_arm64": {"20.0": "macosx_arm64_clang15.0_14", "20.5": "macosx_arm64_clang15.0_14", "21.0": "macosx_arm64_clang15.0_14", "22.0": "macosx_arm64_clang17.0_15"},
+    "macosx_arm64": {"20.0": "macosx_arm64_clang14.0_13", "20.5": "macosx_arm64_clang15.0_14", "21.0": "macosx_arm64_clang15.0_14", "22.0": "macosx_arm64_clang17.0_15"},
     "linux_x86_64": {"20.0": "linux_x86_64_gcc11.2", "20.5": "linux_x86_64_gcc11.2", "21.0": "linux_x86_64_gcc11.2", "22.0": "linux_x86_64_gcc14.2"},
 }
 
