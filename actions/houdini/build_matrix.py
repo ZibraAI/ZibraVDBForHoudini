@@ -13,9 +13,9 @@ HOUDINI_PRODUCT = "houdini"
 HOUDINI_VERSIONS = ["22.0"]
 HOUDINI_VERSIONS_ALL = ["20.0", "20.5", "21.0", "22.0"]
 HOUDINI_PLATFORMS = {
-    "win": {"20.0": "win64-vc143", "20.5": "win64-vc143", "21.0": "win64-vc143", "22.0": "win64-vc143"},
-    "mac": {"20.0": "macosx_arm64", "20.5": "macosx_arm64", "21.0": "macosx_arm64", "22.0": "macosx_arm64"},
-    "linux": {"20.0": "linux_x86_64_gcc11.2", "20.5": "linux_x86_64_gcc11.2", "21.0": "linux_x86_64_gcc11.2", "22.0": "linux_x86_64_gcc14.2"},
+    "win64": {"20.0": "win64-vc143", "20.5": "win64-vc143", "21.0": "win64-vc143", "22.0": "win64-vc143"},
+    "macosx_arm64": {"20.0": "macosx_arm64_clang15.0_14", "20.5": "macosx_arm64_clang15.0_14", "21.0": "macosx_arm64_clang15.0_14", "22.0": "macosx_arm64_clang17.0_15"},
+    "linux_x86_64": {"20.0": "linux_x86_64_gcc11.2", "20.5": "linux_x86_64_gcc11.2", "21.0": "linux_x86_64_gcc11.2", "22.0": "linux_x86_64_gcc14.2"},
 }
 
 def python_version_for_houdini_version(houdini_version):
@@ -44,7 +44,7 @@ def windows_x64_entry(version, build):
                "executable-extension": ".exe",
                "houdini-version": version,
                "houdini-build": build,
-               "houdini-platform": HOUDINI_PLATFORMS["win"][version],
+               "houdini-platform": HOUDINI_PLATFORMS["win64"][version],
                "houdini-install-path": f"C:\\Houdini\\{version}.{build}",
                "hfs-path": f"C:\\Houdini\\{version}.{build}",
                "python-version": python_version_for_houdini_version(version),
@@ -65,7 +65,7 @@ def linux_x64_entry(version, build):
                "executable-extension": None,
                "houdini-version": version,
                "houdini-build": build,
-               "houdini-platform": HOUDINI_PLATFORMS["linux"][version],
+               "houdini-platform": HOUDINI_PLATFORMS["linux_x86_64"][version],
                "houdini-install-path": f"/opt/hfs{version}.{build}",
                "hfs-path": f"/opt/hfs{version}.{build}",
                "python-version": python_version_for_houdini_version(version),
@@ -86,7 +86,7 @@ def macos_arm64_entry(version, build):
                "executable-extension": None,
                "houdini-version": version,
                "houdini-build": build,
-               "houdini-platform": HOUDINI_PLATFORMS["mac"][version],
+               "houdini-platform": HOUDINI_PLATFORMS["macosx_arm64"][version],
                "houdini-install-path": f"/Applications/Houdini/Houdini{version}.{build}",
                "hfs-path": f"/Applications/Houdini/Houdini{version}.{build}/Frameworks/Houdini.framework/Versions/Current/Resources",
                "python-version": python_version_for_houdini_version(version),
