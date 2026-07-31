@@ -18,6 +18,10 @@ HOUDINI_PLATFORMS = {
     "linux_x86_64": {"20.0": "linux_x86_64_gcc11.2", "20.5": "linux_x86_64_gcc11.2", "21.0": "linux_x86_64_gcc11.2", "22.0": "linux_x86_64_gcc14.2"},
 }
 
+def choose_gcc_version(houdini_platform):
+    # Parses gcc version out of the platform name (e.g. "linux_x86_64_gcc14.2" -> "14").
+    return houdini_platform.split("_gcc")[1].split(".")[0]
+
 def python_version_for_houdini_version(houdini_version):
     match houdini_version:
         case "20.0":
@@ -54,6 +58,7 @@ def windows_x64_entry(version, build):
            }
 
 def linux_x64_entry(version, build):
+    toolset_bin_path = f"/opt/rh/gcc-toolset-{choose_gcc_version(HOUDINI_PLATFORMS['linux_x86_64'][version])}/root/usr/bin"
     return {
                "name": f"Linux x64 {version}.{build}",
                "runner": [
@@ -71,7 +76,7 @@ def linux_x64_entry(version, build):
                "python-version": python_version_for_houdini_version(version),
                "python-command": "python3",
                "python-venv-activate-path": "bin/Activate.ps1",
-               "additional-config-args": None
+               "additional-config-args": f"-DCMAKE_C_COMPILER={toolset_bin_path}/gcc -DCMAKE_CXX_COMPILER={toolset_bin_path}/g++"
            }
 
 def macos_arm64_entry(version, build):
