@@ -10,9 +10,17 @@ def get_secret(secret_name):
         raise Exception(f"Missing secret: {secret_name}")
     
 HOUDINI_PRODUCT = "houdini"
-HOUDINI_VERSIONS = ["21.0"]
-HOUDINI_VERSIONS_ALL = ["20.0", "20.5", "21.0"]
-HOUDINI_PLATFORMS = ["win64-vc143", "macosx_arm64", "linux_x86_64_gcc11.2"]
+HOUDINI_VERSIONS = ["22.0"]
+HOUDINI_VERSIONS_ALL = ["20.0", "20.5", "21.0", "22.0"]
+HOUDINI_PLATFORMS = {
+    "win64": {"20.0": "win64-vc143", "20.5": "win64-vc143", "21.0": "win64-vc143", "22.0": "win64-vc143"},
+    "macosx_arm64": {"20.0": "macosx_arm64_clang14.0_13", "20.5": "macosx_arm64_clang15.0_14", "21.0": "macosx_arm64_clang15.0_14", "22.0": "macosx_arm64_clang17.0_15"},
+    "linux_x86_64": {"20.0": "linux_x86_64_gcc11.2", "20.5": "linux_x86_64_gcc11.2", "21.0": "linux_x86_64_gcc11.2", "22.0": "linux_x86_64_gcc14.2"},
+}
+
+def choose_gcc_version(houdini_platform):
+    # Parses gcc version out of the platform name (e.g. "linux_x86_64_gcc14.2" -> "14").
+    return houdini_platform.split("_gcc")[1].split(".")[0]
 
 def python_version_for_houdini_version(houdini_version):
     match houdini_version:
@@ -22,6 +30,8 @@ def python_version_for_houdini_version(houdini_version):
             return "3.11"
         case "21.0":
             return "3.11"
+        case "22.0":
+            return "3.13"
         case _:
             raise Exception(f"Unknown houdini version {houdini_version}")
     
@@ -38,7 +48,7 @@ def windows_x64_entry(version, build):
                "executable-extension": ".exe",
                "houdini-version": version,
                "houdini-build": build,
-               "houdini-platform": "win64-vc143",
+               "houdini-platform": HOUDINI_PLATFORMS["win64"][version],
                "houdini-install-path": f"C:\\Houdini\\{version}.{build}",
                "hfs-path": f"C:\\Houdini\\{version}.{build}",
                "python-version": python_version_for_houdini_version(version),
@@ -48,6 +58,7 @@ def windows_x64_entry(version, build):
            }
 
 def linux_x64_entry(version, build):
+    toolset_bin_path = f"/opt/rh/gcc-toolset-{choose_gcc_version(HOUDINI_PLATFORMS['linux_x86_64'][version])}/root/usr/bin"
     return {
                "name": f"Linux x64 {version}.{build}",
                "runner": [
@@ -59,13 +70,13 @@ def linux_x64_entry(version, build):
                "executable-extension": None,
                "houdini-version": version,
                "houdini-build": build,
-               "houdini-platform": "linux_x86_64_gcc11.2",
+               "houdini-platform": HOUDINI_PLATFORMS["linux_x86_64"][version],
                "houdini-install-path": f"/opt/hfs{version}.{build}",
                "hfs-path": f"/opt/hfs{version}.{build}",
                "python-version": python_version_for_houdini_version(version),
                "python-command": "python3",
                "python-venv-activate-path": "bin/Activate.ps1",
-               "additional-config-args": None
+               "additional-config-args": f"-DCMAKE_C_COMPILER={toolset_bin_path}/gcc -DCMAKE_CXX_COMPILER={toolset_bin_path}/g++"
            }
 
 def macos_arm64_entry(version, build):
@@ -80,7 +91,7 @@ def macos_arm64_entry(version, build):
                "executable-extension": None,
                "houdini-version": version,
                "houdini-build": build,
-               "houdini-platform": "macosx_arm64",
+               "houdini-platform": HOUDINI_PLATFORMS["macosx_arm64"][version],
                "houdini-install-path": f"/Applications/Houdini/Houdini{version}.{build}",
                "hfs-path": f"/Applications/Houdini/Houdini{version}.{build}/Frameworks/Houdini.framework/Versions/Current/Resources",
                "python-version": python_version_for_houdini_version(version),
@@ -114,15 +125,16 @@ if __name__ == "__main__":
         versions_to_process = [args.specific_version]
     
     for version in versions_to_process:
+        platforms = [p[version] for p in HOUDINI_PLATFORMS.values()]
         valid_builds = houdini_version_query.query_houdini_builds(
             product=HOUDINI_PRODUCT,
             version=version,
-            platforms=HOUDINI_PLATFORMS,
+            platforms=platforms,
             allow_daily=args.specific_version is not None,
             verbose=False
         )
         if not valid_builds:
-            raise Exception(f"No common builds found for {HOUDINI_PRODUCT} {version} on platforms {HOUDINI_PLATFORMS}")
+            raise Exception(f"No common builds found for {HOUDINI_PRODUCT} {version} on platforms {platforms}")
         if args.specific_build:
             if args.specific_build not in valid_builds:
                 raise Exception(f"Requested build {args.specific_build} is not available for {HOUDINI_PRODUCT} {version} on all platforms")
