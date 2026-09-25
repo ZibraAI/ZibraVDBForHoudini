@@ -11,7 +11,7 @@ namespace Zibra::LibraryUtils {
         uint32_t build;
     };
 
-    extern const std::string g_ZibraVDBFileExtensions[5];
+    extern const std::array<std::string, 4> g_ZibraVDBFileExtensions;
 
     [[nodiscard]] bool TryLoadLibrary() noexcept;
     [[nodiscard]] bool IsLibraryLoaded() noexcept;

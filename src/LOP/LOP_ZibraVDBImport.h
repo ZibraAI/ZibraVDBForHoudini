@@ -25,7 +25,6 @@ namespace Zibra::ZibraVDBImport
             std::string warning;
         };
 
-    private:
         static constexpr const char* FILE_PARAM_NAME = "file";
         static constexpr const char* FRAME_INDEX_PARAM_NAME = "frame";
         static constexpr const char* PRIMPATH_PARAM_NAME = "primpath";
@@ -49,8 +48,8 @@ namespace Zibra::ZibraVDBImport
         std::string GetParentPrimType(fpreal t) const;
         std::string GetChannels(fpreal t) const;
 
-        inline std::string SanitizeFieldNameForUSD(const std::string& fieldName);
-        std::set<std::string> ParseSelectedChannels(const std::string& fieldsStr, std::set<std::string>& invalidGridNames);
+        inline std::string SanitizeChannelNameForUSD(const std::string& channelName);
+        std::set<std::string> ParseSelectedChannels(const std::string& channelNames, std::set<std::string>& invalidChannelNames);
         FileInfo LoadFileInfo(const std::string& filePath);
 
         void WriteZibraVolumeToStage(const UsdStageRefPtr& stage, const SdfPath& volumePrimPath,
@@ -62,7 +61,6 @@ namespace Zibra::ZibraVDBImport
         static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate);
         static void BuildChannelsChoiceList(void* data, PRM_Name* choiceNames, int maxListSize, const PRM_SpareData*, const PRM_Parm*);
 
-    private:
         FileInfo m_CachedFileInfo;
     };
 
@@ -72,8 +70,8 @@ namespace Zibra::ZibraVDBImport
 
     public:
         explicit LOP_ZibraVDBImport_Operator() noexcept
-            : OP_Operator(LOP_NODE_NAME, LOP_NODE_LABEL, LOP_ZibraVDBImport::Constructor, LOP_ZibraVDBImport::GetTemplateList(), 0, 1, 0,
-                          OP_FLAG_GENERATOR, 0, 1)
+            : OP_Operator(LOP_NODE_NAME, LOP_NODE_LABEL, LOP_ZibraVDBImport::Constructor, LOP_ZibraVDBImport::GetTemplateList(), 0, 1,
+                          nullptr, OP_FLAG_GENERATOR, nullptr, 1)
         {
             setIconName(ZIBRAVDB_ICON_PATH);
             setOpTabSubMenuPath(ZIBRAVDB_NODES_TAB_NAME);

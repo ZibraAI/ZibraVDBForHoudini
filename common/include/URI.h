@@ -13,7 +13,7 @@ namespace Zibra
         URI() = delete;
         explicit URI(const std::string& URIString);
 
-        std::string ToString() const;
+        [[nodiscard]] std::string ToString() const;
     };
 
 } // namespace Zibra

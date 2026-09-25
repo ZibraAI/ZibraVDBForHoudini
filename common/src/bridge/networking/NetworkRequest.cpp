@@ -32,7 +32,7 @@ static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* use
 namespace Zibra::NetworkRequest
 {
     template <typename T, size_t size>
-    constexpr size_t ZIB_ARR_SIZE(T (&)[size])
+    constexpr size_t ZIB_ARR_SIZE(T (&)[size]) // NOLINT
     {
         return size;
     }
@@ -53,7 +53,7 @@ namespace Zibra::NetworkRequest
         HINTERNET hSession = ::WinHttpOpen(L"ZibraVDB for Houdini", WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME,
                                            WINHTTP_NO_PROXY_BYPASS, WINHTTP_FLAG_SECURE_DEFAULTS);
 
-        if (!hSession)
+        if (hSession == nullptr)
         {
             assert(0);
             return std::nullopt;
@@ -71,7 +71,7 @@ namespace Zibra::NetworkRequest
         urlComponents.dwUrlPathLength = ZIB_ARR_SIZE(urlPath);
 
         std::wstring wideCharURL = converter.from_bytes(url.c_str());
-        if (!::WinHttpCrackUrl(wideCharURL.c_str(), (DWORD)url.length(), 0, &urlComponents))
+        if (::WinHttpCrackUrl(wideCharURL.c_str(), static_cast<DWORD>(url.length()), 0, &urlComponents) == FALSE)
         {
             ::WinHttpCloseHandle(hSession);
             return std::nullopt;
@@ -79,24 +79,24 @@ namespace Zibra::NetworkRequest
 
         HINTERNET hConnect = ::WinHttpConnect(hSession, urlComponents.lpszHostName, INTERNET_DEFAULT_HTTPS_PORT, 0);
 
-        if (!hConnect)
+        if (hConnect == nullptr)
         {
             ::WinHttpCloseHandle(hSession);
             return std::nullopt;
         }
 
         const wchar_t* acceptTypes[] = {L"*/*", nullptr};
-        HINTERNET hRequest =
-            ::WinHttpOpenRequest(hConnect, L"GET", urlComponents.lpszUrlPath, NULL, WINHTTP_NO_REFERER, acceptTypes, WINHTTP_FLAG_SECURE);
+        HINTERNET hRequest = ::WinHttpOpenRequest(hConnect, L"GET", urlComponents.lpszUrlPath, nullptr, WINHTTP_NO_REFERER, acceptTypes,
+                                                  WINHTTP_FLAG_SECURE);
 
-        if (!hRequest)
+        if (hRequest == nullptr)
         {
             ::WinHttpCloseHandle(hConnect);
             ::WinHttpCloseHandle(hSession);
             return std::nullopt;
         }
 
-        if (!::WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, NULL, 0, 0, 0))
+        if (::WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, nullptr, 0, 0, 0) == FALSE)
         {
             ::WinHttpCloseHandle(hRequest);
             ::WinHttpCloseHandle(hConnect);
@@ -104,7 +104,7 @@ namespace Zibra::NetworkRequest
             return std::nullopt;
         }
 
-        if (!::WinHttpReceiveResponse(hRequest, NULL))
+        if (::WinHttpReceiveResponse(hRequest, nullptr) == FALSE)
         {
             ::WinHttpCloseHandle(hRequest);
             ::WinHttpCloseHandle(hConnect);
@@ -114,8 +114,8 @@ namespace Zibra::NetworkRequest
 
         DWORD statusCode = 0;
         DWORD statusCodeSize = sizeof(statusCode);
-        if (!::WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, WINHTTP_HEADER_NAME_BY_INDEX,
-                                   &statusCode, &statusCodeSize, WINHTTP_NO_HEADER_INDEX))
+        if (::WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, WINHTTP_HEADER_NAME_BY_INDEX,
+                                  &statusCode, &statusCodeSize, WINHTTP_NO_HEADER_INDEX) == FALSE)
         {
             ::WinHttpCloseHandle(hRequest);
             ::WinHttpCloseHandle(hConnect);
@@ -125,11 +125,10 @@ namespace Zibra::NetworkRequest
 
         // Saves response body to a buffer
         std::vector<char> responseBuffer;
-        DWORD bytesRead = 0;
-        DWORD bytesToRead = 0;
-        do
+        while (true)
         {
-            if (!::WinHttpQueryDataAvailable(hRequest, &bytesToRead))
+            DWORD bytesToRead = 0;
+            if (::WinHttpQueryDataAvailable(hRequest, &bytesToRead) == FALSE)
             {
                 assert(0);
                 break;
@@ -140,8 +139,9 @@ namespace Zibra::NetworkRequest
                 break;
             }
 
+            DWORD bytesRead = 0;
             responseBuffer.resize(bytesToRead);
-            if (!::WinHttpReadData(hRequest, responseBuffer.data(), bytesToRead, &bytesRead))
+            if (::WinHttpReadData(hRequest, responseBuffer.data(), bytesToRead, &bytesRead) == FALSE)
             {
                 ::WinHttpCloseHandle(hRequest);
                 ::WinHttpCloseHandle(hConnect);
@@ -149,9 +149,13 @@ namespace Zibra::NetworkRequest
                 return std::nullopt;
             }
 
-            result.insert(result.end(), responseBuffer.begin(), responseBuffer.begin() + bytesRead);
+            if (bytesRead == 0)
+            {
+                break;
+            }
 
-        } while (bytesRead > 0);
+            result.insert(result.end(), responseBuffer.begin(), responseBuffer.begin() + bytesRead);
+        }
 
         ::WinHttpCloseHandle(hRequest);
         ::WinHttpCloseHandle(hConnect);
@@ -268,15 +272,10 @@ namespace Zibra::NetworkRequest
             return false;
         }
 
-        file.write(response->data(), response->size());
+        file.write(response->data(), static_cast<std::streamsize>(response->size()));
 
         file.close();
-        if (file.fail())
-        {
-            return false;
-        }
-
-        return true;
+        return !file.fail();
     }
 
 } // namespace Zibra::NetworkRequest

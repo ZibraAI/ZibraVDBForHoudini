@@ -20,11 +20,14 @@ namespace Zibra::ZibraVDBDecompressor
         static OP_Node* Constructor(OP_Network* net, const char* name, OP_Operator* op) noexcept;
         static PRM_Template* GetTemplateList() noexcept;
 
-    public:
         SOP_ZibraVDBDecompressor(OP_Network* net, const char* name, OP_Operator* entry) noexcept;
         ~SOP_ZibraVDBDecompressor() noexcept final;
 
-    public:
+        SOP_ZibraVDBDecompressor(const SOP_ZibraVDBDecompressor&) = delete;
+        SOP_ZibraVDBDecompressor& operator=(const SOP_ZibraVDBDecompressor&) = delete;
+        SOP_ZibraVDBDecompressor(SOP_ZibraVDBDecompressor&&) = delete;
+        SOP_ZibraVDBDecompressor& operator=(SOP_ZibraVDBDecompressor&&) = delete;
+
         OP_ERROR cookMySop(OP_Context& context) final;
 
         static int OpenManagementWindow(void* data, int index, fpreal32 time, const PRM_Template* tplate);

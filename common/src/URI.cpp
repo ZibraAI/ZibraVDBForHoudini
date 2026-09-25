@@ -63,7 +63,9 @@ namespace Zibra
                     result += "&";
                     first = false;
                 }
-                result += key + "=" + value;
+                result += key;
+                result += "=";
+                result += value;
             }
         }
         return result;

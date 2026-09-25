@@ -18,18 +18,19 @@ namespace Zibra::AssetResolver
         DecompressionSequenceItem& operator=(DecompressionSequenceItem&&) = delete;
 
         std::string DecompressFrame(int frame);
-        const std::string& GetUUID() const { return m_UUIDString; }
+        [[nodiscard]] const std::string& GetUUID() const
+        {
+            return m_UUIDString;
+        }
 
     private:
         void AddNewFrame(int frame);
 
         static const std::string& GetTempDir();
         static int GetMaxCachedFrames();
-        std::string ComposeDecompressedFrameFilePath(int frame) const;
+        [[nodiscard]] std::string ComposeDecompressedFrameFilePath(int frame) const;
 
         std::unique_ptr<Helpers::DecompressorManager> CreateDecompressorManager(const std::string& compressedFile);
-
-    private:
 
         std::deque<int> m_DecompressedFrames;
         std::unique_ptr<Helpers::DecompressorManager> m_Decompressor;
