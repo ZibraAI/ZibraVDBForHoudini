@@ -32,7 +32,7 @@ static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* use
 namespace Zibra::NetworkRequest
 {
     template <typename T, size_t size>
-    constexpr size_t ZIB_ARR_SIZE(T (&)[size])
+    constexpr size_t ZIB_ARR_SIZE(T (&)[size]) // NOLINT
     {
         return size;
     }
