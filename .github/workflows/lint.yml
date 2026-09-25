@@ -1,6 +1,6 @@
 name: Lint
-
-on: [pull_request, workflow_dispatch]
+#debug on push
+on: [push, workflow_dispatch]
 
 jobs:
   clang-tidy:
