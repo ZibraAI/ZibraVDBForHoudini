@@ -109,6 +109,7 @@ namespace Zibra::Utils
         return std::to_string(value);
     }
 
+    //NOLINTBEGIN
     template <typename DataType>
     DataType FromJSONSafeType(typename JSONSafeTypeMapping<DataType>::UnderlyingType value)
     {
@@ -120,6 +121,7 @@ namespace Zibra::Utils
     {
         return std::stoll(value);
     }
+    //NOLINTEND
 
     template <GA_StorageClass StorageClass, typename DataType, GA_Storage StorageType>
     std::optional<nlohmann::json> SerializeAttributeV2Fundamental(GA_Attribute* attribute, GA_Offset mapOffset)

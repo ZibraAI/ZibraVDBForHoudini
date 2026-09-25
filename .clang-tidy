@@ -9,7 +9,7 @@ Checks: >
   bugprone-use-after-move,
   performance-unnecessary-copy-initialization,
   performance-unnecessary-value-param,
-  performance-inefficient-vector-operationl,
+  performance-inefficient-vector-operation,
 
 HeaderFilterRegex: '.*[\\/](src|common|AssetResolver)[\\/].*'
 WarningsAsErrors: '*'
@@ -27,13 +27,12 @@ CheckOptions:
   readability-identifier-naming.FunctionCase: CamelCase
   readability-identifier-naming.MethodCase: CamelCase
 
-  # small data structs may use float x, y, z, and we don't check public therefore
+  # Small data structs may use float x, y, z, and we don't check public therefore
   readability-identifier-naming.PrivateMemberPrefix: 'm_'
   readability-identifier-naming.PrivateMemberCase: CamelCase
   readability-identifier-naming.ProtectedMemberPrefix: 'm_'
   readability-identifier-naming.ProtectedMemberCase: CamelCase
 
-  # Static class attributes: ms_BufferSize
   readability-identifier-naming.ClassMemberPrefix: 'ms_'
   readability-identifier-naming.ClassMemberCase: CamelCase
 
