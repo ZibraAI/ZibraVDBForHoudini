@@ -202,7 +202,7 @@ namespace Zibra::Utils
             }
             data[i] = value;
         }
-        result["t"] = int(GA_STORE_STRING);
+        result["t"] = static_cast<int>(GA_STORE_STRING);
         result["v"] = data;
 
         return result;
@@ -228,7 +228,7 @@ namespace Zibra::Utils
             dict->dump(jsonDump);
             data[i] = jsonDump.str();
         }
-        result["t"] = int(GA_STORE_DICT);
+        result["t"] = static_cast<int>(GA_STORE_DICT);
         result["v"] = data;
 
         return result;

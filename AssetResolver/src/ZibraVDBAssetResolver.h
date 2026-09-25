@@ -18,26 +18,17 @@ public:
     ZibraVDBResolver();
 
 protected:
-    std::string _CreateIdentifier(
-        const std::string& assetPath,
-        const ArResolvedPath& anchorAssetPath) const final;
+    [[nodiscard]] std::string _CreateIdentifier(const std::string& assetPath, const ArResolvedPath& anchorAssetPath) const final;
 
-    std::string _CreateIdentifierForNewAsset(
-        const std::string& assetPath,
-        const ArResolvedPath& anchorAssetPath) const final;
+    [[nodiscard]] std::string _CreateIdentifierForNewAsset(const std::string& assetPath, const ArResolvedPath& anchorAssetPath) const final;
 
-    ArResolvedPath _Resolve(
-        const std::string& assetPath) const final;
+    [[nodiscard]] ArResolvedPath _Resolve(const std::string& assetPath) const final;
 
-    ArResolvedPath _ResolveForNewAsset(
-        const std::string& assetPath) const final;
+    [[nodiscard]] ArResolvedPath _ResolveForNewAsset(const std::string& assetPath) const final;
 
-    std::shared_ptr<ArAsset> _OpenAsset(
-        const ArResolvedPath& resolvedPath) const final;
+    [[nodiscard]] std::shared_ptr<ArAsset> _OpenAsset(const ArResolvedPath& resolvedPath) const final;
 
-    std::shared_ptr<ArWritableAsset> _OpenAssetForWrite(
-        const ArResolvedPath& resolvedPath,
-        WriteMode writeMode) const final;
+    [[nodiscard]] std::shared_ptr<ArWritableAsset> _OpenAssetForWrite(const ArResolvedPath& resolvedPath, WriteMode writeMode) const final;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

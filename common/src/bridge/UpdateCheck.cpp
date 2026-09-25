@@ -47,7 +47,7 @@ namespace Zibra::UpdateCheck
             }
             else
             {
-                versionNumbers.back() = versionNumbers.back() * 10 + (c - '0');
+                versionNumbers.back() = (versionNumbers.back() * 10) + (c - '0');
             }
         }
 

@@ -16,6 +16,7 @@
 
 // clang-format on
 
+// NOLINTBEGIN
 #define ZSDK_CONCAT_HELPER(A, B) A##B
 #define ZSDK_PFN(name) ZSDK_CONCAT_HELPER(PFN_, name)
 #define ZSDK_DEFINE_FUNCTION_POINTER(name) ZSDK_PFN(name) name = nullptr;
@@ -23,6 +24,7 @@ ZSDK_RUNTIME_FUNCTION_LIST_APPLY(ZSDK_DEFINE_FUNCTION_POINTER)
 #undef ZSDK_DEFINE_FUNCTION_POINTER
 #undef ZSDK_PFN
 #undef ZSDK_CONCAT_HELPER
+// NOLINTEND
 
 namespace Zibra::LibraryUtils
 {
@@ -43,7 +45,7 @@ namespace Zibra::LibraryUtils
     bool g_IsLibraryLoaded = false;
     Zibra::Legacy::Version g_CompressionEngineVersion = {};
 
-    const std::string g_ZibraVDBFileExtensions[5] = {".cvdbe", ".cvdbf", ".cvdb", ".zibravdb"};
+    const std::array<std::string, 4> g_ZibraVDBFileExtensions = {".cvdbe", ".cvdbf", ".cvdb", ".zibravdb"};
 
     bool ValidateLoadedVersion()
     {
@@ -69,15 +71,16 @@ namespace Zibra::LibraryUtils
     }
 
 #if ZIB_TARGET_OS_WIN
-    HMODULE g_LibraryHandle = NULL;
+    HMODULE g_LibraryHandle = NULL; // NOLINT
 #elif ZIB_TARGET_OS_LINUX || ZIB_TARGET_OS_MAC
-    void* g_LibraryHandle = nullptr;
+    void* g_LibraryHandle = nullptr; // NOLINT
 #else
 #error Unsupported platform
 #endif
 
     bool LoadFunctions() noexcept
     {
+// NOLINTBEGIN
 #if ZIB_TARGET_OS_WIN
 #define ZIB_LOAD_FUNCTION_POINTER(functionName)                                                                             \
     functionName = reinterpret_cast<ZCE_PFN(functionName)>(::GetProcAddress(g_LibraryHandle, ZIB_STRINGIFY(functionName))); \
@@ -99,6 +102,7 @@ namespace Zibra::LibraryUtils
 #else
 #error Unsupported platform
 #endif
+// NOLINTEND
         return true;
     }
 
@@ -111,11 +115,11 @@ namespace Zibra::LibraryUtils
             return false;
         }
 
-        char szPath[MAX_PATH];
-        ::GetFullPathNameA(libraryPath.c_str(), MAX_PATH, szPath, NULL);
-        g_LibraryHandle = ::LoadLibraryExA(szPath, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+        char szPath[MAX_PATH]; // NOLINT
+        ::GetFullPathNameA(libraryPath.c_str(), MAX_PATH, szPath, nullptr);
+        g_LibraryHandle = ::LoadLibraryExA(szPath, nullptr, LOAD_WITH_ALTERED_SEARCH_PATH);
 
-        if (g_LibraryHandle == NULL)
+        if (g_LibraryHandle == nullptr)
         {
             return false;
         }
@@ -123,7 +127,7 @@ namespace Zibra::LibraryUtils
         if (!LoadFunctions())
         {
             ::FreeLibrary(g_LibraryHandle);
-            g_LibraryHandle = NULL;
+            g_LibraryHandle = nullptr;
             return false;
         }
 
@@ -132,7 +136,7 @@ namespace Zibra::LibraryUtils
         if (!ValidateLoadedVersion())
         {
             ::FreeLibrary(g_LibraryHandle);
-            g_LibraryHandle = NULL;
+            g_LibraryHandle = nullptr;
             return false;
         }
 

@@ -13,7 +13,7 @@ namespace Zibra
     class PluginManagementWindowImpl : public AP_Interface
     {
     public:
-        const char* className() const final
+        [[nodiscard]] const char* className() const final
         {
             return "ZibraVDBPluginManagement";
         }
@@ -50,7 +50,7 @@ namespace Zibra
     {
     public:
         EnterHQROOTPathWindow(void (*callback)(const char*));
-        const char* className() const final
+        [[nodiscard]] const char* className() const final
         {
             return "ZibraVDBEnterHQROOTPath";
         }
@@ -81,7 +81,7 @@ namespace Zibra
         InitializeLicenseFields();
         UpdateUI();
 
-        (*getValueSymbol("window.val")) = true;
+        (*getValueSymbol("window.val")) = 1;
         getValueSymbol("window.val")->changed(this);
     }
 
@@ -181,7 +181,7 @@ namespace Zibra
         if (!userPrefDirExists)
         {
             const std::string errorMessage = "Directory pointer to by USER_PREF_DIR_PATH - \"" + userPrefDirPath[0] + "\" does not exist";
-            UI::MessageBox::Show(UI::MessageBox::Type::OK, errorMessage.c_str());
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, errorMessage);
             return;
         }
 
@@ -199,7 +199,7 @@ namespace Zibra
         {
             const std::string errorMessage =
                 "Directory pointer to by USER_PREF_DIR_PATH - \"" + userPrefDirPath[0] + "\" points to file instead of a directory";
-            UI::MessageBox::Show(UI::MessageBox::Type::OK, errorMessage.c_str());
+            UI::MessageBox::Show(UI::MessageBox::Type::OK, errorMessage);
             return;
         }
 
@@ -299,10 +299,8 @@ namespace Zibra
                                  "Could not load library. Please make sure that you have copied library to the correct folder.");
             return;
         }
-        else
-        {
-            UI::MessageBox::Show(UI::MessageBox::Type::OK, "Library loaded successfully. You can now use ZibraVDB.");
-        }
+
+        UI::MessageBox::Show(UI::MessageBox::Type::OK, "Library loaded successfully. You can now use ZibraVDB.");
     }
 
     void PluginManagementWindowImpl::HandleUpdateLibrary(UI_Event* event)
@@ -314,7 +312,7 @@ namespace Zibra
             UI::MessageBox::Show(UI::MessageBox::Type::OK, "Library is already up to date.");
             return;
         }
-        else if (updateStatus == UpdateCheck::Status::NotInstalled)
+        if (updateStatus == UpdateCheck::Status::NotInstalled)
         {
             UI::MessageBox::Show(UI::MessageBox::Type::OK, "Library is not yet installed.");
             return;
@@ -334,7 +332,7 @@ namespace Zibra
 
     void PluginManagementWindowImpl::HandleSetLicenseKey(UI_Event* event)
     {
-        auto key = getValueSymbol("license_key.val")->getString();
+        const auto* key = getValueSymbol("license_key.val")->getString();
         LicenseManager::GetInstance().RemoveLicense();
         LicenseManager::GetInstance().SetLicenseKey(key);
         LicenseManager::GetInstance().CheckoutLicense();
@@ -343,7 +341,7 @@ namespace Zibra
 
     void PluginManagementWindowImpl::HandleSetLicenseServer(UI_Event* event)
     {
-        auto licenseServer = getValueSymbol("license_server.val")->getString();
+        const auto* licenseServer = getValueSymbol("license_server.val")->getString();
         LicenseManager::GetInstance().RemoveLicense();
         LicenseManager::GetInstance().SetLicenseServer(licenseServer);
         LicenseManager::GetInstance().CheckoutLicense();
@@ -361,7 +359,7 @@ namespace Zibra
         LicenseManager::GetInstance().RemoveLicense();
         LicenseManager::GetInstance().CheckoutLicense();
 
-        for (size_t i = 0; i < size_t(LicenseManager::Product::Count); ++i)
+        for (size_t i = 0; i < static_cast<size_t>(LicenseManager::Product::Count); ++i)
         {
             if (LicenseManager::GetInstance().IsLicenseValidated())
             {
@@ -619,7 +617,7 @@ namespace Zibra
 
         SetDefaultPath();
 
-        (*getValueSymbol("dialog.val")) = true;
+        (*getValueSymbol("dialog.val")) = 1;
         getValueSymbol("dialog.val")->changed(this);
     }
 
@@ -674,7 +672,7 @@ namespace Zibra
 
     void EnterHQROOTPathWindow::CloseWindow()
     {
-        (*getValueSymbol("dialog.val")) = false;
+        (*getValueSymbol("dialog.val")) = 0;
         getValueSymbol("dialog.val")->changed(this);
     }
 

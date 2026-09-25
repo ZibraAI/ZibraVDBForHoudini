@@ -33,8 +33,8 @@ namespace Zibra::ZibraVDBOutputProcessor
         bool processReferencePath(const UT_StringRef& assetPath, const UT_StringRef& referencingLayerPath, bool assetIsLayer,
                                   UT_String& newPath, UT_String& error) final;
 
-        UT_StringHolder displayName() const final;
-        const PI_EditScriptedParms* parameters() const final;
+        [[nodiscard]] UT_StringHolder displayName() const final;
+        [[nodiscard]] const PI_EditScriptedParms* parameters() const final;
 
     private:
 

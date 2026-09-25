@@ -2,12 +2,12 @@
 
 #include "ROP_ZibraVDBCompressor.h"
 
-#define INTERNAL_LICENSE_TIER 100
-#define EDUCATION_LICENSE_TIER 150
-#define FREE_LICENSE_TIER 200
-
 namespace Zibra::ZibraVDBCompressor
 {
+    static constexpr int INTERNAL_LICENSE_TIER = 100;
+    static constexpr int EDUCATION_LICENSE_TIER = 150;
+    static constexpr int FREE_LICENSE_TIER = 200;
+
     using namespace std::literals;
 
     ROP_ZibraVDBCompressor_Operator::ROP_ZibraVDBCompressor_Operator(ContextType contextType) noexcept
@@ -127,7 +127,7 @@ namespace Zibra::ZibraVDBCompressor
         }
     }
 
-    unsigned ROP_ZibraVDBCompressor_Operator::GetMaxOutputs(ContextType contextType)
+    int ROP_ZibraVDBCompressor_Operator::GetMaxOutputs(ContextType contextType)
     {
         switch (contextType)
         {
@@ -198,7 +198,8 @@ namespace Zibra::ZibraVDBCompressor
         if (contextType == ContextType::OUT)
         {
             static PRM_Name theInputSOP(INPUT_SOP_PARAM_NAME, "SOP Path");
-            templateList.push_back(PRM_Template{PRM_STRING, PRM_TYPE_DYNAMIC_PATH, 1, &theInputSOP, 0, 0, 0, 0, &PRM_SpareData::sopPath});
+            templateList.emplace_back(PRM_STRING, PRM_TYPE_DYNAMIC_PATH, 1, &theInputSOP, nullptr, nullptr, nullptr, 0,
+                                      &PRM_SpareData::sopPath);
         }
 
         static PRM_Name theFileName(FILENAME_PARAM_NAME, "Out File");
@@ -327,14 +328,16 @@ namespace Zibra::ZibraVDBCompressor
 
         OP_AutoLockInputs inputs{this};
         if (inputs.lock(ctx) >= UT_ERROR_ABORT)
-            return false;
+        {
+            return 0;
+        }
 
         switch (m_ContextType)
         {
         case ContextType::SOP: {
             // 0 index referring to the node's first input
             m_InputSOP = CAST_SOPNODE(getInputFollowingOutputs(0));
-            if (!m_InputSOP)
+            if (m_InputSOP == nullptr)
             {
                 addError(ROP_MESSAGE, "No inputs detected. First input must be an OpenVDB source.");
                 return ROP_ABORT_RENDER;
@@ -344,10 +347,10 @@ namespace Zibra::ZibraVDBCompressor
         case ContextType::OUT: {
             // Reads soppath parameter
             UT_String SOPPath = "";
-            evalString(SOPPath, INPUT_SOP_PARAM_NAME, 0, 0, tStart);
+            evalString(SOPPath, INPUT_SOP_PARAM_NAME, nullptr, 0, tStart);
             OP_Node* node = findNode(SOPPath);
             m_InputSOP = CAST_SOPNODE(node);
-            if (!m_InputSOP)
+            if (m_InputSOP == nullptr)
             {
                 addError(ROP_MESSAGE, "No inputs detected. Please make sure that SOP Path is correct.");
                 return ROP_ABORT_RENDER;
@@ -362,7 +365,7 @@ namespace Zibra::ZibraVDBCompressor
         }
 
         const GU_Detail* gdp = m_InputSOP->getCookedGeoHandle(ctx, 0).gdp();
-        if (!gdp)
+        if (gdp == nullptr)
         {
             addError(ROP_MESSAGE, "Failed to cook input SOP geometry.");
             return ROP_ABORT_RENDER;
@@ -371,7 +374,7 @@ namespace Zibra::ZibraVDBCompressor
         m_OrderedChannelNames.clear();
         m_CurrentChannelCount = 0;
         m_OrderedChannelNames.reserve(8);
-        const GEO_Primitive* prim;
+        const GEO_Primitive* prim = nullptr;
         GA_FOR_ALL_PRIMITIVES(gdp, prim)
         {
             if (prim->getTypeId() == GEO_PRIMVDB)
@@ -435,7 +438,9 @@ namespace Zibra::ZibraVDBCompressor
         }
 
         if (error() < UT_ERROR_ABORT)
+        {
             executePreRenderScript(tStart);
+        }
 
         return ROP_CONTINUE_RENDER;
     }
@@ -458,7 +463,9 @@ namespace Zibra::ZibraVDBCompressor
 
         OP_AutoLockInputs inputs{this};
         if (inputs.lock(ctx) >= UT_ERROR_ABORT)
+        {
             return ROP_RETRY_RENDER;
+        }
 
         UT_String currentFileName = "";
         evalString(currentFileName, FILENAME_PARAM_NAME, nullptr, 0, time);
@@ -476,7 +483,7 @@ namespace Zibra::ZibraVDBCompressor
         }
 
         const GU_Detail* gdp = m_InputSOP->getCookedGeoHandle(ctx, 0).gdp();
-        if (!gdp)
+        if (gdp == nullptr)
         {
             addError(ROP_MESSAGE, "Failed to cook input SOP geometry.");
             return ROP_ABORT_RENDER;
@@ -486,14 +493,14 @@ namespace Zibra::ZibraVDBCompressor
         std::vector<const char*> orderedChannelNames{};
         std::vector<openvdb::GridBase::ConstPtr> volumes{};
         std::vector<openvdb::GridBase::Ptr> garbage{};
-        const GEO_Primitive* prim;
+        const GEO_Primitive* prim = nullptr;
         GA_FOR_ALL_PRIMITIVES(gdp, prim)
         {
             if (prim->getTypeId() == GEO_PRIMVDB)
             {
                 const GEO_PrimVDB* vdbPrim = dynamic_cast<const GEO_PrimVDB*>(prim);
                 const char* gridName = vdbPrim->getGridName();
-                const openvdb::GridBase::ConstPtr baseGrid = vdbPrim->getConstGridPtr();
+                const openvdb::GridBase::ConstPtr& baseGrid = vdbPrim->getConstGridPtr();
 
                 int underlyingChannels = 0;
 
@@ -528,7 +535,7 @@ namespace Zibra::ZibraVDBCompressor
                     return ROP_ABORT_RENDER;
                 }
 
-                volumes.emplace_back(std::move(baseGrid));
+                volumes.emplace_back(baseGrid);
                 orderedChannelNames.push_back(gridName);
                 channelNamesUniqueStorage.insert(gridName);
 
@@ -618,7 +625,7 @@ namespace Zibra::ZibraVDBCompressor
         vdbFrameLoader.ReleaseFrame(compressFrameDesc.frame);
 
         auto frameMetadata = Utils::MetadataHelper::DumpAttributes(gdp, encodingMetadata);
-        frameMetadata.push_back({"chShuffle", Utils::MetadataHelper::DumpGridsShuffleInfo(gridsShuffleInfo).dump()});
+        frameMetadata.emplace_back("chShuffle", Utils::MetadataHelper::DumpGridsShuffleInfo(gridsShuffleInfo).dump());
         for (const auto& [key, val] : frameMetadata)
         {
             frameManager->AddMetadata(key.c_str(), val.c_str());
@@ -685,8 +692,8 @@ namespace Zibra::ZibraVDBCompressor
         std::filesystem::create_directories(std::filesystem::path{filename.c_str()}.parent_path(), ec);
 
         const int renderMode = static_cast<int>(evalInt("trange", 0, ctx.getTime()));
-        const float startFrame = renderMode == 0 ? ctx.getFrame() : evalFloat("f", 0, tStart);
-        const float frameInc = renderMode == 0 ? 1 : evalFloat("f", 2, tStart);
+        const int32_t startFrame = renderMode == 0 ? static_cast<int32_t>(ctx.getFrame()) : static_cast<int32_t>(evalFloat("f", 0, tStart));
+        const uint32_t frameInc = renderMode == 0 ? 1 : static_cast<uint32_t>(evalFloat("f", 2, tStart));
         CE::Compression::FrameMappingDecs frameMappingDesc;
         frameMappingDesc.sequenceStartIndex = startFrame;
         frameMappingDesc.sequenceIndexIncrement = frameInc;

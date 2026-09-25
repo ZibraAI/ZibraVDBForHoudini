@@ -22,7 +22,6 @@ namespace Zibra::AssetResolver
     private:
         DecompressionHelper() = default;
 
-    private:
         static DecompressionHelper* ms_Instance;
 
         std::map<std::string, std::string> m_PathToUUIDMap;

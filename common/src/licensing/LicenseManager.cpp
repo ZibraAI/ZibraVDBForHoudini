@@ -60,9 +60,9 @@ namespace Zibra
         }
 
         Status status = Status::Uninitialized;
-        for (ActivationType i = ActivationType::LicenseServer; i < ActivationType::None; i = ActivationType(uint32_t(i) + 1))
+        for (ActivationType i = ActivationType::LicenseServer; i < ActivationType::None; i = ActivationType(static_cast<uint32_t>(i) + 1))
         {
-            for (LicensePathType j = LicensePathType::EnvVar; j < LicensePathType::None; j = LicensePathType(uint32_t(j) + 1))
+            for (LicensePathType j = LicensePathType::EnvVar; j < LicensePathType::None; j = LicensePathType(static_cast<uint32_t>(j) + 1))
             {
                 Status newStatus = TryCheckoutLicense(i, j);
                 if (newStatus == Status::OK)
@@ -70,10 +70,7 @@ namespace Zibra
                     return;
                 }
 
-                if (newStatus < status)
-                {
-                    status = newStatus;
-                }
+                status = std::min(status, newStatus);
             }
         }
 
@@ -82,7 +79,8 @@ namespace Zibra
 
     void LicenseManager::RemoveLicense()
     {
-        for (LicensePathType i = LicensePathType::EnvVar; i <= LicensePathType::UserPrefDir; i = LicensePathType(uint32_t(i) + 1))
+        for (LicensePathType i = LicensePathType::EnvVar; i <= LicensePathType::UserPrefDir;
+             i = LicensePathType(static_cast<uint32_t>(i) + 1))
         {
             std::string keyPath = GetKeyPath(i);
             if (std::filesystem::is_regular_file(keyPath))
@@ -494,7 +492,7 @@ namespace Zibra
             return;
         }
 
-        for (size_t i = 0; i < size_t(Product::Count); ++i)
+        for (size_t i = 0; i < static_cast<size_t>(Product::Count); ++i)
         {
             if (CE::Licensing::CAPI::IsLicenseValidated(CE::Licensing::ProductType(i)))
             {

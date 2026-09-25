@@ -22,7 +22,7 @@ namespace Zibra::ZibraVDBDecompressor
 
         static PRM_Name theReloadCacheName(REFRESH_CALLBACK_PARAM_NAME, "Reload Cache");
         static PRM_Callback theReloadCallback{[](void* node, int index, fpreal64 time, const PRM_Template* tplate) -> int {
-            auto self = static_cast<SOP_ZibraVDBDecompressor*>(node);
+            auto* self = static_cast<SOP_ZibraVDBDecompressor*>(node);
             self->deleteCookedData();
             self->refreshGdp();
             return 1;

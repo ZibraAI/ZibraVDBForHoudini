@@ -14,35 +14,35 @@ namespace Zibra::CE::Compression
         }
 
         RHI::RHIFactory* RHIFactory = nullptr;
-        auto RHIstatus = RHI::CAPI::CreateRHIFactory(&RHIFactory);
-        if (RHIstatus != RHI::ZRHI_SUCCESS)
+        auto RHIStatus = RHI::CAPI::CreateRHIFactory(&RHIFactory);
+        if (RHIStatus != RHI::ZRHI_SUCCESS)
         {
             return CE::ZCE_ERROR;
         }
 
-        RHIstatus = RHIFactory->SetGFXAPI(Helpers::SelectGFXAPI());
-        if (RHIstatus != RHI::ZRHI_SUCCESS)
+        RHIStatus = RHIFactory->SetGFXAPI(Helpers::SelectGFXAPI());
+        if (RHIStatus != RHI::ZRHI_SUCCESS)
         {
             return CE::ZCE_ERROR;
         }
 
         if (Helpers::NeedForceSoftwareDevice())
         {
-            RHIstatus = RHIFactory->ForceSoftwareDevice();
-            if (RHIstatus != RHI::ZRHI_SUCCESS)
+            RHIStatus = RHIFactory->ForceSoftwareDevice();
+            if (RHIStatus != RHI::ZRHI_SUCCESS)
             {
                 return CE::ZCE_ERROR;
             }
         }
 
-        RHIstatus = RHIFactory->Create(&m_RHIRuntime);
-        if (RHIstatus != RHI::ZRHI_SUCCESS)
+        RHIStatus = RHIFactory->Create(&m_RHIRuntime);
+        if (RHIStatus != RHI::ZRHI_SUCCESS)
         {
             return CE::ZCE_ERROR;
         }
 
-        RHIstatus = m_RHIRuntime->Initialize();
-        if (RHIstatus != RHI::ZRHI_SUCCESS)
+        RHIStatus = m_RHIRuntime->Initialize();
+        if (RHIStatus != RHI::ZRHI_SUCCESS)
         {
             m_RHIRuntime->Release();
             m_RHIRuntime = nullptr;
@@ -103,7 +103,7 @@ namespace Zibra::CE::Compression
 
     ReturnCode CompressorManager::StartSequence(const UT_String& filename) noexcept
     {
-        if (!m_Compressor)
+        if (m_Compressor == nullptr)
         {
             return CE::ZCE_ERROR;
         }
@@ -133,7 +133,7 @@ namespace Zibra::CE::Compression
 
     ReturnCode CompressorManager::CompressFrame(const CompressFrameDesc& compressFrameDesc, FrameManager** frameManager) noexcept
     {
-        if (!m_RHIRuntime || !m_Compressor)
+        if ((m_RHIRuntime == nullptr) || (m_Compressor == nullptr))
         {
             return CE::ZCE_ERROR;
         }
@@ -166,7 +166,7 @@ namespace Zibra::CE::Compression
 
     ReturnCode CompressorManager::FinishSequence(std::string& warning) noexcept
     {
-        if (!m_Compressor)
+        if (m_Compressor == nullptr)
         {
             return CE::ZCE_ERROR;
         }
@@ -188,12 +188,12 @@ namespace Zibra::CE::Compression
     void CompressorManager::Release() noexcept
     {
         m_Ofstream.close();
-        if (m_Compressor)
+        if (m_Compressor != nullptr)
         {
             m_Compressor->Release();
             m_Compressor = nullptr;
         }
-        if (m_RHIRuntime)
+        if (m_RHIRuntime != nullptr)
         {
             m_RHIRuntime->Release();
             m_RHIRuntime = nullptr;

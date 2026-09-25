@@ -70,7 +70,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         m_CopyAssets = false;
         m_CopySubdirectory.clear();
 
-        if (configNode)
+        if (configNode != nullptr)
         {
             if (configNode->hasParm(PARM_MAKE_PATHS_RELATIVE))
             {
