@@ -39,7 +39,7 @@ namespace Zibra::Utils
         }
     }
 
-    void MetadataHelper::ApplyGridMetadata(openvdb::GridBase::Ptr grid, CE::Decompression::CompressedFrameContainer* frameContainer)
+    void MetadataHelper::ApplyGridMetadata(const openvdb::GridBase::Ptr& grid, CE::Decompression::CompressedFrameContainer* frameContainer)
     {
         const std::string attributeMetadataNameV2 = "houdiniPrimitiveAttributesV2_"s + grid->getName();
         const char* metadataEntryV2 = frameContainer->GetMetadataByKey(attributeMetadataNameV2.c_str());
@@ -161,7 +161,7 @@ namespace Zibra::Utils
         attributes.emplace_back(std::move(keyVisLod), std::move(valueVisLod));
     }
 
-    nlohmann::json MetadataHelper::DumpGridsShuffleInfo(const std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridDescs) noexcept
+    nlohmann::json MetadataHelper::DumpGridsShuffleInfo(const std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc>& gridDescs) noexcept
     {
         static std::map<CE::Addons::OpenVDBUtils::GridVoxelType, std::string> voxelTypeToString = {
             {CE::Addons::OpenVDBUtils::GridVoxelType::Float1, "Float1"}, {CE::Addons::OpenVDBUtils::GridVoxelType::Float3, "Float3"}};

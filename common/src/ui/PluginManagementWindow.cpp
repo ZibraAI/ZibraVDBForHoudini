@@ -494,7 +494,7 @@ namespace Zibra
             {
             case LicenseManager::Status::OK: {
                 std::string activationError = licenseManager.GetActivationError();
-                if (activationError != "")
+                if (!activationError.empty())
                 {
                     activationStatus = "Activated (Last Error: " + activationError + ")";
                 }

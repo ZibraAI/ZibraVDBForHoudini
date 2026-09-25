@@ -106,7 +106,7 @@ namespace Zibra::LibraryUtils
     {
 #if ZIB_TARGET_OS_WIN
         static_assert(IsPlatformSupported());
-        if (libraryPath == "")
+        if (libraryPath.empty())
         {
             return false;
         }

@@ -1,11 +1,15 @@
 Checks: >
   -*,
   readability-identifier-naming,
-  modernize-use-override,
   readability-make-member-function-const,
+  readability-container-size-empty,
+  modernize-use-override,
   google-global-names-in-headers,
   cppcoreguidelines-use-enum-class,
-  performance-unnecessary-copy-initialization
+  bugprone-use-after-move,
+  performance-unnecessary-copy-initialization,
+  performance-unnecessary-value-param,
+  performance-inefficient-vector-operationl,
 
 HeaderFilterRegex: '.*[\\/](src|common|AssetResolver)[\\/].*'
 WarningsAsErrors: '*'
