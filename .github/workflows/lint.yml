@@ -1,0 +1,25 @@
+name: Lint
+
+on: [pull_request]
+
+jobs:
+  clang-tidy:
+    name: clang-tidy
+    runs-on: [self-hosted, Windows, X64]
+    concurrency:
+      group: lint-${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Sync
+        uses: actions/checkout@v7
+
+      - name: Configure
+        working-directory: ${{ github.workspace }}
+        shell: pwsh
+        run: ./scripts/configure.ps1 -GenerateCompileCommands
+
+      - name: Lint
+        working-directory: ${{ github.workspace }}
+        shell: pwsh
+        run: ./scripts/lint.ps1

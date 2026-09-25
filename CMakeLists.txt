@@ -191,3 +191,12 @@ if(MSVC)
     set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         PROPERTY VS_STARTUP_PROJECT ZibraVDBForHoudiniPostBuild)
 endif()
+
+option(ZIBRAVDB_FETCH_CLANG_TOOLS "Fetch clang-tidy and clang-format from the ClangTools repo" OFF)
+if(ZIBRAVDB_FETCH_CLANG_TOOLS)
+    include(FetchContent)
+    FetchContent_Declare(ClangTools
+        GIT_REPOSITORY https://github.com/ZibraAI/ClangTools.git
+        GIT_TAG v22.1.8)
+    FetchContent_MakeAvailable(ClangTools)
+endif()

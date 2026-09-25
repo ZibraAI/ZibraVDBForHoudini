@@ -59,7 +59,7 @@ jobs:
 
     steps:
       - name: Sync
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Install python
         if: ${{ matrix.os == 'windows' }}
@@ -121,7 +121,7 @@ jobs:
 
     steps:
       - name: Sync
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         
       - name: Download artifacts
         uses: actions/download-artifact@v8
