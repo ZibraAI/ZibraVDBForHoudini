@@ -141,6 +141,7 @@ namespace Zibra::ZibraVDBCompressor
         }
     }
 
+    //NOLINTBEGIN
     const char** ROP_ZibraVDBCompressor_Operator::GetSourceLabels(ContextType contextType)
     {
         static const char* SOP_LABELS[] = {"OpenVDB to Compress", nullptr};
@@ -157,6 +158,7 @@ namespace Zibra::ZibraVDBCompressor
             return SOP_LABELS;
         }
     }
+    //NOLINTEND
 
     OP_Node* ROP_ZibraVDBCompressor::ConstructorSOPContext(OP_Network* net, const char* name, OP_Operator* op) noexcept
     {
@@ -263,11 +265,11 @@ namespace Zibra::ZibraVDBCompressor
                                               theRopTemplates[ROP_TRANGE_TPLATE],   theRopTemplates[ROP_FRAMERANGE_TPLATE],
                                               theRopTemplates[ROP_TAKENAME_TPLATE], PRM_Template()};
 
-        static OP_TemplatePair BaseSOPContext{GetTemplateList(ContextType::SOP)};
-        static OP_TemplatePair ROPPair2SOPContext{ROPTemplates, &BaseSOPContext};
+        static OP_TemplatePair baseSopContext{GetTemplateList(ContextType::SOP)};
+        static OP_TemplatePair ROPPair2SOPContext{ROPTemplates, &baseSopContext};
 
-        static OP_TemplatePair BaseOUTContext{GetTemplateList(ContextType::OUT)};
-        static OP_TemplatePair ROPPair2OUTContext{ROPTemplates, &BaseOUTContext};
+        static OP_TemplatePair baseOutContext{GetTemplateList(ContextType::OUT)};
+        static OP_TemplatePair ROPPair2OUTContext{ROPTemplates, &baseOutContext};
 
         switch (contextType)
         {
@@ -698,9 +700,10 @@ namespace Zibra::ZibraVDBCompressor
         if (usePerChannelCompressionSettingsString == "on")
         {
             // Just in case evalInt return invalid number.
-            constexpr int maxPerChannelSettingsCount = 1024;
-            const int perChannelSettingsCount = std::max(
-                0, std::min(static_cast<int>(evalInt(PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME, 0, tStart)), maxPerChannelSettingsCount));
+            constexpr int MAX_PER_CHANNEL_SETTINGS_COUNT = 1024;
+            const int perChannelSettingsCount =
+                std::max(0, std::min(static_cast<int>(evalInt(PER_CHANNEL_COMPRESSION_SETTINGS_PARAM_NAME, 0, tStart)),
+                                     MAX_PER_CHANNEL_SETTINGS_COUNT));
 
             for (int i = 0; i < perChannelSettingsCount; ++i)
             {

@@ -24,7 +24,7 @@
 
 extern "C"
 {
-    // NOLINTBEGIN
+    //NOLINTBEGIN
     SYS_VISIBILITY_EXPORT void newSopOperator(OP_OperatorTable* table)
     {
         using namespace Zibra;
@@ -50,5 +50,5 @@ extern "C"
 
         table->addOperator(new ZibraVDBCompressor::ROP_ZibraVDBCompressor_Operator(ContextType::OUT));
     }
-    // NOLINTEND
+    //NOLINTEND
 }

@@ -17,6 +17,7 @@ PXR_NAMESPACE_USING_DIRECTIVE
 
 namespace Zibra::ZibraVDBOutputProcessor
 {
+    //NOLINTBEGIN
     static PI_EditScriptedParms* CreateParameters()
     {
         static PRM_Name s_CopyAssetsName(PARM_COPY_ASSETS, "Copy ZibraVDB Assets to Layer Subdirectory");
@@ -52,6 +53,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         static PI_EditScriptedParms* s_Parameters = CreateParameters();
         return s_Parameters;
     }
+    //NOLINTEND
 
     void ZibraVDBOutputProcessor::beginSave(OP_Node* configNode, const UT_Options& configOverrides, OP_Node* lopNode, fpreal t
 #if UT_VERSION_INT >= 0x14050000 // Houdini 20.5+ added stageVariables parameter

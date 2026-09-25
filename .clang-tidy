@@ -2,13 +2,9 @@ Checks: >
   -*,
   readability-identifier-naming,
   modernize-use-override,
-  modernize-use-nullptr,
-  fuchsia-multiple-inheritance,
   readability-make-member-function-const,
   google-global-names-in-headers,
-  readability-function-size,
   cppcoreguidelines-use-enum-class,
-  performance-for-range-copy,
   performance-unnecessary-copy-initialization
 
 HeaderFilterRegex: '.*[\\/](src|common|AssetResolver)[\\/].*'

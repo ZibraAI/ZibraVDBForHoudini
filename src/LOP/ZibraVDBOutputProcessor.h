@@ -45,7 +45,7 @@ namespace Zibra::ZibraVDBOutputProcessor
         bool m_CopyAssets = false;
         std::string m_CopySubdirectory;
     };
-
+    //NOLINTNEXTLINE
     HUSD_OutputProcessorPtr createZibraVDBOutputProcessor();
 
 } // namespace Zibra::ZibraVDBOutputProcessor

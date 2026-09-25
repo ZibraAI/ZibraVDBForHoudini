@@ -149,7 +149,7 @@ namespace Zibra::ZibraVDBDecompressor
         GA_RWHandleS nameAttr{gdp->findPrimitiveAttribute("name")};
         for (size_t i = 0; i < vdbGrids.size(); ++i)
         {
-            const openvdb::GridBase::Ptr grid = vdbGrids[i];
+            const openvdb::GridBase::Ptr& grid = vdbGrids[i];
 
             if (!grid)
             {

@@ -70,7 +70,7 @@ namespace Zibra
         void SetLicenseKey(const char* key);
         void SetLicenseServer(const char* licenseServerAddress);
 
-        void CopyLicenseFile(const std::string& destFolder);
+        void CopyLicenseFile(const std::string& destFolder) const;
 
         bool CheckLicense();
         std::string GetActivationError() const;

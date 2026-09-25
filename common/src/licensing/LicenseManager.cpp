@@ -217,7 +217,7 @@ namespace Zibra
         }
     }
 
-    void LicenseManager::CopyLicenseFile(const std::string& destFolder)
+    void LicenseManager::CopyLicenseFile(const std::string& destFolder) const
     {
         if (!IsLicenseValidated())
         {
