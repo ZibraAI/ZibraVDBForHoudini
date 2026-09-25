@@ -23,7 +23,7 @@ namespace Zibra
     private:
         static constexpr const char* UI_FILE = "ZibraVDBPluginManagement.ui";
 
-        static bool ms_MIsParsed;
+        static bool ms_IsParsed;
 
         bool ParseUIFile();
         void InitializeLicenseFields();
@@ -44,7 +44,7 @@ namespace Zibra
         void SetStringField(const char* fieldName, const char* value);
     };
 
-    bool PluginManagementWindowImpl::ms_MIsParsed = false;
+    bool PluginManagementWindowImpl::ms_IsParsed = false;
 
     class EnterHQROOTPathWindow : public AP_Interface
     {
@@ -87,7 +87,7 @@ namespace Zibra
 
     bool PluginManagementWindowImpl::ParseUIFile()
     {
-        if (ms_MIsParsed)
+        if (ms_IsParsed)
         {
             return true;
         }
@@ -117,7 +117,7 @@ namespace Zibra
         getValueSymbol("copy_license_to_hqroot.val")
             ->addInterest(this, static_cast<UI_EventMethod>(&PluginManagementWindowImpl::HandleCopyLicenseToHQROOT));
 
-        ms_MIsParsed = true;
+        ms_IsParsed = true;
 
         return true;
     }
