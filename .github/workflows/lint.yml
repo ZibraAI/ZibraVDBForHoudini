@@ -19,7 +19,7 @@ jobs:
         shell: pwsh
         run: |
           $Ver = (Get-Item 'HKLM:\SOFTWARE\Side Effects Software\Houdini').Property -like '22.0.*' | Sort-Object | Select-Object -Last 1
-          env:HFS = (Get-ItemPropertyValue 'HKLM:\SOFTWARE\Side Effects Software\Houdini' -Name $Ver)
+          $env:HFS = (Get-ItemPropertyValue 'HKLM:\SOFTWARE\Side Effects Software\Houdini' -Name $Ver)
           ./scripts/configure.ps1 -GenerateCompileCommands
 
       - name: Lint
