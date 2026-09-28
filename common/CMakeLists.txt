@@ -77,8 +77,8 @@ target_sources(ZibraVDBCommon
 )
 
 target_include_directories(ZibraVDBCommon PUBLIC
-    ${CMAKE_SOURCE_DIR}/external/Include
-    ${CMAKE_SOURCE_DIR}/SDK/include
+    ${ZibraVDBForHoudini_SOURCE_DIR}/external/Include
+    ${ZibraVDBForHoudini_SOURCE_DIR}/SDK/include
     "${HOUDINI_INCLUDE_DIR}")
 
 target_compile_definitions(ZibraVDBCommon PUBLIC

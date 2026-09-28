@@ -137,7 +137,7 @@ namespace Zibra::Utils
         std::vector<DataType> data;
         data.resize(arraySize);
         tuple->get(attribute, mapOffset, data.data(), arraySize);
-        result["t"] = int(StorageType);
+        result["t"] = static_cast<int>(StorageType);
         result["v"] = ToJSONSafeType(data);
 
         return result;

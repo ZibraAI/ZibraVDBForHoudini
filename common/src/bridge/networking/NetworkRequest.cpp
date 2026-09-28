@@ -252,7 +252,7 @@ namespace Zibra::NetworkRequest
         {
             return "";
         }
-        return std::string(response->data(), response->size());
+        return {response->data(), response->size()};
     }
 
     bool DownloadFile(const std::string& url, const std::string& filepath)

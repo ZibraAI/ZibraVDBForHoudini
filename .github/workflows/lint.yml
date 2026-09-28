@@ -1,6 +1,7 @@
 name: Lint
 
-on: [pull_request]
+#DONTSUBMIT
+on: [push, pull_request]
 
 jobs:
   clang-tidy:
@@ -14,15 +15,26 @@ jobs:
       - name: Sync
         uses: actions/checkout@v7
 
-      - name: Configure
-        working-directory: ${{ github.workspace }}
+      - name: Install Houdini
+        working-directory: ${{ github.workspace }}/actions/houdini
+        timeout-minutes: 30
         shell: pwsh
         run: |
-          $Ver = (Get-Item 'HKLM:\SOFTWARE\Side Effects Software\Houdini').Property -like '22.0.*' | Sort-Object | Select-Object -Last 1
-          $env:HFS = (Get-ItemPropertyValue 'HKLM:\SOFTWARE\Side Effects Software\Houdini' -Name $Ver)
-          ./scripts/configure.ps1 -GenerateCompileCommands
+          python -m venv venv
+          ./venv/Scripts/Activate.ps1
+          python -m pip install -r requirements.txt
+          $Build = python -c @"
+          import build_matrix, houdini_version_query
+          print(houdini_version_query.query_houdini_builds('houdini', '22.0', [p['22.0'] for p in build_matrix.HOUDINI_PLATFORMS.values()])[0])
+          "@
+          $InstallPath = "C:\Houdini\22.0.$Build"
+          python install_houdini.py --version 22.0 --build $Build --platform win64-vc143 --install-path $InstallPath
+          "HFS=$InstallPath" >> $env:GITHUB_ENV
+        env:
+          HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
+          HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
 
       - name: Lint
         working-directory: ${{ github.workspace }}
         shell: pwsh
-        run: ./scripts/lint.ps1
+        run: ./scripts/linter/lint.ps1
