@@ -52,28 +52,28 @@ namespace Zibra
         // Singleton
         static LicenseManager& GetInstance();
 
-        bool IsLicenseValidated() const;
-        Status GetStatus() const;
-        int GetLicenseTier() const;
-        const char* GetLicenseType() const;
-        ActivationType GetActivationType() const;
-        LicensePathType GetLicensePathType() const;
-        const std::string& GetLicensePath() const;
+        [[nodiscard]] bool IsLicenseValidated() const;
+        [[nodiscard]] Status GetStatus() const;
+        [[nodiscard]] int GetLicenseTier() const;
+        [[nodiscard]] const char* GetLicenseType() const;
+        [[nodiscard]] ActivationType GetActivationType() const;
+        [[nodiscard]] LicensePathType GetLicensePathType() const;
+        [[nodiscard]] const std::string& GetLicensePath() const;
 
         void CheckoutLicense();
         // Will NOT remove license from HSITE or HQROOT
         void RemoveLicense();
 
-        std::string GetLicenseKey() const;
-        std::string GetLicenseServerAddress() const;
+        [[nodiscard]] std::string GetLicenseKey() const;
+        [[nodiscard]] std::string GetLicenseServerAddress() const;
 
         void SetLicenseKey(const char* key);
         void SetLicenseServer(const char* licenseServerAddress);
 
-        void CopyLicenseFile(const std::string& destFolder);
+        void CopyLicenseFile(const std::string& destFolder) const;
 
         bool CheckLicense();
-        std::string GetActivationError() const;
+        [[nodiscard]] std::string GetActivationError() const;
 
     private:
         static const char* const ms_DefaultLicenseKeyFileName;

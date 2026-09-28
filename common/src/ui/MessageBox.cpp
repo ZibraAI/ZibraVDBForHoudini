@@ -10,7 +10,7 @@ namespace Zibra::UI
     public:
         MessageBoxDialog(const char* uiFile);
 
-        const char* className() const final
+        [[nodiscard]] const char* className() const final
         {
             return "MessageBoxDialog";
         }
@@ -51,7 +51,7 @@ namespace Zibra::UI
         (*getValueSymbol("message3.val")) = lines[2].c_str();
         (*getValueSymbol("message4.val")) = lines[3].c_str();
 
-        (*getValueSymbol("dialog.val")) = true;
+        (*getValueSymbol("dialog.val")) = 1;
         getValueSymbol("dialog.val")->changed(this);
     }
 
@@ -76,11 +76,11 @@ namespace Zibra::UI
 
     void MessageBoxDialog::HandleClick(UI_Event* event)
     {
-        (*getValueSymbol("dialog.val")) = false;
+        (*getValueSymbol("dialog.val")) = 0;
         getValueSymbol("dialog.val")->changed(this);
 
         int32 result = (*getValueSymbol("result.val"));
-        if (m_Callback)
+        if (m_Callback != nullptr)
         {
             m_Callback(static_cast<MessageBox::Result>(result));
         }

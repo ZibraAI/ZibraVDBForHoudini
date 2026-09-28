@@ -26,7 +26,7 @@ namespace Zibra::AssetResolver
 
     DecompressionHelper& DecompressionHelper::GetInstance()
     {
-        if (!ms_Instance)
+        if (ms_Instance == nullptr)
         {
             ms_Instance = new DecompressionHelper();
         }
@@ -41,7 +41,7 @@ namespace Zibra::AssetResolver
 
     std::string DecompressionHelper::DecompressZibraVDBFile(const std::string& zibraVDBPath, int frame)
     {
-        std::lock_guard lock(m_DecompressionFilesMutex);
+        std::scoped_lock lock(m_DecompressionFilesMutex);
 
         if (!LibraryUtils::TryLoadLibrary())
         {

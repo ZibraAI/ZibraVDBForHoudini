@@ -16,7 +16,7 @@ namespace Zibra::Helpers
             envVarHoudini = UT_EnvControl::getString(envVarEnum);
             if (envVarHoudini != nullptr)
             {
-                result.push_back(envVarHoudini);
+                result.emplace_back(envVarHoudini);
             }
         }
 
@@ -25,7 +25,7 @@ namespace Zibra::Helpers
         {
             if (envVarHoudini == nullptr || strcmp(envVarHoudini, envVarSTL) != 0)
             {
-                result.push_back(envVarSTL);
+                result.emplace_back(envVarSTL);
             }
         }
         return result;
@@ -157,11 +157,7 @@ namespace Zibra::Helpers
 
         std::string envVarValueUpper = envVar.value();
         std::transform(envVarValueUpper.begin(), envVarValueUpper.end(), envVarValueUpper.begin(), ::toupper);
-        if (envVarValueUpper == "ON" || envVarValueUpper == "TRUE" || envVarValueUpper == "1")
-        {
-            return true;
-        }
-        return false;
+        return envVarValueUpper == "ON" || envVarValueUpper == "TRUE" || envVarValueUpper == "1";
     }
 
     std::map<std::string, std::string> ParseQueryParamsString(const std::string& queryString)
@@ -169,8 +165,8 @@ namespace Zibra::Helpers
         std::map<std::string, std::string> result;
 
         size_t start = 0;
-        size_t ampPos;
-        do
+        size_t ampPos = 0;
+        while (ampPos != std::string::npos)
         {
             ampPos = queryString.find('&', start);
             std::string param = (ampPos == std::string::npos) ? queryString.substr(start) : queryString.substr(start, ampPos - start);
@@ -184,7 +180,7 @@ namespace Zibra::Helpers
             }
 
             start = ampPos + 1;
-        } while (ampPos != std::string::npos);
+        }
 
         return result;
     }
@@ -224,7 +220,7 @@ namespace Zibra::Helpers
 
         try
         {
-            size_t pos;
+            size_t pos = 0;
             result = std::stoi(str, &pos);
             return pos == str.length();
         }

@@ -1,0 +1,43 @@
+name: Lint
+
+on: [pull_request]
+
+jobs:
+  clang-tidy:
+    name: clang-tidy
+    runs-on: [self-hosted, Windows, X64]
+    concurrency:
+      group: lint-${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Sync
+        uses: actions/checkout@v7
+
+      - name: Install Houdini
+        working-directory: ${{ github.workspace }}/actions/houdini
+        timeout-minutes: 30
+        shell: pwsh
+        run: |
+          python -m venv venv
+          ./venv/Scripts/Activate.ps1
+          python -m pip install -r requirements.txt
+          $Version, $Build, $Platform, $InstallPath = python -c @"
+          import build_matrix, houdini_version_query, houdini_install_shared
+          version = build_matrix.HOUDINI_VERSIONS[-1]
+          build = houdini_version_query.query_houdini_builds('houdini', version, [p[version] for p in build_matrix.HOUDINI_PLATFORMS.values()])[0]
+          print(version)
+          print(build)
+          print(build_matrix.HOUDINI_PLATFORMS['win64'][version])
+          print(houdini_install_shared.get_install_path(version, build))
+          "@
+          python install_houdini.py --version $Version --build $Build --platform $Platform --install-path $InstallPath
+          "HFS=$InstallPath" >> $env:GITHUB_ENV
+        env:
+          HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
+          HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
+
+      - name: Lint
+        working-directory: ${{ github.workspace }}
+        shell: pwsh
+        run: ./scripts/linter/lint.ps1

@@ -1,5 +1,7 @@
 #include "PrecompiledHeader.h"
 
+//NOLINTBEGIN
+
 // If not Labs build
 #ifndef LABS_BUILD
 // And compiling with MSVC
@@ -12,6 +14,7 @@
 #endif // _MSC_VER > 1939 && _MSC_VER < 2000
 #endif // _MSC_VER
 #endif // !LABS_BUILD
+//NOLINTEND
 
 #include <HUSD/HUSD_OutputProcessor.h>
 // This header must be included exactly once in the plugin!
@@ -24,6 +27,7 @@
 
 extern "C"
 {
+    //NOLINTBEGIN
     SYS_VISIBILITY_EXPORT void newSopOperator(OP_OperatorTable* table)
     {
         using namespace Zibra;
@@ -49,4 +53,5 @@ extern "C"
 
         table->addOperator(new ZibraVDBCompressor::ROP_ZibraVDBCompressor_Operator(ContextType::OUT));
     }
+    //NOLINTEND
 }

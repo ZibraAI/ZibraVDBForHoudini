@@ -2,23 +2,24 @@
 
 #include "CompressorManager/CompressorManager.h"
 
-namespace CE::Addons::OpenVDBUtils
-{
-    struct EncodingMetadata;
-}
-
 namespace Zibra::ZibraVDBCompressor
 {
     constexpr const char* NODE_NAME_SOP_CONTEXT = "labs::rop_zibravdb_compress::" ZIB_ZIBRAVDB_VERSION_SHORT;
     constexpr const char* NODE_NAME_OUT_CONTEXT = "labs::zibravdb_compress::" ZIB_ZIBRAVDB_VERSION_SHORT;
     constexpr const char* NODE_LABEL = "Labs ZibraVDB Compress";
 
-    class ROP_ZibraVDBCompressor_Operator : public OP_Operator
+    class ROP_ZibraVDBCompressor_Operator final : public OP_Operator
     {
         using OP_Operator::OP_Operator;
 
     public:
         explicit ROP_ZibraVDBCompressor_Operator(ContextType contextType) noexcept;
+        ~ROP_ZibraVDBCompressor_Operator() noexcept final = default;
+
+        ROP_ZibraVDBCompressor_Operator(const ROP_ZibraVDBCompressor_Operator&) = delete;
+        ROP_ZibraVDBCompressor_Operator& operator=(const ROP_ZibraVDBCompressor_Operator&) = delete;
+        ROP_ZibraVDBCompressor_Operator(ROP_ZibraVDBCompressor_Operator&&) = delete;
+        ROP_ZibraVDBCompressor_Operator& operator=(ROP_ZibraVDBCompressor_Operator&&) = delete;
 
         const UT_StringHolder& getDefaultShape() const final;
         UT_Color getDefaultColor() const final;
@@ -28,7 +29,7 @@ namespace Zibra::ZibraVDBCompressor
         static unsigned GetOperatorFlags(ContextType contextType);
         static unsigned GetMinSources(ContextType contextType);
         static unsigned GetMaxSources(ContextType contextType);
-        static unsigned GetMaxOutputs(ContextType contextType);
+        static int GetMaxOutputs(ContextType contextType);
         const char** GetSourceLabels(ContextType contextType);
         const char* GetNodeName(ContextType contextType);
         const char* GetNodeLabel(ContextType contextType);
@@ -56,11 +57,14 @@ namespace Zibra::ZibraVDBCompressor
         static OP_TemplatePair* GetTemplatePairs(ContextType contextType) noexcept;
         static OP_VariablePair* GetVariablePair(ContextType contextType) noexcept;
 
-    public:
         ROP_ZibraVDBCompressor(ContextType contextType, OP_Network* net, const char* name, OP_Operator* entry) noexcept;
         ~ROP_ZibraVDBCompressor() noexcept final;
 
-    public:
+        ROP_ZibraVDBCompressor(const ROP_ZibraVDBCompressor&) = delete;
+        ROP_ZibraVDBCompressor& operator=(const ROP_ZibraVDBCompressor&) = delete;
+        ROP_ZibraVDBCompressor(ROP_ZibraVDBCompressor&&) = delete;
+        ROP_ZibraVDBCompressor& operator=(ROP_ZibraVDBCompressor&&) = delete;
+
         int startRender(int nframes, fpreal tStart, fpreal tEnd) final;
         ROP_RENDER_CODE renderFrame(fpreal time, UT_Interrupt* boss) final;
         ROP_RENDER_CODE endRender() final;
@@ -73,12 +77,11 @@ namespace Zibra::ZibraVDBCompressor
 
         ROP_RENDER_CODE CreateCompressor(fpreal tStart) noexcept;
 
-    private:
         fpreal m_EndTime = 0;
         fpreal m_StartTime = 0;
         SOP_Node* m_InputSOP = nullptr;
 
-        std::vector<std::string> m_OrderedChannelNames{};
+        std::vector<std::string> m_OrderedChannelNames;
         int m_CurrentChannelCount = 0;
 
         ContextType m_ContextType;

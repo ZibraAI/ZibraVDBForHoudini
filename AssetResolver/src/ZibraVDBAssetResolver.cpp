@@ -46,7 +46,7 @@ std::string ZibraVDBResolver::_CreateIdentifier(const std::string& assetPath, co
         return {};
     }
 
-    int frameIndex;
+    int frameIndex = 0;
     if (!Zibra::Helpers::TryParseInt(frameIt->second, frameIndex))
     {
         TF_DEBUG(ZIBRAVDB_RESOLVER)
@@ -112,7 +112,7 @@ ArResolvedPath ZibraVDBResolver::_Resolve(const std::string& assetPath) const
         return {};
     }
 
-    int frameIndex;
+    int frameIndex = 0;
     if (!Zibra::Helpers::TryParseInt(frameIt->second, frameIndex))
     {
         TF_DEBUG(ZIBRAVDB_RESOLVER)

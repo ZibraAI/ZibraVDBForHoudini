@@ -24,15 +24,15 @@ namespace Zibra::AssetResolver
     inline int InitializeMaxCachedFrames()
     {
         const char* envValue = std::getenv("ZIB_MAX_CACHED_FILES_COUNT");
-        int numOfCachedFrames;
-        if (envValue && Helpers::TryParseInt(envValue, numOfCachedFrames))
+        int cachedFramesCount = 0;
+        if (envValue != nullptr && Helpers::TryParseInt(envValue, cachedFramesCount))
         {
-            if (numOfCachedFrames > 0)
+            if (cachedFramesCount > 0)
             {
-                return numOfCachedFrames;
+                return cachedFramesCount;
             }
             TF_DEBUG(ZIBRAVDB_RESOLVER)
-                .Msg("ZIB_MAX_CACHED_FILES_COUNT is set to %d which is invalid. Falling back to default value: %d\n", numOfCachedFrames,
+                .Msg("ZIB_MAX_CACHED_FILES_COUNT is set to %d which is invalid. Falling back to default value: %d\n", cachedFramesCount,
                      ZIB_MAX_CACHED_FRAMES_DEFAULT);
         }
         return ZIB_MAX_CACHED_FRAMES_DEFAULT;
@@ -111,8 +111,8 @@ namespace Zibra::AssetResolver
             return outputPath;
         }
 
-        const auto frameContainer = m_Decompressor->FetchFrame(frame);
-        if (!frameContainer)
+        auto* frameContainer = m_Decompressor->FetchFrame(frame);
+        if (frameContainer == nullptr)
         {
             TF_DEBUG(ZIBRAVDB_RESOLVER).Msg("DecompressionItem::DecompressFrame - Failed to fetch frame %d\n", frame);
             return {};
@@ -125,7 +125,7 @@ namespace Zibra::AssetResolver
         if (result != CE::ZCE_SUCCESS || vdbGrids.empty())
         {
             TF_DEBUG(ZIBRAVDB_RESOLVER)
-                .Msg("DecompressionItem::DecompressFrame - Failed to decompress frame: %d\n", (int)result);
+                .Msg("DecompressionItem::DecompressFrame - Failed to decompress frame: %d\n", static_cast<int>(result));
             m_Decompressor->ReleaseGridShuffleInfo(gridShuffle);
             frameContainer->Release();
             return {};
@@ -200,7 +200,8 @@ namespace Zibra::AssetResolver
         if (result != CE::ZCE_SUCCESS)
         {
             TF_DEBUG(ZIBRAVDB_RESOLVER)
-                .Msg("DecompressionItem::CreateDecompressorManager - Failed to initialize DecompressorManager: %d\n", (int)result);
+                .Msg("DecompressionItem::CreateDecompressorManager - Failed to initialize DecompressorManager: %d\n",
+                     static_cast<int>(result));
             return nullptr;
         }
 
@@ -222,7 +223,7 @@ namespace Zibra::AssetResolver
             return nullptr;
         default: {
             TF_DEBUG(ZIBRAVDB_RESOLVER)
-                .Msg("DecompressionItem::CreateDecompressorManager - Failed to register decompressor: %d\n", (int)result);
+                .Msg("DecompressionItem::CreateDecompressorManager - Failed to register decompressor: %d\n", static_cast<int>(result));
             return nullptr;
         }
         }

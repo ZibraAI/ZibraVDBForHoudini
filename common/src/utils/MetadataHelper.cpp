@@ -8,19 +8,21 @@ namespace Zibra::Utils
 {
     using namespace std::literals;
 
-    void MetadataHelper::ApplyGridMetadata(GU_Detail* gdp, GU_PrimVDB* grid, CE::Decompression::CompressedFrameContainer* frameContainer)
+    void MetadataHelper::ApplyGridMetadata(GU_Detail* gdp, GU_PrimVDB* grid,
+                                           const CE::Decompression::CompressedFrameContainer* frameContainer)
     {
         ApplyGridAttributeMetadata(gdp, grid, frameContainer);
         ApplyGridVisualizationMetadata(grid, frameContainer);
     }
 
 
-    void MetadataHelper::ApplyGridAttributeMetadata(GU_Detail* gdp, GU_PrimVDB* grid, CE::Decompression::CompressedFrameContainer* frameContainer)
+    void MetadataHelper::ApplyGridAttributeMetadata(GU_Detail* gdp, GU_PrimVDB* grid,
+                                                    const CE::Decompression::CompressedFrameContainer* frameContainer)
     {
         {
             const std::string attributeMetadataNameV2 = "houdiniPrimitiveAttributesV2_"s + grid->getGridName();
             const char* metadataEntryV2 = frameContainer->GetMetadataByKey(attributeMetadataNameV2.c_str());
-            if (metadataEntryV2)
+            if (metadataEntryV2 != nullptr)
             {
                 auto primAttribMeta = nlohmann::json::parse(metadataEntryV2);
                 LoadAttributesV2(gdp, GA_ATTRIB_PRIMITIVE, grid->getMapOffset(), primAttribMeta);
@@ -30,7 +32,7 @@ namespace Zibra::Utils
         {
             const std::string attributeMetadataNameV1 = "houdiniPrimitiveAttributes_"s + grid->getGridName();
             const char* metadataEntryV1 = frameContainer->GetMetadataByKey(attributeMetadataNameV1.c_str());
-            if (metadataEntryV1)
+            if (metadataEntryV1 != nullptr)
             {
                 auto primAttribMeta = nlohmann::json::parse(metadataEntryV1);
                 Utils::LoadAttributesV1(gdp, GA_ATTRIB_PRIMITIVE, grid->getMapOffset(), primAttribMeta);
@@ -39,23 +41,24 @@ namespace Zibra::Utils
         }
     }
 
-    void MetadataHelper::ApplyGridMetadata(openvdb::GridBase::Ptr grid, CE::Decompression::CompressedFrameContainer* frameContainer)
+    void MetadataHelper::ApplyGridMetadata(const openvdb::GridBase::Ptr& grid,
+                                           const CE::Decompression::CompressedFrameContainer* frameContainer)
     {
         const std::string attributeMetadataNameV2 = "houdiniPrimitiveAttributesV2_"s + grid->getName();
         const char* metadataEntryV2 = frameContainer->GetMetadataByKey(attributeMetadataNameV2.c_str());
-        if (metadataEntryV2)
+        if (metadataEntryV2 != nullptr)
         {
             auto primAttribMeta = nlohmann::json::parse(metadataEntryV2);
             LoadAttributesV2(grid.get(), primAttribMeta);
         }
     }
 
-    void MetadataHelper::ApplyDetailMetadata(GU_Detail* gdp, CE::Decompression::CompressedFrameContainer* frameContainer)
+    void MetadataHelper::ApplyDetailMetadata(GU_Detail* gdp, const CE::Decompression::CompressedFrameContainer* frameContainer)
     {
         {
             const char* detailMetadataV2 = frameContainer->GetMetadataByKey("houdiniDetailAttributesV2");
 
-            if (detailMetadataV2)
+            if (detailMetadataV2 != nullptr)
             {
                 auto detailAttribMeta = nlohmann::json::parse(detailMetadataV2);
                 Utils::LoadAttributesV2(gdp, GA_ATTRIB_DETAIL, 0, detailAttribMeta);
@@ -65,7 +68,7 @@ namespace Zibra::Utils
         {
             const char* detailMetadataV1 = frameContainer->GetMetadataByKey("houdiniDetailAttributes");
 
-            if (detailMetadataV1)
+            if (detailMetadataV1 != nullptr)
             {
                 auto detailAttribMeta = nlohmann::json::parse(detailMetadataV1);
                 Utils::LoadAttributesV1(gdp, GA_ATTRIB_DETAIL, 0, detailAttribMeta);
@@ -74,18 +77,18 @@ namespace Zibra::Utils
         }
     }
 
-    void MetadataHelper::ApplyDetailMetadata(openvdb::MetaMap* target, CE::Decompression::CompressedFrameContainer* frameContainer)
+    void MetadataHelper::ApplyDetailMetadata(openvdb::MetaMap* target, const CE::Decompression::CompressedFrameContainer* frameContainer)
     {
         const char* detailMetadataV2 = frameContainer->GetMetadataByKey("houdiniDetailAttributesV2");
 
-        if (detailMetadataV2)
+        if (detailMetadataV2 != nullptr)
         {
             auto detailAttribMeta = nlohmann::json::parse(detailMetadataV2);
             LoadAttributesV2(target, detailAttribMeta);
         }
     }
 
-    void MetadataHelper::ApplyGridVisualizationMetadata(GU_PrimVDB* grid, CE::Decompression::CompressedFrameContainer* frameContainer)
+    void MetadataHelper::ApplyGridVisualizationMetadata(GU_PrimVDB* grid, const CE::Decompression::CompressedFrameContainer* frameContainer)
     {
         const std::string keyPrefix = "houdiniVisualizationAttributes_"s + grid->getGridName();
 
@@ -101,7 +104,7 @@ namespace Zibra::Utils
         const std::string keyVisLod = keyPrefix + "_lod";
         const char* visLodMetadata = frameContainer->GetMetadataByKey(keyVisLod.c_str());
 
-        if (visModeMetadata && visIsoMetadata && visDensityMetadata && visLodMetadata)
+        if ((visModeMetadata != nullptr) && (visIsoMetadata != nullptr) && (visDensityMetadata != nullptr) && (visLodMetadata != nullptr))
         {
             GEO_VolumeOptions visOptions{};
             visOptions.myMode = static_cast<GEO_VolumeVis>(std::stoi(visModeMetadata));
@@ -117,12 +120,12 @@ namespace Zibra::Utils
     {
         std::vector<std::pair<std::string, std::string>> result{};
 
-        const GEO_Primitive* prim;
+        const GEO_Primitive* prim = nullptr;
         GA_FOR_ALL_PRIMITIVES(gdp, prim)
         {
             if (prim->getTypeId() == GEO_PRIMVDB)
             {
-                auto vdbPrim = dynamic_cast<const GEO_PrimVDB*>(prim);
+                const auto* vdbPrim = dynamic_cast<const GEO_PrimVDB*>(prim);
 
                 nlohmann::json primAttrDump = Utils::DumpAttributesV2(gdp, GA_ATTRIB_PRIMITIVE, prim->getMapOffset());
                 std::string primKeyName = "houdiniPrimitiveAttributesV2_"s + vdbPrim->getGridName();
@@ -161,7 +164,7 @@ namespace Zibra::Utils
         attributes.emplace_back(std::move(keyVisLod), std::move(valueVisLod));
     }
 
-    nlohmann::json MetadataHelper::DumpGridsShuffleInfo(const std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc> gridDescs) noexcept
+    nlohmann::json MetadataHelper::DumpGridsShuffleInfo(const std::vector<CE::Addons::OpenVDBUtils::VDBGridDesc>& gridDescs) noexcept
     {
         static std::map<CE::Addons::OpenVDBUtils::GridVoxelType, std::string> voxelTypeToString = {
             {CE::Addons::OpenVDBUtils::GridVoxelType::Float1, "Float1"}, {CE::Addons::OpenVDBUtils::GridVoxelType::Float3, "Float3"}};
@@ -176,7 +179,7 @@ namespace Zibra::Utils
             for (size_t i = 0; i < std::size(gridDesc.chSource); ++i)
             {
                 std::string name{"chSource"};
-                if (gridDesc.chSource[i])
+                if (gridDesc.chSource[i] != nullptr)
                 {
                     serializedDesc[name + std::to_string(i)] = gridDesc.chSource[i];
                 }

@@ -9,6 +9,7 @@ package/
 
 # Python virtual environment
 venv/
+__pycache__/
 
 # Backups for HDAs
 /assets/otls/backup/

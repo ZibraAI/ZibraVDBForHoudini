@@ -40,7 +40,7 @@ jobs:
 
       - name: Sync
         if: ${{ steps.pr_check.outputs.has_open_pr != 'true' }}
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Build matrix
         if: ${{ steps.pr_check.outputs.has_open_pr != 'true' }}
@@ -71,7 +71,7 @@ jobs:
 
     steps:
       - name: Sync
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Install python
         if: ${{ matrix.os == 'windows' }}
@@ -142,7 +142,7 @@ jobs:
 
     steps:
       - name: Sync
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         
       - name: Download artifacts
         uses: actions/download-artifact@v8

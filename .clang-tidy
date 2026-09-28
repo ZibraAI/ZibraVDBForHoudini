@@ -1,0 +1,77 @@
+Checks: >
+  -*,
+  bugprone-*,
+  cppcoreguidelines-*,
+  modernize-*,
+  performance-*,
+  portability-*,
+  readability-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-exception-escape,
+  -bugprone-reserved-identifier,
+  -bugprone-throwing-static-initialization,
+  -bugprone-unhandled-exception-at-new,
+  -cppcoreguidelines-avoid-c-arrays,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-avoid-non-const-global-variables,
+  -cppcoreguidelines-macro-usage,
+  -cppcoreguidelines-owning-memory,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
+  -cppcoreguidelines-pro-bounds-constant-array-index,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-type-vararg,
+  -performance-enum-size,
+  -portability-avoid-pragma-once,
+  -readability-container-contains,
+  -readability-convert-member-functions-to-static,
+  -readability-function-cognitive-complexity,
+  -readability-identifier-length,
+  -readability-magic-numbers,
+  -readability-named-parameter,
+  -readability-redundant-typename,
+  -readability-uppercase-literal-suffix,
+  -modernize-use-trailing-return-type,
+  -modernize-avoid-c-arrays,
+  -modernize-use-ranges,
+  -modernize-use-integer-sign-comparison,
+  -modernize-use-designated-initializers,
+  -modernize-use-auto
+
+
+HeaderFilterRegex: '.*[\\/](src|common|AssetResolver)[\\/].*'
+WarningsAsErrors: '*'
+FormatStyle: file
+
+CheckOptions:
+  readability-identifier-naming.NamespaceCase: CamelCase
+  readability-identifier-naming.ClassCase: CamelCase
+  # Houdini operator classes use HDK prefix convention: e.g SOP_ZibraVDBDecompressor
+  readability-identifier-naming.ClassIgnoredRegexp: '^[A-Z]{3}_.*$'
+  readability-identifier-naming.StructCase: CamelCase
+  readability-identifier-naming.UnionCase: CamelCase
+  readability-identifier-naming.EnumCase: CamelCase
+
+  readability-identifier-naming.FunctionCase: CamelCase
+  readability-identifier-naming.MethodCase: CamelCase
+
+  # Small data structs may use float x, y, z, and we don't check public therefore
+  readability-identifier-naming.PrivateMemberPrefix: 'm_'
+  readability-identifier-naming.PrivateMemberCase: CamelCase
+  readability-identifier-naming.ProtectedMemberPrefix: 'm_'
+  readability-identifier-naming.ProtectedMemberCase: CamelCase
+
+  readability-identifier-naming.ClassMemberPrefix: 'ms_'
+  readability-identifier-naming.ClassMemberCase: CamelCase
+
+  readability-identifier-naming.ConstexprVariableCase: UPPER_CASE
+  readability-identifier-naming.MacroDefinitionCase: UPPER_CASE
+
+  # Abbreviation at the start is allowed. e.g UAVs, RHIFactory
+  readability-identifier-naming.LocalVariableCase: camelBack
+  readability-identifier-naming.LocalVariableIgnoredRegexp: '^[A-Z]{2}.*$'
+
+  readability-identifier-naming.GlobalVariablePrefix: 'g_'
+  readability-identifier-naming.GlobalVariableCase: CamelCase
+
+  readability-identifier-naming.ScopedEnumConstantCase: CamelCase

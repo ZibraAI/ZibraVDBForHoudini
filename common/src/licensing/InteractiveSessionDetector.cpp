@@ -6,10 +6,6 @@ namespace Zibra
     {
         std::string appName = HOM().applicationName();
 
-        if (appName == "houdinifx")
-        {
-            return true;
-        }
-        return false;
+        return appName == "houdinifx";
     }
 } // namespace Zibra
