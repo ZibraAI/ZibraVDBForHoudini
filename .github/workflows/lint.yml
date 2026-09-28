@@ -22,12 +22,16 @@ jobs:
           python -m venv venv
           ./venv/Scripts/Activate.ps1
           python -m pip install -r requirements.txt
-          $Build = python -c @"
-          import build_matrix, houdini_version_query
-          print(houdini_version_query.query_houdini_builds('houdini', '22.0', [p['22.0'] for p in build_matrix.HOUDINI_PLATFORMS.values()])[0])
+          $Version, $Build, $Platform, $InstallPath = python -c @"
+          import build_matrix, houdini_version_query, houdini_install_shared
+          version = build_matrix.HOUDINI_VERSIONS[-1]
+          build = houdini_version_query.query_houdini_builds('houdini', version, [p[version] for p in build_matrix.HOUDINI_PLATFORMS.values()])[0]
+          print(version)
+          print(build)
+          print(build_matrix.HOUDINI_PLATFORMS['win64'][version])
+          print(houdini_install_shared.get_install_path(version, build))
           "@
-          $InstallPath = "C:\Houdini\22.0.$Build"
-          python install_houdini.py --version 22.0 --build $Build --platform win64-vc143 --install-path $InstallPath
+          python install_houdini.py --version $Version --build $Build --platform $Platform --install-path $InstallPath
           "HFS=$InstallPath" >> $env:GITHUB_ENV
         env:
           HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
