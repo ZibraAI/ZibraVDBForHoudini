@@ -1,7 +1,6 @@
 name: Lint
 
-#DONTSUBMIT
-on: [push, pull_request]
+on: [pull_request]
 
 jobs:
   clang-tidy:
