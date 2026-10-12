@@ -10,15 +10,17 @@ namespace Zibra
 {
     const char* const LicenseManager::ms_DefaultLicenseKeyFileName = "zibravdb_license_key.txt";
     const char* const LicenseManager::ms_DefaultLicenseServerFileName = "zibravdb_license_server.txt";
-    constexpr const char* ZIBRAVDB_LICENSE_KEY_ENV_VAR = "ZIBRAVDB_HOUDINI_LICENSE_KEY";
-    constexpr const char* ZIBRAVDB_LICENSE_KEY_ENV_VAR_LEGACY = "ZIBRAVDB_LICENSE_KEY";
-    constexpr const char* ZIBRAVDB_LICENSE_SERVER_ENV_VAR = "ZIBRAVDB_HOUDINI_LICENSE_SERVER";
-    constexpr const char* ZIBRAVDB_LICENSE_SERVER_ENV_VAR_LEGACY = "ZIBRAVDB_LICENSE_SERVER";
-
-    static std::optional<std::string> GetEnvironmentVariableValue(const char* envVarName, const char* legacyEnvVarName)
+    
+    static std::optional<std::string> GetLicenseKeyEnvVarValue()
     {
-        std::optional<std::string> value = Helpers::GetNormalEnvironmentVariable(envVarName);
-        return value.has_value() ? value : Helpers::GetNormalEnvironmentVariable(legacyEnvVarName);
+        std::optional<std::string> value = Helpers::GetNormalEnvironmentVariable("ZIBRAVDB_HOUDINI_LICENSE_KEY");
+        return value.has_value() ? value : Helpers::GetNormalEnvironmentVariable("ZIBRAVDB_LICENSE_KEY");
+    }
+
+    static std::optional<std::string> GetLicenseServerEnvVarValue()
+    {
+        std::optional<std::string> value = Helpers::GetNormalEnvironmentVariable("ZIBRAVDB_HOUDINI_LICENSE_SERVER");
+        return value.has_value() ? value : Helpers::GetNormalEnvironmentVariable("ZIBRAVDB_LICENSE_SERVER");
     }
 
     LicenseManager& LicenseManager::GetInstance()
@@ -151,7 +153,7 @@ namespace Zibra
 
         std::string targetFile;
 
-        std::optional<std::string> envPath = GetEnvironmentVariableValue(ZIBRAVDB_LICENSE_KEY_ENV_VAR, ZIBRAVDB_LICENSE_KEY_ENV_VAR_LEGACY);
+        std::optional<std::string> envPath = GetLicenseKeyEnvVarValue();
         if (envPath.has_value() && std::filesystem::is_regular_file(envPath.value()))
         {
             targetFile = envPath.value();
@@ -198,7 +200,7 @@ namespace Zibra
 
         std::string targetFile;
 
-        std::optional<std::string> envPath = GetEnvironmentVariableValue(ZIBRAVDB_LICENSE_SERVER_ENV_VAR, ZIBRAVDB_LICENSE_SERVER_ENV_VAR_LEGACY);
+        std::optional<std::string> envPath = GetLicenseServerEnvVarValue();
         if (envPath.has_value() && std::filesystem::is_regular_file(envPath.value()))
         {
             targetFile = envPath.value();
@@ -327,8 +329,7 @@ namespace Zibra
         switch (pathType)
         {
         case LicensePathType::EnvVar:
-            if (std::optional<std::string> envPath =
-                    GetEnvironmentVariableValue(ZIBRAVDB_LICENSE_KEY_ENV_VAR, ZIBRAVDB_LICENSE_KEY_ENV_VAR_LEGACY))
+            if (std::optional<std::string> envPath = GetLicenseKeyEnvVarValue())
             {
                 potentialPaths.push_back(envPath.value());
             }
@@ -369,8 +370,7 @@ namespace Zibra
         switch (pathType)
         {
         case LicensePathType::EnvVar:
-            if (std::optional<std::string> envPath =
-                    GetEnvironmentVariableValue(ZIBRAVDB_LICENSE_SERVER_ENV_VAR, ZIBRAVDB_LICENSE_SERVER_ENV_VAR_LEGACY))
+            if (std::optional<std::string> envPath = GetLicenseServerEnvVarValue())
             {
                 potentialPaths.push_back(envPath.value());
             }
