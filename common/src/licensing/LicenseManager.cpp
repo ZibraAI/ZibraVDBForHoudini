@@ -10,8 +10,16 @@ namespace Zibra
 {
     const char* const LicenseManager::ms_DefaultLicenseKeyFileName = "zibravdb_license_key.txt";
     const char* const LicenseManager::ms_DefaultLicenseServerFileName = "zibravdb_license_server.txt";
-    const char* const ZIBRAVDB_LICENSE_KEY_ENV_VARS[] = {"ZIBRAVDB_HOUDINI_LICENSE_KEY", "ZIBRAVDB_LICENSE_KEY"};
-    const char* const ZIBRAVDB_LICENSE_SERVER_ENV_VARS[] = {"ZIBRAVDB_HOUDINI_LICENSE_SERVER", "ZIBRAVDB_LICENSE_SERVER"};
+    constexpr const char* ZIBRAVDB_LICENSE_KEY_ENV_VAR = "ZIBRAVDB_HOUDINI_LICENSE_KEY";
+    constexpr const char* ZIBRAVDB_LICENSE_KEY_ENV_VAR_LEGACY = "ZIBRAVDB_LICENSE_KEY";
+    constexpr const char* ZIBRAVDB_LICENSE_SERVER_ENV_VAR = "ZIBRAVDB_HOUDINI_LICENSE_SERVER";
+    constexpr const char* ZIBRAVDB_LICENSE_SERVER_ENV_VAR_LEGACY = "ZIBRAVDB_LICENSE_SERVER";
+
+    static std::optional<std::string> GetEnvironmentVariableValue(const char* envVarName, const char* legacyEnvVarName)
+    {
+        std::optional<std::string> value = Helpers::GetNormalEnvironmentVariable(envVarName);
+        return value.has_value() ? value : Helpers::GetNormalEnvironmentVariable(legacyEnvVarName);
+    }
 
     LicenseManager& LicenseManager::GetInstance()
     {
@@ -84,12 +92,13 @@ namespace Zibra
         for (LicensePathType i = LicensePathType::EnvVar; i <= LicensePathType::UserPrefDir;
              i = LicensePathType(static_cast<uint32_t>(i) + 1))
         {
-            for (std::string keyPath = GetKeyPath(i); !keyPath.empty(); keyPath = GetKeyPath(i))
+            std::string keyPath = GetKeyPath(i);
+            if (std::filesystem::is_regular_file(keyPath))
             {
                 std::filesystem::remove(keyPath);
             }
-            for (std::string licenseServerAddressPath = GetLicenseServerAddressPath(i); !licenseServerAddressPath.empty();
-                 licenseServerAddressPath = GetLicenseServerAddressPath(i))
+            std::string licenseServerAddressPath = GetLicenseServerAddressPath(i);
+            if (std::filesystem::is_regular_file(licenseServerAddressPath))
             {
                 std::filesystem::remove(licenseServerAddressPath);
             }
@@ -140,8 +149,14 @@ namespace Zibra
             return;
         }
 
-        std::string targetFile = GetKeyPath(LicensePathType::EnvVar);
-        if (targetFile.empty())
+        std::string targetFile;
+
+        std::optional<std::string> envPath = GetEnvironmentVariableValue(ZIBRAVDB_LICENSE_KEY_ENV_VAR, ZIBRAVDB_LICENSE_KEY_ENV_VAR_LEGACY);
+        if (envPath.has_value() && std::filesystem::is_regular_file(envPath.value()))
+        {
+            targetFile = envPath.value();
+        }
+        else
         {
             std::vector<std::string> userPrefDir =
                 Helpers::GetHoudiniEnvironmentVariable(ENV_HOUDINI_USER_PREF_DIR, "HOUDINI_USER_PREF_DIR");
@@ -181,8 +196,14 @@ namespace Zibra
             return;
         }
 
-        std::string targetFile = GetLicenseServerAddressPath(LicensePathType::EnvVar);
-        if (targetFile.empty())
+        std::string targetFile;
+
+        std::optional<std::string> envPath = GetEnvironmentVariableValue(ZIBRAVDB_LICENSE_SERVER_ENV_VAR, ZIBRAVDB_LICENSE_SERVER_ENV_VAR_LEGACY);
+        if (envPath.has_value() && std::filesystem::is_regular_file(envPath.value()))
+        {
+            targetFile = envPath.value();
+        }
+        else
         {
             std::vector<std::string> userPrefDir =
                 Helpers::GetHoudiniEnvironmentVariable(ENV_HOUDINI_USER_PREF_DIR, "HOUDINI_USER_PREF_DIR");
@@ -306,10 +327,10 @@ namespace Zibra
         switch (pathType)
         {
         case LicensePathType::EnvVar:
-            for (auto envVar : ZIBRAVDB_LICENSE_KEY_ENV_VARS)
+            if (std::optional<std::string> envPath =
+                    GetEnvironmentVariableValue(ZIBRAVDB_LICENSE_KEY_ENV_VAR, ZIBRAVDB_LICENSE_KEY_ENV_VAR_LEGACY))
             {
-                std::vector<std::string> paths = Helpers::GetHoudiniEnvironmentVariable(ENV_MAX_STR_CONTROLS, envVar);
-                potentialPaths.insert(potentialPaths.end(), paths.begin(), paths.end());
+                potentialPaths.push_back(envPath.value());
             }
             break;
         case LicensePathType::UserPrefDir:
@@ -348,10 +369,10 @@ namespace Zibra
         switch (pathType)
         {
         case LicensePathType::EnvVar:
-            for (auto envVar : ZIBRAVDB_LICENSE_SERVER_ENV_VARS)
+            if (std::optional<std::string> envPath =
+                    GetEnvironmentVariableValue(ZIBRAVDB_LICENSE_SERVER_ENV_VAR, ZIBRAVDB_LICENSE_SERVER_ENV_VAR_LEGACY))
             {
-                std::vector<std::string> paths = Helpers::GetHoudiniEnvironmentVariable(ENV_MAX_STR_CONTROLS, envVar);
-                potentialPaths.insert(potentialPaths.end(), paths.begin(), paths.end());
+                potentialPaths.push_back(envPath.value());
             }
             break;
         case LicensePathType::UserPrefDir:
