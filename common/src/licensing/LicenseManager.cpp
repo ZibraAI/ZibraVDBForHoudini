@@ -306,7 +306,7 @@ namespace Zibra
         switch (pathType)
         {
         case LicensePathType::EnvVar:
-            for (const char* envVar : ZIBRAVDB_LICENSE_KEY_ENV_VARS)
+            for (auto envVar : ZIBRAVDB_LICENSE_KEY_ENV_VARS)
             {
                 std::vector<std::string> paths = Helpers::GetHoudiniEnvironmentVariable(ENV_MAX_STR_CONTROLS, envVar);
                 potentialPaths.insert(potentialPaths.end(), paths.begin(), paths.end());
@@ -348,7 +348,7 @@ namespace Zibra
         switch (pathType)
         {
         case LicensePathType::EnvVar:
-            for (const char* envVar : ZIBRAVDB_LICENSE_SERVER_ENV_VARS)
+            for (auto envVar : ZIBRAVDB_LICENSE_SERVER_ENV_VARS)
             {
                 std::vector<std::string> paths = Helpers::GetHoudiniEnvironmentVariable(ENV_MAX_STR_CONTROLS, envVar);
                 potentialPaths.insert(potentialPaths.end(), paths.begin(), paths.end());
