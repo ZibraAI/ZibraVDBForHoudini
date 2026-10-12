@@ -84,13 +84,12 @@ namespace Zibra
         for (LicensePathType i = LicensePathType::EnvVar; i <= LicensePathType::UserPrefDir;
              i = LicensePathType(static_cast<uint32_t>(i) + 1))
         {
-            std::string keyPath = GetKeyPath(i);
-            if (std::filesystem::is_regular_file(keyPath))
+            for (std::string keyPath = GetKeyPath(i); !keyPath.empty(); keyPath = GetKeyPath(i))
             {
                 std::filesystem::remove(keyPath);
             }
-            std::string licenseServerAddressPath = GetLicenseServerAddressPath(i);
-            if (std::filesystem::is_regular_file(licenseServerAddressPath))
+            for (std::string licenseServerAddressPath = GetLicenseServerAddressPath(i); !licenseServerAddressPath.empty();
+                 licenseServerAddressPath = GetLicenseServerAddressPath(i))
             {
                 std::filesystem::remove(licenseServerAddressPath);
             }
