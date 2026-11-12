@@ -134,7 +134,7 @@ jobs:
           retention-days: 7
 
   merge-packages:
-    runs-on: macos-14
+    runs-on: [self-hosted, macOS, ARM64]
     needs: [select-houdini-build, build-plugin]
     # Only run merge if there is more than one build in matrix
     if: ${{ fromJson(needs.select-houdini-build.outputs.build-matrix-json).include[1] != null }}
