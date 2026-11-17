@@ -76,6 +76,7 @@
 #define NOKANJI
 #define NOCRYPT
 #define NOMCX
+#include <windows.h>
 #include <winhttp.h>
 #include <winuser.h>
 #undef ERROR
