@@ -1,6 +1,11 @@
 name: Build
 
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+    branches: ['**']
+    tags: ['v[0-9]+.[0-9]+.[0-9]+.[0-9]+']
+  pull_request:
+  workflow_dispatch:
 
 jobs:
   select-houdini-build:
@@ -8,7 +13,8 @@ jobs:
     runs-on: [self-hosted, Linux, X64]
     outputs:
       need-run: ${{ steps.pr_check.outputs.has_open_pr != 'true' }}
-      need-build-macos: ${{ (steps.pr_check.outputs.has_open_pr != 'true') && (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') }}
+      need-build-macos: ${{ (steps.pr_check.outputs.has_open_pr != 'true') && (github.ref == 'refs/heads/main' || github.event_name == 'pull_request' || github.ref_type == 'tag') }}
+      is-release: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
       # Legend
       # name - Human readable OS/Arch name. Version is appended separately.
       # os - Runner OS. Used for workflow logic.
@@ -26,9 +32,9 @@ jobs:
 
     steps:
       - name: Check for open PRs
-        if: ${{ github.event_name == 'push' }}
+        if: ${{ github.event_name == 'push' && github.ref_type == 'branch' }}
         id: pr_check
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const { owner, repo } = context.repo;
@@ -51,7 +57,7 @@ jobs:
           python3 -m venv actions/houdini/venv
           ./actions/houdini/venv/bin/Activate.ps1
           pip3 install -r actions/houdini/requirements.txt
-          python3 actions/houdini/build_matrix.py --all-platforms ${{ (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && '--all-builds' || '' }} ${{ (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') && '--all-versions' || '' }}
+          python3 actions/houdini/build_matrix.py --all-platforms ${{ (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch' || github.ref_type == 'tag') && '--all-builds' || '' }} ${{ (github.ref == 'refs/heads/main' || github.event_name == 'pull_request' || github.ref_type == 'tag') && '--all-versions' || '' }}
         env:
           HOUDINI_CLIENT_ID: ${{ secrets.HOUDINI_CLIENT_ID }}
           HOUDINI_SECRET_KEY: ${{ secrets.HOUDINI_SECRET_KEY }}
@@ -64,6 +70,10 @@ jobs:
       matrix: ${{ fromJson(needs.select-houdini-build.outputs.build-matrix-json) }}
             
     runs-on: ${{ matrix.runner }}
+    environment: ${{ needs.select-houdini-build.outputs.is-release == 'true' && 'signing' || '' }}
+    permissions:
+      contents: read
+      id-token: write # OIDC token for azure/login
     concurrency:
       group: ${{ matrix.houdini-platform }}-${{ matrix.houdini-version }}-${{ matrix.houdini-build }}-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
       cancel-in-progress: true
@@ -125,6 +135,80 @@ jobs:
         shell: pwsh
         run: cmake --build build --config Release
 
+      - name: Find binaries to sign
+        if: ${{ needs.select-houdini-build.outputs.is-release == 'true' && matrix.os == 'windows' }}
+        id: find_binaries
+        shell: pwsh
+        run: |
+          $Binaries = @()
+          foreach ($Name in @("ZibraVDBForHoudini.dll", "ZibraVDBResolver.dll"))
+          {
+            $Found = @(Get-ChildItem -Path "${{ github.workspace }}/package/ZibraVDB" -Recurse -File -Filter $Name)
+            if ($Found.Count -ne 1)
+            {
+              Write-Error "Expected exactly 1 $Name in package, found $($Found.Count)"
+              exit 1
+            }
+            Write-Output "Binary to sign: $($Found[0].FullName)"
+            $Binaries += $Found[0].FullName
+          }
+          "paths=$($Binaries -join ',')" >> $env:GITHUB_OUTPUT
+
+      - name: Azure login
+        if: ${{ needs.select-houdini-build.outputs.is-release == 'true' && matrix.os == 'windows' }}
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          # Signing only needs a token for the Artifact Signing
+          allow-no-subscriptions: true
+
+      - name: Sign binaries with Azure Artifact Signing
+        if: ${{ needs.select-houdini-build.outputs.is-release == 'true' && matrix.os == 'windows' }}
+        uses: azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
+        with:
+          endpoint: ${{ secrets.AZURE_ARTIFACT_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ secrets.AZURE_ARTIFACT_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.AZURE_ARTIFACT_SIGNING_CERTIFICATE_PROFILE }}
+          # Comma separated list of files
+          files: ${{ steps.find_binaries.outputs.paths }}
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+          # The self-hosted runner keeps the signing tools installed between runs
+          cache-dependencies: false
+          # Use only the azure/login session (OIDC), skip every other credential type.
+          exclude-environment-credential: true
+          exclude-workload-identity-credential: true
+          exclude-managed-identity-credential: true
+          exclude-shared-token-cache-credential: true
+          exclude-visual-studio-credential: true
+          exclude-visual-studio-code-credential: true
+          exclude-azure-cli-credential: false
+          exclude-azure-powershell-credential: true
+          exclude-azure-developer-cli-credential: true
+          exclude-interactive-browser-credential: true
+
+      - name: Verify signatures
+        if: ${{ needs.select-houdini-build.outputs.is-release == 'true' && matrix.os == 'windows' }}
+        shell: pwsh
+        run: |
+          $Failed = $false
+          foreach ($Binary in "${{ steps.find_binaries.outputs.paths }}".Split(','))
+          {
+            $Sig = Get-AuthenticodeSignature $Binary
+            Write-Host "File: $Binary"
+            Write-Host "  Status: $($Sig.Status)"
+            Write-Host "  Signer: $($Sig.SignerCertificate.Subject)"
+            Write-Host "  Timestamp: $($Sig.TimeStamperCertificate.Subject)"
+            if ($Sig.Status -ne 'Valid')
+            {
+              Write-Error "Signature is not valid for $($Binary): $($Sig.StatusMessage)" -ErrorAction Continue
+              $Failed = $true
+            }
+          }
+          if ($Failed) { exit 1 }
+
       - name: Save artifacts
         uses: actions/upload-artifact@v7
         with:
@@ -138,7 +222,7 @@ jobs:
     needs: [select-houdini-build, build-plugin]
     # Only run merge if there is more than one build in matrix
     if: ${{ fromJson(needs.select-houdini-build.outputs.build-matrix-json).include[1] != null }}
-    name: Merge packages ${{ github.event_name == 'pull_request' && '(PR)' || (github.event_name == 'workflow_dispatch' &&' (Workflow Dispatch)' || ' (Push)') }}
+    name: Merge packages ${{ needs.select-houdini-build.outputs.is-release == 'true' && '(Release)' || (github.event_name == 'pull_request' && '(PR)' || (github.event_name == 'workflow_dispatch' &&' (Workflow Dispatch)' || ' (Push)')) }}
 
     steps:
       - name: Sync
@@ -167,15 +251,16 @@ jobs:
         run: |
           pwsh ${{ github.workspace }}/actions/houdini/merge_packages.ps1 -Prefix "ZibraVDBForHoudini-" -DestFolder "merged"
 
+      # Release package name must not match "ZibraVDBForHoudini-*", otherwise it gets removed by "Delete partial artifacts"
       - name: Save merged packages
         uses: actions/upload-artifact@v7
         with:
-          name: ZibraVDBForHoudini
+          name: ${{ needs.select-houdini-build.outputs.is-release == 'true' && format('ZibraVDBForHoudini_{0}', github.ref_name) || 'ZibraVDBForHoudini' }}
           path: merged
           if-no-files-found: error
-          retention-days: 28
+          retention-days: ${{ needs.select-houdini-build.outputs.is-release == 'true' && 90 || 28 }}
 
       - name: Delete partial artifacts
-        uses: geekyeggo/delete-artifact@f275313e70c08f6120db482d7a6b98377786765b # v5.1.0
+        uses: geekyeggo/delete-artifact@176a747ab7e287e3ff4787bf8a148716375ca118 # v6.0.0
         with:
           name: ZibraVDBForHoudini-*
