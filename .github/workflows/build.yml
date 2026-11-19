@@ -34,7 +34,7 @@ jobs:
       - name: Check for open PRs
         if: ${{ github.event_name == 'push' && github.ref_type == 'branch' }}
         id: pr_check
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const { owner, repo } = context.repo;
@@ -261,6 +261,6 @@ jobs:
           retention-days: ${{ needs.select-houdini-build.outputs.is-release == 'true' && 90 || 28 }}
 
       - name: Delete partial artifacts
-        uses: geekyeggo/delete-artifact@f275313e70c08f6120db482d7a6b98377786765b # v5.1.0
+        uses: geekyeggo/delete-artifact@176a747ab7e287e3ff4787bf8a148716375ca118 # v6.0.0
         with:
           name: ZibraVDBForHoudini-*
